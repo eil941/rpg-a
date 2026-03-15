@@ -1,0 +1,118 @@
+[gd_scene format=3 uid="uid://b1t152o4kskqv"]
+
+[ext_resource type="Texture2D" uid="uid://cspenfvtyt8gp" path="res://assets/floor.png" id="1_0bbpv"]
+[ext_resource type="Script" uid="uid://ca4ywj6xcxnbk" path="res://scripts/main.gd" id="1_rarhs"]
+[ext_resource type="Texture2D" uid="uid://c2m7luwc4wy8b" path="res://assets/wall.png" id="2_rarhs"]
+[ext_resource type="Texture2D" uid="uid://ckj4j0fakksd0" path="res://assets/player.png" id="3_wp0k4"]
+[ext_resource type="Texture2D" uid="uid://cxtb1pxr3y2o2" path="res://assets/glass.png" id="5_bjd11"]
+[ext_resource type="Texture2D" uid="uid://b2cbq34vcbsoc" path="res://assets/highrock1.png" id="6_qmy6f"]
+[ext_resource type="Texture2D" uid="uid://xp2lsblny577" path="res://assets/deepsea.png" id="7_mwfav"]
+[ext_resource type="Texture2D" uid="uid://wq3fbwj1mcv8" path="res://assets/rock1.png" id="8_3p2gp"]
+[ext_resource type="Texture2D" uid="uid://bi65cbt76yey" path="res://assets/sand.png" id="9_cvmbd"]
+[ext_resource type="Texture2D" uid="uid://bq007sqr4ej4b" path="res://assets/sea.png" id="10_ft6cd"]
+[ext_resource type="PackedScene" uid="uid://cjntf4kbtxh73" path="res://scenes/unit.tscn" id="11_bjd11"]
+[ext_resource type="PackedScene" uid="uid://cmvysxaa458bi" path="res://scenes/Enemyunit_1.tscn" id="12_bjd11"]
+[ext_resource type="PackedScene" uid="uid://c0jrt3uvmhd2g" path="res://scenes/npc1.tscn" id="13_qmy6f"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_bb450"]
+texture = ExtResource("2_rarhs")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+0:0/0/custom_data_1 = "res://scenes/field_map.tscn"
+0:0/0/custom_data_2 = true
+0:0/0/custom_data_3 = 10
+0:0/0/custom_data_4 = 5
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_nfivy"]
+texture = ExtResource("3_wp0k4")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_1nqs0"]
+texture = ExtResource("1_0bbpv")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/custom_data_0 = true
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_1iba3"]
+texture = ExtResource("5_bjd11")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/custom_data_0 = true
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_yxlcp"]
+texture = ExtResource("6_qmy6f")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ebg2g"]
+texture = ExtResource("7_mwfav")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_2ofn6"]
+texture = ExtResource("8_3p2gp")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/custom_data_0 = true
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_xa025"]
+texture = ExtResource("9_cvmbd")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/custom_data_0 = true
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_36rkl"]
+texture = ExtResource("10_ft6cd")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/custom_data_0 = true
+
+[sub_resource type="TileSet" id="TileSet_fs0b5"]
+tile_size = Vector2i(32, 32)
+physics_layer_0/collision_layer = 1
+custom_data_layer_0/name = "can_enter"
+custom_data_layer_0/type = 1
+custom_data_layer_1/name = "enter_scene"
+custom_data_layer_1/type = 4
+custom_data_layer_2/name = "scene_transfer"
+custom_data_layer_2/type = 1
+custom_data_layer_3/name = "spawn_x"
+custom_data_layer_3/type = 2
+custom_data_layer_4/name = "spawn_y"
+custom_data_layer_4/type = 2
+sources/4 = SubResource("TileSetAtlasSource_yxlcp")
+sources/6 = SubResource("TileSetAtlasSource_2ofn6")
+sources/7 = SubResource("TileSetAtlasSource_xa025")
+sources/8 = SubResource("TileSetAtlasSource_36rkl")
+sources/0 = SubResource("TileSetAtlasSource_bb450")
+sources/3 = SubResource("TileSetAtlasSource_1iba3")
+sources/2 = SubResource("TileSetAtlasSource_1nqs0")
+sources/1 = SubResource("TileSetAtlasSource_nfivy")
+sources/5 = SubResource("TileSetAtlasSource_ebg2g")
+
+[node name="Main" type="Node2D" unique_id=1202522057]
+script = ExtResource("1_rarhs")
+
+[node name="TileMap" type="TileMap" parent="." unique_id=195687938]
+tile_set = SubResource("TileSet_fs0b5")
+format = 2
+
+[node name="Units" type="Node" parent="." unique_id=332583731]
+
+[node name="Unit" parent="Units" unique_id=40692456 instance=ExtResource("11_bjd11")]
+can_trigger_scene_transition = true
+receives_time_turns = false
+instant_move = false
+
+[node name="Enemy" parent="Units" unique_id=1372186950 instance=ExtResource("12_bjd11")]
+position = Vector2(5, 5)
+start_tile = Vector2i(10, 5)
+use_start_tile = true
+
+[node name="NPC" parent="Units" unique_id=1881567036 instance=ExtResource("13_qmy6f")]
+start_tile = Vector2i(15, 5)
+use_start_tile = true

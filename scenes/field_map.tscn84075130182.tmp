@@ -1,0 +1,93 @@
+[gd_scene format=3 uid="uid://2rywxwcsuhk7"]
+
+[ext_resource type="Script" uid="uid://dvk2f4dxietfj" path="res://scripts/FiledMap.gd" id="1_bf576"]
+[ext_resource type="Texture2D" uid="uid://cspenfvtyt8gp" path="res://assets/floor.png" id="2_bbcss"]
+[ext_resource type="Texture2D" uid="uid://c2m7luwc4wy8b" path="res://assets/wall.png" id="3_0py64"]
+[ext_resource type="PackedScene" uid="uid://ds68d61b7y1xl" path="res://scenes/player.tscn" id="4_354sw"]
+[ext_resource type="Texture2D" uid="uid://xp2lsblny577" path="res://assets/deepsea.png" id="4_qok4n"]
+[ext_resource type="Texture2D" uid="uid://cxtb1pxr3y2o2" path="res://assets/glass.png" id="5_uioun"]
+[ext_resource type="Texture2D" uid="uid://b2cbq34vcbsoc" path="res://assets/highrock1.png" id="6_jtseo"]
+[ext_resource type="Texture2D" uid="uid://ckj4j0fakksd0" path="res://assets/player.png" id="7_lt2t3"]
+[ext_resource type="Texture2D" uid="uid://wq3fbwj1mcv8" path="res://assets/rock1.png" id="8_wkcxi"]
+[ext_resource type="Texture2D" uid="uid://bi65cbt76yey" path="res://assets/sand.png" id="9_anijm"]
+[ext_resource type="Texture2D" uid="uid://bq007sqr4ej4b" path="res://assets/sea.png" id="10_mktff"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_puqgi"]
+texture = ExtResource("2_bbcss")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/custom_data_0 = true
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_jk5ve"]
+texture = ExtResource("3_0py64")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ts0qw"]
+texture = ExtResource("4_qok4n")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_kbqwi"]
+texture = ExtResource("5_uioun")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_wjy5d"]
+texture = ExtResource("6_jtseo")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_hcsgq"]
+texture = ExtResource("7_lt2t3")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fddql"]
+texture = ExtResource("8_wkcxi")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_foc7f"]
+texture = ExtResource("9_anijm")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_nlrml"]
+texture = ExtResource("10_mktff")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_1hy1n"]
+tile_size = Vector2i(32, 32)
+physics_layer_0/collision_layer = 1
+custom_data_layer_0/name = "can_enter"
+custom_data_layer_0/type = 1
+custom_data_layer_1/name = "enter_scene"
+custom_data_layer_1/type = 4
+custom_data_layer_2/name = "spawn_x"
+custom_data_layer_2/type = 2
+custom_data_layer_3/name = "spawn_y"
+custom_data_layer_3/type = 2
+sources/0 = SubResource("TileSetAtlasSource_puqgi")
+sources/1 = SubResource("TileSetAtlasSource_jk5ve")
+sources/2 = SubResource("TileSetAtlasSource_ts0qw")
+sources/3 = SubResource("TileSetAtlasSource_kbqwi")
+sources/4 = SubResource("TileSetAtlasSource_wjy5d")
+sources/5 = SubResource("TileSetAtlasSource_hcsgq")
+sources/6 = SubResource("TileSetAtlasSource_fddql")
+sources/7 = SubResource("TileSetAtlasSource_foc7f")
+sources/8 = SubResource("TileSetAtlasSource_nlrml")
+
+[node name="FiledMap" type="Node2D" unique_id=597082379]
+script = ExtResource("1_bf576")
+
+[node name="TileMap" type="TileMap" parent="." unique_id=1107464204]
+tile_set = SubResource("TileSet_1hy1n")
+format = 2
+
+[node name="Player" parent="." unique_id=1255337240 instance=ExtResource("4_354sw")]
+position = Vector2(64, 64)

@@ -1,0 +1,24 @@
+[gd_scene format=3 uid="uid://c0jrt3uvmhd2g"]
+
+[ext_resource type="Script" uid="uid://nsxuuyuvfqyd" path="res://scripts/unit.gd" id="1_c0u8k"]
+[ext_resource type="Texture2D" uid="uid://dpybn5gfi6y7t" path="res://assets/npc.png" id="2_c0u8k"]
+[ext_resource type="Script" uid="uid://b1xneybof8tc7" path="res://scripts/stats.gd" id="3_6isdo"]
+[ext_resource type="Script" uid="uid://cmb2jilm6e01r" path="res://scripts/npc_controller.gd" id="4_c0u8k"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ruro2"]
+size = Vector2(30, 30)
+
+[node name="Unit" type="CharacterBody2D" unique_id=40692456]
+script = ExtResource("1_c0u8k")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=427796898]
+texture = ExtResource("2_c0u8k")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=180570032]
+shape = SubResource("RectangleShape2D_ruro2")
+
+[node name="Stats" type="Node" parent="." unique_id=227265958]
+script = ExtResource("3_6isdo")
+
+[node name="Controller" type="Node" parent="." unique_id=498416143]
+script = ExtResource("4_c0u8k")

@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://cjntf4kbtxh73"]
+
+[ext_resource type="Script" uid="uid://nsxuuyuvfqyd" path="res://scripts/unit.gd" id="1_1jvru"]
+[ext_resource type="Texture2D" uid="uid://ckj4j0fakksd0" path="res://assets/player.png" id="2_gic7v"]
+[ext_resource type="Script" uid="uid://b1xneybof8tc7" path="res://scripts/stats.gd" id="3_tb304"]
+[ext_resource type="Script" uid="uid://chtsgc7lseb8o" path="res://scripts/player_controller.gd" id="4_gic7v"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ruro2"]
+size = Vector2(30, 30)
+
+[node name="Unit" type="CharacterBody2D" unique_id=40692456]
+script = ExtResource("1_1jvru")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=427796898]
+texture = ExtResource("2_gic7v")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=180570032]
+shape = SubResource("RectangleShape2D_ruro2")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=220267135]
+
+[node name="Stats" type="Node" parent="." unique_id=227265958]
+script = ExtResource("3_tb304")
+
+[node name="Controller" type="Node" parent="." unique_id=498416143]
+script = ExtResource("4_gic7v")
