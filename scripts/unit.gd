@@ -4,43 +4,52 @@ extends CharacterBody2D
 @export var move_speed: float = 220.0
 @export var repeat_delay: float = 0.0
 
+@export var start_tile: Vector2i = Vector2i(1, 1)
+@export var can_trigger_scene_transition: bool = false
+
+@export var can_bump_attack: bool = false
+@export var is_enemy: bool = false
+
+@export var receives_time_turns: bool = true
+@export var instant_move: bool = true
+
+@export var unit_id: String = ""
+@export var is_player_unit: bool = false
+@export var map_id: String = ""
+
 var is_moving: bool = false
 var target_position: Vector2
 var repeat_timer: float = 0.0
 var is_transitioning: bool = false
 
 @onready var tile_map = get_tree().current_scene.get_node("TileMap")
-
 @onready var stats = $Stats
 @onready var controller = $Controller
-
-@export var start_tile: Vector2i = Vector2i(1, 1)
-@export var use_start_tile: bool = false
-@export var can_trigger_scene_transition: bool = false
-
-@onready var units_node = get_tree().current_scene.get_node("Units")
-@export var receives_time_turns: bool = true
-
-@export var instant_move: bool = true
-
-
+@onready var units_node = get_tree().current_scene.get_node_or_null("Units")
+@onready var targeting = Targeting
+@onready var combat_manager = CombatManager
 
 func _ready() -> void:
-	if use_start_tile:
-		global_position = tile_map.to_global(tile_map.map_to_local(start_tile))
-	else:
-		var current_tile = tile_map.local_to_map(tile_map.to_local(global_position))
-		global_position = tile_map.to_global(tile_map.map_to_local(current_tile))
-
+	global_position = tile_map.to_global(tile_map.map_to_local(start_tile))
 	target_position = global_position
 
+	if controller != null and controller.has_method("setup"):
+		controller.setup(self)
+
+	load_persistent_stats()
+
+	if is_player_unit and GlobalPlayerSpawn.has_next_tile:
+		global_position = tile_map.to_global(tile_map.map_to_local(GlobalPlayerSpawn.next_tile))
+		target_position = global_position
+		GlobalPlayerSpawn.has_next_tile = false
 
 	print("HP: ", stats.hp, "/", stats.max_hp)
 	print("ATK: ", stats.attack, " DEF: ", stats.defense)
 	print("SPD: ", stats.speed)
+	if is_player_unit:
+		print("PLAYER TILE: ", get_current_tile_coords())
 
-	if controller != null and controller.has_method("setup"):
-		controller.setup(self)
+	TimeManager.is_resolving_turn = false
 
 func _physics_process(delta: float) -> void:
 	if is_transitioning:
@@ -61,6 +70,8 @@ func _physics_process(delta: float) -> void:
 	if repeat_timer > 0.0:
 		repeat_timer -= delta
 		return
+
+
 
 func on_time_advanced(elapsed_seconds: float) -> void:
 	if not receives_time_turns:
@@ -92,29 +103,15 @@ func get_occupied_tile_coords() -> Vector2i:
 		return tile_map.local_to_map(tile_map.to_local(target_position))
 	return get_current_tile_coords()
 
-func is_unit_on_tile(tile: Vector2i) -> bool:
-	if units_node == null:
-		return false
-
-	for other in units_node.get_children():
-		if other == null:
-			continue
-		if other == self:
-			continue
-		if not other.has_method("get_occupied_tile_coords"):
-			continue
-
-		if other.get_occupied_tile_coords() == tile:
-			return true
-
-	return false
-
-func try_move(dir: Vector2) -> void:
+func try_move(dir: Vector2) -> bool:
 	var next_pos = global_position + dir * tile_size
 	var next_tile = tile_map.local_to_map(tile_map.to_local(next_pos))
 
-	if is_unit_on_tile(next_tile):
-		return
+	var target_unit = targeting.get_unit_on_tile(units_node, next_tile, self)
+	if target_unit != null:
+		if combat_manager.try_bump_attack(self, target_unit):
+			return true
+		return false
 
 	var space_state = get_world_2d().direct_space_state
 
@@ -137,11 +134,12 @@ func try_move(dir: Vector2) -> void:
 		else:
 			target_position = next_pos
 			is_moving = true
-		return
+
+		return true
 
 	var tile_data = get_tile_data_at_coords(next_tile)
 	if tile_data == null:
-		return
+		return false
 
 	var scene_transfer = tile_data.get_custom_data("scene_transfer")
 	if can_trigger_scene_transition and scene_transfer != null and scene_transfer == true:
@@ -150,10 +148,21 @@ func try_move(dir: Vector2) -> void:
 		var spawn_y = int(tile_data.get_custom_data("spawn_y"))
 
 		if next_scene != "":
+			if is_player_unit:
+				PlayerData.last_map_id = map_id
+				PlayerData.last_tile = get_current_tile_coords()
+
+			var current_scene = get_tree().current_scene
+			if current_scene != null and current_scene.has_method("save_all_units"):
+				current_scene.save_all_units()
+
 			is_transitioning = true
 			GlobalPlayerSpawn.has_next_tile = true
 			GlobalPlayerSpawn.next_tile = Vector2i(spawn_x, spawn_y)
 			get_tree().change_scene_to_file(next_scene)
+			return true
+
+	return false
 
 func try_interact_transition() -> void:
 	if not can_trigger_scene_transition:
@@ -175,6 +184,14 @@ func try_interact_transition() -> void:
 	var spawn_x = int(tile_data.get_custom_data("spawn_x"))
 	var spawn_y = int(tile_data.get_custom_data("spawn_y"))
 
+	if is_player_unit:
+		PlayerData.last_map_id = map_id
+		PlayerData.last_tile = get_current_tile_coords()
+
+	var current_scene = get_tree().current_scene
+	if current_scene != null and current_scene.has_method("save_all_units"):
+		current_scene.save_all_units()
+
 	is_transitioning = true
 	GlobalPlayerSpawn.has_next_tile = true
 	GlobalPlayerSpawn.next_tile = Vector2i(spawn_x, spawn_y)
@@ -184,3 +201,70 @@ func try_interact_transition() -> void:
 func wait_action() -> void:
 	is_moving = false
 	repeat_timer = repeat_delay
+
+func get_hp_status_text() -> String:
+	return "%s HP: %d/%d" % [name, stats.hp, stats.max_hp]
+
+func get_stats_data() -> Dictionary:
+	return {
+		"hp": stats.hp,
+		"max_hp": stats.max_hp,
+		"attack": stats.attack,
+		"defense": stats.defense,
+		"speed": stats.speed,
+		"tile_x": get_current_tile_coords().x,
+		"tile_y": get_current_tile_coords().y
+	}
+
+func apply_stats_data(data: Dictionary) -> void:
+	if data.has("max_hp"):
+		stats.max_hp = data["max_hp"]
+	if data.has("hp"):
+		stats.hp = data["hp"]
+	if data.has("attack"):
+		stats.attack = data["attack"]
+	if data.has("defense"):
+		stats.defense = data["defense"]
+	if data.has("speed"):
+		stats.speed = data["speed"]
+	if data.has("tile_x") and data.has("tile_y"):
+		var saved_tile = Vector2i(data["tile_x"], data["tile_y"])
+		global_position = tile_map.to_global(tile_map.map_to_local(saved_tile))
+		target_position = global_position
+
+func save_persistent_stats() -> void:
+	print("SAVE unit_id=", unit_id, " hp=", stats.hp)
+
+	if is_player_unit:
+		PlayerData.max_hp = stats.max_hp
+		PlayerData.hp = stats.hp
+		PlayerData.attack = stats.attack
+		PlayerData.defense = stats.defense
+		PlayerData.speed = stats.speed
+		PlayerData.current_tile = get_current_tile_coords()
+		PlayerData.current_map_id = map_id
+		return
+
+	if unit_id != "":
+		var data = get_stats_data()
+		data["is_dead"] = stats.hp <= 0
+		WorldState.unit_states[unit_id] = data
+		print("SAVE unit_id=", unit_id, " hp=", stats.hp)
+
+func load_persistent_stats() -> void:
+	if is_player_unit:
+		stats.max_hp = PlayerData.max_hp
+		stats.hp = PlayerData.hp
+		stats.attack = PlayerData.attack
+		stats.defense = PlayerData.defense
+		stats.speed = PlayerData.speed
+
+		if PlayerData.current_map_id == map_id:
+			global_position = tile_map.to_global(tile_map.map_to_local(PlayerData.current_tile))
+			target_position = global_position
+
+		return
+
+	if unit_id != "" and WorldState.unit_states.has(unit_id):
+		print("LOAD unit_id=", unit_id, " hp=", WorldState.unit_states[unit_id]["hp"])
+		apply_stats_data(WorldState.unit_states[unit_id])

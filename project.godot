@@ -19,6 +19,11 @@ config/icon="res://icon.svg"
 
 GlobalPlayerSpawn="*uid://vehm76n68upe"
 TimeManager="*uid://bf1d2iytj41gt"
+Targeting="*uid://q7geo2aysgdg"
+DamageCalculator="*uid://ckhnemcp5r7pn"
+CombatManager="*uid://cp2wujy5ntngn"
+PlayerData="*uid://cd4clntrouqfc"
+WorldState="*uid://ehwoqwuagspi"
 
 [input]
 

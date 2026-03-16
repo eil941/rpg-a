@@ -32,3 +32,16 @@ func generate_map() -> void:
 			else:
 				#tile_map.set_cell(0, cell, FLOOR_SOURCE_ID, FLOOR_ATLAS_COORDS, 0)
 				tile_map.set_cell(0, cell, randi_range(2,8), FLOOR_ATLAS_COORDS, 0)
+
+func save_all_units() -> void:
+	print("save_all_units called")
+
+	if not has_node("Units"):
+		print("Units node not found")
+		return
+
+	for unit in $Units.get_children():
+		print("child = ", unit.name)
+
+		if unit.has_method("save_persistent_stats"):
+			unit.save_persistent_stats()

@@ -22,6 +22,22 @@ func advance_time(units_node: Node, player_speed: float) -> void:
 		if unit.has_method("on_time_advanced"):
 			unit.on_time_advanced(elapsed_seconds)
 
+func print_enemy_hp(units_node: Node) -> void:
+	if units_node == null:
+		return
+
+	for unit in units_node.get_children():
+		if unit == null:
+			continue
+		if not unit.is_enemy:
+			continue
+		if not unit.has_method("get_hp_status_text"):
+			continue
+
+		print(unit.get_hp_status_text())
+
+
+
 func update_turn_state(units_node: Node) -> void:
 	for unit in units_node.get_children():
 		if unit == null:

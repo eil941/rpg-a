@@ -101,14 +101,10 @@ format = 2
 [node name="Units" type="Node" parent="." unique_id=644970352]
 
 [node name="Unit" parent="Units" unique_id=40692456 instance=ExtResource("11_qok4n")]
-tile_size = null
-move_speed = null
-repeat_delay = null
-start_tile = null
-use_start_tile = null
 can_trigger_scene_transition = true
 receives_time_turns = false
 instant_move = false
+is_player_unit = true
 
 [node name="TurnManager" type="Node" parent="." unique_id=1313729845]
 script = ExtResource("12_uioun")

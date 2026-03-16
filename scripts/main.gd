@@ -16,6 +16,7 @@ const WALL_ATLAS_COORDS := Vector2i(0, 0)
 
 func _ready() -> void:
 	generate_map()
+	#↓削除予定　Unit.gbのStart Tileなどが直ったら消す
 	player.position = tile_map.map_to_local(Vector2i(2, 2))
 
 func generate_map() -> void:
@@ -35,3 +36,16 @@ func generate_map() -> void:
 
 	for y in range(20, 30):
 		tile_map.set_cell(0, Vector2i(25, y), WALL_SOURCE_ID, WALL_ATLAS_COORDS, 0)
+
+func save_all_units() -> void:
+	print("save_all_units called")
+
+	if not has_node("Units"):
+		print("Units node not found")
+		return
+
+	for unit in $Units.get_children():
+		print("child = ", unit.name)
+
+		if unit.has_method("save_persistent_stats"):
+			unit.save_persistent_stats()

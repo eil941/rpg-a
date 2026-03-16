@@ -104,15 +104,19 @@ format = 2
 [node name="Units" type="Node" parent="." unique_id=332583731]
 
 [node name="Unit" parent="Units" unique_id=40692456 instance=ExtResource("11_bjd11")]
+start_tile = Vector2i(10, 10)
 can_trigger_scene_transition = true
+can_bump_attack = true
 receives_time_turns = false
 instant_move = false
+is_player_unit = true
 
 [node name="Enemy" parent="Units" unique_id=1372186950 instance=ExtResource("12_bjd11")]
-position = Vector2(5, 5)
-start_tile = Vector2i(10, 5)
-use_start_tile = true
+position = Vector2(206, 141)
+start_tile = Vector2i(15, 7)
+unit_id = "main_enemy_001"
 
 [node name="NPC" parent="Units" unique_id=1881567036 instance=ExtResource("13_qmy6f")]
+position = Vector2(212, 73)
 start_tile = Vector2i(15, 5)
-use_start_tile = true
+unit_id = "NPC001"

@@ -36,12 +36,12 @@ func _physics_process(_delta: float) -> void:
 
 	var input_dir := get_input_direction()
 	if input_dir != Vector2.ZERO:
-		var was_moving = unit.is_moving
-		unit.try_move(input_dir)
+		var acted = unit.try_move(input_dir)
 
-		if not was_moving and unit.is_moving:
+		if acted:
 			if units_node != null:
 				TimeManager.advance_time(units_node, unit.stats.speed)
+
 
 func get_input_direction() -> Vector2:
 	if Input.is_action_pressed("ui_right"):
