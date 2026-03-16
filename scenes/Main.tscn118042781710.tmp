@@ -7,8 +7,6 @@
 [ext_resource type="Texture2D" uid="uid://ckj4j0fakksd0" path="res://assets/player.png" id="3_wp0k4"]
 [ext_resource type="Resource" uid="uid://sq1on05oxw1q" path="res://data/slime_data.tres" id="4_cvmbd"]
 [ext_resource type="Texture2D" uid="uid://cxtb1pxr3y2o2" path="res://assets/glass.png" id="5_bjd11"]
-[ext_resource type="Resource" uid="uid://dws5qrsx22iah" path="res://data/orc_data.tres" id="5_ft6cd"]
-[ext_resource type="Resource" uid="uid://bx0ysoc4wt0rf" path="res://data/bat_data.tres" id="6_bb450"]
 [ext_resource type="Texture2D" uid="uid://b2cbq34vcbsoc" path="res://assets/highrock1.png" id="6_qmy6f"]
 [ext_resource type="Texture2D" uid="uid://xp2lsblny577" path="res://assets/deepsea.png" id="7_mwfav"]
 [ext_resource type="Texture2D" uid="uid://wq3fbwj1mcv8" path="res://assets/rock1.png" id="8_3p2gp"]
@@ -101,9 +99,7 @@ sources/5 = SubResource("TileSetAtlasSource_ebg2g")
 [node name="Main" type="Node2D" unique_id=1202522057]
 script = ExtResource("1_rarhs")
 enemy_unit_scene = ExtResource("12_bjd11")
-enemy_spawn_count = 10
-enemy_data_list = Array[ExtResource("3_3p2gp")]([ExtResource("4_cvmbd"), ExtResource("5_ft6cd"), ExtResource("6_bb450")])
-map_id = "detail_map_001"
+enemy_data_list = Array[ExtResource("3_3p2gp")]([ExtResource("4_cvmbd")])
 
 [node name="TileMap" type="TileMap" parent="." unique_id=195687938]
 tile_set = SubResource("TileSet_fs0b5")

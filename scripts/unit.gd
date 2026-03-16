@@ -268,3 +268,18 @@ func load_persistent_stats() -> void:
 	if unit_id != "" and WorldState.unit_states.has(unit_id):
 		print("LOAD unit_id=", unit_id, " hp=", WorldState.unit_states[unit_id]["hp"])
 		apply_stats_data(WorldState.unit_states[unit_id])
+
+func apply_enemy_data(enemy_data: EnemyData) -> void:
+	if enemy_data == null:
+		return
+
+	name = enemy_data.enemy_name
+
+	stats.max_hp = enemy_data.max_hp
+	stats.hp = enemy_data.max_hp
+	stats.attack = enemy_data.attack
+	stats.defense = enemy_data.defense
+	stats.speed = enemy_data.speed
+
+	if has_node("Sprite2D"):
+		$Sprite2D.texture = enemy_data.sprite_texture

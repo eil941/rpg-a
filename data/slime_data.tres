@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://sq1on05oxw1q"]
+
+[ext_resource type="Script" uid="uid://dnv8aysj2gsac" path="res://scripts/enemy_data.gd" id="1_07yms"]
+[ext_resource type="Texture2D" uid="uid://dkvllwbkdf2tx" path="res://assets/slime.png" id="2_lat48"]
+
+[resource]
+script = ExtResource("1_07yms")
+enemy_name = "Slime"
+sprite_texture = ExtResource("2_lat48")
+max_hp = 10
+attack = 3
+defense = 1
+speed = 100.0
+metadata/_custom_type_script = "uid://dnv8aysj2gsac"
