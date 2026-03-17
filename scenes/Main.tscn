@@ -3,20 +3,64 @@
 [ext_resource type="Texture2D" uid="uid://cspenfvtyt8gp" path="res://assets/floor.png" id="1_0bbpv"]
 [ext_resource type="Script" uid="uid://ca4ywj6xcxnbk" path="res://scripts/main.gd" id="1_rarhs"]
 [ext_resource type="Texture2D" uid="uid://c2m7luwc4wy8b" path="res://assets/wall.png" id="2_rarhs"]
+[ext_resource type="Texture2D" uid="uid://b0v3y154dsf23" path="res://assets/enemy.png" id="3_1iba3"]
 [ext_resource type="Script" uid="uid://dnv8aysj2gsac" path="res://scripts/enemy_data.gd" id="3_3p2gp"]
 [ext_resource type="Texture2D" uid="uid://ckj4j0fakksd0" path="res://assets/player.png" id="3_wp0k4"]
 [ext_resource type="Resource" uid="uid://sq1on05oxw1q" path="res://data/slime_data.tres" id="4_cvmbd"]
+[ext_resource type="Script" uid="uid://b1xneybof8tc7" path="res://scripts/stats.gd" id="4_yxlcp"]
 [ext_resource type="Texture2D" uid="uid://cxtb1pxr3y2o2" path="res://assets/glass.png" id="5_bjd11"]
+[ext_resource type="Script" uid="uid://c0kxoaa0k4v65" path="res://scripts/enemy_controller.gd" id="5_ebg2g"]
 [ext_resource type="Resource" uid="uid://dws5qrsx22iah" path="res://data/orc_data.tres" id="5_ft6cd"]
 [ext_resource type="Resource" uid="uid://bx0ysoc4wt0rf" path="res://data/bat_data.tres" id="6_bb450"]
 [ext_resource type="Texture2D" uid="uid://b2cbq34vcbsoc" path="res://assets/highrock1.png" id="6_qmy6f"]
 [ext_resource type="Texture2D" uid="uid://xp2lsblny577" path="res://assets/deepsea.png" id="7_mwfav"]
 [ext_resource type="Texture2D" uid="uid://wq3fbwj1mcv8" path="res://assets/rock1.png" id="8_3p2gp"]
 [ext_resource type="Texture2D" uid="uid://bi65cbt76yey" path="res://assets/sand.png" id="9_cvmbd"]
+[ext_resource type="Resource" uid="uid://sponxcnnn0fd" path="res://data/NPC/new_sabo.tres" id="10_ebg2g"]
 [ext_resource type="Texture2D" uid="uid://bq007sqr4ej4b" path="res://assets/sea.png" id="10_ft6cd"]
+[ext_resource type="Texture2D" uid="uid://dpybn5gfi6y7t" path="res://assets/npc.png" id="10_xa025"]
+[ext_resource type="Resource" uid="uid://be6340dxmccnl" path="res://data/NPC/npc_1.tres" id="11_2ofn6"]
+[ext_resource type="Script" uid="uid://cmb2jilm6e01r" path="res://scripts/npc_controller.gd" id="11_36rkl"]
 [ext_resource type="PackedScene" uid="uid://cjntf4kbtxh73" path="res://scenes/unit.tscn" id="11_bjd11"]
 [ext_resource type="PackedScene" uid="uid://cmvysxaa458bi" path="res://scenes/Enemyunit_1.tscn" id="12_bjd11"]
-[ext_resource type="PackedScene" uid="uid://c0jrt3uvmhd2g" path="res://scenes/npc1.tscn" id="13_qmy6f"]
+[ext_resource type="Script" uid="uid://nsxuuyuvfqyd" path="res://scripts/unit.gd" id="13_qmy6f"]
+[ext_resource type="PackedScene" uid="uid://c0jrt3uvmhd2g" path="res://scenes/npc1.tscn" id="21_2ofn6"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ruro2"]
+size = Vector2(30, 30)
+
+[sub_resource type="PackedScene" id="PackedScene_xa025"]
+_bundled = {
+"conn_count": 0,
+"conns": PackedInt32Array(),
+"editable_instances": [],
+"id_paths": [],
+"names": PackedStringArray("Unit", "script", "is_enemy", "CharacterBody2D", "Sprite2D", "texture", "CollisionShape2D", "shape", "Stats", "Node", "Controller"),
+"node_count": 5,
+"node_ids": PackedInt32Array(40692456, 427796898, 180570032, 227265958, 498416143),
+"node_paths": [],
+"nodes": PackedInt32Array(-1, -1, 3, 0, -1, 2, 1, 0, 2, 1, 0, 0, 0, 4, 4, -1, 1, 5, 2, 0, 0, 0, 6, 6, -1, 1, 7, 3, 0, 0, 0, 9, 8, -1, 1, 1, 4, 0, 0, 0, 9, 10, -1, 1, 1, 5, 0),
+"variants": [ExtResource("13_qmy6f"), true, ExtResource("3_1iba3"), SubResource("RectangleShape2D_ruro2"), ExtResource("4_yxlcp"), ExtResource("5_ebg2g")],
+"version": 3
+}
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_fs0b5"]
+size = Vector2(30, 30)
+
+[sub_resource type="PackedScene" id="PackedScene_ma7h6"]
+_bundled = {
+"conn_count": 0,
+"conns": PackedInt32Array(),
+"editable_instances": [],
+"id_paths": [],
+"names": PackedStringArray("Unit", "script", "CharacterBody2D", "Sprite2D", "texture", "CollisionShape2D", "shape", "Stats", "Node", "Controller"),
+"node_count": 5,
+"node_ids": PackedInt32Array(40692456, 427796898, 180570032, 227265958, 498416143),
+"node_paths": [],
+"nodes": PackedInt32Array(-1, -1, 2, 0, -1, 1, 1, 0, 0, 0, 0, 3, 3, -1, 1, 4, 1, 0, 0, 0, 5, 5, -1, 1, 6, 2, 0, 0, 0, 8, 7, -1, 1, 1, 3, 0, 0, 0, 8, 9, -1, 1, 1, 4, 0),
+"variants": [ExtResource("13_qmy6f"), ExtResource("10_xa025"), SubResource("RectangleShape2D_fs0b5"), ExtResource("4_yxlcp"), ExtResource("11_36rkl")],
+"version": 3
+}
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_bb450"]
 texture = ExtResource("2_rarhs")
@@ -100,9 +144,12 @@ sources/5 = SubResource("TileSetAtlasSource_ebg2g")
 
 [node name="Main" type="Node2D" unique_id=1202522057]
 script = ExtResource("1_rarhs")
-enemy_unit_scene = ExtResource("12_bjd11")
-enemy_spawn_count = 10
-enemy_data_list = Array[ExtResource("3_3p2gp")]([ExtResource("4_cvmbd"), ExtResource("5_ft6cd"), ExtResource("6_bb450")])
+enemy_unit_scene = SubResource("PackedScene_xa025")
+enemy_spawn_count = 20
+enemy_data_list = Array[ExtResource("3_3p2gp")]([ExtResource("6_bb450"), ExtResource("5_ft6cd"), ExtResource("4_cvmbd")])
+npc_unit_scene = SubResource("PackedScene_ma7h6")
+npc_spawn_count = 5
+npc_data_list = Array[Object]([ExtResource("10_ebg2g"), ExtResource("11_2ofn6")])
 map_id = "detail_map_001"
 
 [node name="TileMap" type="TileMap" parent="." unique_id=195687938]
@@ -118,13 +165,14 @@ can_bump_attack = true
 receives_time_turns = false
 instant_move = false
 is_player_unit = true
+debug_free_action = true
 
 [node name="Enemy" parent="Units" unique_id=1372186950 instance=ExtResource("12_bjd11")]
 position = Vector2(206, 141)
 start_tile = Vector2i(15, 7)
 unit_id = "main_enemy_001"
 
-[node name="NPC" parent="Units" unique_id=1881567036 instance=ExtResource("13_qmy6f")]
+[node name="NPC" parent="Units" unique_id=1881567036 instance=ExtResource("21_2ofn6")]
 position = Vector2(212, 73)
 start_tile = Vector2i(15, 5)
 unit_id = "NPC001"

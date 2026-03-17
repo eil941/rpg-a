@@ -36,3 +36,7 @@ func heal(amount: int) -> void:
 
 func die() -> void:
 	print("死亡しました")
+
+	var unit = get_parent()
+	if unit != null and unit.has_method("handle_death"):
+		unit.handle_death()

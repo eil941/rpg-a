@@ -7,6 +7,7 @@
 script = ExtResource("1_1g683")
 enemy_name = "Bat"
 sprite_texture = ExtResource("2_7ab8l")
+enemy_type_id = "bat"
 max_hp = 8
 attack = 2
 defense = 0

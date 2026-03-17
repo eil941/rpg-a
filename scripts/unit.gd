@@ -16,11 +16,14 @@ extends CharacterBody2D
 @export var unit_id: String = ""
 @export var is_player_unit: bool = false
 @export var map_id: String = ""
+@export var debug_free_action:bool=false
 
 var is_moving: bool = false
 var target_position: Vector2
 var repeat_timer: float = 0.0
 var is_transitioning: bool = false
+
+var enemy_data_to_apply: EnemyData = null
 
 @onready var tile_map = get_tree().current_scene.get_node("TileMap")
 @onready var stats = $Stats
@@ -36,6 +39,9 @@ func _ready() -> void:
 	if controller != null and controller.has_method("setup"):
 		controller.setup(self)
 
+	if enemy_data_to_apply != null:
+		apply_enemy_data(enemy_data_to_apply)
+
 	load_persistent_stats()
 
 	if is_player_unit and GlobalPlayerSpawn.has_next_tile:
@@ -46,8 +52,6 @@ func _ready() -> void:
 	print("HP: ", stats.hp, "/", stats.max_hp)
 	print("ATK: ", stats.attack, " DEF: ", stats.defense)
 	print("SPD: ", stats.speed)
-	if is_player_unit:
-		print("PLAYER TILE: ", get_current_tile_coords())
 
 	TimeManager.is_resolving_turn = false
 
@@ -70,8 +74,6 @@ func _physics_process(delta: float) -> void:
 	if repeat_timer > 0.0:
 		repeat_timer -= delta
 		return
-
-
 
 func on_time_advanced(elapsed_seconds: float) -> void:
 	if not receives_time_turns:
@@ -259,7 +261,7 @@ func load_persistent_stats() -> void:
 		stats.defense = PlayerData.defense
 		stats.speed = PlayerData.speed
 
-		if PlayerData.current_map_id == map_id:
+		if map_id != "" and PlayerData.current_map_id != "" and PlayerData.current_map_id == map_id:
 			global_position = tile_map.to_global(tile_map.map_to_local(PlayerData.current_tile))
 			target_position = global_position
 
@@ -283,3 +285,31 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 
 	if has_node("Sprite2D"):
 		$Sprite2D.texture = enemy_data.sprite_texture
+		
+
+func handle_death() -> void:
+	if is_player_unit:
+		print("プレイヤー死亡")
+		return
+
+	if unit_id != "":
+		var data = get_stats_data()
+		data["is_dead"] = true
+		WorldState.unit_states[unit_id] = data
+
+	queue_free()
+
+func apply_npc_data(npc_data: NpcData) -> void:
+	if npc_data == null:
+		return
+
+	name = npc_data.npc_name
+
+	stats.max_hp = npc_data.max_hp
+	stats.hp = npc_data.max_hp
+	stats.attack = npc_data.attack
+	stats.defense = npc_data.defense
+	stats.speed = npc_data.speed
+
+	if has_node("Sprite2D"):
+		$Sprite2D.texture = npc_data.sprite_texture

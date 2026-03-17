@@ -1,11 +1,9 @@
 extends Resource
-class_name EnemyData
+class_name NpcData
 
-@export var enemy_name: String = "Enemy"
+@export var npc_type_id: String = ""
+@export var npc_name: String = "NPC"
 @export var sprite_texture: Texture2D
-
-@export var enemy_type_id: String = ""
-
 
 @export var max_hp: int = 20
 @export var attack: int = 5

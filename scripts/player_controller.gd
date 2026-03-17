@@ -39,8 +39,9 @@ func _physics_process(_delta: float) -> void:
 		var acted = unit.try_move(input_dir)
 
 		if acted:
-			if units_node != null:
-				TimeManager.advance_time(units_node, unit.stats.speed)
+			if not unit.debug_free_action:
+				if units_node != null:
+					TimeManager.advance_time(units_node, unit.stats.speed)
 
 
 func get_input_direction() -> Vector2:
