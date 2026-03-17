@@ -1,15 +1,15 @@
 [gd_scene format=3 uid="uid://b1t152o4kskqv"]
 
 [ext_resource type="Texture2D" uid="uid://cspenfvtyt8gp" path="res://assets/floor.png" id="1_0bbpv"]
-[ext_resource type="Script" uid="uid://ca4ywj6xcxnbk" path="res://scripts/main.gd" id="1_rarhs"]
+[ext_resource type="Script" uid="uid://ca4ywj6xcxnbk" path="res://scripts/map_scene_scripts/main.gd" id="1_rarhs"]
 [ext_resource type="Texture2D" uid="uid://c2m7luwc4wy8b" path="res://assets/wall.png" id="2_rarhs"]
 [ext_resource type="Texture2D" uid="uid://b0v3y154dsf23" path="res://assets/enemy.png" id="3_1iba3"]
-[ext_resource type="Script" uid="uid://dnv8aysj2gsac" path="res://scripts/enemy_data.gd" id="3_3p2gp"]
+[ext_resource type="Script" uid="uid://dnv8aysj2gsac" path="res://scripts/data/enemy_data.gd" id="3_3p2gp"]
 [ext_resource type="Texture2D" uid="uid://ckj4j0fakksd0" path="res://assets/player.png" id="3_wp0k4"]
 [ext_resource type="Resource" uid="uid://sq1on05oxw1q" path="res://data/slime_data.tres" id="4_cvmbd"]
-[ext_resource type="Script" uid="uid://b1xneybof8tc7" path="res://scripts/stats.gd" id="4_yxlcp"]
+[ext_resource type="Script" uid="uid://b1xneybof8tc7" path="res://scripts/core/stats.gd" id="4_yxlcp"]
 [ext_resource type="Texture2D" uid="uid://cxtb1pxr3y2o2" path="res://assets/glass.png" id="5_bjd11"]
-[ext_resource type="Script" uid="uid://c0kxoaa0k4v65" path="res://scripts/enemy_controller.gd" id="5_ebg2g"]
+[ext_resource type="Script" uid="uid://c0kxoaa0k4v65" path="res://scripts/core/enemy_controller.gd" id="5_ebg2g"]
 [ext_resource type="Resource" uid="uid://dws5qrsx22iah" path="res://data/orc_data.tres" id="5_ft6cd"]
 [ext_resource type="Resource" uid="uid://bx0ysoc4wt0rf" path="res://data/bat_data.tres" id="6_bb450"]
 [ext_resource type="Texture2D" uid="uid://b2cbq34vcbsoc" path="res://assets/highrock1.png" id="6_qmy6f"]
@@ -20,9 +20,10 @@
 [ext_resource type="Texture2D" uid="uid://bq007sqr4ej4b" path="res://assets/sea.png" id="10_ft6cd"]
 [ext_resource type="Texture2D" uid="uid://dpybn5gfi6y7t" path="res://assets/npc.png" id="10_xa025"]
 [ext_resource type="Resource" uid="uid://be6340dxmccnl" path="res://data/NPC/npc_1.tres" id="11_2ofn6"]
-[ext_resource type="Script" uid="uid://cmb2jilm6e01r" path="res://scripts/npc_controller.gd" id="11_36rkl"]
+[ext_resource type="Script" uid="uid://cmb2jilm6e01r" path="res://scripts/core/npc_controller.gd" id="11_36rkl"]
 [ext_resource type="PackedScene" uid="uid://cjntf4kbtxh73" path="res://scenes/unit.tscn" id="11_bjd11"]
-[ext_resource type="Script" uid="uid://nsxuuyuvfqyd" path="res://scripts/unit.gd" id="13_qmy6f"]
+[ext_resource type="Script" uid="uid://bgt8humnn3jqj" path="res://scripts/data/npc_data.gd" id="12_ebg2g"]
+[ext_resource type="Script" uid="uid://nsxuuyuvfqyd" path="res://scripts/core/unit.gd" id="13_qmy6f"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ruro2"]
 size = Vector2(30, 30)
@@ -147,7 +148,7 @@ enemy_spawn_count = 20
 enemy_data_list = Array[ExtResource("3_3p2gp")]([ExtResource("6_bb450"), ExtResource("5_ft6cd"), ExtResource("4_cvmbd")])
 npc_unit_scene = SubResource("PackedScene_ma7h6")
 npc_spawn_count = 5
-npc_data_list = Array[Object]([ExtResource("10_ebg2g"), ExtResource("11_2ofn6")])
+npc_data_list = Array[ExtResource("12_ebg2g")]([ExtResource("10_ebg2g"), ExtResource("11_2ofn6")])
 map_id = "detail_map_001"
 
 [node name="TileMap" type="TileMap" parent="." unique_id=195687938]
@@ -157,10 +158,9 @@ format = 2
 [node name="Units" type="Node" parent="." unique_id=332583731]
 
 [node name="Unit" parent="Units" unique_id=40692456 instance=ExtResource("11_bjd11")]
-start_tile = Vector2i(10, 10)
 can_trigger_scene_transition = true
 can_bump_attack = true
 receives_time_turns = false
 instant_move = false
+unit_id = "player"
 is_player_unit = true
-debug_free_action = true

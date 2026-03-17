@@ -1,9 +1,9 @@
 [gd_scene format=3 uid="uid://cmvysxaa458bi"]
 
-[ext_resource type="Script" uid="uid://nsxuuyuvfqyd" path="res://scripts/unit.gd" id="1_j1e6r"]
+[ext_resource type="Script" uid="uid://nsxuuyuvfqyd" path="res://scripts/core/unit.gd" id="1_j1e6r"]
 [ext_resource type="Texture2D" uid="uid://b0v3y154dsf23" path="res://assets/enemy.png" id="2_s7nbo"]
-[ext_resource type="Script" uid="uid://b1xneybof8tc7" path="res://scripts/stats.gd" id="3_xdelc"]
-[ext_resource type="Script" uid="uid://c0kxoaa0k4v65" path="res://scripts/enemy_controller.gd" id="4_j1e6r"]
+[ext_resource type="Script" uid="uid://b1xneybof8tc7" path="res://scripts/core/stats.gd" id="3_xdelc"]
+[ext_resource type="Script" uid="uid://c0kxoaa0k4v65" path="res://scripts/core/enemy_controller.gd" id="4_j1e6r"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ruro2"]
 size = Vector2(30, 30)

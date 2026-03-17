@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://2rywxwcsuhk7"]
 
-[ext_resource type="Script" uid="uid://dvk2f4dxietfj" path="res://scripts/FiledMap.gd" id="1_bf576"]
+[ext_resource type="Script" uid="uid://dvk2f4dxietfj" path="res://scripts/map_scene_scripts/FiledMap.gd" id="1_bf576"]
 [ext_resource type="Texture2D" uid="uid://c2m7luwc4wy8b" path="res://assets/wall.png" id="2_qok4n"]
 [ext_resource type="Texture2D" uid="uid://ckj4j0fakksd0" path="res://assets/player.png" id="3_uioun"]
 [ext_resource type="Texture2D" uid="uid://xp2lsblny577" path="res://assets/deepsea.png" id="4_jtseo"]
@@ -11,7 +11,7 @@
 [ext_resource type="Texture2D" uid="uid://bi65cbt76yey" path="res://assets/sand.png" id="9_ts0qw"]
 [ext_resource type="Texture2D" uid="uid://bq007sqr4ej4b" path="res://assets/sea.png" id="10_kbqwi"]
 [ext_resource type="PackedScene" uid="uid://cjntf4kbtxh73" path="res://scenes/unit.tscn" id="11_qok4n"]
-[ext_resource type="Script" uid="uid://bf1d2iytj41gt" path="res://scripts/time_manager.gd" id="12_uioun"]
+[ext_resource type="Script" uid="uid://bf1d2iytj41gt" path="res://scripts/managers/time_manager.gd" id="12_uioun"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_qok4n"]
 texture = ExtResource("2_qok4n")

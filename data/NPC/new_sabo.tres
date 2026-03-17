@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="NpcData" format=3 uid="uid://sponxcnnn0fd"]
 
-[ext_resource type="Script" uid="uid://bgt8humnn3jqj" path="res://scripts/npc_data.gd" id="1_f02ay"]
+[ext_resource type="Script" uid="uid://bgt8humnn3jqj" path="res://scripts/data/npc_data.gd" id="1_f02ay"]
 [ext_resource type="Texture2D" uid="uid://cu2ogfvyg8oai" path="res://assets/npc1.png" id="2_n876k"]
 
 [resource]

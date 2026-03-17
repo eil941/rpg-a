@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://dws5qrsx22iah"]
 
-[ext_resource type="Script" uid="uid://dnv8aysj2gsac" path="res://scripts/enemy_data.gd" id="1_oert2"]
+[ext_resource type="Script" uid="uid://dnv8aysj2gsac" path="res://scripts/data/enemy_data.gd" id="1_oert2"]
 [ext_resource type="Texture2D" uid="uid://ci1uxejq1rcpi" path="res://assets/orc.png" id="2_5sla6"]
 
 [resource]
