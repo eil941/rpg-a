@@ -26,7 +26,10 @@ var is_transitioning: bool = false
 var enemy_data_to_apply: EnemyData = null
 var npc_data_to_apply: NpcData = null
 
-@onready var tile_map: TileMapLayer = get_tree().current_scene.get_node("TileMap")
+@onready var ground_layer: TileMapLayer = get_tree().current_scene.get_node("GroundLayer")
+@onready var wall_layer: TileMapLayer = get_tree().current_scene.get_node("WallLayer")
+@onready var event_layer: TileMapLayer = get_tree().current_scene.get_node("EventLayer")
+
 @onready var stats = $Stats
 @onready var controller = $Controller
 @onready var units_node = get_tree().current_scene.get_node_or_null("Units")
@@ -34,7 +37,7 @@ var npc_data_to_apply: NpcData = null
 @onready var combat_manager = CombatManager
 
 func _ready() -> void:
-	global_position = tile_map.to_global(tile_map.map_to_local(start_tile))
+	global_position = ground_layer.to_global(ground_layer.map_to_local(start_tile))
 	target_position = global_position
 
 	if controller != null and controller.has_method("setup"):
@@ -49,7 +52,7 @@ func _ready() -> void:
 	load_persistent_stats()
 
 	if is_player_unit and GlobalPlayerSpawn.has_next_tile:
-		global_position = tile_map.to_global(tile_map.map_to_local(GlobalPlayerSpawn.next_tile))
+		global_position = ground_layer.to_global(ground_layer.map_to_local(GlobalPlayerSpawn.next_tile))
 		target_position = global_position
 		GlobalPlayerSpawn.has_next_tile = false
 
@@ -95,23 +98,23 @@ func on_time_advanced(elapsed_seconds: float) -> void:
 		stats.pending_actions += 1
 
 func get_tile_data_at_coords(coords: Vector2i):
-	return tile_map.get_cell_tile_data(coords)
+	return event_layer.get_cell_tile_data(coords)
 
 func get_current_tile_coords() -> Vector2i:
-	return tile_map.local_to_map(tile_map.to_local(global_position))
+	return ground_layer.local_to_map(ground_layer.to_local(global_position))
 
 func get_current_tile_data():
 	var coords = get_current_tile_coords()
-	return tile_map.get_cell_tile_data(coords)
+	return event_layer.get_cell_tile_data(coords)
 
 func get_occupied_tile_coords() -> Vector2i:
 	if is_moving:
-		return tile_map.local_to_map(tile_map.to_local(target_position))
+		return ground_layer.local_to_map(ground_layer.to_local(target_position))
 	return get_current_tile_coords()
 
 func try_move(dir: Vector2) -> bool:
 	var next_pos = global_position + dir * tile_size
-	var next_tile = tile_map.local_to_map(tile_map.to_local(next_pos))
+	var next_tile = ground_layer.local_to_map(ground_layer.to_local(next_pos))
 
 	var target_unit = targeting.get_unit_on_tile(units_node, next_tile, self)
 	if target_unit != null:
@@ -235,7 +238,7 @@ func apply_stats_data(data: Dictionary) -> void:
 		stats.speed = data["speed"]
 	if data.has("tile_x") and data.has("tile_y"):
 		var saved_tile = Vector2i(data["tile_x"], data["tile_y"])
-		global_position = tile_map.to_global(tile_map.map_to_local(saved_tile))
+		global_position = ground_layer.to_global(ground_layer.map_to_local(saved_tile))
 		target_position = global_position
 
 func save_persistent_stats() -> void:
@@ -266,7 +269,7 @@ func load_persistent_stats() -> void:
 		stats.speed = PlayerData.speed
 
 		if map_id != "" and PlayerData.current_map_id != "" and PlayerData.current_map_id == map_id:
-			global_position = tile_map.to_global(tile_map.map_to_local(PlayerData.current_tile))
+			global_position = ground_layer.to_global(ground_layer.map_to_local(PlayerData.current_tile))
 			target_position = global_position
 
 		return

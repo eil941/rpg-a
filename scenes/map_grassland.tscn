@@ -10,7 +10,7 @@
 [ext_resource type="Texture2D" uid="uid://bi65cbt76yey" path="res://assets/sand.png" id="22_8vyf3"]
 [ext_resource type="Texture2D" uid="uid://bq007sqr4ej4b" path="res://assets/sea.png" id="23_ckbq2"]
 [ext_resource type="PackedScene" uid="uid://cjntf4kbtxh73" path="res://scenes/unit.tscn" id="24_bebfs"]
-[ext_resource type="Script" path="res://scripts/map_scene_scripts/map_grassland.gd" id="24_r553n"]
+[ext_resource type="Script" uid="uid://66oj4emkie8a" path="res://scripts/map_scene_scripts/map_grassland.gd" id="24_r553n"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ir0re"]
 texture = ExtResource("15_21ftg")
@@ -161,6 +161,11 @@ sources/8 = SubResource("TileSetAtlasSource_bpbb5")
 
 [node name="map_grassland" type="Node2D" unique_id=1202522057]
 script = ExtResource("24_r553n")
+enemy_spawn_count = null
+enemy_data_list = null
+npc_spawn_count = null
+npc_data_list = null
+map_id = null
 
 [node name="Map" type="Node" parent="." unique_id=392689078]
 

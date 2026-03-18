@@ -1,0 +1,26 @@
+[gd_resource type="TileSet" format=3 uid="uid://cpndipp741lyo"]
+
+[ext_resource type="Texture2D" uid="uid://c2m7luwc4wy8b" path="res://assets/wall.png" id="1_bxwsb"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fs0b5"]
+texture = ExtResource("1_bxwsb")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+0:0/0/custom_data_1 = "res://scenes/field_map.tscn"
+0:0/0/custom_data_2 = true
+
+[resource]
+tile_size = Vector2i(32, 32)
+physics_layer_0/collision_layer = 1
+custom_data_layer_0/name = "can_enter"
+custom_data_layer_0/type = 1
+custom_data_layer_1/name = "enter_scene"
+custom_data_layer_1/type = 4
+custom_data_layer_2/name = "scene_transfer"
+custom_data_layer_2/type = 1
+custom_data_layer_3/name = "spawn_x"
+custom_data_layer_3/type = 2
+custom_data_layer_4/name = "spawn_y"
+custom_data_layer_4/type = 2
+sources/0 = SubResource("TileSetAtlasSource_fs0b5")

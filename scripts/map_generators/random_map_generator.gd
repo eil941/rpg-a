@@ -25,21 +25,24 @@ func _init(
 	floor_atlas_coords = p_floor_atlas_coords
 	wall_atlas_coords = p_wall_atlas_coords
 
-func generate_map(tile_map: TileMapLayer) -> void:
+func generate_map(ground_layer: TileMapLayer, wall_layer: TileMapLayer,event_layer:TileMapLayer) -> void:
 	for y in range(0, map_height, 1):
 		for x in range(0, map_width, 1):
 			var cell = Vector2i(x, y)
 
 			if x == 0 or y == 0 or x == map_width - 1 or y == map_height - 1:
-				tile_map.set_cell(cell, wall_source_id, wall_atlas_coords, 0)
+				#wall_layer.set_cell(cell, wall_source_id, wall_atlas_coords, 0)
+				event_layer.set_cell(cell, wall_source_id, wall_atlas_coords, 0)
 			else:
-				tile_map.set_cell(cell, floor_source_id, floor_atlas_coords, 0)
+				ground_layer.set_cell(cell, floor_source_id, floor_atlas_coords, 0)
 
 	for x in range(10, 20):
-		tile_map.set_cell(Vector2i(x, 10), wall_source_id, wall_atlas_coords, 0)
+		#wall_layer.set_cell(Vector2i(x, 10), wall_source_id, wall_atlas_coords, 0)
+		wall_layer.set_cell(Vector2i(x, 10), 3, wall_atlas_coords, 0)
 
 	for y in range(20, 30):
-		tile_map.set_cell(Vector2i(25, y), wall_source_id, wall_atlas_coords, 0)
+		#wall_layer.set_cell(Vector2i(25, y), wall_source_id, wall_atlas_coords, 0)
+		wall_layer.set_cell(Vector2i(25, y), 5, wall_atlas_coords, 0)
 
 func get_walkable_tiles() -> Array[Vector2i]:
 	var result: Array[Vector2i] = []
@@ -49,6 +52,12 @@ func get_walkable_tiles() -> Array[Vector2i]:
 			var tile = Vector2i(x, y)
 
 			if x == 0 or y == 0 or x == map_width - 1 or y == map_height - 1:
+				continue
+
+			if (x >= 10 and x < 20 and y == 10):
+				continue
+
+			if (x == 25 and y >= 20 and y < 30):
 				continue
 
 			result.append(tile)

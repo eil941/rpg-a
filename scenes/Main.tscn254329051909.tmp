@@ -1,23 +1,29 @@
 [gd_scene format=3 uid="uid://ctfwovqmfkxb3"]
 
+[ext_resource type="Texture2D" uid="uid://cspenfvtyt8gp" path="res://assets/floor.png" id="1_0bbpv"]
 [ext_resource type="Script" uid="uid://ca4ywj6xcxnbk" path="res://scripts/map_scene_scripts/main.gd" id="1_rarhs"]
+[ext_resource type="Texture2D" uid="uid://c2m7luwc4wy8b" path="res://assets/wall.png" id="2_rarhs"]
 [ext_resource type="Texture2D" uid="uid://b0v3y154dsf23" path="res://assets/enemy.png" id="3_1iba3"]
 [ext_resource type="Script" uid="uid://dnv8aysj2gsac" path="res://scripts/data/enemy_data.gd" id="3_3p2gp"]
+[ext_resource type="Texture2D" uid="uid://ckj4j0fakksd0" path="res://assets/player.png" id="3_wp0k4"]
 [ext_resource type="Resource" uid="uid://sq1on05oxw1q" path="res://data/slime_data.tres" id="4_cvmbd"]
 [ext_resource type="Script" uid="uid://b1xneybof8tc7" path="res://scripts/core/stats.gd" id="4_yxlcp"]
+[ext_resource type="Texture2D" uid="uid://cxtb1pxr3y2o2" path="res://assets/glass.png" id="5_bjd11"]
 [ext_resource type="Script" uid="uid://c0kxoaa0k4v65" path="res://scripts/core/enemy_controller.gd" id="5_ebg2g"]
 [ext_resource type="Resource" uid="uid://dws5qrsx22iah" path="res://data/orc_data.tres" id="5_ft6cd"]
 [ext_resource type="Resource" uid="uid://bx0ysoc4wt0rf" path="res://data/bat_data.tres" id="6_bb450"]
+[ext_resource type="Texture2D" uid="uid://b2cbq34vcbsoc" path="res://assets/highrock1.png" id="6_qmy6f"]
+[ext_resource type="Texture2D" uid="uid://xp2lsblny577" path="res://assets/deepsea.png" id="7_mwfav"]
+[ext_resource type="Texture2D" uid="uid://wq3fbwj1mcv8" path="res://assets/rock1.png" id="8_3p2gp"]
+[ext_resource type="Texture2D" uid="uid://bi65cbt76yey" path="res://assets/sand.png" id="9_cvmbd"]
 [ext_resource type="Resource" uid="uid://sponxcnnn0fd" path="res://data/NPC/new_sabo.tres" id="10_ebg2g"]
+[ext_resource type="Texture2D" uid="uid://bq007sqr4ej4b" path="res://assets/sea.png" id="10_ft6cd"]
 [ext_resource type="Texture2D" uid="uid://dpybn5gfi6y7t" path="res://assets/npc.png" id="10_xa025"]
 [ext_resource type="Resource" uid="uid://be6340dxmccnl" path="res://data/NPC/npc_1.tres" id="11_2ofn6"]
 [ext_resource type="Script" uid="uid://cmb2jilm6e01r" path="res://scripts/core/npc_controller.gd" id="11_36rkl"]
 [ext_resource type="PackedScene" uid="uid://cjntf4kbtxh73" path="res://scenes/unit.tscn" id="11_bjd11"]
 [ext_resource type="Script" uid="uid://bgt8humnn3jqj" path="res://scripts/data/npc_data.gd" id="12_ebg2g"]
 [ext_resource type="Script" uid="uid://nsxuuyuvfqyd" path="res://scripts/core/unit.gd" id="13_qmy6f"]
-[ext_resource type="TileSet" uid="uid://dbr5mtulmq0q2" path="res://scenes/test.tres" id="15_cvmbd"]
-[ext_resource type="TileSet" uid="uid://bc0aui1htbk1v" path="res://scenes/test_wall.tres" id="16_bb450"]
-[ext_resource type="TileSet" uid="uid://cpndipp741lyo" path="res://scenes/test_event.tres" id="16_ft6cd"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ruro2"]
 size = Vector2(30, 30)
@@ -55,6 +61,84 @@ _bundled = {
 "version": 3
 }
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fs0b5"]
+texture = ExtResource("2_rarhs")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+0:0/0/custom_data_1 = "res://scenes/field_map.tscn"
+0:0/0/custom_data_2 = true
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ma7h6"]
+texture = ExtResource("3_wp0k4")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_e2s0e"]
+texture = ExtResource("1_0bbpv")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_gsxep"]
+texture = ExtResource("7_mwfav")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_v0vrg"]
+texture = ExtResource("5_bjd11")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/custom_data_0 = true
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_dg70y"]
+texture = ExtResource("6_qmy6f")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+0:0/0/custom_data_0 = true
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_pnhog"]
+texture = ExtResource("8_3p2gp")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/custom_data_0 = true
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_2c4at"]
+texture = ExtResource("9_cvmbd")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/custom_data_0 = true
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_g6wdg"]
+texture = ExtResource("10_ft6cd")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/custom_data_0 = true
+
+[sub_resource type="TileSet" id="TileSet_hq6as"]
+tile_size = Vector2i(32, 32)
+physics_layer_0/collision_layer = 1
+custom_data_layer_0/name = "can_enter"
+custom_data_layer_0/type = 1
+custom_data_layer_1/name = "enter_scene"
+custom_data_layer_1/type = 4
+custom_data_layer_2/name = "scene_transfer"
+custom_data_layer_2/type = 1
+custom_data_layer_3/name = "spawn_x"
+custom_data_layer_3/type = 2
+custom_data_layer_4/name = "spawn_y"
+custom_data_layer_4/type = 2
+sources/0 = SubResource("TileSetAtlasSource_fs0b5")
+sources/1 = SubResource("TileSetAtlasSource_ma7h6")
+sources/2 = SubResource("TileSetAtlasSource_e2s0e")
+sources/3 = SubResource("TileSetAtlasSource_gsxep")
+sources/4 = SubResource("TileSetAtlasSource_v0vrg")
+sources/5 = SubResource("TileSetAtlasSource_dg70y")
+sources/6 = SubResource("TileSetAtlasSource_pnhog")
+sources/7 = SubResource("TileSetAtlasSource_2c4at")
+sources/8 = SubResource("TileSetAtlasSource_g6wdg")
+
 [node name="Main" type="Node2D" unique_id=1202522057]
 script = ExtResource("1_rarhs")
 enemy_unit_scene = SubResource("PackedScene_xa025")
@@ -66,13 +150,11 @@ npc_data_list = Array[ExtResource("12_ebg2g")]([ExtResource("10_ebg2g"), ExtReso
 map_id = "detail_map_001"
 
 [node name="GroundLayer" type="TileMapLayer" parent="." unique_id=808028674]
-tile_set = ExtResource("15_cvmbd")
+tile_set = SubResource("TileSet_hq6as")
 
 [node name="WallLayer" type="TileMapLayer" parent="." unique_id=1210940059]
-tile_set = ExtResource("16_bb450")
 
 [node name="EventLayer" type="TileMapLayer" parent="." unique_id=59856834]
-tile_set = ExtResource("16_ft6cd")
 
 [node name="Units" type="Node" parent="." unique_id=332583731]
 

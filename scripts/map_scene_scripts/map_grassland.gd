@@ -1,8 +1,8 @@
 extends Node2D
 
-@onready var ground_layer: TileMapLayer = get_tree().current_scene.get_node("GroundLayer")
-@onready var wall_layer: TileMapLayer = get_tree().current_scene.get_node("WallLayer")
-@onready var event_layer: TileMapLayer = get_tree().current_scene.get_node("EventLayer")
+@onready var ground_layer: TileMapLayer = $Map/GroundLayer
+@onready var wall_layer: TileMapLayer = $Map/WallLayer
+@onready var event_layer: TileMapLayer = $Map/EventLayer
 @onready var player = $Units/Unit
 
 @export var enemy_unit_scene: PackedScene
@@ -37,7 +37,7 @@ func _ready() -> void:
 		WALL_ATLAS_COORDS
 	)
 
-	map_generator.generate_map(ground_layer,wall_layer,event_layer)
+	map_generator.generate_map(ground_layer, wall_layer)
 
 	spawn_manager = UnitSpawnManager.new(
 		$Units,
@@ -49,14 +49,21 @@ func _ready() -> void:
 	if WorldState.map_enemy_spawns.has(map_id):
 		spawn_manager.spawn_saved_enemies(enemy_unit_scene, enemy_data_list)
 	else:
-		spawn_manager.spawn_random_enemies(enemy_unit_scene, enemy_data_list, enemy_spawn_count)
+		spawn_manager.spawn_random_enemies(
+			enemy_unit_scene,
+			enemy_data_list,
+			enemy_spawn_count
+		)
 
 	if WorldState.map_npc_spawns.has(map_id):
 		spawn_manager.spawn_saved_npcs(npc_unit_scene, npc_data_list)
 	else:
-		spawn_manager.spawn_random_npcs(npc_unit_scene, npc_data_list, npc_spawn_count)
+		spawn_manager.spawn_random_npcs(
+			npc_unit_scene,
+			npc_data_list,
+			npc_spawn_count
+		)
 
-	# ↓ 削除予定
 	player.position = ground_layer.map_to_local(Vector2i(2, 2))
 
 func save_all_units() -> void:
