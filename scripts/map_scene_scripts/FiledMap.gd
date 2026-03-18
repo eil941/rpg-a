@@ -1,6 +1,6 @@
 extends Node2D
 
-@onready var tile_map = get_tree().current_scene.get_node("TileMap")
+@onready var tile_map: TileMapLayer = get_tree().current_scene.get_node("TileMap")
 @onready var player = $Units/Unit
 
 const MAP_WIDTH := 100
@@ -28,10 +28,10 @@ func generate_map() -> void:
 		for x in range(MAP_WIDTH):
 			var cell = Vector2i(x, y)
 			if x == 0 or y == 0 or x == MAP_WIDTH - 1 or y == MAP_HEIGHT - 1:
-				tile_map.set_cell(0, cell, HIGHROCK_SOURCE_ID, HIGHROCK_ATLAS_COORDS, 0)
+				tile_map.set_cell(cell, HIGHROCK_SOURCE_ID, HIGHROCK_ATLAS_COORDS, 0)
 			else:
-				#tile_map.set_cell(0, cell, FLOOR_SOURCE_ID, FLOOR_ATLAS_COORDS, 0)
-				tile_map.set_cell(0, cell, randi_range(2,8), FLOOR_ATLAS_COORDS, 0)
+				# tile_map.set_cell(cell, FLOOR_SOURCE_ID, FLOOR_ATLAS_COORDS, 0)
+				tile_map.set_cell(cell, randi_range(2, 8), FLOOR_ATLAS_COORDS, 0)
 
 func save_all_units() -> void:
 	print("save_all_units called")

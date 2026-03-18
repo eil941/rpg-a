@@ -1,0 +1,112 @@
+[gd_scene format=3 uid="uid://2rywxwcsuhk7"]
+
+[ext_resource type="Script" uid="uid://dvk2f4dxietfj" path="res://scripts/map_scene_scripts/FiledMap.gd" id="1_02481"]
+[ext_resource type="Texture2D" uid="uid://c2m7luwc4wy8b" path="res://assets/wall.png" id="2_p54wc"]
+[ext_resource type="Texture2D" uid="uid://ckj4j0fakksd0" path="res://assets/player.png" id="3_0vm3g"]
+[ext_resource type="Texture2D" uid="uid://xp2lsblny577" path="res://assets/deepsea.png" id="4_lt8qo"]
+[ext_resource type="Texture2D" uid="uid://cspenfvtyt8gp" path="res://assets/floor.png" id="5_54jl2"]
+[ext_resource type="Texture2D" uid="uid://cxtb1pxr3y2o2" path="res://assets/glass.png" id="6_ib3jy"]
+[ext_resource type="Texture2D" uid="uid://b2cbq34vcbsoc" path="res://assets/highrock1.png" id="7_8m0qm"]
+[ext_resource type="Texture2D" uid="uid://wq3fbwj1mcv8" path="res://assets/rock1.png" id="8_w8qf2"]
+[ext_resource type="Texture2D" uid="uid://bi65cbt76yey" path="res://assets/sand.png" id="9_xaa0y"]
+[ext_resource type="Texture2D" uid="uid://bq007sqr4ej4b" path="res://assets/sea.png" id="10_0scoe"]
+[ext_resource type="PackedScene" uid="uid://cjntf4kbtxh73" path="res://scenes/unit.tscn" id="11_hsesh"]
+[ext_resource type="Script" uid="uid://bf1d2iytj41gt" path="res://scripts/managers/time_manager.gd" id="12_0pth6"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_qok4n"]
+texture = ExtResource("2_p54wc")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_uioun"]
+texture = ExtResource("3_0vm3g")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_jtseo"]
+texture = ExtResource("4_lt8qo")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+0:0/0/custom_data_2 = true
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_lt2t3"]
+texture = ExtResource("5_54jl2")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/custom_data_0 = true
+0:0/0/custom_data_1 = "res://scenes/Main.tscn"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_wkcxi"]
+texture = ExtResource("6_ib3jy")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/custom_data_0 = true
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_anijm"]
+texture = ExtResource("7_8m0qm")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+0:0/0/custom_data_2 = true
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_mktff"]
+texture = ExtResource("8_w8qf2")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/custom_data_0 = true
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ts0qw"]
+texture = ExtResource("9_xaa0y")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/custom_data_0 = true
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_kbqwi"]
+texture = ExtResource("10_0scoe")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/custom_data_0 = true
+
+[sub_resource type="TileSet" id="TileSet_wjy5d"]
+tile_size = Vector2i(32, 32)
+physics_layer_0/collision_layer = 1
+custom_data_layer_0/name = "can_enter"
+custom_data_layer_0/type = 1
+custom_data_layer_1/name = "enter_scene"
+custom_data_layer_1/type = 4
+custom_data_layer_2/name = "scene_transfer"
+custom_data_layer_2/type = 1
+custom_data_layer_3/name = "spawn_x"
+custom_data_layer_3/type = 2
+custom_data_layer_4/name = "spawn_y"
+custom_data_layer_4/type = 2
+sources/0 = SubResource("TileSetAtlasSource_qok4n")
+sources/1 = SubResource("TileSetAtlasSource_uioun")
+sources/2 = SubResource("TileSetAtlasSource_jtseo")
+sources/3 = SubResource("TileSetAtlasSource_lt2t3")
+sources/4 = SubResource("TileSetAtlasSource_wkcxi")
+sources/5 = SubResource("TileSetAtlasSource_anijm")
+sources/6 = SubResource("TileSetAtlasSource_mktff")
+sources/7 = SubResource("TileSetAtlasSource_ts0qw")
+sources/8 = SubResource("TileSetAtlasSource_kbqwi")
+
+[node name="FiledMap" type="Node2D" unique_id=597082379]
+script = ExtResource("1_02481")
+
+[node name="TileMap" type="TileMap" parent="." unique_id=1107464204]
+tile_set = SubResource("TileSet_wjy5d")
+format = 2
+
+[node name="Units" type="Node" parent="." unique_id=644970352]
+
+[node name="Unit" parent="Units" unique_id=40692456 instance=ExtResource("11_hsesh")]
+can_trigger_scene_transition = true
+receives_time_turns = false
+instant_move = false
+unit_id = "player"
+is_player_unit = true
+debug_free_action = true
+
+[node name="TurnManager" type="Node" parent="." unique_id=1313729845]
+script = ExtResource("12_0pth6")

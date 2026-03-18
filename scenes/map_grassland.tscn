@@ -1,0 +1,181 @@
+[gd_scene format=3 uid="uid://dbix23belvt76"]
+
+[ext_resource type="Texture2D" uid="uid://c2m7luwc4wy8b" path="res://assets/wall.png" id="15_21ftg"]
+[ext_resource type="Texture2D" uid="uid://ckj4j0fakksd0" path="res://assets/player.png" id="16_ahtg6"]
+[ext_resource type="Texture2D" uid="uid://cspenfvtyt8gp" path="res://assets/floor.png" id="17_7ycmi"]
+[ext_resource type="Texture2D" uid="uid://cxtb1pxr3y2o2" path="res://assets/glass.png" id="18_i38qi"]
+[ext_resource type="Texture2D" uid="uid://b2cbq34vcbsoc" path="res://assets/highrock1.png" id="19_l058t"]
+[ext_resource type="Texture2D" uid="uid://xp2lsblny577" path="res://assets/deepsea.png" id="20_akp2y"]
+[ext_resource type="Texture2D" uid="uid://wq3fbwj1mcv8" path="res://assets/rock1.png" id="21_nwfng"]
+[ext_resource type="Texture2D" uid="uid://bi65cbt76yey" path="res://assets/sand.png" id="22_8vyf3"]
+[ext_resource type="Texture2D" uid="uid://bq007sqr4ej4b" path="res://assets/sea.png" id="23_ckbq2"]
+[ext_resource type="PackedScene" uid="uid://cjntf4kbtxh73" path="res://scenes/unit.tscn" id="24_bebfs"]
+[ext_resource type="Script" path="res://scripts/map_scene_scripts/map_grassland.gd" id="24_r553n"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ir0re"]
+texture = ExtResource("15_21ftg")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+0:0/0/custom_data_0 = true
+0:0/0/custom_data_1 = "res://scenes/field_map.tscn"
+0:0/0/custom_data_2 = true
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_8n61r"]
+texture = ExtResource("16_ahtg6")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_hvbwp"]
+texture = ExtResource("17_7ycmi")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_833kh"]
+texture = ExtResource("19_l058t")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_wtd4t"]
+texture = ExtResource("18_i38qi")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_4lmaa"]
+texture = ExtResource("20_akp2y")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_21ftg"]
+texture = ExtResource("21_nwfng")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ahtg6"]
+texture = ExtResource("22_8vyf3")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_7ycmi"]
+texture = ExtResource("23_ckbq2")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_i38qi"]
+tile_size = Vector2i(32, 32)
+physics_layer_0/collision_layer = 1
+custom_data_layer_0/name = "cen_enter"
+custom_data_layer_0/type = 1
+custom_data_layer_1/name = "snter_scene"
+custom_data_layer_1/type = 4
+custom_data_layer_2/name = "scene_transfer"
+custom_data_layer_2/type = 1
+custom_data_layer_3/name = "spawn_x"
+custom_data_layer_3/type = 2
+custom_data_layer_4/name = "spawn_y"
+custom_data_layer_4/type = 2
+sources/0 = SubResource("TileSetAtlasSource_ir0re")
+sources/1 = SubResource("TileSetAtlasSource_8n61r")
+sources/4 = SubResource("TileSetAtlasSource_wtd4t")
+sources/5 = SubResource("TileSetAtlasSource_4lmaa")
+sources/2 = SubResource("TileSetAtlasSource_hvbwp")
+sources/3 = SubResource("TileSetAtlasSource_833kh")
+sources/6 = SubResource("TileSetAtlasSource_21ftg")
+sources/7 = SubResource("TileSetAtlasSource_ahtg6")
+sources/8 = SubResource("TileSetAtlasSource_7ycmi")
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_cgs0a"]
+texture = ExtResource("15_21ftg")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+0:0/0/custom_data_1 = "res://scenes/field_map.tscn"
+0:0/0/custom_data_2 = true
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_1q80s"]
+texture = ExtResource("16_ahtg6")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_s6q6k"]
+texture = ExtResource("17_7ycmi")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_08x50"]
+texture = ExtResource("20_akp2y")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_2s6ey"]
+texture = ExtResource("18_i38qi")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_r3ya5"]
+texture = ExtResource("19_l058t")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_nmw6w"]
+texture = ExtResource("21_nwfng")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_78wyq"]
+texture = ExtResource("22_8vyf3")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_bpbb5"]
+texture = ExtResource("23_ckbq2")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_aay0v"]
+tile_size = Vector2i(32, 32)
+physics_layer_0/collision_layer = 1
+custom_data_layer_0/name = "can_enter"
+custom_data_layer_0/type = 1
+custom_data_layer_1/name = "enter_scene"
+custom_data_layer_1/type = 4
+custom_data_layer_2/name = "scene_tranfer"
+custom_data_layer_2/type = 1
+custom_data_layer_3/name = "spawn_x"
+custom_data_layer_3/type = 2
+custom_data_layer_4/name = "spawn_y"
+custom_data_layer_4/type = 2
+sources/0 = SubResource("TileSetAtlasSource_cgs0a")
+sources/1 = SubResource("TileSetAtlasSource_1q80s")
+sources/2 = SubResource("TileSetAtlasSource_s6q6k")
+sources/3 = SubResource("TileSetAtlasSource_08x50")
+sources/4 = SubResource("TileSetAtlasSource_2s6ey")
+sources/5 = SubResource("TileSetAtlasSource_r3ya5")
+sources/6 = SubResource("TileSetAtlasSource_nmw6w")
+sources/7 = SubResource("TileSetAtlasSource_78wyq")
+sources/8 = SubResource("TileSetAtlasSource_bpbb5")
+
+[node name="map_grassland" type="Node2D" unique_id=1202522057]
+script = ExtResource("24_r553n")
+
+[node name="Map" type="Node" parent="." unique_id=392689078]
+
+[node name="WallLayer" type="TileMapLayer" parent="Map" unique_id=1443999432]
+tile_set = SubResource("TileSet_i38qi")
+
+[node name="GroundLayer" type="TileMapLayer" parent="Map" unique_id=342367329]
+tile_set = SubResource("TileSet_aay0v")
+
+[node name="Units" type="Node" parent="." unique_id=332583731]
+
+[node name="Unit" parent="Units" unique_id=40692456 instance=ExtResource("24_bebfs")]
+can_trigger_scene_transition = true
+can_bump_attack = true
+receives_time_turns = false
+instant_move = false
+unit_id = "player"
+is_player_unit = true

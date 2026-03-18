@@ -2,11 +2,13 @@ extends RefCounted
 class_name UnitSpawnManager
 
 var units_node: Node
-var tile_map: TileMap
+#var tile_map: TileMap
 var map_id: String
 var walkable_tiles: Array[Vector2i]
 
-func _init(p_units_node: Node, p_tile_map: TileMap, p_map_id: String, p_walkable_tiles: Array[Vector2i]) -> void:
+var tile_map: TileMapLayer
+
+func _init(p_units_node: Node, p_tile_map: TileMapLayer, p_map_id: String, p_walkable_tiles: Array[Vector2i]) -> void:
 	units_node = p_units_node
 	tile_map = p_tile_map
 	map_id = p_map_id

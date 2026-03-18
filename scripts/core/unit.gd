@@ -16,7 +16,7 @@ extends CharacterBody2D
 @export var unit_id: String = ""
 @export var is_player_unit: bool = false
 @export var map_id: String = ""
-@export var debug_free_action:bool=false
+@export var debug_free_action: bool = false
 
 var is_moving: bool = false
 var target_position: Vector2
@@ -24,8 +24,9 @@ var repeat_timer: float = 0.0
 var is_transitioning: bool = false
 
 var enemy_data_to_apply: EnemyData = null
+var npc_data_to_apply: NpcData = null
 
-@onready var tile_map = get_tree().current_scene.get_node("TileMap")
+@onready var tile_map: TileMapLayer = get_tree().current_scene.get_node("TileMap")
 @onready var stats = $Stats
 @onready var controller = $Controller
 @onready var units_node = get_tree().current_scene.get_node_or_null("Units")
@@ -41,6 +42,9 @@ func _ready() -> void:
 
 	if enemy_data_to_apply != null:
 		apply_enemy_data(enemy_data_to_apply)
+
+	if npc_data_to_apply != null:
+		apply_npc_data(npc_data_to_apply)
 
 	load_persistent_stats()
 
@@ -91,14 +95,14 @@ func on_time_advanced(elapsed_seconds: float) -> void:
 		stats.pending_actions += 1
 
 func get_tile_data_at_coords(coords: Vector2i):
-	return tile_map.get_cell_tile_data(0, coords)
+	return tile_map.get_cell_tile_data(coords)
 
 func get_current_tile_coords() -> Vector2i:
 	return tile_map.local_to_map(tile_map.to_local(global_position))
 
 func get_current_tile_data():
 	var coords = get_current_tile_coords()
-	return tile_map.get_cell_tile_data(0, coords)
+	return tile_map.get_cell_tile_data(coords)
 
 func get_occupied_tile_coords() -> Vector2i:
 	if is_moving:
@@ -285,7 +289,6 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 
 	if has_node("Sprite2D"):
 		$Sprite2D.texture = enemy_data.sprite_texture
-		
 
 func handle_death() -> void:
 	if is_player_unit:

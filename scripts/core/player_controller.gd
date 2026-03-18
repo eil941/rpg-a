@@ -30,8 +30,12 @@ func _physics_process(_delta: float) -> void:
 
 	if Input.is_action_just_pressed("wait"):
 		unit.wait_action()
-		if units_node != null:
-			TimeManager.advance_time(units_node, unit.stats.speed)
+
+		if not unit.debug_free_action:
+			if units_node != null:
+				TimeManager.advance_time(units_node, unit.stats.speed)
+				TimeManager.update_turn_state(units_node)
+
 		return
 
 	var input_dir := get_input_direction()
@@ -42,7 +46,6 @@ func _physics_process(_delta: float) -> void:
 			if not unit.debug_free_action:
 				if units_node != null:
 					TimeManager.advance_time(units_node, unit.stats.speed)
-
 
 func get_input_direction() -> Vector2:
 	if Input.is_action_pressed("ui_right"):
