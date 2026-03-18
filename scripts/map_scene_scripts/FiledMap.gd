@@ -5,8 +5,10 @@ extends Node2D
 @onready var event_layer: TileMapLayer = get_tree().current_scene.get_node("EventLayer")
 @onready var player = $Units/Unit
 
-const MAP_WIDTH := 100
-const MAP_HEIGHT := 100
+@export var MAP_WIDTH := 200
+@export var MAP_HEIGHT := 200
+#const MAP_WIDTH := 200
+#const MAP_HEIGHT := 200
 
 const FLOOR_SOURCE_ID := 1
 const WALL_SOURCE_ID := 0
@@ -22,6 +24,20 @@ var map_generator: PlainMapGenerator
 
 
 func _ready() -> void:
+	
+	
+	map_generator = PlainMapGenerator.new(
+		MAP_WIDTH,
+		MAP_HEIGHT,
+		FLOOR_SOURCE_ID,
+		WALL_SOURCE_ID,
+		FLOOR_ATLAS_COORDS,
+		WALL_ATLAS_COORDS
+	)
+
+	#map_generator.generate_map(ground_layer, wall_layer, event_layer)
+
+	map_generator.generate_map(ground_layer,wall_layer,event_layer)
 	generate_map()
 
 	if GlobalPlayerSpawn.has_next_tile:
@@ -37,11 +53,6 @@ func generate_map() -> void:
 
 			if x == 0 or y == 0 or x == MAP_WIDTH - 1 or y == MAP_HEIGHT - 1:
 				wall_layer.set_cell(cell, HIGHROCK_SOURCE_ID, HIGHROCK_ATLAS_COORDS, 0)
-			else:
-				# ground_layer.set_cell(cell, FLOOR_SOURCE_ID, FLOOR_ATLAS_COORDS, 0)
-				var num=randi_range(2, 6)
-				ground_layer.set_cell(cell, 9, Vector2i(randi_range(0,1),randi_range(0,4)), 0)
-				#event_layer.set_cell(cell, num, FLOOR_ATLAS_COORDS, 0)
 
 
 func save_all_units() -> void:

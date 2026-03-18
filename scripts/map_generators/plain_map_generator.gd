@@ -34,31 +34,25 @@ func generate_map(
 	var FOREST_ATLAS_COORDS := Vector2i(3, 0)
 	var MOUNTAIN_ATLAS_COORDS := Vector2i(4, 0)
 
-	# =========================
-	# マップサイズ
-	# 既存の map_width / map_height を使う想定
-	# =========================
+	# 外周用Wall
+	var BORDER_WALL_SOURCE_ID := 5
+	var BORDER_WALL_ATLAS_COORDS := Vector2i(0, 0)
 
-	# 各セルの地形名を保持
+	# =========================
+	# 前半の旧ロジック
+	# 今は実際の最終結果には使っていない
+	# =========================
 	var biome_map: Array = []
 	for y in range(map_height):
 		biome_map.append([])
 		for x in range(map_width):
 			biome_map[y].append("grass")
 
-	# =========================
-	# 1. 海を作る
-	# 左側から数列を海にする
-	# 波打ち際を少し揺らす
-	# =========================
 	for y in range(map_height):
-		var coast_x := 2 + randi() % 3  # 2～4列目くらいまで海
+		var coast_x := 2 + randi() % 3
 		for x in range(coast_x):
 			biome_map[y][x] = "sea"
 
-	# =========================
-	# 2. 海に隣接する陸を砂浜にする
-	# =========================
 	for y in range(map_height):
 		for x in range(map_width):
 			if biome_map[y][x] == "sea":
@@ -68,23 +62,16 @@ func generate_map(
 			if _is_adjacent_to_biome(cell, biome_map, "sea"):
 				biome_map[y][x] = "beach"
 
-	# =========================
-	# 3. 森を作る
-	# 海からある程度離れた場所だけ候補にする
-	# =========================
 	for y in range(map_height):
 		for x in range(map_width):
 			if biome_map[y][x] != "grass":
 				continue
 
 			var sea_distance := _distance_from_left_sea(x, biome_map, y)
-
-			# 海から近い場所には森を置かない
 			if sea_distance >= 4:
 				if randf() < 0.18:
 					biome_map[y][x] = "forest"
 
-	# 森を少し広げる
 	for y in range(map_height):
 		for x in range(map_width):
 			if biome_map[y][x] != "grass":
@@ -97,19 +84,12 @@ func generate_map(
 				if randf() < 0.55:
 					biome_map[y][x] = "forest"
 
-	# =========================
-	# 4. 山岳を作る
-	# 海から十分遠い場所にしか置かない
-	# 森の奥に出やすくする
-	# =========================
 	for y in range(map_height):
 		for x in range(map_width):
 			if biome_map[y][x] != "grass" and biome_map[y][x] != "forest":
 				continue
 
 			var sea_distance := _distance_from_left_sea(x, biome_map, y)
-
-			# 海の近くには絶対置かない
 			if sea_distance < 7:
 				continue
 
@@ -119,7 +99,6 @@ func generate_map(
 			if forest_neighbors >= 2 and randf() < 0.22:
 				biome_map[y][x] = "mountain"
 
-	# 山岳を少し広げる
 	for y in range(map_height):
 		for x in range(map_width):
 			if biome_map[y][x] != "grass" and biome_map[y][x] != "forest":
@@ -134,11 +113,6 @@ func generate_map(
 				if randf() < 0.45:
 					biome_map[y][x] = "mountain"
 
-	# =========================
-	# 5. 描画
-	# 今回は全部 ground_layer に置いている
-	# 必要なら山岳だけ wall_layer に分けてもよい
-	# =========================
 	for y in range(map_height):
 		for x in range(map_width):
 			var cell := Vector2i(x, y)
@@ -156,9 +130,8 @@ func generate_map(
 					ground_layer.set_cell(cell, MOUNTAIN_SOURCE_ID, MOUNTAIN_ATLAS_COORDS, 0)
 
 	# =========================
-	# イベント配置ひな型
+	# 実際に使っている後半ロジック
 	# =========================
-	# event_layer.set_cell(Vector2i(5, 5), EVENT_SOURCE_ID, EVENT_ATLAS_COORDS, 0)
 	var terrain_data: Array = []
 
 	var biome_noise := FastNoiseLite.new()
@@ -178,19 +151,15 @@ func generate_map(
 			var b := (biome_noise.get_noise_2d(x, y) + 1.0) * 0.5
 			var d := (detail_noise.get_noise_2d(x, y) + 1.0) * 0.5
 
-			# 端からの距離を使って海を大きくする
 			var dist_left := x
 			var dist_right := map_width - 1 - x
 			var dist_top := y
 			var dist_bottom := map_height - 1 - y
 			var edge_dist = min(dist_left, dist_right, dist_top, dist_bottom)
 
-			# 0.0 = 外周, 1.0 = 中央寄り
 			var max_edge_dist = min(map_width, map_height) / 2.0
 			var edge_factor = clamp(float(edge_dist) / max_edge_dist, 0.0, 1.0)
 
-			# 外周ほど海になりやすくする
-			# 小さいほど海寄りの値になる
 			var sea_value = b * 0.55 + edge_factor * 0.45
 
 			var biome := BIOME_PLAINS
@@ -232,9 +201,9 @@ func generate_map(
 
 		terrain_data.append(terrain_row)
 
-# 海の隣を砂浜に補正
-# 森は海の近くに置かない
-# 岩の近くの森も草原に落とす
+	# 海の隣を砂浜に補正
+	# 森は海の近くに置かない
+	# 岩の近くの森も草原に落とす
 	terrain_result.clear()
 
 	for y in range(map_height):
@@ -256,7 +225,7 @@ func generate_map(
 
 					if nx < 0 or nx >= map_width or ny < 0 or ny >= map_height:
 						continue
-	
+
 					var neighbor: int = terrain_data[ny][nx]
 
 					if neighbor == TERRAIN_SEA:
@@ -264,13 +233,11 @@ func generate_map(
 					elif neighbor == TERRAIN_ROCK:
 						near_rock = true
 
-			# 海の近くは砂浜優先
 			if current == TERRAIN_GRASS and near_sea:
 				current = TERRAIN_SAND
 			elif current == TERRAIN_FOREST and near_sea:
 				current = TERRAIN_GRASS
 
-			# 岩場の中や岩に強く接する森は草原に落とす
 			if current == TERRAIN_FOREST and near_rock:
 				current = TERRAIN_GRASS
 
@@ -300,21 +267,37 @@ func generate_map(
 
 			match terrain:
 				TERRAIN_SEA:
-					ground_layer.set_cell(cell, 23, Vector2i(1, 4), 0)
+					ground_layer.set_cell(cell, 33, Vector2i(1, 4), 0)
+					event_layer.set_cell(cell, 33, Vector2i(1, 4), 0)
 
 				TERRAIN_SAND:
-					ground_layer.set_cell(cell, 10, Vector2i(1, 4), 0)
-
+					ground_layer.set_cell(cell, 20, Vector2i(1, 4), 0)
+					event_layer.set_cell(cell, 20, Vector2i(1, 4), 0)
+					
 				TERRAIN_GRASS:
-					ground_layer.set_cell(cell, 12, Vector2i(1, 4), 0)
-
+					ground_layer.set_cell(cell, 22, Vector2i(1, 4), 0)
+					event_layer.set_cell(cell, 22, Vector2i(1, 4), 0)
+					
 				TERRAIN_FOREST:
-					ground_layer.set_cell(cell, 7, Vector2i(1, 4), 0)
+					ground_layer.set_cell(cell, 17, Vector2i(1, 4), 0)
+					event_layer.set_cell(cell, 17, Vector2i(1, 4), 0)
 
 				TERRAIN_ROCK:
 					ground_layer.set_cell(cell, 6, Vector2i(1, 4), 0)
-					#wall_layer.set_cell(cell, 9, Vector2i(1, 4), 0)
-					wall_layer.set_cell(cell, 5, Vector2i(0,0), 0)
+					wall_layer.set_cell(cell, 5, Vector2i(0, 0), 0)
+
+	# =========================
+	# 外周にWallを付ける
+	# =========================
+	for x in range(map_width):
+		wall_layer.set_cell(Vector2i(x, 0), BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
+		wall_layer.set_cell(Vector2i(x, map_height - 1), BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
+
+	for y in range(map_height):
+		wall_layer.set_cell(Vector2i(0, y), BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
+		wall_layer.set_cell(Vector2i(map_width - 1, y), BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
+
+
 func get_walkable_tiles() -> Array[Vector2i]:
 	var result: Array[Vector2i] = []
 
@@ -328,8 +311,8 @@ func get_walkable_tiles() -> Array[Vector2i]:
 				result.append(Vector2i(x, y))
 
 	return result
-	
-	
+
+
 func _is_in_bounds(x: int, y: int) -> bool:
 	return x >= 0 and x < map_width and y >= 0 and y < map_height
 
