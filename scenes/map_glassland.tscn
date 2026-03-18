@@ -1,0 +1,29 @@
+[gd_scene format=3 uid="uid://bpfv3l1gu07rl"]
+
+[ext_resource type="Script" uid="uid://bi3w50g82tcgd" path="res://scripts/map_scene_scripts/map_glassland.gd" id="1_lxqf7"]
+[ext_resource type="TileSet" uid="uid://cjd0uikqjiwm8" path="res://scenes/field_glass.tres" id="15_sad8k"]
+[ext_resource type="TileSet" uid="uid://bc0aui1htbk1v" path="res://scenes/test_wall.tres" id="16_4cnna"]
+[ext_resource type="TileSet" uid="uid://cpndipp741lyo" path="res://scenes/test_event.tres" id="17_q1uoh"]
+[ext_resource type="PackedScene" uid="uid://cjntf4kbtxh73" path="res://scenes/unit.tscn" id="18_28828"]
+
+[node name="GlassLand" type="Node2D" unique_id=1202522057]
+script = ExtResource("1_lxqf7")
+
+[node name="GroundLayer" type="TileMapLayer" parent="." unique_id=808028674]
+tile_set = ExtResource("15_sad8k")
+
+[node name="WallLayer" type="TileMapLayer" parent="." unique_id=1210940059]
+tile_set = ExtResource("16_4cnna")
+
+[node name="EventLayer" type="TileMapLayer" parent="." unique_id=59856834]
+tile_set = ExtResource("17_q1uoh")
+
+[node name="Units" type="Node" parent="." unique_id=332583731]
+
+[node name="Unit" parent="Units" unique_id=40692456 instance=ExtResource("18_28828")]
+can_trigger_scene_transition = true
+can_bump_attack = true
+receives_time_turns = false
+instant_move = false
+unit_id = "player"
+is_player_unit = true
