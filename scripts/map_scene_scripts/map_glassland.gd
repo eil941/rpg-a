@@ -15,8 +15,11 @@ extends Node2D
 
 @export var map_id: String = ""
 
-const MAP_WIDTH := 50
-const MAP_HEIGHT := 50
+
+@export var MAP_WIDTH := 200
+@export var MAP_HEIGHT := 200
+#const MAP_WIDTH := 200
+#const MAP_HEIGHT := 200
 
 const FLOOR_SOURCE_ID := 2
 const WALL_SOURCE_ID := 0
@@ -24,11 +27,52 @@ const WALL_SOURCE_ID := 0
 const FLOOR_ATLAS_COORDS := Vector2i(0, 0)
 const WALL_ATLAS_COORDS := Vector2i(0, 0)
 
-var map_generator: MapGenerator
 var spawn_manager: UnitSpawnManager
 
+
+#var map_generator: MapGenerator
+var map_generator: PlainMapGenerator
+
+
 func _ready() -> void:
-	map_generator = MapGenerator.new(
+	#map_generator = MapGenerator.new(
+	#map_generator = PlainMapGenerator.new(
+	#	MAP_WIDTH,
+	#	MAP_HEIGHT,
+	#	FLOOR_SOURCE_ID,
+	#	WALL_SOURCE_ID,
+	#	FLOOR_ATLAS_COORDS,
+	#	WALL_ATLAS_COORDS
+	#)
+	
+	var tile_defs = {
+		"sea": {
+			"source_id": 0,
+			"atlas_coords": Vector2i(0, 0)
+		},
+		"sand": {
+			"source_id": 0,
+			"atlas_coords": Vector2i(1, 0)
+		},
+		"grass": {
+			"source_id": 0,
+			"atlas_coords": Vector2i(2, 0)
+		},
+		"forest": {
+			"source_id": 0,
+			"atlas_coords": Vector2i(3, 0)
+		},
+		"rock": {
+			"source_id": 0,
+			"atlas_coords": Vector2i(4, 0)
+		},
+		"wall": {
+			"source_id": 1,
+			"atlas_coords": Vector2i(0, 0)
+		}
+	}
+
+	map_generator = PlainMapGenerator.new(
 		MAP_WIDTH,
 		MAP_HEIGHT,
 		FLOOR_SOURCE_ID,
@@ -36,6 +80,8 @@ func _ready() -> void:
 		FLOOR_ATLAS_COORDS,
 		WALL_ATLAS_COORDS
 	)
+
+	#map_generator.generate_map(ground_layer, wall_layer, event_layer)
 
 	map_generator.generate_map(ground_layer,wall_layer,event_layer)
 

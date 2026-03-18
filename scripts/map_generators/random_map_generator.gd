@@ -44,6 +44,8 @@ func generate_map(ground_layer: TileMapLayer, wall_layer: TileMapLayer,event_lay
 		#wall_layer.set_cell(Vector2i(25, y), wall_source_id, wall_atlas_coords, 0)
 		wall_layer.set_cell(Vector2i(25, y), 5, wall_atlas_coords, 0)
 
+
+
 func get_walkable_tiles() -> Array[Vector2i]:
 	var result: Array[Vector2i] = []
 

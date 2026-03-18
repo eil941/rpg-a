@@ -16,6 +16,11 @@ const FLOOR_ATLAS_COORDS := Vector2i(0, 0)
 const WALL_ATLAS_COORDS := Vector2i(0, 0)
 const HIGHROCK_ATLAS_COORDS := Vector2i(0, 0)
 
+var map_generator: PlainMapGenerator
+
+
+
+
 func _ready() -> void:
 	generate_map()
 
@@ -37,6 +42,7 @@ func generate_map() -> void:
 				var num=randi_range(2, 6)
 				ground_layer.set_cell(cell, 9, Vector2i(randi_range(0,1),randi_range(0,4)), 0)
 				#event_layer.set_cell(cell, num, FLOOR_ATLAS_COORDS, 0)
+
 
 func save_all_units() -> void:
 	print("save_all_units called")

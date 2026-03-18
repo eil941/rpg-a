@@ -8,11 +8,8 @@
 
 [node name="GlassLand" type="Node2D" unique_id=1202522057]
 script = ExtResource("1_lxqf7")
-enemy_spawn_count = null
-enemy_data_list = null
-npc_spawn_count = null
-npc_data_list = null
-map_id = null
+MAP_WIDTH = 150
+MAP_HEIGHT = 150
 
 [node name="GroundLayer" type="TileMapLayer" parent="." unique_id=808028674]
 tile_set = ExtResource("15_sad8k")

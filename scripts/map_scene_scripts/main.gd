@@ -24,8 +24,11 @@ const WALL_SOURCE_ID := 0
 const FLOOR_ATLAS_COORDS := Vector2i(0, 0)
 const WALL_ATLAS_COORDS := Vector2i(0, 0)
 
-var map_generator: MapGenerator
+
 var spawn_manager: UnitSpawnManager
+
+var map_generator: MapGenerator
+#var map_generator: PlainMapGenerator
 
 func _ready() -> void:
 	map_generator = MapGenerator.new(
@@ -36,6 +39,15 @@ func _ready() -> void:
 		FLOOR_ATLAS_COORDS,
 		WALL_ATLAS_COORDS
 	)
+	
+	#map_generator = PlainMapGenerator.new(
+	#	MAP_WIDTH,
+	#	MAP_HEIGHT,
+	#	FLOOR_SOURCE_ID,
+	#	WALL_ATLAS_COORDS
+	#)
+
+
 
 	map_generator.generate_map(ground_layer,wall_layer,event_layer)
 
