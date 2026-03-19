@@ -1,0 +1,29 @@
+[gd_scene format=3 uid="uid://bxqfurjiovh8v"]
+
+[ext_resource type="Script" uid="uid://bbl1fwb80bfb" path="res://scripts/map_scene_scripts/grass_map.gd" id="1_6v6ul"]
+[ext_resource type="TileSet" uid="uid://ccm51ihc4pruf" path="res://data/test_field_ground.tres" id="2_8jwx8"]
+[ext_resource type="TileSet" uid="uid://bc0aui1htbk1v" path="res://data/test_wall.tres" id="3_xnq2p"]
+[ext_resource type="PackedScene" uid="uid://cjntf4kbtxh73" path="res://scenes/unit.tscn" id="4_cxxud"]
+
+[node name="GrassMap" type="Node2D" unique_id=1202522057]
+script = ExtResource("1_6v6ul")
+
+[node name="GroundLayer" type="TileMapLayer" parent="." unique_id=808028674]
+tile_set = ExtResource("2_8jwx8")
+
+[node name="WallLayer" type="TileMapLayer" parent="." unique_id=1210940059]
+tile_set = ExtResource("3_xnq2p")
+
+[node name="EventLayer" type="TileMapLayer" parent="." unique_id=1337611593]
+tile_set = ExtResource("2_8jwx8")
+
+[node name="Units" type="Node" parent="." unique_id=332583731]
+
+[node name="Unit" parent="Units" unique_id=40692456 instance=ExtResource("4_cxxud")]
+start_tile = Vector2i(10, 10)
+can_trigger_scene_transition = true
+can_bump_attack = true
+receives_time_turns = false
+instant_move = false
+unit_id = "player"
+is_player_unit = true

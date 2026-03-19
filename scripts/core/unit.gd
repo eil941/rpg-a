@@ -37,6 +37,8 @@ var npc_data_to_apply: NpcData = null
 @onready var combat_manager = CombatManager
 
 func _ready() -> void:
+	sync_map_id_from_scene()
+
 	global_position = ground_layer.to_global(ground_layer.map_to_local(start_tile))
 	target_position = global_position
 
@@ -52,13 +54,20 @@ func _ready() -> void:
 	load_persistent_stats()
 
 	if is_player_unit and GlobalPlayerSpawn.has_next_tile:
-		global_position = ground_layer.to_global(ground_layer.map_to_local(GlobalPlayerSpawn.next_tile))
-		target_position = global_position
+		if not PlayerData.map_positions.has(map_id):
+			global_position = ground_layer.to_global(ground_layer.map_to_local(GlobalPlayerSpawn.next_tile))
+			target_position = global_position
 		GlobalPlayerSpawn.has_next_tile = false
 
 	print("HP: ", stats.hp, "/", stats.max_hp)
 	print("ATK: ", stats.attack, " DEF: ", stats.defense)
 	print("SPD: ", stats.speed)
+
+	if is_player_unit:
+		print("READY map_id =", map_id)
+		print("READY has_next_tile =", GlobalPlayerSpawn.has_next_tile)
+		print("READY next_tile =", GlobalPlayerSpawn.next_tile)
+		print("READY saved_positions =", PlayerData.map_positions)
 
 	TimeManager.is_resolving_turn = false
 
@@ -153,8 +162,16 @@ func try_move(dir: Vector2) -> bool:
 	var scene_transfer = tile_data.get_custom_data("scene_transfer")
 	if can_trigger_scene_transition and scene_transfer != null and scene_transfer == true:
 		var next_scene = String(tile_data.get_custom_data("enter_scene"))
-		var spawn_x = int(tile_data.get_custom_data("spawn_x"))
-		var spawn_y = int(tile_data.get_custom_data("spawn_y"))
+
+		var spawn_x_data = tile_data.get_custom_data("spawn_x")
+		var spawn_y_data = tile_data.get_custom_data("spawn_y")
+
+		if spawn_x_data == null or spawn_y_data == null:
+			push_error("spawn_x or spawn_y is missing on event tile")
+			return false
+
+		var spawn_x = int(spawn_x_data)
+		var spawn_y = int(spawn_y_data)
 
 		if next_scene != "":
 			if is_player_unit:
@@ -164,6 +181,10 @@ func try_move(dir: Vector2) -> bool:
 			var current_scene = get_tree().current_scene
 			if current_scene != null and current_scene.has_method("save_all_units"):
 				current_scene.save_all_units()
+
+			print("SCENE TRANSFER next_scene=", next_scene)
+			print("SCENE TRANSFER spawn_x=", spawn_x, " spawn_y=", spawn_y)
+			print("SCENE TRANSFER set next_tile=", Vector2i(spawn_x, spawn_y))
 
 			is_transitioning = true
 			GlobalPlayerSpawn.has_next_tile = true
@@ -178,7 +199,6 @@ func try_interact_transition() -> void:
 		return
 
 	var tile_data = get_current_tile_data()
-
 	if tile_data == null:
 		return
 
@@ -190,8 +210,15 @@ func try_interact_transition() -> void:
 	if next_scene == "":
 		return
 
-	var spawn_x = int(tile_data.get_custom_data("spawn_x"))
-	var spawn_y = int(tile_data.get_custom_data("spawn_y"))
+	var spawn_x_data = tile_data.get_custom_data("spawn_x")
+	var spawn_y_data = tile_data.get_custom_data("spawn_y")
+
+	if spawn_x_data == null or spawn_y_data == null:
+		push_error("spawn_x or spawn_y is missing on event tile")
+		return
+
+	var spawn_x = int(spawn_x_data)
+	var spawn_y = int(spawn_y_data)
 
 	if is_player_unit:
 		PlayerData.last_map_id = map_id
@@ -200,6 +227,10 @@ func try_interact_transition() -> void:
 	var current_scene = get_tree().current_scene
 	if current_scene != null and current_scene.has_method("save_all_units"):
 		current_scene.save_all_units()
+
+	print("INTERACT TRANSFER next_scene=", next_scene)
+	print("INTERACT TRANSFER spawn_x=", spawn_x, " spawn_y=", spawn_y)
+	print("INTERACT TRANSFER set next_tile=", Vector2i(spawn_x, spawn_y))
 
 	is_transitioning = true
 	GlobalPlayerSpawn.has_next_tile = true
@@ -250,8 +281,17 @@ func save_persistent_stats() -> void:
 		PlayerData.attack = stats.attack
 		PlayerData.defense = stats.defense
 		PlayerData.speed = stats.speed
-		PlayerData.current_tile = get_current_tile_coords()
-		PlayerData.current_map_id = map_id
+
+		if map_id != "":
+			print("PLAYER SAVE global_position=", global_position)
+			print("PLAYER SAVE local position=", position)
+			print("PLAYER SAVE current_tile=", get_current_tile_coords())
+
+			PlayerData.map_positions[map_id] = get_current_tile_coords()
+			print("PLAYER SAVE map_positions=", PlayerData.map_positions)
+		else:
+			print("PLAYER SAVE FAILED: map_id is empty")
+
 		return
 
 	if unit_id != "":
@@ -262,14 +302,19 @@ func save_persistent_stats() -> void:
 
 func load_persistent_stats() -> void:
 	if is_player_unit:
+		print("PLAYER LOAD map_id=", map_id)
+		print("PLAYER LOAD map_positions=", PlayerData.map_positions)
+
 		stats.max_hp = PlayerData.max_hp
 		stats.hp = PlayerData.hp
 		stats.attack = PlayerData.attack
 		stats.defense = PlayerData.defense
 		stats.speed = PlayerData.speed
 
-		if map_id != "" and PlayerData.current_map_id != "" and PlayerData.current_map_id == map_id:
-			global_position = ground_layer.to_global(ground_layer.map_to_local(PlayerData.current_tile))
+		if map_id != "" and PlayerData.map_positions.has(map_id):
+			var saved_tile: Vector2i = PlayerData.map_positions[map_id]
+			print("PLAYER RESTORE tile=", saved_tile)
+			global_position = ground_layer.to_global(ground_layer.map_to_local(saved_tile))
 			target_position = global_position
 
 		return
@@ -283,7 +328,6 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 		return
 
 	name = enemy_data.enemy_name
-
 	stats.max_hp = enemy_data.max_hp
 	stats.hp = enemy_data.max_hp
 	stats.attack = enemy_data.attack
@@ -310,7 +354,6 @@ func apply_npc_data(npc_data: NpcData) -> void:
 		return
 
 	name = npc_data.npc_name
-
 	stats.max_hp = npc_data.max_hp
 	stats.hp = npc_data.max_hp
 	stats.attack = npc_data.attack
@@ -319,3 +362,12 @@ func apply_npc_data(npc_data: NpcData) -> void:
 
 	if has_node("Sprite2D"):
 		$Sprite2D.texture = npc_data.sprite_texture
+
+func sync_map_id_from_scene() -> void:
+	var current_scene = get_tree().current_scene
+	if current_scene == null:
+		return
+
+	var scene_map_id = current_scene.get("map_id")
+	if scene_map_id != null:
+		map_id = scene_map_id

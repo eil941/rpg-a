@@ -9,6 +9,7 @@ extends Node2D
 @export var MAP_HEIGHT := 200
 #const MAP_WIDTH := 200
 #const MAP_HEIGHT := 200
+@export var map_id: String = ""
 
 const FLOOR_SOURCE_ID := 1
 const WALL_SOURCE_ID := 0
@@ -24,27 +25,23 @@ var map_generator: PlainMapGenerator
 
 
 func _ready() -> void:
+	player.map_id = map_id
 	
-	
-	map_generator = PlainMapGenerator.new(
-		MAP_WIDTH,
-		MAP_HEIGHT,
-		FLOOR_SOURCE_ID,
-		WALL_SOURCE_ID,
-		FLOOR_ATLAS_COORDS,
-		WALL_ATLAS_COORDS
-	)
-
-	#map_generator.generate_map(ground_layer, wall_layer, event_layer)
-
-	map_generator.generate_map(ground_layer,wall_layer,event_layer)
-	generate_map()
-
-	if GlobalPlayerSpawn.has_next_tile:
-		player.global_position = ground_layer.to_global(ground_layer.map_to_local(GlobalPlayerSpawn.next_tile))
-		GlobalPlayerSpawn.has_next_tile = false
+	if WorldState.map_tile_data.has(map_id):
+		load_map_tiles()
 	else:
-		player.global_position = ground_layer.to_global(ground_layer.map_to_local(Vector2i(2, 2)))
+		map_generator = PlainMapGenerator.new(
+			MAP_WIDTH,
+			MAP_HEIGHT,
+			FLOOR_SOURCE_ID,
+			WALL_SOURCE_ID,
+			FLOOR_ATLAS_COORDS,
+			WALL_ATLAS_COORDS
+		)
+		map_generator.generate_map(ground_layer, wall_layer, event_layer)
+		save_map_tiles()
+
+	
 
 func generate_map() -> void:
 	for y in range(MAP_HEIGHT):
@@ -67,3 +64,55 @@ func save_all_units() -> void:
 
 		if unit.has_method("save_persistent_stats"):
 			unit.save_persistent_stats()
+
+func save_layer_data(layer: TileMapLayer) -> Array:
+	var result: Array = []
+
+	var used_cells = layer.get_used_cells()
+
+	for cell in used_cells:
+		var source_id = layer.get_cell_source_id(cell)
+		if source_id == -1:
+			continue
+
+		var atlas_coords = layer.get_cell_atlas_coords(cell)
+		var alternative = layer.get_cell_alternative_tile(cell)
+
+		result.append({
+			"x": cell.x,
+			"y": cell.y,
+			"source_id": source_id,
+			"atlas_x": atlas_coords.x,
+			"atlas_y": atlas_coords.y,
+			"alternative": alternative
+		})
+
+	return result
+
+func load_layer_data(layer: TileMapLayer, data: Array) -> void:
+	layer.clear()
+
+	for cell_data in data:
+		var cell = Vector2i(cell_data["x"], cell_data["y"])
+		var source_id = cell_data["source_id"]
+		var atlas_coords = Vector2i(cell_data["atlas_x"], cell_data["atlas_y"])
+		var alternative = cell_data["alternative"]
+
+		layer.set_cell(cell, source_id, atlas_coords, alternative)
+
+func save_map_tiles() -> void:
+	WorldState.map_tile_data[map_id] = {
+		"ground": save_layer_data(ground_layer),
+		"wall": save_layer_data(wall_layer),
+		"event": save_layer_data(event_layer)
+	}
+
+func load_map_tiles() -> void:
+	if not WorldState.map_tile_data.has(map_id):
+		return
+
+	var data = WorldState.map_tile_data[map_id]
+
+	load_layer_data(ground_layer, data.get("ground", []))
+	load_layer_data(wall_layer, data.get("wall", []))
+	load_layer_data(event_layer, data.get("event", []))

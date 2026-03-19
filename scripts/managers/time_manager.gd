@@ -77,7 +77,9 @@ func get_time_of_day() -> String:
 		return "夜"
 
 func get_time_string() -> String:
-	return "Day %d %02d:%02d" % [get_day(), get_hour(), get_minute()]
-
+	#return "Day %d %02d:%02d" % [get_day(), get_hour(), get_minute()]
+	return ""
+	
 func print_current_time() -> void:
-	print(get_time_string(), " / ", get_time_of_day())
+	printraw("")
+	#print(get_time_string(), " / ", get_time_of_day())

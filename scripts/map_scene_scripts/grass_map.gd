@@ -15,8 +15,8 @@ extends Node2D
 
 @export var map_id: String = ""
 
-const MAP_WIDTH := 30
-const MAP_HEIGHT := 30
+const MAP_WIDTH := 100
+const MAP_HEIGHT := 100
 
 const FLOOR_SOURCE_ID := 2
 const WALL_SOURCE_ID := 0
@@ -25,7 +25,7 @@ const FLOOR_ATLAS_COORDS := Vector2i(0, 0)
 const WALL_ATLAS_COORDS := Vector2i(0, 0)
 
 var spawn_manager: UnitSpawnManager
-var map_generator: MapGenerator
+var map_generator: GrasslandMapGenerator
 
 func _ready() -> void:
 	player.map_id = map_id
@@ -33,7 +33,7 @@ func _ready() -> void:
 	if WorldState.map_tile_data.has(map_id):
 		load_map_tiles()
 	else:
-		map_generator = MapGenerator.new(
+		map_generator = GrasslandMapGenerator.new(
 			MAP_WIDTH,
 			MAP_HEIGHT,
 			FLOOR_SOURCE_ID,
@@ -41,7 +41,7 @@ func _ready() -> void:
 			FLOOR_ATLAS_COORDS,
 			WALL_ATLAS_COORDS
 		)
-		#map_generator.generate_map(ground_layer, wall_layer, event_layer)
+		map_generator.generate_map(ground_layer, wall_layer, event_layer)
 		save_map_tiles()
 
 	var walkable_tiles: Array[Vector2i] = []

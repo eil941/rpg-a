@@ -291,11 +291,11 @@ func generate_map(
 	# =========================
 	for x in range(map_width):
 		wall_layer.set_cell(Vector2i(x, 0), BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
-		wall_layer.set_cell(Vector2i(x, map_height - 1), BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
+		wall_layer.set_cell(Vector2i(x, map_height ), BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
 
 	for y in range(map_height):
 		wall_layer.set_cell(Vector2i(0, y), BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
-		wall_layer.set_cell(Vector2i(map_width - 1, y), BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
+		wall_layer.set_cell(Vector2i(map_width , y), BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
 
 
 func get_walkable_tiles() -> Array[Vector2i]:

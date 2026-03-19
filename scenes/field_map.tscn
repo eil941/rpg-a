@@ -1,12 +1,13 @@
 [gd_scene format=3 uid="uid://763h4n8mfcrw"]
 
 [ext_resource type="Script" uid="uid://dvk2f4dxietfj" path="res://scripts/map_scene_scripts/FiledMap.gd" id="1_bf576"]
-[ext_resource type="TileSet" uid="uid://ccm51ihc4pruf" path="res://scenes/test_field_ground.tres" id="2_bbcss"]
+[ext_resource type="TileSet" uid="uid://ccm51ihc4pruf" path="res://data/test_field_ground.tres" id="2_bbcss"]
 [ext_resource type="PackedScene" uid="uid://cjntf4kbtxh73" path="res://scenes/unit.tscn" id="11_qok4n"]
-[ext_resource type="TileSet" uid="uid://bc0aui1htbk1v" path="res://scenes/test_wall.tres" id="16_kbqwi"]
+[ext_resource type="TileSet" uid="uid://bc0aui1htbk1v" path="res://data/test_wall.tres" id="16_kbqwi"]
 
 [node name="FieldMap" type="Node2D" unique_id=1202522057]
 script = ExtResource("1_bf576")
+map_id = "FieldMap"
 
 [node name="GroundLayer" type="TileMapLayer" parent="." unique_id=808028674]
 tile_set = ExtResource("2_bbcss")
@@ -20,6 +21,7 @@ tile_set = ExtResource("2_bbcss")
 [node name="Units" type="Node" parent="." unique_id=332583731]
 
 [node name="Unit" parent="Units" unique_id=40692456 instance=ExtResource("11_qok4n")]
+start_tile = Vector2i(10, 10)
 can_trigger_scene_transition = true
 can_bump_attack = true
 receives_time_turns = false
