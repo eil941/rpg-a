@@ -25,7 +25,7 @@ const FLOOR_ATLAS_COORDS := Vector2i(0, 0)
 const WALL_ATLAS_COORDS := Vector2i(0, 0)
 
 var spawn_manager: UnitSpawnManager
-var map_generator#: GrasslandMapGenerator
+var map_generator: BaseMapGenerator
 
 func _ready() -> void:
 	player.map_id = map_id
@@ -41,6 +41,8 @@ func _ready() -> void:
 			generator_type = "plain"
 
 		map_generator = create_map_generator(generator_type)
+		
+		
 		save_map_tiles()
 
 	var walkable_tiles: Array[Vector2i] = []
@@ -129,8 +131,6 @@ func load_map_tiles() -> void:
 	load_layer_data(ground_layer, data.get("ground", []))
 	load_layer_data(wall_layer, data.get("wall", []))
 	load_layer_data(event_layer, data.get("event", []))
-	
-
 func create_map_generator(generator_type: String):
 	match generator_type:
 		"GRASS":

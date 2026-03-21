@@ -245,6 +245,8 @@ func generate_map(
 
 		terrain_result.append(row)
 
+	
+	
 	# 外周は必ず海にする
 	for x in range(map_width):
 		terrain_result[0][x] = TERRAIN_SEA
@@ -289,6 +291,10 @@ func generate_map(
 	# =========================
 	# 外周にWallを付ける
 	# =========================
+	
+	ground_layer.set_cell(Vector2i(10,10), 30, Vector2i(1, 4), 0)
+	event_layer.set_cell(Vector2i(10,10),30, Vector2i(1, 4), 0)
+	
 	for x in range(map_width):
 		wall_layer.set_cell(Vector2i(x, 0), BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
 		wall_layer.set_cell(Vector2i(x, map_height ), BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)

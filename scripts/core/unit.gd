@@ -173,7 +173,34 @@ func try_move(dir: Vector2) -> bool:
 		var spawn_x = int(spawn_x_data)
 		var spawn_y = int(spawn_y_data)
 
+		var field_tile := get_current_tile_coords()
+		var detail_map_key := "field_%d_%d" % [field_tile.x, field_tile.y]
+
+		var generator_type = tile_data.get_custom_data("detail_generator")
+		if generator_type == null:
+			generator_type = "plain"
+
 		if next_scene != "":
+			var return_to_field_map = next_scene == "res://scenes/field_map.tscn"
+
+			if return_to_field_map:
+				spawn_x = GlobalDetailMap.from_field_tile.x
+				spawn_y = GlobalDetailMap.from_field_tile.y
+			else:
+				GlobalDetailMap.current_detail_map_key = detail_map_key
+				GlobalDetailMap.current_generator_type = String(generator_type)
+				GlobalDetailMap.from_field_tile = field_tile
+
+				if not WorldState.field_detail_map_data.has(detail_map_key):
+					WorldState.field_detail_map_data[detail_map_key] = {
+						"generator_type": String(generator_type),
+						"field_x": field_tile.x,
+						"field_y": field_tile.y
+					}
+
+				print("DETAIL MAP KEY =", detail_map_key)
+				print("DETAIL GENERATOR =", generator_type)
+
 			if is_player_unit:
 				PlayerData.last_map_id = map_id
 				PlayerData.last_tile = get_current_tile_coords()
@@ -219,6 +246,33 @@ func try_interact_transition() -> void:
 
 	var spawn_x = int(spawn_x_data)
 	var spawn_y = int(spawn_y_data)
+
+	var field_tile := get_current_tile_coords()
+	var detail_map_key := "field_%d_%d" % [field_tile.x, field_tile.y]
+
+	var generator_type = tile_data.get_custom_data("detail_generator")
+	if generator_type == null:
+		generator_type = "plain"
+
+	var return_to_field_map = next_scene == "res://scenes/field_map.tscn"
+
+	if return_to_field_map:
+		spawn_x = GlobalDetailMap.from_field_tile.x
+		spawn_y = GlobalDetailMap.from_field_tile.y
+	else:
+		GlobalDetailMap.current_detail_map_key = detail_map_key
+		GlobalDetailMap.current_generator_type = String(generator_type)
+		GlobalDetailMap.from_field_tile = field_tile
+
+		if not WorldState.field_detail_map_data.has(detail_map_key):
+			WorldState.field_detail_map_data[detail_map_key] = {
+				"generator_type": String(generator_type),
+				"field_x": field_tile.x,
+				"field_y": field_tile.y
+			}
+
+		print("DETAIL MAP KEY =", detail_map_key)
+		print("DETAIL GENERATOR =", generator_type)
 
 	if is_player_unit:
 		PlayerData.last_map_id = map_id
@@ -369,5 +423,10 @@ func sync_map_id_from_scene() -> void:
 		return
 
 	var scene_map_id = current_scene.get("map_id")
-	if scene_map_id != null:
-		map_id = scene_map_id
+
+	if scene_map_id != null and String(scene_map_id) != "":
+		map_id = String(scene_map_id)
+		return
+
+	if GlobalDetailMap.current_detail_map_key != "":
+		map_id = GlobalDetailMap.current_detail_map_key

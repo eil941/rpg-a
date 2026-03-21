@@ -25,29 +25,37 @@ const FLOOR_ATLAS_COORDS := Vector2i(0, 0)
 const WALL_ATLAS_COORDS := Vector2i(0, 0)
 
 var spawn_manager: UnitSpawnManager
-var map_generator: MapGenerator
+var map_generator: BaseMapGenerator
 
 func _ready() -> void:
+	if GlobalDetailMap.current_detail_map_key != "":
+		map_id = GlobalDetailMap.current_detail_map_key
+
 	player.map_id = map_id
 
+	var generator_type := GlobalDetailMap.current_generator_type
+	print(generator_type,"ASDASDASDASDASDASDAS")
+	
+	if generator_type == "" and WorldState.field_detail_map_data.has(map_id):
+		generator_type = WorldState.field_detail_map_data[map_id].get("generator_type", "plain")
+
+	if generator_type == "":
+		generator_type = "plain"
+		
+	
+	print(generator_type,"------------------------------------------------------------------")
+	map_generator = create_map_generator(generator_type)
+	
+	
+	
 	if WorldState.map_tile_data.has(map_id):
 		load_map_tiles()
 	else:
-		map_generator = MapGenerator.new(
-			MAP_WIDTH,
-			MAP_HEIGHT,
-			FLOOR_SOURCE_ID,
-			WALL_SOURCE_ID,
-			FLOOR_ATLAS_COORDS,
-			WALL_ATLAS_COORDS
-		)
-		#map_generator.generate_map(ground_layer, wall_layer, event_layer)
+		print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",generator_type)
+		map_generator.generate_map(ground_layer, wall_layer, event_layer)
 		save_map_tiles()
 
-	var walkable_tiles: Array[Vector2i] = []
-
-	if map_generator != null:
-		walkable_tiles = map_generator.get_walkable_tiles()
+	var walkable_tiles: Array[Vector2i] = map_generator.get_walkable_tiles()
 
 	spawn_manager = UnitSpawnManager.new(
 		$Units,
@@ -130,3 +138,68 @@ func load_map_tiles() -> void:
 	load_layer_data(ground_layer, data.get("ground", []))
 	load_layer_data(wall_layer, data.get("wall", []))
 	load_layer_data(event_layer, data.get("event", []))
+
+func create_map_generator(generator_type: String):
+	generator_type = generator_type.strip_edges().replace("\"", "").to_upper()
+	print("normalized=[" + generator_type + "]")
+	match generator_type:
+		"GRASS":
+			return GrasslandMapGenerator.new(
+				MAP_WIDTH,
+				MAP_HEIGHT,
+				FLOOR_SOURCE_ID,
+				WALL_SOURCE_ID,
+				FLOOR_ATLAS_COORDS,
+				WALL_ATLAS_COORDS
+			)
+
+		"SAND":
+			return BeachMapGenerator.new(
+				MAP_WIDTH,
+				MAP_HEIGHT,
+				FLOOR_SOURCE_ID,
+				WALL_SOURCE_ID,
+				FLOOR_ATLAS_COORDS,
+				WALL_ATLAS_COORDS
+			)
+
+		"FOREST":
+			return ForestMapGenerator.new(
+				MAP_WIDTH,
+				MAP_HEIGHT,
+				FLOOR_SOURCE_ID,
+				WALL_SOURCE_ID,
+				FLOOR_ATLAS_COORDS,
+				WALL_ATLAS_COORDS
+			)
+
+		"BEACH":
+			return BeachMapGenerator.new(
+				MAP_WIDTH,
+				MAP_HEIGHT,
+				FLOOR_SOURCE_ID,
+				WALL_SOURCE_ID,
+				FLOOR_ATLAS_COORDS,
+				WALL_ATLAS_COORDS
+			)
+
+		"SEA":
+			return SeaMapGenerator.new(
+				MAP_WIDTH,
+				MAP_HEIGHT,
+				FLOOR_SOURCE_ID,
+				WALL_SOURCE_ID,
+				FLOOR_ATLAS_COORDS,
+				WALL_ATLAS_COORDS
+			)
+			
+			
+	print("####################################################################")
+	#return PlainMapGenerator.new(
+	#	MAP_WIDTH,
+	#	MAP_HEIGHT,
+	#	FLOOR_SOURCE_ID,
+	#	WALL_SOURCE_ID,
+	#	FLOOR_ATLAS_COORDS,
+	#	WALL_ATLAS_COORDS
+	#)

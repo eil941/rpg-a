@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="RPG-A"
-run/main_scene="uid://ctfwovqmfkxb3"
+run/main_scene="uid://763h4n8mfcrw"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 config/icon="res://icon.svg"
 
@@ -24,6 +24,7 @@ DamageCalculator="*uid://ckhnemcp5r7pn"
 CombatManager="*uid://cp2wujy5ntngn"
 PlayerData="*uid://cd4clntrouqfc"
 WorldState="*uid://ehwoqwuagspi"
+GlobalDetailMap="*uid://dqrkpmdklo3g2"
 
 [input]
 

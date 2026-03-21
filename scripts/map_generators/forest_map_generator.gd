@@ -1,5 +1,5 @@
 extends BaseMapGenerator
-class_name GrasslandMapGenerator
+class_name ForestMapGenerator
 
 const TERRAIN_SEA := 0
 const TERRAIN_SAND := 1
@@ -27,22 +27,27 @@ func generate_map(
 
 	var forest_noise := FastNoiseLite.new()
 	forest_noise.seed = randi()
-	forest_noise.frequency = 0.022
+	forest_noise.frequency = 0.02
 	forest_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
 
 	var rock_noise := FastNoiseLite.new()
 	rock_noise.seed = randi() + 1000
-	rock_noise.frequency = 0.028
+	rock_noise.frequency = 0.03
 	rock_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
 
+	var water_noise := FastNoiseLite.new()
+	water_noise.seed = randi() + 2000
+	water_noise.frequency = 0.025
+	water_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
+
 	var detail_noise := FastNoiseLite.new()
-	detail_noise.seed = randi() + 2000
+	detail_noise.seed = randi() + 3000
 	detail_noise.frequency = 0.08
 	detail_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
 
 	# =========================
-	# 1. ベース地形生成
-	# 基本は草原、森と岩は塊で出す
+	# 1. ベース生成
+	# 森を主役にするが、草地も少し増やす
 	# =========================
 	for y in range(map_height):
 		var row: Array = []
@@ -50,23 +55,24 @@ func generate_map(
 		for x in range(map_width):
 			var f := (forest_noise.get_noise_2d(x, y) + 1.0) * 0.5
 			var r := (rock_noise.get_noise_2d(x, y) + 1.0) * 0.5
+			var w := (water_noise.get_noise_2d(x, y) + 1.0) * 0.5
 			var d := (detail_noise.get_noise_2d(x, y) + 1.0) * 0.5
 
-			var terrain := TERRAIN_GRASS
+			var terrain := TERRAIN_FOREST
 
-			if r > 0.86:
+			if r > 0.91:
 				terrain = TERRAIN_ROCK
-			elif f > 0.68:
-				terrain = TERRAIN_FOREST
-			else:
+			elif w < 0.06:
+				terrain = TERRAIN_WATER
+			elif f < 0.24:
 				terrain = TERRAIN_GRASS
+			else:
+				terrain = TERRAIN_FOREST
 
 			# 細部を少し崩す
 			if terrain == TERRAIN_FOREST and d < 0.08:
 				terrain = TERRAIN_GRASS
-			elif terrain == TERRAIN_ROCK and d < 0.18:
-				terrain = TERRAIN_GRASS
-			elif terrain == TERRAIN_GRASS and d > 0.97:
+			elif terrain == TERRAIN_ROCK and d < 0.12:
 				terrain = TERRAIN_FOREST
 
 			row.append(terrain)
@@ -74,16 +80,22 @@ func generate_map(
 		terrain_result.append(row)
 
 	# =========================
-	# 2. 広場を作る
-	# 中央寄りに少し大きめの草地
+	# 2. 広場を1〜3個作る
+	# 木じゃないエリアを多少作る
 	# =========================
-	carve_clearing(Vector2i(map_width / 2, map_height / 2), 4)
+	var clearing_count := randi_range(1, 3)
+	for i in range(clearing_count):
+		var center := Vector2i(
+			randi_range(4, map_width - 5),
+			randi_range(4, map_height - 5)
+		)
+		var radius := randi_range(3, 6)
+		carve_clearing(center, radius)
 
 	# =========================
-	# 3. 池を作る
-	# 1つだけ置く
+	# 3. 池を0〜1個
 	# =========================
-	if randf() < 0.45:
+	if randf() < 0.40:
 		var pond_center := Vector2i(
 			randi_range(4, map_width - 5),
 			randi_range(4, map_height - 5)
@@ -92,22 +104,44 @@ func generate_map(
 		carve_pond(pond_center, pond_radius)
 
 	# =========================
-	# 4. 道を作る
-	# 左から右にゆるく通す
+	# 4. 道を0〜1本
 	# =========================
-	if randf() < 0.55:
-		var path_y := clampi(map_height / 2 + randi_range(-4, 4), 2, map_height - 3)
-		carve_path(path_y)
+	if randf() < 0.45:
+		if randf() < 0.5:
+			var path_y := clampi(map_height / 2 + randi_range(-4, 4), 2, map_height - 3)
+			carve_path_horizontal(path_y)
+		else:
+			var path_x := clampi(map_width / 2 + randi_range(-4, 4), 2, map_width - 3)
+			carve_path_vertical(path_x)
 
 	# =========================
-	# 5. 水辺補正
-	# 水の隣の草を砂にする
-	# 森が水に近すぎるなら草へ落とす
+	# 5. 森が密すぎる部分を少し抜く
+	# 木じゃないエリアを少し増やす
+	# =========================
+	for y in range(1, map_height - 1):
+		for x in range(1, map_width - 1):
+			if terrain_result[y][x] != TERRAIN_FOREST:
+				continue
+
+			var forest_count := 0
+			for dy in range(-1, 2):
+				for dx in range(-1, 2):
+					if dx == 0 and dy == 0:
+						continue
+					if terrain_result[y + dy][x + dx] == TERRAIN_FOREST:
+						forest_count += 1
+
+			# 森に囲まれすぎた場所をたまに草へ落とす
+			if forest_count >= 7 and randf() < 0.12:
+				terrain_result[y][x] = TERRAIN_GRASS
+
+	# =========================
+	# 6. 水辺補正
+	# 水辺は砂や草に寄せる
 	# =========================
 	for y in range(map_height):
 		for x in range(map_width):
 			var current: int = terrain_result[y][x]
-
 			var near_water := false
 
 			for dy in range(-1, 2):
@@ -128,30 +162,28 @@ func generate_map(
 				if near_water:
 					break
 
-			if current == TERRAIN_GRASS and near_water:
-				terrain_result[y][x] = TERRAIN_SAND
-			elif current == TERRAIN_FOREST and near_water:
+			if current == TERRAIN_FOREST and near_water:
 				terrain_result[y][x] = TERRAIN_GRASS
+			elif current == TERRAIN_GRASS and near_water:
+				terrain_result[y][x] = TERRAIN_SAND
 
 	# =========================
-	# 6. 外周は通れないように調整
-	# 見た目は草地のままでもいいが、
-	# 壁を置くので外周1マスは歩行不可扱い
+	# 7. 外周の水は除去
 	# =========================
 	for x in range(map_width):
 		if terrain_result[0][x] == TERRAIN_WATER:
-			terrain_result[0][x] = TERRAIN_GRASS
+			terrain_result[0][x] = TERRAIN_FOREST
 		if terrain_result[map_height - 1][x] == TERRAIN_WATER:
-			terrain_result[map_height - 1][x] = TERRAIN_GRASS
+			terrain_result[map_height - 1][x] = TERRAIN_FOREST
 
 	for y in range(map_height):
 		if terrain_result[y][0] == TERRAIN_WATER:
-			terrain_result[y][0] = TERRAIN_GRASS
+			terrain_result[y][0] = TERRAIN_FOREST
 		if terrain_result[y][map_width - 1] == TERRAIN_WATER:
-			terrain_result[y][map_width - 1] = TERRAIN_GRASS
+			terrain_result[y][map_width - 1] = TERRAIN_FOREST
 
 	# =========================
-	# 7. 描画
+	# 8. 描画
 	# =========================
 	for y in range(map_height):
 		for x in range(map_width):
@@ -175,11 +207,12 @@ func generate_map(
 					ground_layer.set_cell(cell, 26, Vector2i(1, 4), 0)
 					wall_layer.set_cell(cell, 5, Vector2i(0, 0), 0)
 
+	
 	# =========================
-	# 8. 外周Wall
+	# 9. 外周Wall
 	# =========================
 	for x in range(map_width):
-		event_layer.set_cell(Vector2i(x, 0), 0, WALL_ATLAS_COORDS, 0)
+		event_layer.set_cell(Vector2i(x, 0),0, WALL_ATLAS_COORDS, 0)
 		event_layer.set_cell(Vector2i(x, map_height - 1), 0, WALL_ATLAS_COORDS, 0)
 
 	for y in range(map_height):
@@ -199,7 +232,6 @@ func get_walkable_tiles() -> Array[Vector2i]:
 				continue
 
 			var terrain: int = terrain_result[y][x]
-
 			if terrain == TERRAIN_SAND or terrain == TERRAIN_GRASS:
 				result.append(Vector2i(x, y))
 
@@ -236,11 +268,11 @@ func carve_pond(center: Vector2i, radius: int) -> void:
 			if dist2 <= water_limit:
 				terrain_result[y][x] = TERRAIN_WATER
 			elif dist2 <= sand_limit:
-				if terrain_result[y][x] == TERRAIN_GRASS and randf() < 0.65:
+				if terrain_result[y][x] == TERRAIN_GRASS and randf() < 0.60:
 					terrain_result[y][x] = TERRAIN_SAND
 
 
-func carve_path(start_y: int) -> void:
+func carve_path_horizontal(start_y: int) -> void:
 	var y := start_y
 
 	for x in range(1, map_width - 1):
@@ -253,3 +285,18 @@ func carve_path(start_y: int) -> void:
 			terrain_result[y - 1][x] = TERRAIN_SAND
 		if y < map_height - 2 and randf() < 0.35:
 			terrain_result[y + 1][x] = TERRAIN_SAND
+
+
+func carve_path_vertical(start_x: int) -> void:
+	var x := start_x
+
+	for y in range(1, map_height - 1):
+		x += randi_range(-1, 1)
+		x = clampi(x, 1, map_width - 2)
+
+		terrain_result[y][x] = TERRAIN_SAND
+
+		if x > 1 and randf() < 0.35:
+			terrain_result[y][x - 1] = TERRAIN_SAND
+		if x < map_width - 2 and randf() < 0.35:
+			terrain_result[y][x + 1] = TERRAIN_SAND

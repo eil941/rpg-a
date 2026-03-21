@@ -15,8 +15,8 @@ extends Node2D
 
 @export var map_id: String = ""
 
-const MAP_WIDTH := 50
-const MAP_HEIGHT := 50
+const MAP_WIDTH := 30
+const MAP_HEIGHT := 30
 
 const FLOOR_SOURCE_ID := 2
 const WALL_SOURCE_ID := 0
@@ -25,7 +25,7 @@ const FLOOR_ATLAS_COORDS := Vector2i(0, 0)
 const WALL_ATLAS_COORDS := Vector2i(0, 0)
 
 var spawn_manager: UnitSpawnManager
-var map_generator#: GrasslandMapGenerator
+var map_generator: MapGenerator
 
 func _ready() -> void:
 	player.map_id = map_id
@@ -33,14 +33,15 @@ func _ready() -> void:
 	if WorldState.map_tile_data.has(map_id):
 		load_map_tiles()
 	else:
-		if GlobalDetailMap.current_detail_map_key != "":
-			map_id = GlobalDetailMap.current_detail_map_key
-		
-		var generator_type := GlobalDetailMap.current_generator_type
-		if generator_type == "":
-			generator_type = "plain"
-
-		map_generator = create_map_generator(generator_type)
+		map_generator = MapGenerator.new(
+			MAP_WIDTH,
+			MAP_HEIGHT,
+			FLOOR_SOURCE_ID,
+			WALL_SOURCE_ID,
+			FLOOR_ATLAS_COORDS,
+			WALL_ATLAS_COORDS
+		)
+		#map_generator.generate_map(ground_layer, wall_layer, event_layer)
 		save_map_tiles()
 
 	var walkable_tiles: Array[Vector2i] = []
@@ -129,65 +130,3 @@ func load_map_tiles() -> void:
 	load_layer_data(ground_layer, data.get("ground", []))
 	load_layer_data(wall_layer, data.get("wall", []))
 	load_layer_data(event_layer, data.get("event", []))
-	
-
-func create_map_generator(generator_type: String):
-	match generator_type:
-		"GRASS":
-			return PlainMapGenerator.new(
-				MAP_WIDTH,
-				MAP_HEIGHT,
-				FLOOR_SOURCE_ID,
-				WALL_SOURCE_ID,
-				FLOOR_ATLAS_COORDS,
-				WALL_ATLAS_COORDS
-			)
-
-		"SAND":
-			return BeachMapGenerator.new(
-				MAP_WIDTH,
-				MAP_HEIGHT,
-				FLOOR_SOURCE_ID,
-				WALL_SOURCE_ID,
-				FLOOR_ATLAS_COORDS,
-				WALL_ATLAS_COORDS
-			)
-
-		"FOREST":
-			return ForestMapGenerator.new(
-				MAP_WIDTH,
-				MAP_HEIGHT,
-				FLOOR_SOURCE_ID,
-				WALL_SOURCE_ID,
-				FLOOR_ATLAS_COORDS,
-				WALL_ATLAS_COORDS
-			)
-
-		"BEACH":
-			return BeachMapGenerator.new(
-				MAP_WIDTH,
-				MAP_HEIGHT,
-				FLOOR_SOURCE_ID,
-				WALL_SOURCE_ID,
-				FLOOR_ATLAS_COORDS,
-				WALL_ATLAS_COORDS
-			)
-
-		"SEA":
-			return SeaMapGenerator.new(
-				MAP_WIDTH,
-				MAP_HEIGHT,
-				FLOOR_SOURCE_ID,
-				WALL_SOURCE_ID,
-				FLOOR_ATLAS_COORDS,
-				WALL_ATLAS_COORDS
-			)
-
-	return PlainMapGenerator.new(
-		MAP_WIDTH,
-		MAP_HEIGHT,
-		FLOOR_SOURCE_ID,
-		WALL_SOURCE_ID,
-		FLOOR_ATLAS_COORDS,
-		WALL_ATLAS_COORDS
-	)

@@ -1,0 +1,36 @@
+[gd_scene format=3 uid="uid://b4yfy3t4smsel"]
+
+[ext_resource type="Script" uid="uid://dxja22y7tdap5" path="res://scripts/map_scene_scripts/sea_map.gd" id="1_ktqx5"]
+[ext_resource type="TileSet" uid="uid://ccm51ihc4pruf" path="res://data/test_field_ground.tres" id="2_utyoi"]
+[ext_resource type="TileSet" uid="uid://bc0aui1htbk1v" path="res://data/test_wall.tres" id="3_jo1lo"]
+[ext_resource type="PackedScene" uid="uid://cjntf4kbtxh73" path="res://scenes/unit.tscn" id="4_v8pum"]
+
+[node name="SeaMap" type="Node2D" unique_id=1202522057]
+script = ExtResource("1_ktqx5")
+map_id = "SeaMap"
+
+[node name="GroundLayer" type="TileMapLayer" parent="." unique_id=808028674]
+tile_set = ExtResource("2_utyoi")
+
+[node name="WallLayer" type="TileMapLayer" parent="." unique_id=1210940059]
+tile_set = ExtResource("3_jo1lo")
+
+[node name="EventLayer" type="TileMapLayer" parent="." unique_id=1337611593]
+tile_set = ExtResource("2_utyoi")
+
+[node name="Units" type="Node" parent="." unique_id=332583731]
+
+[node name="Unit" parent="Units" unique_id=40692456 instance=ExtResource("4_v8pum")]
+tile_size = null
+move_speed = null
+repeat_delay = null
+start_tile = Vector2i(10, 10)
+can_trigger_scene_transition = true
+can_bump_attack = true
+is_enemy = null
+receives_time_turns = false
+instant_move = false
+unit_id = "player"
+is_player_unit = true
+map_id = null
+debug_free_action = null
