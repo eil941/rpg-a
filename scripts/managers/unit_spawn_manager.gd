@@ -2,13 +2,16 @@ extends RefCounted
 class_name UnitSpawnManager
 
 var units_node: Node
-#var tile_map: TileMap
 var map_id: String
 var walkable_tiles: Array[Vector2i]
-
 var tile_map: TileMapLayer
 
-func _init(p_units_node: Node, p_tile_map: TileMapLayer, p_map_id: String, p_walkable_tiles: Array[Vector2i]) -> void:
+func _init(
+	p_units_node: Node,
+	p_tile_map: TileMapLayer,
+	p_map_id: String,
+	p_walkable_tiles: Array[Vector2i]
+) -> void:
 	units_node = p_units_node
 	tile_map = p_tile_map
 	map_id = p_map_id
@@ -47,7 +50,18 @@ func find_npc_data_by_id(npc_data_list: Array[NpcData], npc_type_id: String) -> 
 			return data
 	return null
 
-func spawn_enemy_random(enemy_unit_scene: PackedScene, enemy_data_list: Array[EnemyData], used_tiles: Array[Vector2i], index: int) -> void:
+func make_enemy_unit_id(index: int) -> String:
+	return "%s_enemy_%d" % [map_id, index]
+
+func make_npc_unit_id(index: int) -> String:
+	return "%s_npc_%d" % [map_id, index]
+
+func spawn_enemy_random(
+	enemy_unit_scene: PackedScene,
+	enemy_data_list: Array[EnemyData],
+	used_tiles: Array[Vector2i],
+	index: int
+) -> void:
 	if enemy_unit_scene == null:
 		return
 
@@ -63,9 +77,10 @@ func spawn_enemy_random(enemy_unit_scene: PackedScene, enemy_data_list: Array[En
 			continue
 
 		var enemy = enemy_unit_scene.instantiate()
+		var unique_unit_id := make_enemy_unit_id(index)
 
 		enemy.start_tile = tile
-		enemy.unit_id = "enemy_%d" % index
+		enemy.unit_id = unique_unit_id
 		enemy.map_id = map_id
 		enemy.enemy_data_to_apply = enemy_data
 
@@ -89,7 +104,11 @@ func spawn_enemy_random(enemy_unit_scene: PackedScene, enemy_data_list: Array[En
 		WorldState.map_enemy_spawns[map_id].append(spawn_data)
 		return
 
-func spawn_random_enemies(enemy_unit_scene: PackedScene, enemy_data_list: Array[EnemyData], enemy_spawn_count: int) -> void:
+func spawn_random_enemies(
+	enemy_unit_scene: PackedScene,
+	enemy_data_list: Array[EnemyData],
+	enemy_spawn_count: int
+) -> void:
 	var used_tiles = collect_used_tiles_from_units()
 
 	for i in range(enemy_spawn_count):
@@ -124,7 +143,12 @@ func spawn_saved_enemies(enemy_unit_scene: PackedScene, enemy_data_list: Array[E
 
 		units_node.add_child(enemy)
 
-func spawn_npc_random(npc_unit_scene: PackedScene, npc_data_list: Array[NpcData], used_tiles: Array[Vector2i], index: int) -> void:
+func spawn_npc_random(
+	npc_unit_scene: PackedScene,
+	npc_data_list: Array[NpcData],
+	used_tiles: Array[Vector2i],
+	index: int
+) -> void:
 	if npc_unit_scene == null:
 		return
 
@@ -140,9 +164,10 @@ func spawn_npc_random(npc_unit_scene: PackedScene, npc_data_list: Array[NpcData]
 			continue
 
 		var npc = npc_unit_scene.instantiate()
+		var unique_unit_id := make_npc_unit_id(index)
 
 		npc.start_tile = tile
-		npc.unit_id = "npc_%d" % index
+		npc.unit_id = unique_unit_id
 		npc.map_id = map_id
 
 		units_node.add_child(npc)
@@ -164,7 +189,11 @@ func spawn_npc_random(npc_unit_scene: PackedScene, npc_data_list: Array[NpcData]
 		WorldState.map_npc_spawns[map_id].append(spawn_data)
 		return
 
-func spawn_random_npcs(npc_unit_scene: PackedScene, npc_data_list: Array[NpcData], npc_spawn_count: int) -> void:
+func spawn_random_npcs(
+	npc_unit_scene: PackedScene,
+	npc_data_list: Array[NpcData],
+	npc_spawn_count: int
+) -> void:
 	var used_tiles = collect_used_tiles_from_units()
 
 	for i in range(npc_spawn_count):

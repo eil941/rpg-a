@@ -1,0 +1,139 @@
+[gd_scene format=3 uid="uid://bji7srxp1ov88"]
+
+[node name="GameHUD" type="Control" unique_id=275878376]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=813876046]
+
+[node name="TopLeft" type="MarginContainer" parent="CanvasLayer" unique_id=526594382]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/TopLeft" unique_id=1273832743]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/TopLeft/PanelContainer" unique_id=1756982659]
+layout_mode = 2
+
+[node name="NameLabel" type="Label" parent="CanvasLayer/TopLeft/PanelContainer/VBoxContainer" unique_id=1269349074]
+layout_mode = 2
+text = "Player"
+
+[node name="HPLabel" type="Label" parent="CanvasLayer/TopLeft/PanelContainer/VBoxContainer" unique_id=1769279571]
+layout_mode = 2
+text = "HP: 100 / 100"
+
+[node name="MPlavel" type="Label" parent="CanvasLayer/TopLeft/PanelContainer/VBoxContainer" unique_id=1008825200]
+layout_mode = 2
+text = "MP : 30 / 30"
+
+[node name="StaminaLabel" type="Label" parent="CanvasLayer/TopLeft/PanelContainer/VBoxContainer" unique_id=143095543]
+layout_mode = 2
+text = "STM: 50 / 50"
+
+[node name="TopRight" type="MarginContainer" parent="CanvasLayer" unique_id=239907514]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -40.0
+offset_bottom = 40.0
+grow_horizontal = 0
+
+[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/TopRight" unique_id=194158824]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/TopRight/PanelContainer" unique_id=1276420921]
+layout_mode = 2
+
+[node name="TimeLabel" type="Label" parent="CanvasLayer/TopRight/PanelContainer/VBoxContainer" unique_id=464553309]
+layout_mode = 2
+text = "Time: Day1 08:30"
+
+[node name="MapLabel" type="Label" parent="CanvasLayer/TopRight/PanelContainer/VBoxContainer" unique_id=1097449217]
+layout_mode = 2
+text = "Map: Grass Field"
+
+[node name="MoneyLabel" type="Label" parent="CanvasLayer/TopRight/PanelContainer/VBoxContainer" unique_id=14419235]
+layout_mode = 2
+text = "Money: 1200 G"
+
+[node name="BottomLeft" type="MarginContainer" parent="CanvasLayer" unique_id=1216440820]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -40.0
+offset_right = 40.0
+grow_vertical = 0
+
+[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/BottomLeft" unique_id=1645341982]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/BottomLeft/PanelContainer" unique_id=655706264]
+layout_mode = 2
+
+[node name="LogTileLabel" type="Label" parent="CanvasLayer/BottomLeft/PanelContainer/VBoxContainer" unique_id=1499170401]
+layout_mode = 2
+text = "Log"
+
+[node name="LogLabel" type="Label" parent="CanvasLayer/BottomLeft/PanelContainer/VBoxContainer" unique_id=484723950]
+layout_mode = 2
+text = "ゲーム開始
+草原に入りました
+仮HUD表示中"
+
+[node name="BottomRight" type="MarginContainer" parent="CanvasLayer" unique_id=2035146086]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -40.0
+offset_top = -40.0
+grow_horizontal = 0
+grow_vertical = 0
+
+[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/BottomRight" unique_id=1499491943]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/BottomRight/PanelContainer" unique_id=1215814016]
+layout_mode = 2
+
+[node name="InventoryButton" type="Label" parent="CanvasLayer/BottomRight/PanelContainer/VBoxContainer" unique_id=997908]
+layout_mode = 2
+
+[node name="StatusButton" type="Label" parent="CanvasLayer/BottomRight/PanelContainer/VBoxContainer" unique_id=559412056]
+layout_mode = 2
+
+[node name="MapButton" type="Label" parent="CanvasLayer/BottomRight/PanelContainer/VBoxContainer" unique_id=1544746130]
+layout_mode = 2
+
+[node name="MenuBotton" type="Label" parent="CanvasLayer/BottomRight/PanelContainer/VBoxContainer" unique_id=393512761]
+layout_mode = 2
+
+[node name="DebugPanel" type="MarginContainer" parent="CanvasLayer" unique_id=2121770106]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/DebugPanel" unique_id=1421795667]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/DebugPanel/PanelContainer" unique_id=997824769]
+layout_mode = 2
+
+[node name="DebugTitleLabel" type="Label" parent="CanvasLayer/DebugPanel/PanelContainer/VBoxContainer" unique_id=1881520900]
+layout_mode = 2
+
+[node name="DebugMapIdLabel" type="Label" parent="CanvasLayer/DebugPanel/PanelContainer/VBoxContainer" unique_id=339915370]
+layout_mode = 2
+
+[node name="DebugPositionLabel" type="Label" parent="CanvasLayer/DebugPanel/PanelContainer/VBoxContainer" unique_id=1150962200]
+layout_mode = 2
+
+[node name="DebugTileLabel" type="Label" parent="CanvasLayer/DebugPanel/PanelContainer/VBoxContainer" unique_id=953703945]
+layout_mode = 2
+
+[node name="DebugFPSLabel" type="Label" parent="CanvasLayer/DebugPanel/PanelContainer/VBoxContainer" unique_id=1121674450]
+layout_mode = 2

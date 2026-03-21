@@ -181,7 +181,7 @@ func try_move(dir: Vector2) -> bool:
 			generator_type = "plain"
 
 		if next_scene != "":
-			var return_to_field_map = next_scene == "res://scenes/field_map.tscn"
+			var return_to_field_map: bool = next_scene == "res://scenes/field_map.tscn"
 
 			if return_to_field_map:
 				spawn_x = GlobalDetailMap.from_field_tile.x
@@ -192,11 +192,10 @@ func try_move(dir: Vector2) -> bool:
 				GlobalDetailMap.from_field_tile = field_tile
 
 				if not WorldState.field_detail_map_data.has(detail_map_key):
-					WorldState.field_detail_map_data[detail_map_key] = {
-						"generator_type": String(generator_type),
-						"field_x": field_tile.x,
-						"field_y": field_tile.y
-					}
+					WorldState.field_detail_map_data[detail_map_key] = create_detail_map_config(
+						String(generator_type),
+						field_tile
+					)
 
 				print("DETAIL MAP KEY =", detail_map_key)
 				print("DETAIL GENERATOR =", generator_type)
@@ -254,7 +253,7 @@ func try_interact_transition() -> void:
 	if generator_type == null:
 		generator_type = "plain"
 
-	var return_to_field_map = next_scene == "res://scenes/field_map.tscn"
+	var return_to_field_map: bool = next_scene == "res://scenes/field_map.tscn"
 
 	if return_to_field_map:
 		spawn_x = GlobalDetailMap.from_field_tile.x
@@ -265,11 +264,10 @@ func try_interact_transition() -> void:
 		GlobalDetailMap.from_field_tile = field_tile
 
 		if not WorldState.field_detail_map_data.has(detail_map_key):
-			WorldState.field_detail_map_data[detail_map_key] = {
-				"generator_type": String(generator_type),
-				"field_x": field_tile.x,
-				"field_y": field_tile.y
-			}
+			WorldState.field_detail_map_data[detail_map_key] = create_detail_map_config(
+				String(generator_type),
+				field_tile
+			)
 
 		print("DETAIL MAP KEY =", detail_map_key)
 		print("DETAIL GENERATOR =", generator_type)
@@ -336,11 +334,12 @@ func save_persistent_stats() -> void:
 		PlayerData.defense = stats.defense
 		PlayerData.speed = stats.speed
 
-		if map_id != "":
-			print("PLAYER SAVE global_position=", global_position)
-			print("PLAYER SAVE local position=", position)
-			print("PLAYER SAVE current_tile=", get_current_tile_coords())
+		print("PLAYER SAVE map_id=", map_id)
+		print("PLAYER SAVE global_position=", global_position)
+		print("PLAYER SAVE local position=", position)
+		print("PLAYER SAVE current_tile=", get_current_tile_coords())
 
+		if map_id != "":
 			PlayerData.map_positions[map_id] = get_current_tile_coords()
 			print("PLAYER SAVE map_positions=", PlayerData.map_positions)
 		else:
@@ -430,3 +429,52 @@ func sync_map_id_from_scene() -> void:
 
 	if GlobalDetailMap.current_detail_map_key != "":
 		map_id = GlobalDetailMap.current_detail_map_key
+
+func create_detail_map_config(generator_type: String, field_tile: Vector2i) -> Dictionary:
+	generator_type = generator_type.strip_edges().replace("\"", "").to_upper()
+
+	print("CONFIG generator_type normalized = ", generator_type)
+
+	var config := {
+		"generator_type": String(generator_type),
+		"field_x": field_tile.x,
+		"field_y": field_tile.y,
+		"enemy_spawn_count": 5,
+		"npc_spawn_count": 3,
+		"enemy_type_ids": ["bat", "slime"],
+		"npc_type_ids": ["villager"]
+	}
+
+	match generator_type:
+		"GRASS":
+			config["enemy_spawn_count"] = 5
+			config["npc_spawn_count"] = 3
+			config["enemy_type_ids"] = ["bat", "slime"]
+			config["npc_type_ids"] = ["sabo"]
+
+		"FOREST":
+			config["enemy_spawn_count"] = 8
+			config["npc_spawn_count"] = 1
+			config["enemy_type_ids"] = ["bat", "orc"]
+			config["npc_type_ids"] = ["npc-1"]
+
+		"SAND":
+			config["enemy_spawn_count"] = 4
+			config["npc_spawn_count"] = 0
+			config["enemy_type_ids"] = ["slime"]
+			config["npc_type_ids"] = []
+
+		"SEA":
+			config["enemy_spawn_count"] = 6
+			config["npc_spawn_count"] = 0
+			config["enemy_type_ids"] = ["bat"]
+			config["npc_type_ids"] = []
+
+		"BEACH":
+			config["enemy_spawn_count"] = 3
+			config["npc_spawn_count"] = 2
+			config["enemy_type_ids"] = ["slime"]
+			config["npc_type_ids"] = ["sabo"]
+
+	print("CONFIG result = ", config)
+	return config

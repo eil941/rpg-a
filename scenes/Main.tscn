@@ -86,3 +86,4 @@ receives_time_turns = false
 instant_move = false
 unit_id = "player"
 is_player_unit = true
+debug_free_action = true

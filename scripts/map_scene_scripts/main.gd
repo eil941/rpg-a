@@ -34,26 +34,54 @@ func _ready() -> void:
 	player.map_id = map_id
 
 	var generator_type := GlobalDetailMap.current_generator_type
-	print(generator_type,"ASDASDASDASDASDASDAS")
-	
+	print(generator_type, " ASDASDASDASDASDASDAS")
+
 	if generator_type == "" and WorldState.field_detail_map_data.has(map_id):
-		generator_type = WorldState.field_detail_map_data[map_id].get("generator_type", "plain")
+		generator_type = WorldState.field_detail_map_data[map_id].get("generator_type", "GRASS")
 
 	if generator_type == "":
-		generator_type = "plain"
-		
-	
-	print(generator_type,"------------------------------------------------------------------")
+		generator_type = "GRASS"
+
+	print(generator_type, " ------------------------------------------------------------------")
 	map_generator = create_map_generator(generator_type)
-	
-	
-	
+
 	if WorldState.map_tile_data.has(map_id):
+		print("LOAD MAP TILES map_id=", map_id)
 		load_map_tiles()
 	else:
-		print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",generator_type)
+		print("GENERATE MAP map_id=", map_id, " generator_type=", generator_type)
 		map_generator.generate_map(ground_layer, wall_layer, event_layer)
 		save_map_tiles()
+
+	var current_enemy_spawn_count: int = enemy_spawn_count
+	var current_npc_spawn_count: int = npc_spawn_count
+
+	var current_enemy_data_list: Array[EnemyData] = enemy_data_list
+	var current_npc_data_list: Array[NpcData] = npc_data_list
+
+	if WorldState.field_detail_map_data.has(map_id):
+		var detail_config = WorldState.field_detail_map_data[map_id]
+
+		current_enemy_spawn_count = int(detail_config.get("enemy_spawn_count", enemy_spawn_count))
+		current_npc_spawn_count = int(detail_config.get("npc_spawn_count", npc_spawn_count))
+
+		var enemy_type_ids = detail_config.get("enemy_type_ids", [])
+		var npc_type_ids = detail_config.get("npc_type_ids", [])
+
+		print("detail_config = ", detail_config)
+		print("enemy_type_ids = ", enemy_type_ids)
+		print("npc_type_ids = ", npc_type_ids)
+
+		if enemy_type_ids.size() > 0:
+			current_enemy_data_list = filter_enemy_data_by_ids(enemy_type_ids)
+
+		if npc_type_ids.size() > 0:
+			current_npc_data_list = filter_npc_data_by_ids(npc_type_ids)
+
+	print("current_enemy_spawn_count = ", current_enemy_spawn_count)
+	print("current_npc_spawn_count = ", current_npc_spawn_count)
+	print("current_enemy_data_list size = ", current_enemy_data_list.size())
+	print("current_npc_data_list size = ", current_npc_data_list.size())
 
 	var walkable_tiles: Array[Vector2i] = map_generator.get_walkable_tiles()
 
@@ -65,14 +93,26 @@ func _ready() -> void:
 	)
 
 	if WorldState.map_enemy_spawns.has(map_id):
-		spawn_manager.spawn_saved_enemies(enemy_unit_scene, enemy_data_list)
+		print("LOAD ENEMIES map_id=", map_id)
+		spawn_manager.spawn_saved_enemies(enemy_unit_scene, current_enemy_data_list)
 	else:
-		spawn_manager.spawn_random_enemies(enemy_unit_scene, enemy_data_list, enemy_spawn_count)
+		print("SPAWN RANDOM ENEMIES map_id=", map_id)
+		spawn_manager.spawn_random_enemies(
+			enemy_unit_scene,
+			current_enemy_data_list,
+			current_enemy_spawn_count
+		)
 
 	if WorldState.map_npc_spawns.has(map_id):
-		spawn_manager.spawn_saved_npcs(npc_unit_scene, npc_data_list)
+		print("LOAD NPCS map_id=", map_id)
+		spawn_manager.spawn_saved_npcs(npc_unit_scene, current_npc_data_list)
 	else:
-		spawn_manager.spawn_random_npcs(npc_unit_scene, npc_data_list, npc_spawn_count)
+		print("SPAWN RANDOM NPCS map_id=", map_id)
+		spawn_manager.spawn_random_npcs(
+			npc_unit_scene,
+			current_npc_data_list,
+			current_npc_spawn_count
+		)
 
 func save_all_units() -> void:
 	print("save_all_units called")
@@ -139,9 +179,32 @@ func load_map_tiles() -> void:
 	load_layer_data(wall_layer, data.get("wall", []))
 	load_layer_data(event_layer, data.get("event", []))
 
-func create_map_generator(generator_type: String):
+func filter_enemy_data_by_ids(type_ids: Array) -> Array[EnemyData]:
+	var result: Array[EnemyData] = []
+
+	for data in enemy_data_list:
+		if data == null:
+			continue
+		if type_ids.has(data.enemy_type_id):
+			result.append(data)
+
+	return result
+
+func filter_npc_data_by_ids(type_ids: Array) -> Array[NpcData]:
+	var result: Array[NpcData] = []
+
+	for data in npc_data_list:
+		if data == null:
+			continue
+		if type_ids.has(data.npc_type_id):
+			result.append(data)
+
+	return result
+
+func create_map_generator(generator_type: String) -> BaseMapGenerator:
 	generator_type = generator_type.strip_edges().replace("\"", "").to_upper()
 	print("normalized=[" + generator_type + "]")
+
 	match generator_type:
 		"GRASS":
 			return GrasslandMapGenerator.new(
@@ -192,14 +255,13 @@ func create_map_generator(generator_type: String):
 				FLOOR_ATLAS_COORDS,
 				WALL_ATLAS_COORDS
 			)
-			
-			
-	print("####################################################################")
-	#return PlainMapGenerator.new(
-	#	MAP_WIDTH,
-	#	MAP_HEIGHT,
-	#	FLOOR_SOURCE_ID,
-	#	WALL_SOURCE_ID,
-	#	FLOOR_ATLAS_COORDS,
-	#	WALL_ATLAS_COORDS
-	#)
+
+	print("UNKNOWN GENERATOR TYPE -> FALLBACK TO GRASS")
+	return GrasslandMapGenerator.new(
+		MAP_WIDTH,
+		MAP_HEIGHT,
+		FLOOR_SOURCE_ID,
+		WALL_SOURCE_ID,
+		FLOOR_ATLAS_COORDS,
+		WALL_ATLAS_COORDS
+	)
