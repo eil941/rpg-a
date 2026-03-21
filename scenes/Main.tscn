@@ -18,6 +18,7 @@
 [ext_resource type="TileSet" uid="uid://dbr5mtulmq0q2" path="res://data/test.tres" id="15_cvmbd"]
 [ext_resource type="TileSet" uid="uid://bc0aui1htbk1v" path="res://data/test_wall.tres" id="16_bb450"]
 [ext_resource type="TileSet" uid="uid://cpndipp741lyo" path="res://data/test_event.tres" id="16_ft6cd"]
+[ext_resource type="PackedScene" uid="uid://bji7srxp1ov88" path="res://scenes/game_hud.tscn" id="19_nfivy"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ruro2"]
 size = Vector2(30, 30)
@@ -87,3 +88,5 @@ instant_move = false
 unit_id = "player"
 is_player_unit = true
 debug_free_action = true
+
+[node name="GameHUD" parent="." unique_id=275878376 instance=ExtResource("19_nfivy")]

@@ -101,21 +101,26 @@ layout_mode = 2
 [node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/BottomRight/PanelContainer" unique_id=1215814016]
 layout_mode = 2
 
-[node name="InventoryButton" type="Label" parent="CanvasLayer/BottomRight/PanelContainer/VBoxContainer" unique_id=997908]
+[node name="InventoryButton" type="Button" parent="CanvasLayer/BottomRight/PanelContainer/VBoxContainer" unique_id=1406191492]
 layout_mode = 2
+text = "Inventory"
 
-[node name="StatusButton" type="Label" parent="CanvasLayer/BottomRight/PanelContainer/VBoxContainer" unique_id=559412056]
+[node name="StatusButton" type="Button" parent="CanvasLayer/BottomRight/PanelContainer/VBoxContainer" unique_id=1403776524]
 layout_mode = 2
+text = "Status"
 
-[node name="MapButton" type="Label" parent="CanvasLayer/BottomRight/PanelContainer/VBoxContainer" unique_id=1544746130]
+[node name="MapButton" type="Button" parent="CanvasLayer/BottomRight/PanelContainer/VBoxContainer" unique_id=1571607463]
 layout_mode = 2
+text = "Map"
 
-[node name="MenuBotton" type="Label" parent="CanvasLayer/BottomRight/PanelContainer/VBoxContainer" unique_id=393512761]
+[node name="MenuButton" type="Button" parent="CanvasLayer/BottomRight/PanelContainer/VBoxContainer" unique_id=782093618]
 layout_mode = 2
+text = "Menu"
 
 [node name="DebugPanel" type="MarginContainer" parent="CanvasLayer" unique_id=2121770106]
-offset_right = 40.0
-offset_bottom = 40.0
+offset_top = 142.0
+offset_right = 149.0
+offset_bottom = 273.0
 
 [node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/DebugPanel" unique_id=1421795667]
 layout_mode = 2
@@ -125,15 +130,20 @@ layout_mode = 2
 
 [node name="DebugTitleLabel" type="Label" parent="CanvasLayer/DebugPanel/PanelContainer/VBoxContainer" unique_id=1881520900]
 layout_mode = 2
+text = "DEBUG"
 
 [node name="DebugMapIdLabel" type="Label" parent="CanvasLayer/DebugPanel/PanelContainer/VBoxContainer" unique_id=339915370]
 layout_mode = 2
+text = "map_id: field_13_10"
 
 [node name="DebugPositionLabel" type="Label" parent="CanvasLayer/DebugPanel/PanelContainer/VBoxContainer" unique_id=1150962200]
 layout_mode = 2
+text = "pos: (320, 192)"
 
 [node name="DebugTileLabel" type="Label" parent="CanvasLayer/DebugPanel/PanelContainer/VBoxContainer" unique_id=953703945]
 layout_mode = 2
+text = "tile: (10, 6)"
 
 [node name="DebugFPSLabel" type="Label" parent="CanvasLayer/DebugPanel/PanelContainer/VBoxContainer" unique_id=1121674450]
 layout_mode = 2
+text = "fps: 60"
