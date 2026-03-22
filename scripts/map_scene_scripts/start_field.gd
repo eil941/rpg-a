@@ -67,14 +67,14 @@ func _ready() -> void:
 		spawn_manager.spawn_random_npcs(npc_unit_scene, npc_data_list, npc_spawn_count)
 
 func save_all_units() -> void:
-	print("save_all_units called")
+	#print("save_all_units called")
 
 	if not has_node("Units"):
-		print("Units node not found")
+		#print("Units node not found")
 		return
 
 	for unit in $Units.get_children():
-		print("child = ", unit.name)
+		#print("child = ", unit.name)
 
 		if unit.has_method("save_persistent_stats"):
 			unit.save_persistent_stats()

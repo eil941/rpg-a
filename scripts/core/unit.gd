@@ -26,17 +26,25 @@ var is_transitioning: bool = false
 var enemy_data_to_apply: EnemyData = null
 var npc_data_to_apply: NpcData = null
 
-@onready var ground_layer: TileMapLayer = get_tree().current_scene.get_node("GroundLayer")
-@onready var wall_layer: TileMapLayer = get_tree().current_scene.get_node("WallLayer")
-@onready var event_layer: TileMapLayer = get_tree().current_scene.get_node("EventLayer")
+var map_root: Node = null
+var ground_layer: TileMapLayer = null
+var wall_layer: TileMapLayer = null
+var event_layer: TileMapLayer = null
+var units_node: Node = null
 
 @onready var stats = $Stats
 @onready var controller = $Controller
-@onready var units_node = get_tree().current_scene.get_node_or_null("Units")
 @onready var targeting = Targeting
 @onready var combat_manager = CombatManager
 
+
 func _ready() -> void:
+	resolve_map_references()
+
+	if ground_layer == null:
+		push_error("Unit: ground_layer の取得に失敗")
+		return
+
 	sync_map_id_from_scene()
 
 	global_position = ground_layer.to_global(ground_layer.map_to_local(start_tile))
@@ -59,17 +67,23 @@ func _ready() -> void:
 			target_position = global_position
 		GlobalPlayerSpawn.has_next_tile = false
 
-	print("HP: ", stats.hp, "/", stats.max_hp)
-	print("ATK: ", stats.attack, " DEF: ", stats.defense)
-	print("SPD: ", stats.speed)
+	is_transitioning = false
+	is_moving = false
+	repeat_timer = 0.0
+	target_position = global_position
+
 
 	if is_player_unit:
 		print("READY map_id =", map_id)
 		print("READY has_next_tile =", GlobalPlayerSpawn.has_next_tile)
 		print("READY next_tile =", GlobalPlayerSpawn.next_tile)
 		print("READY saved_positions =", PlayerData.map_positions)
+		print("READY units_node =", units_node)
+		print("READY map_root =", map_root)
+		print("READY controller =", controller)
 
 	TimeManager.is_resolving_turn = false
+
 
 func _physics_process(delta: float) -> void:
 	if is_transitioning:
@@ -84,12 +98,13 @@ func _physics_process(delta: float) -> void:
 			repeat_timer = repeat_delay
 
 			if units_node != null:
-				TimeManager.update_turn_state(units_node)
+				TimeManager.notify_unit_move_finished(units_node)
 		return
 
 	if repeat_timer > 0.0:
 		repeat_timer -= delta
 		return
+
 
 func on_time_advanced(elapsed_seconds: float) -> void:
 	if not receives_time_turns:
@@ -106,29 +121,52 @@ func on_time_advanced(elapsed_seconds: float) -> void:
 		stats.action_progress_seconds -= action_cost_seconds
 		stats.pending_actions += 1
 
+
 func get_tile_data_at_coords(coords: Vector2i):
 	return event_layer.get_cell_tile_data(coords)
+
 
 func get_current_tile_coords() -> Vector2i:
 	return ground_layer.local_to_map(ground_layer.to_local(global_position))
 
+
 func get_current_tile_data():
 	var coords = get_current_tile_coords()
 	return event_layer.get_cell_tile_data(coords)
+
 
 func get_occupied_tile_coords() -> Vector2i:
 	if is_moving:
 		return ground_layer.local_to_map(ground_layer.to_local(target_position))
 	return get_current_tile_coords()
 
+
 func try_move(dir: Vector2) -> bool:
+
 	var next_pos = global_position + dir * tile_size
 	var next_tile = ground_layer.local_to_map(ground_layer.to_local(next_pos))
 
+	#print("TRY MOVE next_pos=", next_pos)
+	#print("TRY MOVE next_tile=", next_tile)
+	#print("TRY MOVE current_tile=", get_current_tile_coords())
+	#print("TRY MOVE units_node=", units_node)
+
+	var next_tile_data = get_tile_data_at_coords(next_tile)
+	if next_tile_data != null:
+		var next_scene_transfer = next_tile_data.get_custom_data("scene_transfer")
+		if not can_trigger_scene_transition and next_scene_transfer == true:
+			#print("TRY MOVE blocked: non-player cannot enter scene_transfer tile")
+			return false
+
 	var target_unit = targeting.get_unit_on_tile(units_node, next_tile, self)
+	#print("TRY MOVE target_unit=", target_unit)
+
 	if target_unit != null:
+		#print("TRY MOVE blocked by target_unit")
 		if combat_manager.try_bump_attack(self, target_unit):
+			#print("TRY MOVE bump attack success")
 			return true
+		#print("TRY MOVE bump attack failed")
 		return false
 
 	var space_state = get_world_2d().direct_space_state
@@ -140,26 +178,38 @@ func try_move(dir: Vector2) -> bool:
 	query.collide_with_bodies = true
 
 	var result = space_state.intersect_shape(query)
+	#print("TRY MOVE collision_result_empty=", result.is_empty())
+	if not result.is_empty():
+		print("TRY MOVE collision_result=", result)
 
 	if result.is_empty():
+		#print("TRY MOVE no collision")
+
 		if instant_move:
 			global_position = next_pos
 			target_position = next_pos
 			is_moving = false
+			#print("TRY MOVE instant move applied")
 
 			if units_node != null:
-				TimeManager.update_turn_state(units_node)
+				TimeManager.notify_unit_move_finished(units_node)
 		else:
 			target_position = next_pos
 			is_moving = true
+			#print("TRY MOVE smooth move started")
 
 		return true
 
 	var tile_data = get_tile_data_at_coords(next_tile)
 	if tile_data == null:
+		#print("TRY MOVE tile_data is null")
 		return false
 
+	#print("TRY MOVE tile_data exists")
+
 	var scene_transfer = tile_data.get_custom_data("scene_transfer")
+	#print("TRY MOVE scene_transfer=", scene_transfer)
+
 	if can_trigger_scene_transition and scene_transfer != null and scene_transfer == true:
 		var next_scene = String(tile_data.get_custom_data("enter_scene"))
 
@@ -167,7 +217,7 @@ func try_move(dir: Vector2) -> bool:
 		var spawn_y_data = tile_data.get_custom_data("spawn_y")
 
 		if spawn_x_data == null or spawn_y_data == null:
-			push_error("spawn_x or spawn_y is missing on event tile")
+			#push_error("spawn_x or spawn_y is missing on event tile")
 			return false
 
 		var spawn_x = int(spawn_x_data)
@@ -204,21 +254,22 @@ func try_move(dir: Vector2) -> bool:
 				PlayerData.last_map_id = map_id
 				PlayerData.last_tile = get_current_tile_coords()
 
-			var current_scene = get_tree().current_scene
-			if current_scene != null and current_scene.has_method("save_all_units"):
-				current_scene.save_all_units()
+			if map_root != null and map_root.has_method("save_all_units"):
+				map_root.save_all_units()
 
-			print("SCENE TRANSFER next_scene=", next_scene)
-			print("SCENE TRANSFER spawn_x=", spawn_x, " spawn_y=", spawn_y)
-			print("SCENE TRANSFER set next_tile=", Vector2i(spawn_x, spawn_y))
+			#print("SCENE TRANSFER next_scene=", next_scene)
+			#print("SCENE TRANSFER spawn_x=", spawn_x, " spawn_y=", spawn_y)
+			#print("SCENE TRANSFER set next_tile=", Vector2i(spawn_x, spawn_y))
 
 			is_transitioning = true
 			GlobalPlayerSpawn.has_next_tile = true
 			GlobalPlayerSpawn.next_tile = Vector2i(spawn_x, spawn_y)
-			get_tree().change_scene_to_file(next_scene)
+			request_map_change(next_scene)
 			return true
 
+	#print("TRY MOVE failed: collision exists and no valid scene transfer")
 	return false
+
 
 func try_interact_transition() -> void:
 	if not can_trigger_scene_transition:
@@ -276,9 +327,8 @@ func try_interact_transition() -> void:
 		PlayerData.last_map_id = map_id
 		PlayerData.last_tile = get_current_tile_coords()
 
-	var current_scene = get_tree().current_scene
-	if current_scene != null and current_scene.has_method("save_all_units"):
-		current_scene.save_all_units()
+	if map_root != null and map_root.has_method("save_all_units"):
+		map_root.save_all_units()
 
 	print("INTERACT TRANSFER next_scene=", next_scene)
 	print("INTERACT TRANSFER spawn_x=", spawn_x, " spawn_y=", spawn_y)
@@ -288,14 +338,17 @@ func try_interact_transition() -> void:
 	GlobalPlayerSpawn.has_next_tile = true
 	GlobalPlayerSpawn.next_tile = Vector2i(spawn_x, spawn_y)
 
-	get_tree().change_scene_to_file(next_scene)
+	request_map_change(next_scene)
+
 
 func wait_action() -> void:
 	is_moving = false
 	repeat_timer = repeat_delay
 
+
 func get_hp_status_text() -> String:
 	return "%s HP: %d/%d" % [name, stats.hp, stats.max_hp]
+
 
 func get_stats_data() -> Dictionary:
 	return {
@@ -307,6 +360,7 @@ func get_stats_data() -> Dictionary:
 		"tile_x": get_current_tile_coords().x,
 		"tile_y": get_current_tile_coords().y
 	}
+
 
 func apply_stats_data(data: Dictionary) -> void:
 	if data.has("max_hp"):
@@ -323,6 +377,7 @@ func apply_stats_data(data: Dictionary) -> void:
 		var saved_tile = Vector2i(data["tile_x"], data["tile_y"])
 		global_position = ground_layer.to_global(ground_layer.map_to_local(saved_tile))
 		target_position = global_position
+
 
 func save_persistent_stats() -> void:
 	print("SAVE unit_id=", unit_id, " hp=", stats.hp)
@@ -353,6 +408,7 @@ func save_persistent_stats() -> void:
 		WorldState.unit_states[unit_id] = data
 		print("SAVE unit_id=", unit_id, " hp=", stats.hp)
 
+
 func load_persistent_stats() -> void:
 	if is_player_unit:
 		print("PLAYER LOAD map_id=", map_id)
@@ -376,6 +432,7 @@ func load_persistent_stats() -> void:
 		print("LOAD unit_id=", unit_id, " hp=", WorldState.unit_states[unit_id]["hp"])
 		apply_stats_data(WorldState.unit_states[unit_id])
 
+
 func apply_enemy_data(enemy_data: EnemyData) -> void:
 	if enemy_data == null:
 		return
@@ -390,6 +447,7 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 	if has_node("Sprite2D"):
 		$Sprite2D.texture = enemy_data.sprite_texture
 
+
 func handle_death() -> void:
 	if is_player_unit:
 		print("プレイヤー死亡")
@@ -401,6 +459,7 @@ func handle_death() -> void:
 		WorldState.unit_states[unit_id] = data
 
 	queue_free()
+
 
 func apply_npc_data(npc_data: NpcData) -> void:
 	if npc_data == null:
@@ -416,19 +475,17 @@ func apply_npc_data(npc_data: NpcData) -> void:
 	if has_node("Sprite2D"):
 		$Sprite2D.texture = npc_data.sprite_texture
 
+
 func sync_map_id_from_scene() -> void:
-	var current_scene = get_tree().current_scene
-	if current_scene == null:
-		return
-
-	var scene_map_id = current_scene.get("map_id")
-
-	if scene_map_id != null and String(scene_map_id) != "":
-		map_id = String(scene_map_id)
-		return
+	if map_root != null:
+		var scene_map_id = map_root.get("map_id")
+		if scene_map_id != null and String(scene_map_id) != "":
+			map_id = String(scene_map_id)
+			return
 
 	if GlobalDetailMap.current_detail_map_key != "":
 		map_id = GlobalDetailMap.current_detail_map_key
+
 
 func create_detail_map_config(generator_type: String, field_tile: Vector2i) -> Dictionary:
 	generator_type = generator_type.strip_edges().replace("\"", "").to_upper()
@@ -478,3 +535,38 @@ func create_detail_map_config(generator_type: String, field_tile: Vector2i) -> D
 
 	print("CONFIG result = ", config)
 	return config
+
+
+func resolve_map_references() -> void:
+	var node: Node = self
+
+	while node != null:
+		if node.has_node("GroundLayer") and node.has_node("WallLayer") and node.has_node("EventLayer"):
+			map_root = node
+			break
+		node = node.get_parent()
+
+	if map_root == null:
+		push_error("Unit: map_root が見つかりません")
+		return
+
+	ground_layer = map_root.get_node("GroundLayer") as TileMapLayer
+	wall_layer = map_root.get_node("WallLayer") as TileMapLayer
+	event_layer = map_root.get_node("EventLayer") as TileMapLayer
+	units_node = map_root.get_node_or_null("Units")
+
+
+func request_map_change(next_scene: String) -> bool:
+	var node: Node = self
+
+	while node != null:
+		print("REQUEST MAP CHECK:", node.name, " script=", node.get_script())
+		if node.has_method("load_map_by_path"):
+			print("REQUEST MAP FOUND:", node.name, " next_scene=", next_scene)
+			node.load_map_by_path(next_scene)
+			print("REQUEST MAP CALLED")
+			return true
+		node = node.get_parent()
+
+	push_error("Unit: load_map_by_path を持つ親が見つかりません")
+	return false

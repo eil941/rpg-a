@@ -2,7 +2,6 @@
 
 [ext_resource type="Script" uid="uid://dvk2f4dxietfj" path="res://scripts/map_scene_scripts/FiledMap.gd" id="1_bf576"]
 [ext_resource type="TileSet" uid="uid://ccm51ihc4pruf" path="res://data/test_field_ground.tres" id="2_bbcss"]
-[ext_resource type="PackedScene" uid="uid://bji7srxp1ov88" path="res://scenes/game_hud.tscn" id="5_bbcss"]
 [ext_resource type="PackedScene" uid="uid://cjntf4kbtxh73" path="res://scenes/unit.tscn" id="11_qok4n"]
 [ext_resource type="TileSet" uid="uid://bc0aui1htbk1v" path="res://data/test_wall.tres" id="16_kbqwi"]
 
@@ -29,5 +28,3 @@ receives_time_turns = false
 instant_move = false
 unit_id = "player"
 is_player_unit = true
-
-[node name="GameHUD" parent="." unique_id=275878376 instance=ExtResource("5_bbcss")]

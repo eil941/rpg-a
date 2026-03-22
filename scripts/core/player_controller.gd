@@ -3,13 +3,20 @@ extends Node
 var unit = null
 var units_node = null
 
+
 func setup(owner_unit) -> void:
 	unit = owner_unit
-	units_node = get_tree().current_scene.get_node_or_null("Units")
+	units_node = unit.units_node
+
 
 func _physics_process(_delta: float) -> void:
 	if unit == null:
 		return
+
+	if units_node == null:
+		units_node = unit.units_node
+		if units_node == null:
+			return
 
 	if TimeManager.is_resolving_turn:
 		return
@@ -32,9 +39,8 @@ func _physics_process(_delta: float) -> void:
 		unit.wait_action()
 
 		if not unit.debug_free_action:
-			if units_node != null:
-				TimeManager.advance_time(units_node, unit.stats.speed)
-				TimeManager.update_turn_state(units_node)
+			TimeManager.advance_time(units_node, unit.stats.speed)
+			TimeManager.resolve_ai_turns(units_node)
 
 		return
 
@@ -44,8 +50,9 @@ func _physics_process(_delta: float) -> void:
 
 		if acted:
 			if not unit.debug_free_action:
-				if units_node != null:
-					TimeManager.advance_time(units_node, unit.stats.speed)
+				TimeManager.advance_time(units_node, unit.stats.speed)
+				TimeManager.resolve_ai_turns(units_node)
+
 
 func get_input_direction() -> Vector2:
 	if Input.is_action_pressed("ui_right"):

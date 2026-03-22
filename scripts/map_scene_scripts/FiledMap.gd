@@ -1,11 +1,15 @@
 extends Node2D
 
-@onready var ground_layer: TileMapLayer = get_tree().current_scene.get_node("GroundLayer")
-@onready var wall_layer: TileMapLayer = get_tree().current_scene.get_node("WallLayer")
-@onready var event_layer: TileMapLayer = get_tree().current_scene.get_node("EventLayer")
+#@onready var ground_layer: TileMapLayer = get_tree().current_scene.get_node("GroundLayer")
+#@onready var wall_layer: TileMapLayer = get_tree().current_scene.get_node("WallLayer")
+#@onready var event_layer: TileMapLayer = get_tree().current_scene.get_node("EventLayer")
 @onready var player = $Units/Unit
-@onready var hud = $GameHUD
+#@onready var hud = $GameHUD
 
+@onready var ground_layer: TileMapLayer = $GroundLayer
+@onready var wall_layer: TileMapLayer = $WallLayer
+@onready var event_layer: TileMapLayer = $EventLayer
+@onready var units_node: Node = $Units
 
 @export var MAP_WIDTH := 200
 @export var MAP_HEIGHT := 200
@@ -26,12 +30,27 @@ var map_generator: PlainMapGenerator
 
 
 
-func _ready() -> void:
-	hud.set_time_info(1, "08:30", "Sunny")
-	hud.set_player_status("Hero", 20, 20, 10, 10, 50, 50)
-	hud.add_log("FieldMap 読み込み")
-	
+func _ready() -> void:	
+	print("FIELDMAP READY START")
 
+	if ground_layer == null or wall_layer == null or event_layer == null:
+		push_error("FiledMap: GroundLayer / WallLayer / EventLayer の取得に失敗")
+		return
+
+	print("FIELDMAP layers OK")
+	print("FIELDMAP units node =", units_node)
+	
+	print("=== FIELD MAP UNITS CHECK ===")
+	print("units child count =", $Units.get_child_count())
+
+	for child in $Units.get_children():
+		print(
+			"unit name=", child.name,
+			" is_player_unit=", child.get("is_player_unit"),
+			" map_id=", child.get("map_id"),
+			" pos=", child.global_position,
+			" controller=", child.get_node_or_null("Controller")
+		)
 	
 	player.map_id = map_id
 	
@@ -48,7 +67,8 @@ func _ready() -> void:
 		)
 		map_generator.generate_map(ground_layer, wall_layer, event_layer)
 		save_map_tiles()
-
+	
+	print("FIELDMAP READY END")
 	
 
 func generate_map() -> void:

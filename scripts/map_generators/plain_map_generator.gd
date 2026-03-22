@@ -261,7 +261,6 @@ func generate_map(
 	event_layer.clear()
 
 	for y in range(map_height):
-		print("")
 		for x in range(map_width):
 			var cell := Vector2i(x, y)
 			var terrain: int = terrain_result[y][x]

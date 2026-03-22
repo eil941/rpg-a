@@ -1,9 +1,14 @@
 extends Node2D
 
-@onready var ground_layer: TileMapLayer = get_tree().current_scene.get_node("GroundLayer")
-@onready var wall_layer: TileMapLayer = get_tree().current_scene.get_node("WallLayer")
-@onready var event_layer: TileMapLayer = get_tree().current_scene.get_node("EventLayer")
+#@onready var ground_layer: TileMapLayer = get_tree().current_scene.get_node("GroundLayer")
+#@onready var wall_layer: TileMapLayer = get_tree().current_scene.get_node("WallLayer")
+#@onready var event_layer: TileMapLayer = get_tree().current_scene.get_node("EventLayer")
 @onready var player = $Units/Unit
+
+@onready var ground_layer: TileMapLayer = get_node_or_null("GroundLayer")
+@onready var wall_layer: TileMapLayer = get_node_or_null("WallLayer")
+@onready var event_layer: TileMapLayer = get_node_or_null("EventLayer")
+@onready var units_node: Node = get_node_or_null("Units")
 
 @export var enemy_unit_scene: PackedScene
 @export var enemy_spawn_count: int = 5
@@ -28,13 +33,16 @@ var spawn_manager: UnitSpawnManager
 var map_generator: BaseMapGenerator
 
 func _ready() -> void:
+	if ground_layer == null or wall_layer == null or event_layer == null:
+		push_error("Main: GroundLayer / WallLayer / EventLayer の取得に失敗")
+		return
+	
 	if GlobalDetailMap.current_detail_map_key != "":
 		map_id = GlobalDetailMap.current_detail_map_key
 
 	player.map_id = map_id
 
 	var generator_type := GlobalDetailMap.current_generator_type
-	print(generator_type, " ASDASDASDASDASDASDAS")
 
 	if generator_type == "" and WorldState.field_detail_map_data.has(map_id):
 		generator_type = WorldState.field_detail_map_data[map_id].get("generator_type", "GRASS")
@@ -42,14 +50,13 @@ func _ready() -> void:
 	if generator_type == "":
 		generator_type = "GRASS"
 
-	print(generator_type, " ------------------------------------------------------------------")
 	map_generator = create_map_generator(generator_type)
 
 	if WorldState.map_tile_data.has(map_id):
-		print("LOAD MAP TILES map_id=", map_id)
+		#print("LOAD MAP TILES map_id=", map_id)
 		load_map_tiles()
 	else:
-		print("GENERATE MAP map_id=", map_id, " generator_type=", generator_type)
+		#print("GENERATE MAP map_id=", map_id, " generator_type=", generator_type)
 		map_generator.generate_map(ground_layer, wall_layer, event_layer)
 		save_map_tiles()
 
@@ -68,9 +75,9 @@ func _ready() -> void:
 		var enemy_type_ids = detail_config.get("enemy_type_ids", [])
 		var npc_type_ids = detail_config.get("npc_type_ids", [])
 
-		print("detail_config = ", detail_config)
-		print("enemy_type_ids = ", enemy_type_ids)
-		print("npc_type_ids = ", npc_type_ids)
+		#print("detail_config = ", detail_config)
+		#print("enemy_type_ids = ", enemy_type_ids)
+		#print("npc_type_ids = ", npc_type_ids)
 
 		if enemy_type_ids.size() > 0:
 			current_enemy_data_list = filter_enemy_data_by_ids(enemy_type_ids)
