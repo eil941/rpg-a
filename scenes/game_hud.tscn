@@ -1,149 +1,247 @@
 [gd_scene format=3 uid="uid://bji7srxp1ov88"]
 
+[sub_resource type="GDScript" id="GDScript_8t4dp"]
+script/source = "extends Control
+
+@onready var day_label: Label = $CanvasLayer/TimeArea/PanelContainer/VBoxContainer/DayLabel
+@onready var time_label: Label = $CanvasLayer/TimeArea/PanelContainer/VBoxContainer/TimeLabel
+@onready var weather_label: Label = $CanvasLayer/TimeArea/PanelContainer/VBoxContainer/WeatherLabel
+
+@onready var player_name_label: Label = $CanvasLayer/UnitStatusArea/HBoxContainer/PlayerStatusCard/PanelContainer/VBoxContainer/NameLabel
+@onready var hp_label: Label = $CanvasLayer/UnitStatusArea/HBoxContainer/PlayerStatusCard/PanelContainer/VBoxContainer/HPLabel
+@onready var hp_bar: ProgressBar = $CanvasLayer/UnitStatusArea/HBoxContainer/PlayerStatusCard/PanelContainer/VBoxContainer/HPBar
+@onready var mp_label: Label = $CanvasLayer/UnitStatusArea/HBoxContainer/PlayerStatusCard/PanelContainer/VBoxContainer/MPLabel
+@onready var mp_bar: ProgressBar = $CanvasLayer/UnitStatusArea/HBoxContainer/PlayerStatusCard/PanelContainer/VBoxContainer/MPBar
+@onready var stamina_label: Label = $CanvasLayer/UnitStatusArea/HBoxContainer/PlayerStatusCard/PanelContainer/VBoxContainer/StaminaLabel
+@onready var stamina_bar: ProgressBar = $CanvasLayer/UnitStatusArea/HBoxContainer/PlayerStatusCard/PanelContainer/VBoxContainer/StaminaBar
+
+@onready var dummy_label: Label = $CanvasLayer/UnitStatusArea/HBoxContainer/AllyStatusCardDummy/PanelContainer/VBoxContainer/DummyLabel
+@onready var minimap_label: Label = $CanvasLayer/MiniMapArea/PanelContainer/MiniMapLabel
+
+@onready var log_title_label: Label = $CanvasLayer/LogArea/PanelContainer/VBoxContainer/LogTitleLabel
+@onready var log_label: Label = $CanvasLayer/LogArea/PanelContainer/VBoxContainer/LogLabel
+
+
+var current_day: int = 1
+var current_time_text: String = \"08:30\"
+var current_weather_text: String = \"Sunny\"
+
+var player_name: String = \"Player\"
+var current_hp: int = 100
+var max_hp: int = 100
+var current_mp: int = 30
+var max_mp: int = 30
+var current_stamina: int = 50
+var max_stamina: int = 50
+
+var log_lines: Array[String] = []
+var max_log_lines: int = 4
+
+
+func _ready() -> void:
+	initialize_hud()
+	add_log(\"ゲーム開始\")
+	add_log(\"仮HUDを読み込みました\")
+	add_log(\"草原に入りました\")
+
+
+func initialize_hud() -> void:
+	log_title_label.text = \"Log\"
+	dummy_label.text = \"Ally Slot\"
+	minimap_label.text = \"Mini Map\"
+
+	update_time_area()
+	update_player_status_area()
+	update_log_display()
+
+
+func update_time_area() -> void:
+	day_label.text = \"Day %d\" % current_day
+	time_label.text = current_time_text
+	weather_label.text = current_weather_text
+
+
+func update_player_status_area() -> void:
+	player_name_label.text = player_name
+
+	hp_label.text = \"HP: %d / %d\" % [current_hp, max_hp]
+	hp_bar.max_value = max_hp
+	hp_bar.value = current_hp
+
+	mp_label.text = \"MP: %d / %d\" % [current_mp, max_mp]
+	mp_bar.max_value = max_mp
+	mp_bar.value = current_mp
+
+	stamina_label.text = \"STM: %d / %d\" % [current_stamina, max_stamina]
+	stamina_bar.max_value = max_stamina
+	stamina_bar.value = current_stamina
+
+
+func add_log(text: String) -> void:
+	log_lines.append(text)
+
+	while log_lines.size() > max_log_lines:
+		log_lines.pop_front()
+
+	update_log_display()
+
+
+func update_log_display() -> void:
+	log_label.text = \"\\n\".join(log_lines)
+
+
+func set_time_info(p_day: int, p_time_text: String, p_weather_text: String) -> void:
+	current_day = p_day
+	current_time_text = p_time_text
+	current_weather_text = p_weather_text
+	update_time_area()
+
+
+func set_player_status(
+	p_name: String,
+	p_hp: int,
+	p_max_hp: int,
+	p_mp: int,
+	p_max_mp: int,
+	p_stamina: int,
+	p_max_stamina: int
+) -> void:
+	player_name = p_name
+	current_hp = p_hp
+	max_hp = p_max_hp
+	current_mp = p_mp
+	max_mp = p_max_mp
+	current_stamina = p_stamina
+	max_stamina = p_max_stamina
+	update_player_status_area()
+"
+
 [node name="GameHUD" type="Control" unique_id=275878376]
 layout_mode = 3
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
+script = SubResource("GDScript_8t4dp")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=813876046]
 
-[node name="TopLeft" type="MarginContainer" parent="CanvasLayer" unique_id=526594382]
-offset_right = 40.0
-offset_bottom = 40.0
+[node name="TimeArea" type="MarginContainer" parent="CanvasLayer" unique_id=1022014829]
+offset_left = 180.0
+offset_top = 16.0
+offset_right = 196.0
+offset_bottom = 32.0
 
-[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/TopLeft" unique_id=1273832743]
+[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/TimeArea" unique_id=2021417539]
 layout_mode = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/TopLeft/PanelContainer" unique_id=1756982659]
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/TimeArea/PanelContainer" unique_id=1408253586]
 layout_mode = 2
 
-[node name="NameLabel" type="Label" parent="CanvasLayer/TopLeft/PanelContainer/VBoxContainer" unique_id=1269349074]
+[node name="DayLabel" type="Label" parent="CanvasLayer/TimeArea/PanelContainer/VBoxContainer" unique_id=579473742]
+layout_mode = 2
+text = "Day 1"
+
+[node name="TimeLabel" type="Label" parent="CanvasLayer/TimeArea/PanelContainer/VBoxContainer" unique_id=1152453217]
+layout_mode = 2
+text = "08:30"
+
+[node name="WeatherLabel" type="Label" parent="CanvasLayer/TimeArea/PanelContainer/VBoxContainer" unique_id=249435903]
+layout_mode = 2
+text = "Sunny"
+
+[node name="UnitStatusArea" type="MarginContainer" parent="CanvasLayer" unique_id=1280079137]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -210.0
+offset_right = 210.0
+offset_bottom = 16.0
+grow_horizontal = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/UnitStatusArea" unique_id=964795110]
+layout_mode = 2
+
+[node name="PlayerStatusCard" type="MarginContainer" parent="CanvasLayer/UnitStatusArea/HBoxContainer" unique_id=767989009]
+layout_mode = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/UnitStatusArea/HBoxContainer/PlayerStatusCard" unique_id=28622407]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/UnitStatusArea/HBoxContainer/PlayerStatusCard/PanelContainer" unique_id=1565218563]
+layout_mode = 2
+
+[node name="NameLabel" type="Label" parent="CanvasLayer/UnitStatusArea/HBoxContainer/PlayerStatusCard/PanelContainer/VBoxContainer" unique_id=943225920]
 layout_mode = 2
 text = "Player"
 
-[node name="HPLabel" type="Label" parent="CanvasLayer/TopLeft/PanelContainer/VBoxContainer" unique_id=1769279571]
+[node name="HPLabel" type="Label" parent="CanvasLayer/UnitStatusArea/HBoxContainer/PlayerStatusCard/PanelContainer/VBoxContainer" unique_id=2046272187]
 layout_mode = 2
 text = "HP: 100 / 100"
 
-[node name="MPlavel" type="Label" parent="CanvasLayer/TopLeft/PanelContainer/VBoxContainer" unique_id=1008825200]
+[node name="HPBar" type="ProgressBar" parent="CanvasLayer/UnitStatusArea/HBoxContainer/PlayerStatusCard/PanelContainer/VBoxContainer" unique_id=1674105318]
 layout_mode = 2
-text = "MP : 30 / 30"
 
-[node name="StaminaLabel" type="Label" parent="CanvasLayer/TopLeft/PanelContainer/VBoxContainer" unique_id=143095543]
+[node name="MPLabel" type="Label" parent="CanvasLayer/UnitStatusArea/HBoxContainer/PlayerStatusCard/PanelContainer/VBoxContainer" unique_id=1236743853]
+layout_mode = 2
+text = "HP: 100 / 100"
+
+[node name="MPBar" type="ProgressBar" parent="CanvasLayer/UnitStatusArea/HBoxContainer/PlayerStatusCard/PanelContainer/VBoxContainer" unique_id=1495003512]
+layout_mode = 2
+
+[node name="StaminaLabel" type="Label" parent="CanvasLayer/UnitStatusArea/HBoxContainer/PlayerStatusCard/PanelContainer/VBoxContainer" unique_id=923191778]
 layout_mode = 2
 text = "STM: 50 / 50"
 
-[node name="TopRight" type="MarginContainer" parent="CanvasLayer" unique_id=239907514]
+[node name="StaminaBar" type="ProgressBar" parent="CanvasLayer/UnitStatusArea/HBoxContainer/PlayerStatusCard/PanelContainer/VBoxContainer" unique_id=1164277739]
+layout_mode = 2
+
+[node name="AllyStatusCardDummy" type="MarginContainer" parent="CanvasLayer/UnitStatusArea/HBoxContainer" unique_id=451444221]
+layout_mode = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/UnitStatusArea/HBoxContainer/AllyStatusCardDummy" unique_id=1673870913]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/UnitStatusArea/HBoxContainer/AllyStatusCardDummy/PanelContainer" unique_id=1463448679]
+layout_mode = 2
+
+[node name="DummyLabel" type="Label" parent="CanvasLayer/UnitStatusArea/HBoxContainer/AllyStatusCardDummy/PanelContainer/VBoxContainer" unique_id=736883145]
+layout_mode = 2
+text = "Ally Slot"
+
+[node name="MiniMapArea" type="MarginContainer" parent="CanvasLayer" unique_id=918492273]
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -40.0
-offset_bottom = 40.0
+offset_left = -160.0
+offset_bottom = 160.0
 grow_horizontal = 0
 
-[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/TopRight" unique_id=194158824]
+[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/MiniMapArea" unique_id=694574576]
 layout_mode = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/TopRight/PanelContainer" unique_id=1276420921]
+[node name="MiniMapLabel" type="Label" parent="CanvasLayer/MiniMapArea/PanelContainer" unique_id=980797765]
 layout_mode = 2
+text = "Mini Map"
 
-[node name="TimeLabel" type="Label" parent="CanvasLayer/TopRight/PanelContainer/VBoxContainer" unique_id=464553309]
-layout_mode = 2
-text = "Time: Day1 08:30"
-
-[node name="MapLabel" type="Label" parent="CanvasLayer/TopRight/PanelContainer/VBoxContainer" unique_id=1097449217]
-layout_mode = 2
-text = "Map: Grass Field"
-
-[node name="MoneyLabel" type="Label" parent="CanvasLayer/TopRight/PanelContainer/VBoxContainer" unique_id=14419235]
-layout_mode = 2
-text = "Money: 1200 G"
-
-[node name="BottomLeft" type="MarginContainer" parent="CanvasLayer" unique_id=1216440820]
-anchors_preset = 2
-anchor_top = 1.0
-anchor_bottom = 1.0
-offset_top = -40.0
-offset_right = 40.0
-grow_vertical = 0
-
-[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/BottomLeft" unique_id=1645341982]
-layout_mode = 2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/BottomLeft/PanelContainer" unique_id=655706264]
-layout_mode = 2
-
-[node name="LogTileLabel" type="Label" parent="CanvasLayer/BottomLeft/PanelContainer/VBoxContainer" unique_id=1499170401]
-layout_mode = 2
-text = "Log"
-
-[node name="LogLabel" type="Label" parent="CanvasLayer/BottomLeft/PanelContainer/VBoxContainer" unique_id=484723950]
-layout_mode = 2
-text = "ゲーム開始
-草原に入りました
-仮HUD表示中"
-
-[node name="BottomRight" type="MarginContainer" parent="CanvasLayer" unique_id=2035146086]
-anchors_preset = 3
-anchor_left = 1.0
+[node name="LogArea" type="MarginContainer" parent="CanvasLayer" unique_id=1289726464]
+anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -40.0
-offset_top = -40.0
-grow_horizontal = 0
+grow_horizontal = 2
 grow_vertical = 0
 
-[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/BottomRight" unique_id=1499491943]
+[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/LogArea" unique_id=658429836]
 layout_mode = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/BottomRight/PanelContainer" unique_id=1215814016]
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/LogArea/PanelContainer" unique_id=1892894393]
 layout_mode = 2
 
-[node name="InventoryButton" type="Button" parent="CanvasLayer/BottomRight/PanelContainer/VBoxContainer" unique_id=1406191492]
+[node name="LogTitleLabel" type="Label" parent="CanvasLayer/LogArea/PanelContainer/VBoxContainer" unique_id=1267531485]
 layout_mode = 2
-text = "Inventory"
+text = "Log"
 
-[node name="StatusButton" type="Button" parent="CanvasLayer/BottomRight/PanelContainer/VBoxContainer" unique_id=1403776524]
+[node name="LogLabel" type="Label" parent="CanvasLayer/LogArea/PanelContainer/VBoxContainer" unique_id=405674971]
 layout_mode = 2
-text = "Status"
-
-[node name="MapButton" type="Button" parent="CanvasLayer/BottomRight/PanelContainer/VBoxContainer" unique_id=1571607463]
-layout_mode = 2
-text = "Map"
-
-[node name="MenuButton" type="Button" parent="CanvasLayer/BottomRight/PanelContainer/VBoxContainer" unique_id=782093618]
-layout_mode = 2
-text = "Menu"
-
-[node name="DebugPanel" type="MarginContainer" parent="CanvasLayer" unique_id=2121770106]
-offset_top = 142.0
-offset_right = 149.0
-offset_bottom = 273.0
-
-[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/DebugPanel" unique_id=1421795667]
-layout_mode = 2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/DebugPanel/PanelContainer" unique_id=997824769]
-layout_mode = 2
-
-[node name="DebugTitleLabel" type="Label" parent="CanvasLayer/DebugPanel/PanelContainer/VBoxContainer" unique_id=1881520900]
-layout_mode = 2
-text = "DEBUG"
-
-[node name="DebugMapIdLabel" type="Label" parent="CanvasLayer/DebugPanel/PanelContainer/VBoxContainer" unique_id=339915370]
-layout_mode = 2
-text = "map_id: field_13_10"
-
-[node name="DebugPositionLabel" type="Label" parent="CanvasLayer/DebugPanel/PanelContainer/VBoxContainer" unique_id=1150962200]
-layout_mode = 2
-text = "pos: (320, 192)"
-
-[node name="DebugTileLabel" type="Label" parent="CanvasLayer/DebugPanel/PanelContainer/VBoxContainer" unique_id=953703945]
-layout_mode = 2
-text = "tile: (10, 6)"
-
-[node name="DebugFPSLabel" type="Label" parent="CanvasLayer/DebugPanel/PanelContainer/VBoxContainer" unique_id=1121674450]
-layout_mode = 2
-text = "fps: 60"
+text = "ゲーム開始
+草原に入りました"
