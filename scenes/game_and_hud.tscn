@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://bef175ivp2tvt"]
+
+[ext_resource type="Script" uid="uid://67w7un05lq1j" path="res://scripts/game_and_hud.gd" id="1_xqwh5"]
+[ext_resource type="PackedScene" uid="uid://bji7srxp1ov88" path="res://scenes/game_hud.tscn" id="2_k43xj"]
+
+[node name="GameAndHud" type="Node2D" unique_id=777903396]
+script = ExtResource("1_xqwh5")
+
+[node name="CurrentMapContainer" type="Node" parent="." unique_id=701451734]
+
+[node name="GameHUD" parent="." unique_id=275878376 instance=ExtResource("2_k43xj")]

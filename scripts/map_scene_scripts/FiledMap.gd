@@ -4,6 +4,8 @@ extends Node2D
 @onready var wall_layer: TileMapLayer = get_tree().current_scene.get_node("WallLayer")
 @onready var event_layer: TileMapLayer = get_tree().current_scene.get_node("EventLayer")
 @onready var player = $Units/Unit
+@onready var hud = $GameHUD
+
 
 @export var MAP_WIDTH := 200
 @export var MAP_HEIGHT := 200
@@ -25,6 +27,12 @@ var map_generator: PlainMapGenerator
 
 
 func _ready() -> void:
+	hud.set_time_info(1, "08:30", "Sunny")
+	hud.set_player_status("Hero", 20, 20, 10, 10, 50, 50)
+	hud.add_log("FieldMap 読み込み")
+	
+
+	
 	player.map_id = map_id
 	
 	if WorldState.map_tile_data.has(map_id):
