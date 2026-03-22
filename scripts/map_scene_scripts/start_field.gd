@@ -1,9 +1,9 @@
 extends Node2D
 
-@onready var ground_layer: TileMapLayer = get_tree().current_scene.get_node("GroundLayer")
-@onready var wall_layer: TileMapLayer = get_tree().current_scene.get_node("WallLayer")
-@onready var event_layer: TileMapLayer = get_tree().current_scene.get_node("EventLayer")
-@onready var player = $Units/Unit
+@onready var ground_layer: TileMapLayer = $GroundLayer
+@onready var wall_layer: TileMapLayer = $WallLayer
+@onready var event_layer: TileMapLayer = $EventLayer
+@onready var units_node: Node = $Units
 
 @export var enemy_unit_scene: PackedScene
 @export var enemy_spawn_count: int = 5
@@ -15,42 +15,26 @@ extends Node2D
 
 @export var map_id: String = ""
 
-const MAP_WIDTH := 30
-const MAP_HEIGHT := 30
-
-const FLOOR_SOURCE_ID := 2
-const WALL_SOURCE_ID := 0
-
-const FLOOR_ATLAS_COORDS := Vector2i(0, 0)
-const WALL_ATLAS_COORDS := Vector2i(0, 0)
-
 var spawn_manager: UnitSpawnManager
-var map_generator: MapGenerator
+var player: Node = null
+
 
 func _ready() -> void:
-	player.map_id = map_id
+	if ground_layer == null or wall_layer == null or event_layer == null:
+		push_error("start_field: GroundLayer / WallLayer / EventLayer の取得に失敗")
+		return
 
-	if WorldState.map_tile_data.has(map_id):
-		load_map_tiles()
+	find_player()
+
+	if player != null:
+		player.map_id = map_id
 	else:
-		map_generator = MapGenerator.new(
-			MAP_WIDTH,
-			MAP_HEIGHT,
-			FLOOR_SOURCE_ID,
-			WALL_SOURCE_ID,
-			FLOOR_ATLAS_COORDS,
-			WALL_ATLAS_COORDS
-		)
-		#map_generator.generate_map(ground_layer, wall_layer, event_layer)
-		save_map_tiles()
+		push_warning("start_field: player が見つかりません")
 
-	var walkable_tiles: Array[Vector2i] = []
-
-	if map_generator != null:
-		walkable_tiles = map_generator.get_walkable_tiles()
+	var walkable_tiles: Array[Vector2i] = collect_walkable_tiles()
 
 	spawn_manager = UnitSpawnManager.new(
-		$Units,
+		units_node,
 		ground_layer,
 		map_id,
 		walkable_tiles
@@ -66,25 +50,49 @@ func _ready() -> void:
 	else:
 		spawn_manager.spawn_random_npcs(npc_unit_scene, npc_data_list, npc_spawn_count)
 
-func save_all_units() -> void:
-	#print("save_all_units called")
 
-	if not has_node("Units"):
-		#print("Units node not found")
+func find_player() -> void:
+	player = null
+
+	for child in units_node.get_children():
+		if child == null:
+			continue
+		if child.get("is_player_unit"):
+			player = child
+			return
+
+	for child in units_node.get_children():
+		if child == null:
+			continue
+		if child.name == "Unit":
+			player = child
+			return
+
+
+func collect_walkable_tiles() -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+
+	for cell in ground_layer.get_used_cells():
+		if wall_layer.get_cell_source_id(cell) != -1:
+			continue
+		result.append(cell)
+
+	return result
+
+
+func save_all_units() -> void:
+	if units_node == null:
 		return
 
-	for unit in $Units.get_children():
-		#print("child = ", unit.name)
-
-		if unit.has_method("save_persistent_stats"):
+	for unit in units_node.get_children():
+		if unit != null and unit.has_method("save_persistent_stats"):
 			unit.save_persistent_stats()
+
 
 func save_layer_data(layer: TileMapLayer) -> Array:
 	var result: Array = []
 
-	var used_cells = layer.get_used_cells()
-
-	for cell in used_cells:
+	for cell in layer.get_used_cells():
 		var source_id = layer.get_cell_source_id(cell)
 		if source_id == -1:
 			continue
@@ -103,6 +111,7 @@ func save_layer_data(layer: TileMapLayer) -> Array:
 
 	return result
 
+
 func load_layer_data(layer: TileMapLayer, data: Array) -> void:
 	layer.clear()
 
@@ -114,12 +123,14 @@ func load_layer_data(layer: TileMapLayer, data: Array) -> void:
 
 		layer.set_cell(cell, source_id, atlas_coords, alternative)
 
+
 func save_map_tiles() -> void:
 	WorldState.map_tile_data[map_id] = {
 		"ground": save_layer_data(ground_layer),
 		"wall": save_layer_data(wall_layer),
 		"event": save_layer_data(event_layer)
 	}
+
 
 func load_map_tiles() -> void:
 	if not WorldState.map_tile_data.has(map_id):
