@@ -4,13 +4,25 @@
 [ext_resource type="Texture2D" uid="uid://ckj4j0fakksd0" path="res://assets/player.png" id="2_gic7v"]
 [ext_resource type="Script" uid="uid://b1xneybof8tc7" path="res://scripts/core/stats.gd" id="3_tb304"]
 [ext_resource type="Script" uid="uid://chtsgc7lseb8o" path="res://scripts/core/player_controller.gd" id="4_gic7v"]
-[ext_resource type="Script" uid="uid://gj4ek5g6ew7q" path="res://scripts/inventory.gd" id="5_tb304"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ruro2"]
 size = Vector2(30, 30)
 
 [node name="Unit" type="CharacterBody2D" unique_id=40692456]
 script = ExtResource("1_1jvru")
+tile_size = null
+move_speed = null
+repeat_delay = null
+start_tile = null
+can_trigger_scene_transition = null
+can_bump_attack = null
+is_enemy = null
+receives_time_turns = null
+instant_move = null
+unit_id = null
+is_player_unit = null
+map_id = null
+debug_free_action = null
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=427796898]
 texture = ExtResource("2_gic7v")
@@ -25,6 +37,3 @@ script = ExtResource("3_tb304")
 
 [node name="Controller" type="Node" parent="." unique_id=498416143]
 script = ExtResource("4_gic7v")
-
-[node name="Inventory" type="Node" parent="." unique_id=875404354]
-script = ExtResource("5_tb304")

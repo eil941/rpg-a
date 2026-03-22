@@ -12,10 +12,10 @@ script = ExtResource("1_jna2d")
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=813876046]
 
 [node name="TimeArea" type="MarginContainer" parent="CanvasLayer" unique_id=1022014829]
-offset_left = 180.0
+offset_left = 28.0
 offset_top = 16.0
-offset_right = 196.0
-offset_bottom = 32.0
+offset_right = 90.0
+offset_bottom = 93.0
 
 [node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/TimeArea" unique_id=2021417539]
 layout_mode = 2

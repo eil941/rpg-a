@@ -13,3 +13,5 @@ var last_map_id: String = ""
 var last_tile: Vector2i = Vector2i.ZERO
 
 var map_positions: Dictionary = {}
+
+var inventory_data: Array = []

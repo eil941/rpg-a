@@ -23,7 +23,12 @@ func _physics_process(_delta: float) -> void:
 
 	if unit.is_transitioning:
 		return
-
+		
+	if Input.is_action_just_pressed("inventory"):
+		print("open inventory")
+		toggle_inventory_ui()
+		return
+		
 	if unit.is_moving:
 		return
 
@@ -40,6 +45,7 @@ func _physics_process(_delta: float) -> void:
 
 		if not unit.debug_free_action:
 			TimeManager.advance_time(units_node, unit.stats.speed)
+			notify_hud()
 			TimeManager.resolve_ai_turns(units_node)
 
 		return
@@ -51,7 +57,18 @@ func _physics_process(_delta: float) -> void:
 		if acted:
 			if not unit.debug_free_action:
 				TimeManager.advance_time(units_node, unit.stats.speed)
+				notify_hud()
 				TimeManager.resolve_ai_turns(units_node)
+
+
+func notify_hud() -> void:
+	var node: Node = unit
+
+	while node != null:
+		if node.has_method("refresh_hud"):
+			node.refresh_hud()
+			return
+		node = node.get_parent()
 
 
 func get_input_direction() -> Vector2:
@@ -65,3 +82,12 @@ func get_input_direction() -> Vector2:
 		return Vector2.UP
 
 	return Vector2.ZERO
+
+func toggle_inventory_ui() -> void:
+	var node: Node = unit
+
+	while node != null:
+		if node.has_method("toggle_inventory_ui"):
+			node.toggle_inventory_ui()
+			return
+		node = node.get_parent()

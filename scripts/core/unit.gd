@@ -18,6 +18,8 @@ extends CharacterBody2D
 @export var map_id: String = ""
 @export var debug_free_action: bool = false
 
+@onready var inventory: Inventory = $Inventory
+
 var is_moving: bool = false
 var target_position: Vector2
 var repeat_timer: float = 0.0
@@ -83,6 +85,12 @@ func _ready() -> void:
 		print("READY controller =", controller)
 
 	TimeManager.is_resolving_turn = false
+	
+	if is_player_unit and inventory != null and inventory.get_all_items().is_empty():
+		inventory.add_item("potion", 3)
+		inventory.add_item("wood", 5)
+		inventory.add_item("apple", 2)
+
 
 
 func _physics_process(delta: float) -> void:
@@ -264,6 +272,7 @@ func try_move(dir: Vector2) -> bool:
 			is_transitioning = true
 			GlobalPlayerSpawn.has_next_tile = true
 			GlobalPlayerSpawn.next_tile = Vector2i(spawn_x, spawn_y)
+			notify_hud_log(next_scene+"へ移動")
 			request_map_change(next_scene)
 			return true
 
@@ -337,7 +346,8 @@ func try_interact_transition() -> void:
 	is_transitioning = true
 	GlobalPlayerSpawn.has_next_tile = true
 	GlobalPlayerSpawn.next_tile = Vector2i(spawn_x, spawn_y)
-
+	
+	notify_hud_log(next_scene+"へ移動")
 	request_map_change(next_scene)
 
 
@@ -358,7 +368,7 @@ func get_stats_data() -> Dictionary:
 		"defense": stats.defense,
 		"speed": stats.speed,
 		"tile_x": get_current_tile_coords().x,
-		"tile_y": get_current_tile_coords().y
+		"tile_y": get_current_tile_coords().y,
 	}
 
 
@@ -388,7 +398,7 @@ func save_persistent_stats() -> void:
 		PlayerData.attack = stats.attack
 		PlayerData.defense = stats.defense
 		PlayerData.speed = stats.speed
-
+		
 		print("PLAYER SAVE map_id=", map_id)
 		print("PLAYER SAVE global_position=", global_position)
 		print("PLAYER SAVE local position=", position)
@@ -419,7 +429,7 @@ func load_persistent_stats() -> void:
 		stats.attack = PlayerData.attack
 		stats.defense = PlayerData.defense
 		stats.speed = PlayerData.speed
-
+		
 		if map_id != "" and PlayerData.map_positions.has(map_id):
 			var saved_tile: Vector2i = PlayerData.map_positions[map_id]
 			print("PLAYER RESTORE tile=", saved_tile)
@@ -570,3 +580,24 @@ func request_map_change(next_scene: String) -> bool:
 
 	push_error("Unit: load_map_by_path を持つ親が見つかりません")
 	return false
+
+func notify_hud_log(text: String) -> void:
+	var node: Node = self
+
+	while node != null:
+		if node.has_method("add_hud_log"):
+			node.add_hud_log(text)
+			return
+		node = node.get_parent()
+
+
+
+
+func notify_hud_player_status_refresh() -> void:
+	var node: Node = self
+
+	while node != null:
+		if node.has_method("update_hud_player_status"):
+			node.update_hud_player_status()
+			return
+		node = node.get_parent()

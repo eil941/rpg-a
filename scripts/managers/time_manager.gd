@@ -16,7 +16,7 @@ func advance_time(units_node: Node, player_speed: float) -> void:
 	var elapsed_seconds = SECONDS_PER_DAY / player_speed
 	world_time_seconds += elapsed_seconds
 
-	print_current_time()
+	#print_current_time()
 
 	for unit in units_node.get_children():
 		if unit == null:
@@ -156,5 +156,5 @@ func get_time_string() -> String:
 	return "Day %d %02d:%02d" % [get_day(), get_hour(), get_minute()]
 
 
-func print_current_time() -> void:
-	print(get_time_string(), " / ", get_time_of_day())
+#func print_current_time() -> void:
+	#print(get_time_string(), " / ", get_time_of_day())

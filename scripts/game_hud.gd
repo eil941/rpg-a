@@ -18,7 +18,6 @@ extends Control
 @onready var log_title_label: Label = $CanvasLayer/LogArea/PanelContainer/VBoxContainer/LogTitleLabel
 @onready var log_label: Label = $CanvasLayer/LogArea/PanelContainer/VBoxContainer/LogLabel
 
-
 var current_day: int = 1
 var current_time_text: String = "08:30"
 var current_weather_text: String = "Sunny"
@@ -26,10 +25,10 @@ var current_weather_text: String = "Sunny"
 var player_name: String = "Player"
 var current_hp: int = 100
 var max_hp: int = 100
-var current_mp: int = 30
-var max_mp: int = 30
-var current_stamina: int = 50
-var max_stamina: int = 50
+var current_mp: int = 0
+var max_mp: int = 0
+var current_stamina: int = 0
+var max_stamina: int = 0
 
 var log_lines: Array[String] = []
 var max_log_lines: int = 4
@@ -37,9 +36,6 @@ var max_log_lines: int = 4
 
 func _ready() -> void:
 	initialize_hud()
-	add_log("ゲーム開始")
-	add_log("仮HUDを読み込みました")
-	add_log("草原に入りました")
 
 
 func initialize_hud() -> void:
