@@ -120,7 +120,7 @@ func spawn_enemy_random(
 		enemy.map_id = map_id
 		enemy.enemy_data_to_apply = enemy_data
 
-		ensure_inventory_node(enemy)
+		#ensure_inventory_node(enemy)
 		debug_unit_structure(enemy, "SPAWN RANDOM ENEMY AFTER")
 
 		units_node.add_child(enemy)
@@ -184,7 +184,7 @@ func spawn_saved_enemies(enemy_unit_scene: PackedScene, enemy_data_list: Array[E
 		enemy.map_id = map_id
 		enemy.enemy_data_to_apply = enemy_data
 
-		ensure_inventory_node(enemy)
+		#ensure_inventory_node(enemy)
 		debug_unit_structure(enemy, "SPAWN SAVED ENEMY AFTER")
 
 		units_node.add_child(enemy)
@@ -219,7 +219,7 @@ func spawn_npc_random(
 		npc.unit_id = unique_unit_id
 		npc.map_id = map_id
 
-		ensure_inventory_node(npc)
+		#ensure_inventory_node(npc)
 		debug_unit_structure(npc, "SPAWN RANDOM NPC AFTER")
 
 		units_node.add_child(npc)
@@ -277,7 +277,7 @@ func spawn_saved_npcs(npc_unit_scene: PackedScene, npc_data_list: Array[NpcData]
 		npc.unit_id = unit_id
 		npc.map_id = map_id
 
-		ensure_inventory_node(npc)
+		#ensure_inventory_node(npc)
 		debug_unit_structure(npc, "SPAWN SAVED NPC AFTER")
 
 		units_node.add_child(npc)

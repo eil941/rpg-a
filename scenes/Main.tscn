@@ -1,66 +1,25 @@
 [gd_scene format=4 uid="uid://ctfwovqmfkxb3"]
 
 [ext_resource type="Script" uid="uid://ca4ywj6xcxnbk" path="res://scripts/map_scene_scripts/main.gd" id="1_rarhs"]
-[ext_resource type="Texture2D" uid="uid://b0v3y154dsf23" path="res://assets/enemy.png" id="3_1iba3"]
+[ext_resource type="PackedScene" uid="uid://c0jrt3uvmhd2g" path="res://scenes/npc1.tscn" id="2_ft6cd"]
 [ext_resource type="Script" uid="uid://dnv8aysj2gsac" path="res://scripts/data/enemy_data.gd" id="3_3p2gp"]
 [ext_resource type="Resource" uid="uid://sq1on05oxw1q" path="res://data/slime_data.tres" id="4_cvmbd"]
-[ext_resource type="Script" uid="uid://b1xneybof8tc7" path="res://scripts/core/stats.gd" id="4_yxlcp"]
-[ext_resource type="Script" uid="uid://c0kxoaa0k4v65" path="res://scripts/core/enemy_controller.gd" id="5_ebg2g"]
 [ext_resource type="Resource" uid="uid://dws5qrsx22iah" path="res://data/orc_data.tres" id="5_ft6cd"]
 [ext_resource type="Resource" uid="uid://bx0ysoc4wt0rf" path="res://data/bat_data.tres" id="6_bb450"]
 [ext_resource type="Resource" uid="uid://sponxcnnn0fd" path="res://data/NPC/new_sabo.tres" id="10_ebg2g"]
-[ext_resource type="Texture2D" uid="uid://dpybn5gfi6y7t" path="res://assets/npc.png" id="10_xa025"]
 [ext_resource type="Resource" uid="uid://be6340dxmccnl" path="res://data/NPC/npc_1.tres" id="11_2ofn6"]
-[ext_resource type="Script" uid="uid://cmb2jilm6e01r" path="res://scripts/core/npc_controller.gd" id="11_36rkl"]
 [ext_resource type="PackedScene" uid="uid://cjntf4kbtxh73" path="res://scenes/unit.tscn" id="11_bjd11"]
 [ext_resource type="Script" uid="uid://bgt8humnn3jqj" path="res://scripts/data/npc_data.gd" id="12_ebg2g"]
-[ext_resource type="Script" uid="uid://nsxuuyuvfqyd" path="res://scripts/core/unit.gd" id="13_qmy6f"]
 [ext_resource type="TileSet" uid="uid://dbr5mtulmq0q2" path="res://data/test.tres" id="15_cvmbd"]
 [ext_resource type="TileSet" uid="uid://bc0aui1htbk1v" path="res://data/test_wall.tres" id="16_bb450"]
 [ext_resource type="TileSet" uid="uid://cpndipp741lyo" path="res://data/test_event.tres" id="16_ft6cd"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_ruro2"]
-size = Vector2(30, 30)
-
-[sub_resource type="PackedScene" id="PackedScene_xa025"]
-_bundled = {
-"conn_count": 0,
-"conns": PackedInt32Array(),
-"editable_instances": [],
-"id_paths": [],
-"names": PackedStringArray("Unit", "script", "is_enemy", "CharacterBody2D", "Sprite2D", "texture", "CollisionShape2D", "shape", "Stats", "Node", "Controller"),
-"node_count": 5,
-"node_ids": PackedInt32Array(40692456, 427796898, 180570032, 227265958, 498416143),
-"node_paths": [],
-"nodes": PackedInt32Array(-1, -1, 3, 0, -1, 2, 1, 0, 2, 1, 0, 0, 0, 4, 4, -1, 1, 5, 2, 0, 0, 0, 6, 6, -1, 1, 7, 3, 0, 0, 0, 9, 8, -1, 1, 1, 4, 0, 0, 0, 9, 10, -1, 1, 1, 5, 0),
-"variants": [ExtResource("13_qmy6f"), true, ExtResource("3_1iba3"), SubResource("RectangleShape2D_ruro2"), ExtResource("4_yxlcp"), ExtResource("5_ebg2g")],
-"version": 3
-}
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_fs0b5"]
-size = Vector2(30, 30)
-
-[sub_resource type="PackedScene" id="PackedScene_ma7h6"]
-_bundled = {
-"conn_count": 0,
-"conns": PackedInt32Array(),
-"editable_instances": [],
-"id_paths": [],
-"names": PackedStringArray("Unit", "script", "CharacterBody2D", "Sprite2D", "texture", "CollisionShape2D", "shape", "Stats", "Node", "Controller"),
-"node_count": 5,
-"node_ids": PackedInt32Array(40692456, 427796898, 180570032, 227265958, 498416143),
-"node_paths": [],
-"nodes": PackedInt32Array(-1, -1, 2, 0, -1, 1, 1, 0, 0, 0, 0, 3, 3, -1, 1, 4, 1, 0, 0, 0, 5, 5, -1, 1, 6, 2, 0, 0, 0, 8, 7, -1, 1, 1, 3, 0, 0, 0, 8, 9, -1, 1, 1, 4, 0),
-"variants": [ExtResource("13_qmy6f"), ExtResource("10_xa025"), SubResource("RectangleShape2D_fs0b5"), ExtResource("4_yxlcp"), ExtResource("11_36rkl")],
-"version": 3
-}
-
 [node name="Main" type="Node2D" unique_id=1202522057]
 script = ExtResource("1_rarhs")
-enemy_unit_scene = SubResource("PackedScene_xa025")
+enemy_unit_scene = ExtResource("2_ft6cd")
 enemy_spawn_count = 20
 enemy_data_list = Array[ExtResource("3_3p2gp")]([ExtResource("6_bb450"), ExtResource("5_ft6cd"), ExtResource("4_cvmbd")])
-npc_unit_scene = SubResource("PackedScene_ma7h6")
+npc_unit_scene = ExtResource("2_ft6cd")
 npc_spawn_count = 5
 npc_data_list = Array[ExtResource("12_ebg2g")]([ExtResource("10_ebg2g"), ExtResource("11_2ofn6")])
 

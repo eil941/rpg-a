@@ -152,4 +152,6 @@ func use_selected_item() -> void:
 	while node != null:
 		if node.has_method("update_hud_player_status"):
 			node.update_hud_player_status()
+			node.refresh_hud()
 		node = node.get_parent()
+	
