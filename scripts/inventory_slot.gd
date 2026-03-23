@@ -12,6 +12,11 @@ func set_slot_data(p_item_id: String, p_amount: int, texture: Texture2D = null) 
 	item_id = p_item_id
 	amount = p_amount
 
+	if item_id == "" or amount <= 0:
+		icon.texture = null
+		amount_label.text = ""
+		return
+
 	icon.texture = texture
 	amount_label.text = "x%d" % amount
 

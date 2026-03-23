@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://xr333628f40n" path="res://scripts/inventory_slot.gd" id="1_dxvxp"]
 
 [node name="InventorySlot" type="PanelContainer" unique_id=1298480888]
-custom_minimum_size = Vector2(64, 64)
+custom_minimum_size = Vector2(72, 72)
 offset_right = 40.0
 offset_bottom = 40.0
 script = ExtResource("1_dxvxp")
@@ -38,7 +38,8 @@ text = "×3"
 
 [node name="SelectFrame" type="ColorRect" parent="MarginContainer/Control" unique_id=53376465]
 visible = false
+custom_minimum_size = Vector2(64, 64)
 layout_mode = 0
 offset_right = 40.0
 offset_bottom = 40.0
-color = Color(1, 1, 0, 1)
+color = Color(1.825, 1.825, 0, 1)

@@ -10,6 +10,11 @@ func setup(owner_unit) -> void:
 
 
 func _physics_process(_delta: float) -> void:
+	
+	if Input.is_action_just_pressed("inventory"):
+		toggle_inventory_ui()
+		return
+	
 	if unit == null:
 		return
 
@@ -72,13 +77,13 @@ func notify_hud() -> void:
 
 
 func get_input_direction() -> Vector2:
-	if Input.is_action_pressed("ui_right"):
+	if Input.is_action_pressed("RIGHT"):
 		return Vector2.RIGHT
-	elif Input.is_action_pressed("ui_left"):
+	elif Input.is_action_pressed("LEFT"):
 		return Vector2.LEFT
-	elif Input.is_action_pressed("ui_down"):
+	elif Input.is_action_pressed("DOWN"):
 		return Vector2.DOWN
-	elif Input.is_action_pressed("ui_up"):
+	elif Input.is_action_pressed("UP"):
 		return Vector2.UP
 
 	return Vector2.ZERO

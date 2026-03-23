@@ -12,5 +12,3 @@ script = ExtResource("1_xqwh5")
 [node name="GameHUD" parent="." unique_id=275878376 instance=ExtResource("2_k43xj")]
 
 [node name="InventoryUI" parent="." unique_id=705904420 instance=ExtResource("3_k43xj")]
-offset_left = 1.0
-offset_right = 1.0

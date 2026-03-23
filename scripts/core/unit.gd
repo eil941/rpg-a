@@ -41,6 +41,11 @@ var units_node: Node = null
 
 
 func _ready() -> void:
+	print("UNIT READY name=", name)
+	print("UNIT scene_file_path=", scene_file_path)
+	print("UNIT has Inventory =", has_node("Inventory"))
+	print("UNIT children = ", get_children().map(func(c): return c.name))
+	
 	resolve_map_references()
 
 	if ground_layer == null:
@@ -86,10 +91,12 @@ func _ready() -> void:
 
 	TimeManager.is_resolving_turn = false
 	
-	if is_player_unit and inventory != null and inventory.get_all_items().is_empty():
-		inventory.add_item("potion", 3)
-		inventory.add_item("wood", 5)
-		inventory.add_item("apple", 2)
+	if is_player_unit and inventory != null:
+		if PlayerData.inventory_data.is_empty():
+			inventory.add_item("potion", 3)
+			inventory.add_item("wood", 5)
+			inventory.add_item("apple", 2)
+	
 
 
 
@@ -255,6 +262,7 @@ func try_move(dir: Vector2) -> bool:
 						field_tile
 					)
 
+
 				print("DETAIL MAP KEY =", detail_map_key)
 				print("DETAIL GENERATOR =", generator_type)
 
@@ -399,6 +407,8 @@ func save_persistent_stats() -> void:
 		PlayerData.defense = stats.defense
 		PlayerData.speed = stats.speed
 		
+		PlayerData.inventory_data = inventory.save_inventory_data()
+		
 		print("PLAYER SAVE map_id=", map_id)
 		print("PLAYER SAVE global_position=", global_position)
 		print("PLAYER SAVE local position=", position)
@@ -429,6 +439,9 @@ func load_persistent_stats() -> void:
 		stats.attack = PlayerData.attack
 		stats.defense = PlayerData.defense
 		stats.speed = PlayerData.speed
+		
+		if inventory != null:
+			inventory.load_inventory_data(PlayerData.inventory_data)
 		
 		if map_id != "" and PlayerData.map_positions.has(map_id):
 			var saved_tile: Vector2i = PlayerData.map_positions[map_id]

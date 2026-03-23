@@ -7,9 +7,11 @@
 layer = 10
 script = ExtResource("1_wqexf")
 slot_scene = ExtResource("2_ju2k0")
+slot_count = 30
 
 [node name="Root" type="Control" parent="." unique_id=1102426853]
 layout_mode = 3
+anchors_preset = 0
 offset_left = 234.0
 offset_top = 85.0
 offset_right = 234.0
@@ -22,7 +24,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 0)
 
 [node name="CenterContainer" type="CenterContainer" parent="Root/Overlay" unique_id=915858385]
 layout_mode = 1

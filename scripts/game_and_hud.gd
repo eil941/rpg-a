@@ -113,3 +113,8 @@ func toggle_inventory_ui() -> void:
 
 	print("OPEN INVENTORY", player.inventory.get_all_items())
 	inventory_ui.toggle_with_inventory(player.inventory)
+
+func is_inventory_open() -> bool:
+	if inventory_ui == null:
+		return false
+	return inventory_ui.visible

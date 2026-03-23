@@ -36,8 +36,7 @@ tile_set = ExtResource("17_xquak")
 
 [node name="Units" type="Node" parent="." unique_id=332583731]
 
-[node name="Unit" parent="Units" unique_id=40692456 instance=ExtResource("18_qomca")]
-position = Vector2(258, 122)
+[node name="Unit" parent="Units" unique_id=1796880675 instance=ExtResource("18_qomca")]
 start_tile = Vector2i(20, 2)
 can_trigger_scene_transition = true
 can_bump_attack = true
