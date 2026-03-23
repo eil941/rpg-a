@@ -93,7 +93,7 @@ func _ready() -> void:
 	
 	if is_player_unit and inventory != null:
 		if PlayerData.inventory_data.is_empty():
-			inventory.add_item("potion", 3)
+			inventory.add_item("potion", 6)
 			inventory.add_item("wood", 5)
 			inventory.add_item("apple", 2)
 	

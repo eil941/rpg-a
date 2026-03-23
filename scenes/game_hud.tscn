@@ -39,10 +39,12 @@ text = "Rainy"
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -210.0
-offset_right = 210.0
-offset_bottom = 16.0
+offset_left = -343.0
+offset_top = 9.000001
+offset_right = 77.0
+offset_bottom = 206.0
 grow_horizontal = 2
+scale = Vector2(1.5228995, 0.5700256)
 
 [node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/UnitStatusArea" unique_id=964795110]
 layout_mode = 2

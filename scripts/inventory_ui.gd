@@ -98,7 +98,8 @@ func refresh() -> void:
 			var entry = items[i]
 			var item_id := String(entry.get("item_id", ""))
 			var amount := int(entry.get("amount", 0))
-			slot.set_slot_data(item_id, amount, null)
+			var icon_texture = ItemDatabase.get_item_icon(item_id)
+			slot.set_slot_data(item_id, amount, icon_texture)
 		else:
 			slot.set_slot_data("", 0, null)
 
