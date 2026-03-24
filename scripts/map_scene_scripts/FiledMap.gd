@@ -1,59 +1,41 @@
 extends Node2D
 
-#@onready var ground_layer: TileMapLayer = get_tree().current_scene.get_node("GroundLayer")
-#@onready var wall_layer: TileMapLayer = get_tree().current_scene.get_node("WallLayer")
-#@onready var event_layer: TileMapLayer = get_tree().current_scene.get_node("EventLayer")
 @onready var player = $Units/Unit
-#@onready var hud = $GameHUD
 
 @onready var ground_layer: TileMapLayer = $GroundLayer
 @onready var wall_layer: TileMapLayer = $WallLayer
 @onready var event_layer: TileMapLayer = $EventLayer
 @onready var units_node: Node = $Units
 
-@export var MAP_WIDTH := 200
-@export var MAP_HEIGHT := 200
-#const MAP_WIDTH := 200
-#const MAP_HEIGHT := 200
+@export var MAP_WIDTH = 200
+@export var MAP_HEIGHT = 200
 @export var map_id: String = ""
 
-const FLOOR_SOURCE_ID := 1
-const WALL_SOURCE_ID := 0
-const HIGHROCK_SOURCE_ID := 5
+const FLOOR_SOURCE_ID = 1
+const WALL_SOURCE_ID = 0
+const HIGHROCK_SOURCE_ID = 5
 
-const FLOOR_ATLAS_COORDS := Vector2i(0, 0)
-const WALL_ATLAS_COORDS := Vector2i(0, 0)
-const HIGHROCK_ATLAS_COORDS := Vector2i(0, 0)
+const FLOOR_ATLAS_COORDS = Vector2i(0, 0)
+const WALL_ATLAS_COORDS = Vector2i(0, 0)
+const HIGHROCK_ATLAS_COORDS = Vector2i(0, 0)
+
+@export var dungeon_entrance_count = 300
 
 var map_generator: PlainMapGenerator
+var dungeon_entrance_generator: FieldDungeonEntranceGenerator
 
-
-
-
-func _ready() -> void:	
+func _ready() -> void:
 	print("FIELDMAP READY START")
 
 	if ground_layer == null or wall_layer == null or event_layer == null:
 		push_error("FiledMap: GroundLayer / WallLayer / EventLayer の取得に失敗")
 		return
 
-	print("FIELDMAP layers OK")
-	print("FIELDMAP units node =", units_node)
-	
-	print("=== FIELD MAP UNITS CHECK ===")
-	print("units child count =", $Units.get_child_count())
-
-	for child in $Units.get_children():
-		print(
-			"unit name=", child.name,
-			" is_player_unit=", child.get("is_player_unit"),
-			" map_id=", child.get("map_id"),
-			" pos=", child.global_position,
-			" controller=", child.get_node_or_null("Controller")
-		)
-	
 	player.map_id = map_id
-	
+
+	if not WorldState.field_dungeon_entrances.has(map_id):
+		WorldState.field_dungeon_entrances[map_id] = []
+
 	if WorldState.map_tile_data.has(map_id):
 		load_map_tiles()
 	else:
@@ -66,10 +48,20 @@ func _ready() -> void:
 			WALL_ATLAS_COORDS
 		)
 		map_generator.generate_map(ground_layer, wall_layer, event_layer)
+
+		dungeon_entrance_generator = FieldDungeonEntranceGenerator.new(MAP_WIDTH, MAP_HEIGHT)
+		var entrances = dungeon_entrance_generator.generate_map(
+			map_id,
+			ground_layer,
+			wall_layer,
+			event_layer,
+			dungeon_entrance_count
+		)
+
+		WorldState.field_dungeon_entrances[map_id] = entrances
 		save_map_tiles()
-	
+
 	print("FIELDMAP READY END")
-	
 
 func generate_map() -> void:
 	for y in range(MAP_HEIGHT):
@@ -79,23 +71,46 @@ func generate_map() -> void:
 			if x == 0 or y == 0 or x == MAP_WIDTH - 1 or y == MAP_HEIGHT - 1:
 				wall_layer.set_cell(cell, HIGHROCK_SOURCE_ID, HIGHROCK_ATLAS_COORDS, 0)
 
+func get_dungeon_id_at_cell(cell: Vector2i) -> String:
+	if not WorldState.field_dungeon_entrances.has(map_id):
+		return ""
+
+	for entrance in WorldState.field_dungeon_entrances[map_id]:
+		if entrance["x"] == cell.x and entrance["y"] == cell.y:
+			return entrance["dungeon_id"]
+
+	return ""
+
+func try_enter_dungeon_from_player_position() -> bool:
+	var current_cell = ground_layer.local_to_map(
+		ground_layer.to_local(player.global_position)
+	)
+
+	var dungeon_id = get_dungeon_id_at_cell(current_cell)
+	if dungeon_id == "":
+		return false
+
+	GlobalDungeon.current_dungeon_id = dungeon_id
+	GlobalDungeon.current_floor = 1
+	GlobalDungeon.return_field_map_id = map_id
+	GlobalDungeon.return_field_cell = current_cell
+	GlobalDungeon.pending_spawn_stair_type = "RETURN"
+
+	get_tree().change_scene_to_file("res://scenes/dungeon_main.tscn")
+	return true
+
+
 
 func save_all_units() -> void:
-	print("save_all_units called")
-
 	if not has_node("Units"):
-		print("Units node not found")
 		return
 
 	for unit in $Units.get_children():
-		print("child = ", unit.name)
-
 		if unit.has_method("save_persistent_stats"):
 			unit.save_persistent_stats()
 
 func save_layer_data(layer: TileMapLayer) -> Array:
 	var result: Array = []
-
 	var used_cells = layer.get_used_cells()
 
 	for cell in used_cells:

@@ -120,6 +120,11 @@ func _ready() -> void:
 			current_npc_data_list,
 			current_npc_spawn_count
 		)
+	
+	if player != null and player.has_method("reset_after_map_transition"):
+		player.reset_after_map_transition()
+
+
 
 func save_all_units() -> void:
 	print("save_all_units called")

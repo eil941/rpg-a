@@ -79,7 +79,6 @@ func _ready() -> void:
 	repeat_timer = 0.0
 	target_position = global_position
 
-
 	if is_player_unit:
 		print("READY map_id =", map_id)
 		print("READY has_next_tile =", GlobalPlayerSpawn.has_next_tile)
@@ -96,8 +95,6 @@ func _ready() -> void:
 			inventory.add_item("potion", 6)
 			inventory.add_item("wood", 5)
 			inventory.add_item("apple", 2)
-	
-
 
 
 func _physics_process(delta: float) -> void:
@@ -114,6 +111,12 @@ func _physics_process(delta: float) -> void:
 
 			if units_node != null:
 				TimeManager.notify_unit_move_finished(units_node)
+
+			if is_player_unit:
+				if try_auto_use_dungeon_stairs_on_touch():
+					return
+			return 
+
 		return
 
 	if repeat_timer > 0.0:
@@ -157,73 +160,58 @@ func get_occupied_tile_coords() -> Vector2i:
 
 
 func try_move(dir: Vector2) -> bool:
-
 	var next_pos = global_position + dir * tile_size
 	var next_tile = ground_layer.local_to_map(ground_layer.to_local(next_pos))
-
-	#print("TRY MOVE next_pos=", next_pos)
-	#print("TRY MOVE next_tile=", next_tile)
-	#print("TRY MOVE current_tile=", get_current_tile_coords())
-	#print("TRY MOVE units_node=", units_node)
 
 	var next_tile_data = get_tile_data_at_coords(next_tile)
 	if next_tile_data != null:
 		var next_scene_transfer = next_tile_data.get_custom_data("scene_transfer")
 		if not can_trigger_scene_transition and next_scene_transfer == true:
-			#print("TRY MOVE blocked: non-player cannot enter scene_transfer tile")
 			return false
 
 	var target_unit = targeting.get_unit_on_tile(units_node, next_tile, self)
-	#print("TRY MOVE target_unit=", target_unit)
 
 	if target_unit != null:
-		#print("TRY MOVE blocked by target_unit")
 		if combat_manager.try_bump_attack(self, target_unit):
-			#print("TRY MOVE bump attack success")
 			return true
-		#print("TRY MOVE bump attack failed")
 		return false
 
 	var space_state = get_world_2d().direct_space_state
 
-	var query := PhysicsShapeQueryParameters2D.new()
+	var query = PhysicsShapeQueryParameters2D.new()
 	query.shape = $CollisionShape2D.shape
 	query.transform = Transform2D(0, next_pos)
 	query.collide_with_areas = false
 	query.collide_with_bodies = true
 
 	var result = space_state.intersect_shape(query)
-	#print("TRY MOVE collision_result_empty=", result.is_empty())
 	if not result.is_empty():
 		print("TRY MOVE collision_result=", result)
 
 	if result.is_empty():
-		#print("TRY MOVE no collision")
-
 		if instant_move:
 			global_position = next_pos
 			target_position = next_pos
 			is_moving = false
-			#print("TRY MOVE instant move applied")
 
 			if units_node != null:
 				TimeManager.notify_unit_move_finished(units_node)
+
+			# 触れた瞬間に階段移動
+			if is_player_unit:
+				if try_auto_use_dungeon_stairs_on_touch():
+					return true
 		else:
 			target_position = next_pos
 			is_moving = true
-			#print("TRY MOVE smooth move started")
 
 		return true
 
 	var tile_data = get_tile_data_at_coords(next_tile)
 	if tile_data == null:
-		#print("TRY MOVE tile_data is null")
 		return false
 
-	#print("TRY MOVE tile_data exists")
-
 	var scene_transfer = tile_data.get_custom_data("scene_transfer")
-	#print("TRY MOVE scene_transfer=", scene_transfer)
 
 	if can_trigger_scene_transition and scene_transfer != null and scene_transfer == true:
 		var next_scene = String(tile_data.get_custom_data("enter_scene"))
@@ -231,21 +219,55 @@ func try_move(dir: Vector2) -> bool:
 		var spawn_x_data = tile_data.get_custom_data("spawn_x")
 		var spawn_y_data = tile_data.get_custom_data("spawn_y")
 
-		if spawn_x_data == null or spawn_y_data == null:
-			#push_error("spawn_x or spawn_y is missing on event tile")
-			return false
-
-		var spawn_x = int(spawn_x_data)
-		var spawn_y = int(spawn_y_data)
-
-		var field_tile := get_current_tile_coords()
-		var detail_map_key := "field_%d_%d" % [field_tile.x, field_tile.y]
-
-		var generator_type = tile_data.get_custom_data("detail_generator")
-		if generator_type == null:
-			generator_type = "plain"
+		var current_tile = get_current_tile_coords()
 
 		if next_scene != "":
+			# ダンジョン遷移は先に専用処理
+			if next_scene == "res://scenes/dungeon_main.tscn":
+				var dungeon_id = ""
+
+				if map_root != null and map_root.has_method("get_dungeon_id_at_cell"):
+					dungeon_id = map_root.get_dungeon_id_at_cell(next_tile)
+
+				print("DUNGEON TRANSFER next_tile = ", next_tile)
+				print("DUNGEON TRANSFER dungeon_id = ", dungeon_id)
+
+				if dungeon_id == "":
+					push_error("Dungeon transfer failed: dungeon_id is empty")
+					return false
+
+				GlobalDungeon.current_dungeon_id = dungeon_id
+				GlobalDungeon.current_floor = 1
+				GlobalDungeon.return_field_map_id = map_id
+				GlobalDungeon.return_field_cell = next_tile
+
+				if is_player_unit:
+					PlayerData.last_map_id = map_id
+					PlayerData.last_tile = current_tile
+
+				if map_root != null and map_root.has_method("save_all_units"):
+					map_root.save_all_units()
+
+				is_transitioning = true
+				GlobalPlayerSpawn.has_next_tile = false
+				notify_hud_log(next_scene + "へ移動")
+				request_map_change(next_scene)
+				return true
+
+			# それ以外は従来の詳細マップ遷移
+			if spawn_x_data == null or spawn_y_data == null:
+				return false
+
+			var spawn_x = int(spawn_x_data)
+			var spawn_y = int(spawn_y_data)
+
+			var field_tile = current_tile
+			var detail_map_key = "field_%d_%d" % [field_tile.x, field_tile.y]
+
+			var generator_type = tile_data.get_custom_data("detail_generator")
+			if generator_type == null:
+				generator_type = "plain"
+
 			var return_to_field_map: bool = next_scene == "res://scenes/field_map.tscn"
 
 			if return_to_field_map:
@@ -262,35 +284,35 @@ func try_move(dir: Vector2) -> bool:
 						field_tile
 					)
 
-
 				print("DETAIL MAP KEY =", detail_map_key)
 				print("DETAIL GENERATOR =", generator_type)
 
 			if is_player_unit:
 				PlayerData.last_map_id = map_id
-				PlayerData.last_tile = get_current_tile_coords()
+				PlayerData.last_tile = current_tile
 
 			if map_root != null and map_root.has_method("save_all_units"):
 				map_root.save_all_units()
 
-			#print("SCENE TRANSFER next_scene=", next_scene)
-			#print("SCENE TRANSFER spawn_x=", spawn_x, " spawn_y=", spawn_y)
-			#print("SCENE TRANSFER set next_tile=", Vector2i(spawn_x, spawn_y))
-
 			is_transitioning = true
 			GlobalPlayerSpawn.has_next_tile = true
 			GlobalPlayerSpawn.next_tile = Vector2i(spawn_x, spawn_y)
-			notify_hud_log(next_scene+"へ移動")
+			notify_hud_log(next_scene + "へ移動")
 			request_map_change(next_scene)
 			return true
 
-	#print("TRY MOVE failed: collision exists and no valid scene transfer")
 	return false
-
 
 func try_interact_transition() -> void:
 	if not can_trigger_scene_transition:
 		return
+
+	# 先にダンジョン階段処理を試す
+	# ここで処理できたら、その後の TileData 読み取りには進まない
+	if map_root != null and map_root.has_method("try_use_dungeon_stairs_from_player_position"):
+		if map_root.try_use_dungeon_stairs_from_player_position():
+			print("STAIRS TRANSITION HANDLED")
+			return
 
 	var tile_data = get_current_tile_data()
 	if tile_data == null:
@@ -304,6 +326,41 @@ func try_interact_transition() -> void:
 	if next_scene == "":
 		return
 
+	var current_tile = get_current_tile_coords()
+
+	# ダンジョン遷移は先に専用処理
+	if next_scene == "res://scenes/dungeon_main.tscn":
+		var dungeon_id = ""
+
+		if map_root != null and map_root.has_method("get_dungeon_id_at_cell"):
+			dungeon_id = map_root.get_dungeon_id_at_cell(current_tile)
+
+		print("INTERACT DUNGEON TRANSFER current_tile = ", current_tile)
+		print("INTERACT DUNGEON TRANSFER dungeon_id = ", dungeon_id)
+
+		if dungeon_id == "":
+			push_error("Dungeon interact transfer failed: dungeon_id is empty")
+			return
+
+		GlobalDungeon.current_dungeon_id = dungeon_id
+		GlobalDungeon.current_floor = 1
+		GlobalDungeon.return_field_map_id = map_id
+		GlobalDungeon.return_field_cell = current_tile
+		GlobalDungeon.pending_spawn_stair_type = "RETURN"
+
+		if is_player_unit:
+			PlayerData.last_map_id = map_id
+			PlayerData.last_tile = current_tile
+
+		if map_root != null and map_root.has_method("save_all_units"):
+			map_root.save_all_units()
+
+		is_transitioning = true
+		GlobalPlayerSpawn.has_next_tile = false
+		notify_hud_log(next_scene + "へ移動")
+		request_map_change(next_scene)
+		return
+
 	var spawn_x_data = tile_data.get_custom_data("spawn_x")
 	var spawn_y_data = tile_data.get_custom_data("spawn_y")
 
@@ -314,8 +371,8 @@ func try_interact_transition() -> void:
 	var spawn_x = int(spawn_x_data)
 	var spawn_y = int(spawn_y_data)
 
-	var field_tile := get_current_tile_coords()
-	var detail_map_key := "field_%d_%d" % [field_tile.x, field_tile.y]
+	var field_tile = current_tile
+	var detail_map_key = "field_%d_%d" % [field_tile.x, field_tile.y]
 
 	var generator_type = tile_data.get_custom_data("detail_generator")
 	if generator_type == null:
@@ -342,7 +399,7 @@ func try_interact_transition() -> void:
 
 	if is_player_unit:
 		PlayerData.last_map_id = map_id
-		PlayerData.last_tile = get_current_tile_coords()
+		PlayerData.last_tile = current_tile
 
 	if map_root != null and map_root.has_method("save_all_units"):
 		map_root.save_all_units()
@@ -354,10 +411,9 @@ func try_interact_transition() -> void:
 	is_transitioning = true
 	GlobalPlayerSpawn.has_next_tile = true
 	GlobalPlayerSpawn.next_tile = Vector2i(spawn_x, spawn_y)
-	
-	notify_hud_log(next_scene+"へ移動")
-	request_map_change(next_scene)
 
+	notify_hud_log(next_scene + "へ移動")
+	request_map_change(next_scene)
 
 func wait_action() -> void:
 	is_moving = false
@@ -515,7 +571,7 @@ func create_detail_map_config(generator_type: String, field_tile: Vector2i) -> D
 
 	print("CONFIG generator_type normalized = ", generator_type)
 
-	var config := {
+	var config = {
 		"generator_type": String(generator_type),
 		"field_x": field_tile.x,
 		"field_y": field_tile.y,
@@ -594,6 +650,7 @@ func request_map_change(next_scene: String) -> bool:
 	push_error("Unit: load_map_by_path を持つ親が見つかりません")
 	return false
 
+
 func notify_hud_log(text: String) -> void:
 	var node: Node = self
 
@@ -604,8 +661,6 @@ func notify_hud_log(text: String) -> void:
 		node = node.get_parent()
 
 
-
-
 func notify_hud_player_status_refresh() -> void:
 	var node: Node = self
 
@@ -614,3 +669,28 @@ func notify_hud_player_status_refresh() -> void:
 			node.update_hud_player_status()
 			return
 		node = node.get_parent()
+
+func try_auto_use_dungeon_stairs_on_touch() -> bool:
+	if map_root == null:
+		return false
+
+	if not map_root.has_method("try_use_dungeon_stairs_from_player_position"):
+		return false
+
+	return map_root.try_use_dungeon_stairs_from_player_position()
+
+
+func reset_after_map_transition() -> void:
+	is_transitioning = false
+	is_moving = false
+	repeat_timer = 0.0
+	velocity = Vector2.ZERO
+	target_position = global_position
+
+	if has_node("Controller"):
+		var c = $Controller
+		if c != null and c.has_method("reset_input_state"):
+			c.reset_input_state()
+
+	TimeManager.is_resolving_turn = false
+	
