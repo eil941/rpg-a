@@ -168,7 +168,7 @@ func generate_random_chest_inventory(is_final_floor: bool) -> Array:
 		item_count = rng.randi_range(1, 3)
 
 	for i in range(item_count):
-		var item_entry = choose_random_item_entry()
+		var item_entry = choose_random_chest_item_entry()
 		result.append({
 			"item_id": item_entry["item_id"],
 			"amount": item_entry["amount"]
@@ -186,6 +186,16 @@ func choose_random_item_entry() -> Dictionary:
 		return {"item_id": "apple", "amount": rng.randi_range(1, 1)}
 	else:
 		return {"item_id": "wood", "amount": rng.randi_range(1, 1)}
+
+func choose_random_chest_item_entry() -> Dictionary:
+	var roll := rng.randi_range(0, 100)
+
+	if roll < 40:
+		return {"item_id": "potion", "amount": rng.randi_range(1, 3)}
+	elif roll < 75:
+		return {"item_id": "apple", "amount": rng.randi_range(1, 2)}
+	else:
+		return {"item_id": "wood", "amount": rng.randi_range(1, 5)}
 
 
 func get_available_tiles() -> Array[Vector2i]:

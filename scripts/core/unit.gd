@@ -42,14 +42,13 @@ var units_node: Node = null
 
 func _ready() -> void:
 	print("UNIT READY name=", name)
-	print("UNIT scene_file_path=", scene_file_path)
 	print("UNIT has Inventory =", has_node("Inventory"))
 	print("UNIT children = ", get_children().map(func(c): return c.name))
-	
+
 	resolve_map_references()
 
-	if ground_layer == null:
-		push_error("Unit: ground_layer の取得に失敗")
+	if ground_layer == null or wall_layer == null or event_layer == null:
+		push_error("Unit: GroundLayer / WallLayer / EventLayer の取得に失敗")
 		return
 
 	sync_map_id_from_scene()
@@ -89,12 +88,12 @@ func _ready() -> void:
 		print("READY controller =", controller)
 
 	TimeManager.is_resolving_turn = false
-	
-	if is_player_unit and inventory != null:
-		if PlayerData.inventory_data.is_empty():
-			inventory.add_item("potion", 6)
-			inventory.add_item("wood", 5)
-			inventory.add_item("apple", 2)
+
+	#if is_player_unit and inventory != null:
+	#	if PlayerData.inventory_data.is_empty():
+	#		inventory.add_item("potion", 6)
+	#		inventory.add_item("wood", 5)
+	#		inventory.add_item("apple", 2)
 
 
 func _physics_process(delta: float) -> void:
@@ -108,7 +107,7 @@ func _physics_process(delta: float) -> void:
 			global_position = target_position
 			is_moving = false
 			repeat_timer = repeat_delay
-			
+
 			if is_player_unit:
 				try_pickup_items_on_current_tile()
 
@@ -181,7 +180,7 @@ func try_move(dir: Vector2) -> bool:
 
 	var space_state = get_world_2d().direct_space_state
 
-	var query = PhysicsShapeQueryParameters2D.new()
+	var query := PhysicsShapeQueryParameters2D.new()
 	query.shape = $CollisionShape2D.shape
 	query.transform = Transform2D(0, next_pos)
 	query.collide_with_areas = false
@@ -196,10 +195,10 @@ func try_move(dir: Vector2) -> bool:
 			global_position = next_pos
 			target_position = next_pos
 			is_moving = false
-			
+
 			if is_player_unit:
 				try_pickup_items_on_current_tile()
-			
+
 			if units_node != null:
 				TimeManager.notify_unit_move_finished(units_node)
 
@@ -435,6 +434,7 @@ func get_stats_data() -> Dictionary:
 		"speed": stats.speed,
 		"tile_x": get_current_tile_coords().x,
 		"tile_y": get_current_tile_coords().y,
+		"inventory": inventory.save_inventory_data() if inventory != null else []
 	}
 
 
@@ -453,6 +453,8 @@ func apply_stats_data(data: Dictionary) -> void:
 		var saved_tile = Vector2i(data["tile_x"], data["tile_y"])
 		global_position = ground_layer.to_global(ground_layer.map_to_local(saved_tile))
 		target_position = global_position
+	if data.has("inventory") and inventory != null:
+		inventory.load_inventory_data(data["inventory"])
 
 
 func save_persistent_stats() -> void:
@@ -464,9 +466,10 @@ func save_persistent_stats() -> void:
 		PlayerData.attack = stats.attack
 		PlayerData.defense = stats.defense
 		PlayerData.speed = stats.speed
-		
-		PlayerData.inventory_data = inventory.save_inventory_data()
-		
+
+		if inventory != null:
+			PlayerData.inventory_data = inventory.save_inventory_data()
+
 		print("PLAYER SAVE map_id=", map_id)
 		print("PLAYER SAVE global_position=", global_position)
 		print("PLAYER SAVE local position=", position)
@@ -497,10 +500,10 @@ func load_persistent_stats() -> void:
 		stats.attack = PlayerData.attack
 		stats.defense = PlayerData.defense
 		stats.speed = PlayerData.speed
-		
+
 		if inventory != null:
 			inventory.load_inventory_data(PlayerData.inventory_data)
-		
+
 		if map_id != "" and PlayerData.map_positions.has(map_id):
 			var saved_tile: Vector2i = PlayerData.map_positions[map_id]
 			print("PLAYER RESTORE tile=", saved_tile)
@@ -701,6 +704,7 @@ func reset_after_map_transition() -> void:
 
 	TimeManager.is_resolving_turn = false
 
+
 func try_pickup_items_on_current_tile() -> bool:
 	if not is_player_unit:
 		return false
@@ -740,6 +744,7 @@ func try_pickup_items_on_current_tile() -> bool:
 
 	return false
 
+
 func notify_inventory_refresh() -> void:
 	var node: Node = self
 
@@ -748,7 +753,8 @@ func notify_inventory_refresh() -> void:
 			node.refresh_inventory_ui()
 			return
 		node = node.get_parent()
-		
+
+
 func try_interact_action() -> void:
 	if try_pickup_items_on_current_tile():
 		return

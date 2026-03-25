@@ -237,11 +237,13 @@ func try_use_dungeon_stairs_from_player_position() -> bool:
 		print("RETURN STAIRS USED")
 
 		if GlobalDungeon.current_floor <= 1:
+			save_all_units()
 			GlobalPlayerSpawn.has_next_tile = true
 			GlobalPlayerSpawn.next_tile = GlobalDungeon.return_field_cell
 			request_map_change("res://scenes/field_map.tscn")
 			return true
 		else:
+			save_all_units()
 			GlobalDungeon.current_floor -= 1
 			GlobalDungeon.pending_spawn_stair_type = "NEXT"
 			request_map_change("res://scenes/dungeon_main.tscn")
@@ -250,6 +252,7 @@ func try_use_dungeon_stairs_from_player_position() -> bool:
 	if event_source_id == 6:
 		print("NEXT STAIRS USED")
 
+		save_all_units()
 		GlobalDungeon.current_floor += 1
 		GlobalDungeon.pending_spawn_stair_type = "RETURN"
 		request_map_change("res://scenes/dungeon_main.tscn")
