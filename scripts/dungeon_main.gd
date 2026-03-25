@@ -6,6 +6,8 @@ extends Node2D
 @onready var wall_layer: TileMapLayer = get_node_or_null("WallLayer")
 @onready var event_layer: TileMapLayer = get_node_or_null("EventLayer")
 @onready var units_node: Node = get_node_or_null("Units")
+@onready var item_pickups_node: Node = get_node_or_null("ItemPickups")
+@onready var chests_node: Node = get_node_or_null("Chests")
 
 @export var enemy_unit_scene: PackedScene
 @export var enemy_spawn_count: int = 5
@@ -14,6 +16,9 @@ extends Node2D
 @export var npc_unit_scene: PackedScene
 @export var npc_spawn_count: int = 0
 @export var npc_data_list: Array[NpcData]
+
+@export var item_pickup_scene: PackedScene
+@export var chest_scene: PackedScene
 
 @export var map_id: String = ""
 
@@ -29,6 +34,7 @@ const EVENT_NEXT_STAIRS_SOURCE_ID = 6
 
 var spawn_manager: UnitSpawnManager
 var map_generator: BaseDungeonGenerator
+var item_world_manager: ItemWorldManager
 
 
 func _ready() -> void:
@@ -54,7 +60,6 @@ func _ready() -> void:
 	var dungeon_info = WorldState.dungeon_data[GlobalDungeon.current_dungeon_id]
 	var difficulty = int(dungeon_info.get("difficulty", 50))
 	var effective_difficulty = clampi(difficulty + (GlobalDungeon.current_floor - 1), 1, 100)
-
 
 	notify_hud_log(
 		"第" + str(GlobalDungeon.current_floor) +
@@ -117,6 +122,20 @@ func _ready() -> void:
 				current_npc_spawn_count
 			)
 
+	item_world_manager = ItemWorldManager.new(
+		self,
+		ground_layer,
+		wall_layer,
+		units_node,
+		item_pickups_node,
+		chests_node,
+		map_id,
+		item_pickup_scene,
+		chest_scene
+	)
+
+	item_world_manager.setup_dungeon_floor_random_spawn_with_save(is_bottom_floor)
+
 	place_player_on_pending_stair()
 
 
@@ -155,7 +174,7 @@ func _ensure_floor_data_exists(floor_map_id: String) -> void:
 
 
 func choose_random_dungeon_generator_type() -> String:
-	var types = ["ROOM", "CAVE", "RUINS", "CROSS", "ARENA", "LINEAR", "RINGS"]
+	var types = ["ROOM", "CAVE", "RUINS", "CROSS", "ARENA", "LINEAR", "RINGS"] #,MAZE]
 	return types[randi_range(0, types.size() - 1)]
 
 
@@ -260,6 +279,9 @@ func save_all_units() -> void:
 		if unit.has_method("save_persistent_stats"):
 			unit.save_persistent_stats()
 
+	if item_world_manager != null:
+		item_world_manager.save_current_state()
+
 
 func save_layer_data(layer: TileMapLayer) -> Array:
 	var result: Array = []
@@ -360,7 +382,7 @@ func notify_hud_log(text: String) -> void:
 func choose_enemy_config_for_floor(floor: int, difficulty: int) -> Dictionary:
 	var depth_bonus = max(0, floor - 1)
 	var effective_difficulty = clampi(difficulty + (floor - 1), 1, 100)
-	
+
 	if effective_difficulty <= 20:
 		return {
 			"enemy_spawn_count": 10 + depth_bonus,

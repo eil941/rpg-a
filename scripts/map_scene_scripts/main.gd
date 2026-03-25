@@ -1,14 +1,13 @@
 extends Node2D
 
-#@onready var ground_layer: TileMapLayer = get_tree().current_scene.get_node("GroundLayer")
-#@onready var wall_layer: TileMapLayer = get_tree().current_scene.get_node("WallLayer")
-#@onready var event_layer: TileMapLayer = get_tree().current_scene.get_node("EventLayer")
 @onready var player = $Units/Unit
 
 @onready var ground_layer: TileMapLayer = get_node_or_null("GroundLayer")
 @onready var wall_layer: TileMapLayer = get_node_or_null("WallLayer")
 @onready var event_layer: TileMapLayer = get_node_or_null("EventLayer")
 @onready var units_node: Node = get_node_or_null("Units")
+@onready var item_pickups_node: Node = get_node_or_null("ItemPickups")
+@onready var chests_node: Node = get_node_or_null("Chests")
 
 @export var enemy_unit_scene: PackedScene
 @export var enemy_spawn_count: int = 5
@@ -17,6 +16,9 @@ extends Node2D
 @export var npc_unit_scene: PackedScene
 @export var npc_spawn_count: int = 3
 @export var npc_data_list: Array[NpcData]
+
+@export var item_pickup_scene: PackedScene
+@export var chest_scene: PackedScene
 
 @export var map_id: String = ""
 
@@ -31,12 +33,14 @@ const WALL_ATLAS_COORDS := Vector2i(0, 0)
 
 var spawn_manager: UnitSpawnManager
 var map_generator: BaseMapGenerator
+var item_world_manager: ItemWorldManager
+
 
 func _ready() -> void:
 	if ground_layer == null or wall_layer == null or event_layer == null:
 		push_error("Main: GroundLayer / WallLayer / EventLayer の取得に失敗")
 		return
-	
+
 	if GlobalDetailMap.current_detail_map_key != "":
 		map_id = GlobalDetailMap.current_detail_map_key
 
@@ -53,10 +57,8 @@ func _ready() -> void:
 	map_generator = create_map_generator(generator_type)
 
 	if WorldState.map_tile_data.has(map_id):
-		#print("LOAD MAP TILES map_id=", map_id)
 		load_map_tiles()
 	else:
-		#print("GENERATE MAP map_id=", map_id, " generator_type=", generator_type)
 		map_generator.generate_map(ground_layer, wall_layer, event_layer)
 		save_map_tiles()
 
@@ -74,10 +76,6 @@ func _ready() -> void:
 
 		var enemy_type_ids = detail_config.get("enemy_type_ids", [])
 		var npc_type_ids = detail_config.get("npc_type_ids", [])
-
-		#print("detail_config = ", detail_config)
-		#print("enemy_type_ids = ", enemy_type_ids)
-		#print("npc_type_ids = ", npc_type_ids)
 
 		if enemy_type_ids.size() > 0:
 			current_enemy_data_list = filter_enemy_data_by_ids(enemy_type_ids)
@@ -120,10 +118,23 @@ func _ready() -> void:
 			current_npc_data_list,
 			current_npc_spawn_count
 		)
-	
+
+	item_world_manager = ItemWorldManager.new(
+		self,
+		ground_layer,
+		wall_layer,
+		units_node,
+		item_pickups_node,
+		chests_node,
+		map_id,
+		item_pickup_scene,
+		chest_scene
+	)
+
+	item_world_manager.setup_detail_map_random_spawn_with_save()
+
 	if player != null and player.has_method("reset_after_map_transition"):
 		player.reset_after_map_transition()
-
 
 
 func save_all_units() -> void:
@@ -138,6 +149,10 @@ func save_all_units() -> void:
 
 		if unit.has_method("save_persistent_stats"):
 			unit.save_persistent_stats()
+
+	if item_world_manager != null:
+		item_world_manager.save_current_state()
+
 
 func save_layer_data(layer: TileMapLayer) -> Array:
 	var result: Array = []
@@ -163,6 +178,7 @@ func save_layer_data(layer: TileMapLayer) -> Array:
 
 	return result
 
+
 func load_layer_data(layer: TileMapLayer, data: Array) -> void:
 	layer.clear()
 
@@ -174,12 +190,14 @@ func load_layer_data(layer: TileMapLayer, data: Array) -> void:
 
 		layer.set_cell(cell, source_id, atlas_coords, alternative)
 
+
 func save_map_tiles() -> void:
 	WorldState.map_tile_data[map_id] = {
 		"ground": save_layer_data(ground_layer),
 		"wall": save_layer_data(wall_layer),
 		"event": save_layer_data(event_layer)
 	}
+
 
 func load_map_tiles() -> void:
 	if not WorldState.map_tile_data.has(map_id):
@@ -190,6 +208,7 @@ func load_map_tiles() -> void:
 	load_layer_data(ground_layer, data.get("ground", []))
 	load_layer_data(wall_layer, data.get("wall", []))
 	load_layer_data(event_layer, data.get("event", []))
+
 
 func filter_enemy_data_by_ids(type_ids: Array) -> Array[EnemyData]:
 	var result: Array[EnemyData] = []
@@ -202,6 +221,7 @@ func filter_enemy_data_by_ids(type_ids: Array) -> Array[EnemyData]:
 
 	return result
 
+
 func filter_npc_data_by_ids(type_ids: Array) -> Array[NpcData]:
 	var result: Array[NpcData] = []
 
@@ -212,6 +232,7 @@ func filter_npc_data_by_ids(type_ids: Array) -> Array[NpcData]:
 			result.append(data)
 
 	return result
+
 
 func create_map_generator(generator_type: String) -> BaseMapGenerator:
 	generator_type = generator_type.strip_edges().replace("\"", "").to_upper()

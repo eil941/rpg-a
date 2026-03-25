@@ -68,7 +68,8 @@ func _ready() -> void:
 		chest_scene
 	)
 	
-	item_world_manager.setup_test_item_and_chest_with_save()
+	item_world_manager.setup_detail_map_random_spawn_with_save()
+	#item_world_manager.setup_test_item_and_chest_with_save()
 	#item_world_manager.spawn_fixed_test_item_and_chest()
 
 

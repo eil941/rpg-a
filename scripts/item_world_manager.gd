@@ -12,6 +12,8 @@ var map_id: String
 var item_pickup_scene: PackedScene
 var chest_scene: PackedScene
 
+var rng := RandomNumberGenerator.new()
+
 
 func _init(
 	p_map_root: Node,
@@ -34,44 +36,184 @@ func _init(
 	item_pickup_scene = p_item_pickup_scene
 	chest_scene = p_chest_scene
 
+	rng.randomize()
 
-func setup_test_item_and_chest_with_save() -> void:
+
+func setup_detail_map_random_spawn_with_save() -> void:
 	if not WorldState.map_item_pickups.has(map_id):
-		WorldState.map_item_pickups[map_id] = [
-			{
-				"item_id": "potion",
-				"amount": 1,
-				"x": 12,
-				"y": 12
-			}
-		]
+		WorldState.map_item_pickups[map_id] = generate_detail_map_item_data()
 
 	if not WorldState.map_chests.has(map_id):
-		WorldState.map_chests[map_id] = [
-			{
-				"chest_id": "start_chest_01",
-				"x": 13,
-				"y": 13,
-				"is_opened": false,
-				"inventory": [
-					{"item_id": "wood", "amount": 5},
-					{"item_id": "apple", "amount": 2}
-				]
-			}
-		]
+		WorldState.map_chests[map_id] = generate_detail_map_chest_data()
 
 	load_item_pickups_from_world_state()
 	load_chests_from_world_state()
 
 
-func clear_spawned_objects() -> void:
-	if item_pickups_node != null:
-		for child in item_pickups_node.get_children():
-			child.queue_free()
+func setup_dungeon_floor_random_spawn_with_save(is_final_floor: bool) -> void:
+	if not WorldState.map_item_pickups.has(map_id):
+		WorldState.map_item_pickups[map_id] = generate_dungeon_floor_item_data()
 
-	if chests_node != null:
-		for child in chests_node.get_children():
-			child.queue_free()
+	if not WorldState.map_chests.has(map_id):
+		WorldState.map_chests[map_id] = generate_dungeon_floor_chest_data(is_final_floor)
+
+	load_item_pickups_from_world_state()
+	load_chests_from_world_state()
+
+
+func generate_detail_map_item_data() -> Array:
+	var result: Array = []
+	var count := rng.randi_range(0, 5)
+
+	var tiles := get_available_tiles()
+	tiles.shuffle()
+
+	for i in range(min(count, tiles.size())):
+		var tile: Vector2i = tiles[i]
+		var item_entry = choose_random_item_entry()
+
+		result.append({
+			"item_id": item_entry["item_id"],
+			"amount": item_entry["amount"],
+			"x": tile.x,
+			"y": tile.y
+		})
+
+	return result
+
+
+func generate_detail_map_chest_data() -> Array:
+	var result: Array = []
+	var chest_count := rng.randi_range(0, 1)
+
+	if chest_count <= 0:
+		return result
+
+	var tiles := get_available_tiles()
+	tiles.shuffle()
+
+	if tiles.is_empty():
+		return result
+
+	var chest_tile: Vector2i = tiles[0]
+
+	result.append({
+		"chest_id": "%s_chest_0" % map_id,
+		"x": chest_tile.x,
+		"y": chest_tile.y,
+		"is_opened": false,
+		"inventory": generate_random_chest_inventory(false)
+	})
+
+	return result
+
+
+func generate_dungeon_floor_item_data() -> Array:
+	var result: Array = []
+	var count := rng.randi_range(5, 15)
+
+	var tiles := get_available_tiles()
+	tiles.shuffle()
+
+	for i in range(min(count, tiles.size())):
+		var tile: Vector2i = tiles[i]
+		var item_entry = choose_random_item_entry()
+
+		result.append({
+			"item_id": item_entry["item_id"],
+			"amount": item_entry["amount"],
+			"x": tile.x,
+			"y": tile.y
+		})
+
+	return result
+
+
+func generate_dungeon_floor_chest_data(is_final_floor: bool) -> Array:
+	var result: Array = []
+
+	var chest_count := 0
+	if is_final_floor:
+		chest_count = 1
+	else:
+		chest_count = rng.randi_range(0, 1)
+
+	if chest_count <= 0:
+		return result
+
+	var tiles := get_available_tiles()
+	tiles.shuffle()
+
+	for i in range(min(chest_count, tiles.size())):
+		var chest_tile: Vector2i = tiles[i]
+
+		result.append({
+			"chest_id": "%s_chest_%d" % [map_id, i],
+			"x": chest_tile.x,
+			"y": chest_tile.y,
+			"is_opened": false,
+			"inventory": generate_random_chest_inventory(is_final_floor)
+		})
+
+	return result
+
+
+func generate_random_chest_inventory(is_final_floor: bool) -> Array:
+	var result: Array = []
+
+	var item_count := 0
+	if is_final_floor:
+		item_count = rng.randi_range(2, 4)
+	else:
+		item_count = rng.randi_range(1, 3)
+
+	for i in range(item_count):
+		var item_entry = choose_random_item_entry()
+		result.append({
+			"item_id": item_entry["item_id"],
+			"amount": item_entry["amount"]
+		})
+
+	return result
+
+
+func choose_random_item_entry() -> Dictionary:
+	var roll := rng.randi_range(0, 100)
+
+	if roll < 40:
+		return {"item_id": "potion", "amount": 1}
+	elif roll < 75:
+		return {"item_id": "apple", "amount": rng.randi_range(1, 1)}
+	else:
+		return {"item_id": "wood", "amount": rng.randi_range(1, 1)}
+
+
+func get_available_tiles() -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+
+	for cell in ground_layer.get_used_cells():
+		if wall_layer.get_cell_source_id(cell) != -1:
+			continue
+		if has_unit_on_tile(cell):
+			continue
+		result.append(cell)
+
+	return result
+
+
+func has_unit_on_tile(tile: Vector2i) -> bool:
+	if units_node == null:
+		return false
+
+	for unit in units_node.get_children():
+		if unit == null:
+			continue
+		if not unit.has_method("get_current_tile_coords"):
+			continue
+		if unit.get_current_tile_coords() == tile:
+			return true
+
+	return false
 
 
 func load_item_pickups_from_world_state() -> void:
@@ -93,7 +235,7 @@ func load_chests_from_world_state() -> void:
 		return
 
 	for child in chests_node.get_children():
-			child.queue_free()
+		child.queue_free()
 
 	if not WorldState.map_chests.has(map_id):
 		return

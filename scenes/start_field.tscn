@@ -40,12 +40,7 @@ tile_set = ExtResource("17_xquak")
 
 [node name="ItemPickups" type="Node" parent="." unique_id=2040293827]
 
-[node name="ItemPickup" parent="ItemPickups" unique_id=1380570859 instance=ExtResource("15_1s5l6")]
-
 [node name="Chests" type="Node" parent="." unique_id=1925229362]
-
-[node name="Chest" parent="Chests" unique_id=828771168 instance=ExtResource("16_jl0a0")]
-visible = false
 
 [node name="Units" type="Node" parent="." unique_id=332583731]
 
