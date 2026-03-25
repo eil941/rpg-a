@@ -69,6 +69,18 @@ func _ready() -> void:
 	var current_enemy_data_list: Array[EnemyData] = enemy_data_list
 	var current_npc_data_list: Array[NpcData] = npc_data_list
 
+	current_enemy_spawn_count = int(floor_data.get("enemy_spawn_count", enemy_spawn_count))
+	current_npc_spawn_count = int(floor_data.get("npc_spawn_count", npc_spawn_count))
+
+	var enemy_type_ids = floor_data.get("enemy_type_ids", [])
+	var npc_type_ids = floor_data.get("npc_type_ids", [])
+
+	if enemy_type_ids.size() > 0:
+		current_enemy_data_list = filter_enemy_data_by_ids(enemy_type_ids)
+
+	if npc_type_ids.size() > 0:
+		current_npc_data_list = filter_npc_data_by_ids(npc_type_ids)
+
 	var walkable_tiles: Array[Vector2i] = map_generator.get_walkable_tiles()
 
 	spawn_manager = UnitSpawnManager.new(
@@ -116,20 +128,25 @@ func _ensure_floor_data_exists(floor_map_id: String) -> void:
 	var map_width = randi_range(MIN_MAP_WIDTH, MAX_MAP_WIDTH)
 	var map_height = randi_range(MIN_MAP_HEIGHT, MAX_MAP_HEIGHT)
 
+	var enemy_config = choose_enemy_config_for_floor(GlobalDungeon.current_floor)
+
 	WorldState.dungeon_floor_data[floor_map_id] = {
 		"dungeon_id": GlobalDungeon.current_dungeon_id,
 		"floor": GlobalDungeon.current_floor,
 		"generator_type": generator_type,
 		"is_bottom": is_bottom,
 		"map_width": map_width,
-		"map_height": map_height
+		"map_height": map_height,
+		"enemy_spawn_count": enemy_config["enemy_spawn_count"],
+		"enemy_type_ids": enemy_config["enemy_type_ids"],
+		"npc_spawn_count": 0,
+		"npc_type_ids": []
 	}
 
 
 func choose_random_dungeon_generator_type() -> String:
-	
-	#ダンジョンの生成方法一覧
-	var types = ["ROOM", "CAVE", "RUINS", "CROSS","ARENA", "LINEAR", "RINGS"]#, "MAZE"]
+	# ダンジョンの生成方法一覧
+	var types = ["ROOM", "CAVE", "RUINS", "CROSS", "ARENA", "LINEAR", "RINGS"]  # , "MAZE"
 	return types[randi_range(0, types.size() - 1)]
 
 
@@ -314,7 +331,6 @@ func create_map_generator(generator_type: String, map_width: int, map_height: in
 		"RINGS":
 			return RingsDungeonGenerator.new(map_width, map_height)
 
-
 	return RoomDungeonGenerator.new(map_width, map_height)
 
 
@@ -326,3 +342,52 @@ func notify_hud_log(text: String) -> void:
 			node.add_hud_log(text)
 			return
 		node = node.get_parent()
+
+
+func choose_enemy_config_for_floor(floor: int) -> Dictionary:
+	if floor <= 1:
+		return {
+			"enemy_spawn_count": 4,
+			"enemy_type_ids": ["slime", "bat"]
+		}
+
+	if floor == 2:
+		return {
+			"enemy_spawn_count": 5,
+			"enemy_type_ids": ["slime", "bat", "orc"]
+		}
+
+	if floor == 3:
+		return {
+			"enemy_spawn_count": 6,
+			"enemy_type_ids": ["bat", "orc"]
+		}
+
+	return {
+		"enemy_spawn_count": 7,
+		"enemy_type_ids": ["orc"]
+	}
+
+
+func filter_enemy_data_by_ids(type_ids: Array) -> Array[EnemyData]:
+	var result: Array[EnemyData] = []
+
+	for data in enemy_data_list:
+		if data == null:
+			continue
+		if type_ids.has(data.enemy_type_id):
+			result.append(data)
+
+	return result
+
+
+func filter_npc_data_by_ids(type_ids: Array) -> Array[NpcData]:
+	var result: Array[NpcData] = []
+
+	for data in npc_data_list:
+		if data == null:
+			continue
+		if type_ids.has(data.npc_type_id):
+			result.append(data)
+
+	return result
