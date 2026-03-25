@@ -4,6 +4,8 @@ extends Node2D
 @onready var wall_layer: TileMapLayer = $WallLayer
 @onready var event_layer: TileMapLayer = $EventLayer
 @onready var units_node: Node = $Units
+@onready var item_pickups_node: Node = $ItemPickups
+@onready var chests_node: Node = $Chests
 
 @export var enemy_unit_scene: PackedScene
 @export var enemy_spawn_count: int = 5
@@ -13,9 +15,13 @@ extends Node2D
 @export var npc_spawn_count: int = 3
 @export var npc_data_list: Array[NpcData]
 
+@export var item_pickup_scene: PackedScene
+@export var chest_scene: PackedScene
+
 @export var map_id: String = ""
 
 var spawn_manager: UnitSpawnManager
+var item_world_manager: ItemWorldManager
 var player: Node = null
 
 
@@ -50,6 +56,21 @@ func _ready() -> void:
 	else:
 		spawn_manager.spawn_random_npcs(npc_unit_scene, npc_data_list, npc_spawn_count)
 
+	item_world_manager = ItemWorldManager.new(
+		self,
+		ground_layer,
+		wall_layer,
+		units_node,
+		item_pickups_node,
+		chests_node,
+		map_id,
+		item_pickup_scene,
+		chest_scene
+	)
+	
+	item_world_manager.setup_test_item_and_chest_with_save()
+	#item_world_manager.spawn_fixed_test_item_and_chest()
+
 
 func find_player() -> void:
 	player = null
@@ -81,12 +102,14 @@ func collect_walkable_tiles() -> Array[Vector2i]:
 
 
 func save_all_units() -> void:
-	if units_node == null:
-		return
-
-	for unit in units_node.get_children():
-		if unit != null and unit.has_method("save_persistent_stats"):
-			unit.save_persistent_stats()
+	if units_node != null:
+		for unit in units_node.get_children():
+			if unit != null and unit.has_method("save_persistent_stats"):
+				unit.save_persistent_stats()
+				
+				
+	if item_world_manager != null:
+		item_world_manager.save_current_state()
 
 
 func save_layer_data(layer: TileMapLayer) -> Array:

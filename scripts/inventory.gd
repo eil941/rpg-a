@@ -7,41 +7,62 @@ var items: Array[Dictionary] = []
 
 
 func _ready() -> void:
-	ensure_slot_size()
+	initialize_empty_slots()
 
 
-func ensure_slot_size() -> void:
-	while items.size() < max_slots:
-		items.append(_create_empty_slot())
+func initialize_empty_slots() -> void:
+	if not items.is_empty():
+		return
 
-	if items.size() > max_slots:
-		items.resize(max_slots)
-
-
-func _create_empty_slot() -> Dictionary:
-	return {
-		"item_id": "",
-		"amount": 0
-	}
+	for i in range(max_slots):
+		items.append({
+			"item_id": "",
+			"amount": 0
+		})
 
 
 func add_item(item_id: String, amount: int = 1) -> bool:
 	if item_id == "" or amount <= 0:
 		return false
 
-	ensure_slot_size()
+	var max_stack := ItemDatabase.get_max_stack(item_id)
+	var remaining := amount
 
-	# まず同じ item_id のスロットに加算
+	# 1. 既存スタックに詰める
 	for i in range(items.size()):
-		if String(items[i].get("item_id", "")) == item_id:
-			items[i]["amount"] = int(items[i].get("amount", 0)) + amount
+		var entry = items[i]
+		if String(entry.get("item_id", "")) != item_id:
+			continue
+
+		var current_amount := int(entry.get("amount", 0))
+		if current_amount >= max_stack:
+			continue
+
+		var addable = min(max_stack - current_amount, remaining)
+		entry["amount"] = current_amount + addable
+		items[i] = entry
+		remaining -= addable
+
+		if remaining <= 0:
 			return true
 
-	# 次に空スロットへ格納
+	# 2. 空スロットに新規追加
 	for i in range(items.size()):
-		if String(items[i].get("item_id", "")) == "":
-			items[i]["item_id"] = item_id
-			items[i]["amount"] = amount
+		var entry = items[i]
+		var existing_id := String(entry.get("item_id", ""))
+		var existing_amount := int(entry.get("amount", 0))
+
+		if existing_id != "" or existing_amount > 0:
+			continue
+
+		var addable = min(max_stack, remaining)
+		items[i] = {
+			"item_id": item_id,
+			"amount": addable
+		}
+		remaining -= addable
+
+		if remaining <= 0:
 			return true
 
 	return false
@@ -51,52 +72,79 @@ func remove_item(item_id: String, amount: int = 1) -> bool:
 	if item_id == "" or amount <= 0:
 		return false
 
-	ensure_slot_size()
+	var remaining := amount
 
 	for i in range(items.size()):
-		if String(items[i].get("item_id", "")) == item_id:
-			var current_amount := int(items[i].get("amount", 0))
-			if current_amount < amount:
-				return false
+		var entry = items[i]
+		if String(entry.get("item_id", "")) != item_id:
+			continue
 
-			current_amount -= amount
+		var current_amount := int(entry.get("amount", 0))
+		if current_amount <= 0:
+			continue
 
-			if current_amount <= 0:
-				items[i] = _create_empty_slot()
-			else:
-				items[i]["amount"] = current_amount
+		var removable = min(current_amount, remaining)
+		current_amount -= removable
+		remaining -= removable
 
+		if current_amount <= 0:
+			items[i] = {
+				"item_id": "",
+				"amount": 0
+			}
+		else:
+			entry["amount"] = current_amount
+			items[i] = entry
+
+		if remaining <= 0:
 			return true
 
 	return false
-
-
-func get_item_amount(item_id: String) -> int:
-	ensure_slot_size()
-
-	for i in range(items.size()):
-		if String(items[i].get("item_id", "")) == item_id:
-			return int(items[i].get("amount", 0))
-
-	return 0
 
 
 func has_item(item_id: String, amount: int = 1) -> bool:
 	return get_item_amount(item_id) >= amount
 
 
-func get_all_items() -> Array[Dictionary]:
-	ensure_slot_size()
+func get_item_amount(item_id: String) -> int:
+	var total := 0
 
+	for entry in items:
+		if String(entry.get("item_id", "")) == item_id:
+			total += int(entry.get("amount", 0))
+
+	return total
+
+
+func can_add_item(item_id: String, amount: int = 1) -> bool:
+	if item_id == "" or amount <= 0:
+		return false
+
+	var max_stack := ItemDatabase.get_max_stack(item_id)
+	var capacity := 0
+
+	for entry in items:
+		var existing_id := String(entry.get("item_id", ""))
+		var existing_amount := int(entry.get("amount", 0))
+
+		if existing_id == item_id:
+			capacity += max(0, max_stack - existing_amount)
+		elif existing_id == "" or existing_amount <= 0:
+			capacity += max_stack
+
+	return capacity >= amount
+
+
+func get_all_items() -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
+
 	for entry in items:
 		result.append(entry.duplicate(true))
+
 	return result
 
 
 func get_item_data_at(index: int) -> Dictionary:
-	ensure_slot_size()
-
 	if index < 0 or index >= items.size():
 		return {}
 
@@ -105,46 +153,54 @@ func get_item_data_at(index: int) -> Dictionary:
 
 func clear_inventory() -> void:
 	items.clear()
-	ensure_slot_size()
+	initialize_empty_slots()
 
 
 func save_inventory_data() -> Array:
-	ensure_slot_size()
-
 	var result: Array = []
+
 	for entry in items:
+		var item_id := String(entry.get("item_id", ""))
+		var amount := int(entry.get("amount", 0))
+
+		if item_id == "" or amount <= 0:
+			continue
+
 		result.append({
-			"item_id": String(entry.get("item_id", "")),
-			"amount": int(entry.get("amount", 0))
+			"item_id": item_id,
+			"amount": amount
 		})
+
 	return result
 
 
 func load_inventory_data(data: Array) -> void:
 	items.clear()
 
-	for entry in data:
+	for i in range(max_slots):
+		items.append({
+			"item_id": "",
+			"amount": 0
+		})
+
+	for i in range(min(data.size(), max_slots)):
+		var entry = data[i]
 		if typeof(entry) != TYPE_DICTIONARY:
-			items.append(_create_empty_slot())
 			continue
 
 		var item_id := String(entry.get("item_id", ""))
 		var amount := int(entry.get("amount", 0))
 
 		if item_id == "" or amount <= 0:
-			items.append(_create_empty_slot())
-		else:
-			items.append({
-				"item_id": item_id,
-				"amount": amount
-			})
+			continue
 
-	ensure_slot_size()
+		items[i] = {
+			"item_id": item_id,
+			"amount": amount
+		}
 
 
 func use_item_at(index: int) -> Dictionary:
-	ensure_slot_size()
-
 	if index < 0 or index >= items.size():
 		return {
 			"success": false,
@@ -175,29 +231,16 @@ func use_item_at(index: int) -> Dictionary:
 	amount -= 1
 
 	if amount <= 0:
-		items[index] = _create_empty_slot()
+		items[index] = {
+			"item_id": "",
+			"amount": 0
+		}
 	else:
-		items[index]["amount"] = amount
-
-	advance_time_after_use(owner_unit)
+		entry["amount"] = amount
+		items[index] = entry
 
 	return {
 		"success": true,
 		"item_id": item_id,
-		"message": "%sを使用した" % ItemDatabase.get_item_name(item_id)
+		"message": "%sを使用した" % ItemDatabase.get_display_name(item_id)
 	}
-
-
-func advance_time_after_use(owner_unit) -> void:
-	if owner_unit == null:
-		return
-
-	var units_node = owner_unit.get("units_node")
-	if units_node == null:
-		return
-
-	if owner_unit.stats == null:
-		return
-
-	TimeManager.advance_time(units_node, owner_unit.stats.speed)
-	TimeManager.resolve_ai_turns(units_node)

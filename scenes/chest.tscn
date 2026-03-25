@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://dnaf0ryx1bvp8"]
+
+[ext_resource type="Script" uid="uid://gj4ek5g6ew7q" path="res://scripts/inventory.gd" id="1_oii8l"]
+[ext_resource type="Script" uid="uid://djiv3b416d3c3" path="res://scripts/chest.gd" id="1_sy5e1"]
+[ext_resource type="Texture2D" uid="uid://ds1de1eaom4pv" path="res://assets/chest1.png" id="2_gqd3d"]
+
+[node name="Chest" type="Node2D" unique_id=828771168]
+script = ExtResource("1_sy5e1")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1544353037]
+texture = ExtResource("2_gqd3d")
+
+[node name="Inventory" type="Node" parent="." unique_id=2101617205]
+script = ExtResource("1_oii8l")

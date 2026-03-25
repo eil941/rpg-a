@@ -59,6 +59,7 @@ func _ready() -> void:
 		)
 
 		WorldState.field_dungeon_entrances[map_id] = entrances
+		
 		save_map_tiles()
 
 	print("FIELDMAP READY END")

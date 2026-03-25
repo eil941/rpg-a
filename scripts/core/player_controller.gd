@@ -39,9 +39,16 @@ func _physics_process(_delta: float) -> void:
 
 	if unit.repeat_timer > 0.0:
 		return
-
+		
+	if Input.is_action_just_pressed("pickup_test"):
+		if unit.inventory != null:
+			unit.inventory.add_item("potion", 1)
+			unit.notify_hud_log("potionを手に入れた")
+		
 	if Input.is_action_just_pressed("interact"):
 		unit.try_interact_transition()
+		#
+		unit.try_interact_action()
 		if unit.is_transitioning:
 			return
 

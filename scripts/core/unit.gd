@@ -108,6 +108,9 @@ func _physics_process(delta: float) -> void:
 			global_position = target_position
 			is_moving = false
 			repeat_timer = repeat_delay
+			
+			if is_player_unit:
+				try_pickup_items_on_current_tile()
 
 			if units_node != null:
 				TimeManager.notify_unit_move_finished(units_node)
@@ -193,7 +196,10 @@ func try_move(dir: Vector2) -> bool:
 			global_position = next_pos
 			target_position = next_pos
 			is_moving = false
-
+			
+			if is_player_unit:
+				try_pickup_items_on_current_tile()
+			
 			if units_node != null:
 				TimeManager.notify_unit_move_finished(units_node)
 
@@ -694,3 +700,86 @@ func reset_after_map_transition() -> void:
 			c.reset_input_state()
 
 	TimeManager.is_resolving_turn = false
+
+func try_pickup_items_on_current_tile() -> bool:
+	if not is_player_unit:
+		return false
+
+	if map_root == null:
+		return false
+
+	var item_pickups_node = map_root.get_node_or_null("ItemPickups")
+	if item_pickups_node == null:
+		return false
+
+	var current_tile = get_current_tile_coords()
+
+	for pickup in item_pickups_node.get_children():
+		if pickup == null:
+			continue
+
+		if pickup.tile_coords != current_tile:
+			continue
+
+		if inventory == null:
+			return false
+
+		var added = inventory.add_item(pickup.item_id, pickup.amount)
+		if not added:
+			notify_hud_log("インベントリがいっぱい")
+			return false
+
+		notify_hud_log("%s を %d 個手に入れた" % [
+			ItemDatabase.get_display_name(pickup.item_id),
+			pickup.amount
+		])
+
+		notify_inventory_refresh()
+		pickup.queue_free()
+		return true
+
+	return false
+
+func notify_inventory_refresh() -> void:
+	var node: Node = self
+
+	while node != null:
+		if node.has_method("refresh_inventory_ui"):
+			node.refresh_inventory_ui()
+			return
+		node = node.get_parent()
+		
+func try_interact_action() -> void:
+	if try_pickup_items_on_current_tile():
+		return
+
+	if try_open_chest_on_current_tile():
+		return
+
+	try_interact_transition()
+
+
+func try_open_chest_on_current_tile() -> bool:
+	if not is_player_unit:
+		return false
+
+	if map_root == null:
+		return false
+
+	var chests_node = map_root.get_node_or_null("Chests")
+	if chests_node == null:
+		return false
+
+	var current_tile = get_current_tile_coords()
+
+	for chest in chests_node.get_children():
+		if chest == null:
+			continue
+
+		if chest.tile_coords != current_tile:
+			continue
+
+		chest.open_chest(self)
+		return true
+
+	return false

@@ -13,6 +13,8 @@
 [ext_resource type="TileSet" uid="uid://bc0aui1htbk1v" path="res://data/test_wall.tres" id="12_xwluv"]
 [ext_resource type="TileSet" uid="uid://cpndipp741lyo" path="res://data/test_event.tres" id="13_p08te"]
 [ext_resource type="PackedScene" uid="uid://cjntf4kbtxh73" path="res://scenes/unit.tscn" id="14_ctq6a"]
+[ext_resource type="PackedScene" uid="uid://ds64we2akg2ou" path="res://scenes/item_pickup.tscn" id="14_gls5y"]
+[ext_resource type="PackedScene" uid="uid://dnaf0ryx1bvp8" path="res://scenes/chest.tscn" id="15_64vk5"]
 
 [node name="DungeonMain" type="Node2D" unique_id=1202522057]
 script = ExtResource("1_34o28")
@@ -36,10 +38,24 @@ tile_set = ExtResource("13_p08te")
 
 [node name="Unit" parent="Units" unique_id=40692456 instance=ExtResource("14_ctq6a")]
 position = Vector2(258, 122)
+tile_size = null
+move_speed = null
+repeat_delay = null
 start_tile = Vector2i(20, 2)
 can_trigger_scene_transition = true
 can_bump_attack = true
+is_enemy = null
 receives_time_turns = false
 instant_move = false
 unit_id = "player"
 is_player_unit = true
+map_id = null
+debug_free_action = null
+
+[node name="ItemPickups" type="Node" parent="." unique_id=534854010]
+
+[node name="ItemPickup" parent="ItemPickups" unique_id=1380570859 instance=ExtResource("14_gls5y")]
+
+[node name="Chests" type="Node" parent="." unique_id=1690834646]
+
+[node name="Chest" parent="Chests" unique_id=828771168 instance=ExtResource("15_64vk5")]
