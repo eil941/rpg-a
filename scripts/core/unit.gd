@@ -115,7 +115,7 @@ func _physics_process(delta: float) -> void:
 			if is_player_unit:
 				if try_auto_use_dungeon_stairs_on_touch():
 					return
-			return 
+			return
 
 		return
 
@@ -197,7 +197,6 @@ func try_move(dir: Vector2) -> bool:
 			if units_node != null:
 				TimeManager.notify_unit_move_finished(units_node)
 
-			# 触れた瞬間に階段移動
 			if is_player_unit:
 				if try_auto_use_dungeon_stairs_on_touch():
 					return true
@@ -222,7 +221,6 @@ func try_move(dir: Vector2) -> bool:
 		var current_tile = get_current_tile_coords()
 
 		if next_scene != "":
-			# ダンジョン遷移は先に専用処理
 			if next_scene == "res://scenes/dungeon_main.tscn":
 				var dungeon_id = ""
 
@@ -254,7 +252,6 @@ func try_move(dir: Vector2) -> bool:
 				request_map_change(next_scene)
 				return true
 
-			# それ以外は従来の詳細マップ遷移
 			if spawn_x_data == null or spawn_y_data == null:
 				return false
 
@@ -303,12 +300,11 @@ func try_move(dir: Vector2) -> bool:
 
 	return false
 
+
 func try_interact_transition() -> void:
 	if not can_trigger_scene_transition:
 		return
 
-	# 先にダンジョン階段処理を試す
-	# ここで処理できたら、その後の TileData 読み取りには進まない
 	if map_root != null and map_root.has_method("try_use_dungeon_stairs_from_player_position"):
 		if map_root.try_use_dungeon_stairs_from_player_position():
 			print("STAIRS TRANSITION HANDLED")
@@ -328,7 +324,6 @@ func try_interact_transition() -> void:
 
 	var current_tile = get_current_tile_coords()
 
-	# ダンジョン遷移は先に専用処理
 	if next_scene == "res://scenes/dungeon_main.tscn":
 		var dungeon_id = ""
 
@@ -414,6 +409,7 @@ func try_interact_transition() -> void:
 
 	notify_hud_log(next_scene + "へ移動")
 	request_map_change(next_scene)
+
 
 func wait_action() -> void:
 	is_moving = false
@@ -670,9 +666,14 @@ func notify_hud_player_status_refresh() -> void:
 			return
 		node = node.get_parent()
 
+
 func try_auto_use_dungeon_stairs_on_touch() -> bool:
 	if map_root == null:
 		return false
+
+	if map_root.has_method("can_trigger_stairs_on_touch"):
+		if not map_root.can_trigger_stairs_on_touch():
+			return false
 
 	if not map_root.has_method("try_use_dungeon_stairs_from_player_position"):
 		return false
@@ -693,4 +694,3 @@ func reset_after_map_transition() -> void:
 			c.reset_input_state()
 
 	TimeManager.is_resolving_turn = false
-	

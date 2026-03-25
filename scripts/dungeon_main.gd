@@ -22,6 +22,8 @@ extends Node2D
 @export var MIN_MAP_HEIGHT: int = 30
 @export var MAX_MAP_HEIGHT: int = 60
 
+@export var stairs_trigger_on_touch: bool = false
+
 const EVENT_RETURN_STAIRS_SOURCE_ID = 3
 const EVENT_NEXT_STAIRS_SOURCE_ID = 6
 
@@ -49,9 +51,15 @@ func _ready() -> void:
 	var map_width = int(floor_data.get("map_width", MIN_MAP_WIDTH))
 	var map_height = int(floor_data.get("map_height", MIN_MAP_HEIGHT))
 
+	var dungeon_info = WorldState.dungeon_data[GlobalDungeon.current_dungeon_id]
+	var difficulty = int(dungeon_info.get("difficulty", 50))
+	var effective_difficulty = clampi(difficulty + (GlobalDungeon.current_floor - 1), 1, 100)
+
+
 	notify_hud_log(
 		"第" + str(GlobalDungeon.current_floor) +
 		"階: " + String(generator_type) +
+		" / 難易度 " + str(effective_difficulty) +
 		" (" + str(map_width) + "x" + str(map_height) + ") を生成"
 	)
 
@@ -122,13 +130,15 @@ func _ensure_floor_data_exists(floor_map_id: String) -> void:
 
 	var dungeon_info = WorldState.dungeon_data[GlobalDungeon.current_dungeon_id]
 	var max_floor = int(dungeon_info.get("max_floor", 3))
+	var difficulty = int(dungeon_info.get("difficulty", 50))
+
 	var generator_type = choose_random_dungeon_generator_type()
 	var is_bottom = GlobalDungeon.current_floor >= max_floor
 
 	var map_width = randi_range(MIN_MAP_WIDTH, MAX_MAP_WIDTH)
 	var map_height = randi_range(MIN_MAP_HEIGHT, MAX_MAP_HEIGHT)
 
-	var enemy_config = choose_enemy_config_for_floor(GlobalDungeon.current_floor)
+	var enemy_config = choose_enemy_config_for_floor(GlobalDungeon.current_floor, difficulty)
 
 	WorldState.dungeon_floor_data[floor_map_id] = {
 		"dungeon_id": GlobalDungeon.current_dungeon_id,
@@ -145,9 +155,12 @@ func _ensure_floor_data_exists(floor_map_id: String) -> void:
 
 
 func choose_random_dungeon_generator_type() -> String:
-	# ダンジョンの生成方法一覧
-	var types = ["ROOM", "CAVE", "RUINS", "CROSS", "ARENA", "LINEAR", "RINGS"]  # , "MAZE"
+	var types = ["ROOM", "CAVE", "RUINS", "CROSS", "ARENA", "LINEAR", "RINGS"]
 	return types[randi_range(0, types.size() - 1)]
+
+
+func can_trigger_stairs_on_touch() -> bool:
+	return stairs_trigger_on_touch
 
 
 func place_player_on_pending_stair() -> void:
@@ -344,27 +357,36 @@ func notify_hud_log(text: String) -> void:
 		node = node.get_parent()
 
 
-func choose_enemy_config_for_floor(floor: int) -> Dictionary:
-	if floor <= 1:
+func choose_enemy_config_for_floor(floor: int, difficulty: int) -> Dictionary:
+	var depth_bonus = max(0, floor - 1)
+	var effective_difficulty = clampi(difficulty + (floor - 1), 1, 100)
+	
+	if effective_difficulty <= 20:
 		return {
-			"enemy_spawn_count": 4,
+			"enemy_spawn_count": 10 + depth_bonus,
+			"enemy_type_ids": ["slime"]
+		}
+
+	if effective_difficulty <= 40:
+		return {
+			"enemy_spawn_count": 15 + depth_bonus,
 			"enemy_type_ids": ["slime", "bat"]
 		}
 
-	if floor == 2:
+	if effective_difficulty <= 60:
 		return {
-			"enemy_spawn_count": 5,
+			"enemy_spawn_count": 20 + depth_bonus,
 			"enemy_type_ids": ["slime", "bat", "orc"]
 		}
 
-	if floor == 3:
+	if effective_difficulty <= 80:
 		return {
-			"enemy_spawn_count": 6,
+			"enemy_spawn_count": 25 + depth_bonus,
 			"enemy_type_ids": ["bat", "orc"]
 		}
 
 	return {
-		"enemy_spawn_count": 7,
+		"enemy_spawn_count": 30 + depth_bonus,
 		"enemy_type_ids": ["orc"]
 	}
 

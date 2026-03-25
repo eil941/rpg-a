@@ -48,7 +48,8 @@ func generate_map(
 				"origin_field_map_id": map_id,
 				"origin_x": cell.x,
 				"origin_y": cell.y,
-				"max_floor": randi_range(3, 6)
+				"max_floor": randi_range(3, 6),
+				"difficulty": choose_dungeon_difficulty()
 			}
 
 		used_positions[key] = true
@@ -86,3 +87,6 @@ func _is_walkable_cell(
 		return false
 
 	return true
+	
+func choose_dungeon_difficulty() -> int:
+	return randi_range(1, 100)
