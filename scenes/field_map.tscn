@@ -27,3 +27,4 @@ tile_set = ExtResource("2_bbcss")
 [node name="Unit" parent="Units" unique_id=40692456 instance=ExtResource("11_qok4n")]
 start_tile = Vector2i(10, 10)
 unit_id = "player"
+debug_print_current_tile_info_enabled = true

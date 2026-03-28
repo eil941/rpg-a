@@ -16,7 +16,6 @@ extends CharacterBody2D
 @export var unit_id: String = ""
 @export var is_player_unit: bool = false
 @export var map_id: String = ""
-@export var debug_free_action: bool = false
 
 @onready var inventory: Inventory = $Inventory
 
@@ -108,6 +107,8 @@ func _physics_process(delta: float) -> void:
 			is_moving = false
 			repeat_timer = repeat_delay
 
+			debug_print_current_tile_info()
+
 			if is_player_unit:
 				try_pickup_items_on_current_tile()
 
@@ -155,6 +156,54 @@ func get_current_tile_data():
 	return event_layer.get_cell_tile_data(coords)
 
 
+func debug_print_current_tile_info() -> void:
+	if not DebugSettings.print_tile_info:
+		return
+	if not is_player_unit:
+		return
+
+	var coords = get_current_tile_coords()
+
+	var ground_source_id = ground_layer.get_cell_source_id(coords)
+	var ground_atlas_coords = ground_layer.get_cell_atlas_coords(coords)
+	var ground_alternative_tile = ground_layer.get_cell_alternative_tile(coords)
+
+	var wall_source_id = wall_layer.get_cell_source_id(coords)
+	var wall_atlas_coords = wall_layer.get_cell_atlas_coords(coords)
+	var wall_alternative_tile = wall_layer.get_cell_alternative_tile(coords)
+
+	print("===== CURRENT TILE INFO =====")
+	print("unit=", name)
+	print("map_id=", map_id)
+	print("coords=", coords)
+
+	print("--- ground layer ---")
+	print("source_id=", ground_source_id)
+	print("atlas_coords=", ground_atlas_coords)
+	print("alternative_tile=", ground_alternative_tile)
+
+	print("--- wall layer ---")
+	print("source_id=", wall_source_id)
+	print("atlas_coords=", wall_atlas_coords)
+	print("alternative_tile=", wall_alternative_tile)
+
+	var tile_data = get_current_tile_data()
+	if tile_data == null:
+		print("--- event layer ---")
+		print("tile_data = null")
+		print("============================")
+		return
+
+	print("--- event layer custom data ---")
+	print("scene_transfer=", tile_data.get_custom_data("scene_transfer"))
+	print("enter_scene=", tile_data.get_custom_data("enter_scene"))
+	print("can_enter=", tile_data.get_custom_data("can_enter"))
+	print("spawn_x=", tile_data.get_custom_data("spawn_x"))
+	print("spawn_y=", tile_data.get_custom_data("spawn_y"))
+	print("detail_generator=", tile_data.get_custom_data("detail_generator"))
+	print("============================")
+
+
 func get_occupied_tile_coords() -> Vector2i:
 	if is_moving:
 		return ground_layer.local_to_map(ground_layer.to_local(target_position))
@@ -187,14 +236,16 @@ func try_move(dir: Vector2) -> bool:
 	query.collide_with_bodies = true
 
 	var result = space_state.intersect_shape(query)
-	if not result.is_empty():
-		print("TRY MOVE collision_result=", result)
+	#if not result.is_empty():
+	#	sprint("TRY MOVE collision_result=", result)
 
 	if result.is_empty():
 		if instant_move:
 			global_position = next_pos
 			target_position = next_pos
 			is_moving = false
+
+			debug_print_current_tile_info()
 
 			if is_player_unit:
 				try_pickup_items_on_current_tile()

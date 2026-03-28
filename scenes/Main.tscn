@@ -47,16 +47,6 @@ tile_set = ExtResource("16_ft6cd")
 
 [node name="Unit" parent="Units" unique_id=40692456 instance=ExtResource("11_bjd11")]
 position = Vector2(258, 122)
-tile_size = null
-move_speed = null
-repeat_delay = null
 start_tile = Vector2i(20, 2)
-can_trigger_scene_transition = true
-can_bump_attack = true
-is_enemy = null
-receives_time_turns = false
-instant_move = false
 unit_id = "player"
-is_player_unit = true
-map_id = null
-debug_free_action = null
+debug_print_current_tile_info_enabled = true

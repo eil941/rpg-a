@@ -34,7 +34,7 @@ func generate_map(
 		var dungeon_id = map_id + "_dungeon_" + str(cell.x) + "_" + str(cell.y)
 
 		# フィールド上のダンジョン入口
-		print("Duongeon : ",cell)
+		#print("Duongeon : ",cell)
 		event_layer.set_cell(cell, 4, Vector2i(0, 0), 0)
 
 		result.append({

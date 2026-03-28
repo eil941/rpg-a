@@ -10,11 +10,10 @@ func setup(owner_unit) -> void:
 
 
 func _physics_process(_delta: float) -> void:
-	
 	if Input.is_action_just_pressed("inventory"):
 		toggle_inventory_ui()
 		return
-	
+
 	if unit == null:
 		return
 
@@ -28,26 +27,20 @@ func _physics_process(_delta: float) -> void:
 
 	if unit.is_transitioning:
 		return
-		
-	if Input.is_action_just_pressed("inventory"):
-		print("open inventory")
-		toggle_inventory_ui()
-		return
-		
+
 	if unit.is_moving:
 		return
 
 	if unit.repeat_timer > 0.0:
 		return
-		
+
 	if Input.is_action_just_pressed("pickup_test"):
 		if unit.inventory != null:
 			unit.inventory.add_item("potion", 1)
 			unit.notify_hud_log("potionを手に入れた")
-		
+
 	if Input.is_action_just_pressed("interact"):
 		unit.try_interact_transition()
-		#
 		unit.try_interact_action()
 		if unit.is_transitioning:
 			return
@@ -55,7 +48,7 @@ func _physics_process(_delta: float) -> void:
 	if Input.is_action_just_pressed("wait"):
 		unit.wait_action()
 
-		if not unit.debug_free_action:
+		if not DebugSettings.debug_free_action:
 			TimeManager.advance_time(units_node, unit.stats.speed)
 			notify_hud()
 			TimeManager.resolve_ai_turns(units_node)
@@ -67,7 +60,7 @@ func _physics_process(_delta: float) -> void:
 		var acted = unit.try_move(input_dir)
 
 		if acted:
-			if not unit.debug_free_action:
+			if not DebugSettings.debug_free_action:
 				TimeManager.advance_time(units_node, unit.stats.speed)
 				notify_hud()
 				TimeManager.resolve_ai_turns(units_node)
@@ -94,6 +87,7 @@ func get_input_direction() -> Vector2:
 		return Vector2.UP
 
 	return Vector2.ZERO
+
 
 func toggle_inventory_ui() -> void:
 	var node: Node = unit

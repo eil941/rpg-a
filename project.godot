@@ -26,6 +26,7 @@ PlayerData="*uid://cd4clntrouqfc"
 WorldState="*uid://ehwoqwuagspi"
 GlobalDetailMap="*uid://dqrkpmdklo3g2"
 GlobalDungeon="*uid://cwr50o7tfp2dm"
+DebugSettings="*uid://c83kw1x0ekokg"
 
 [input]
 
