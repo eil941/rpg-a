@@ -49,4 +49,3 @@ tile_set = ExtResource("16_ft6cd")
 position = Vector2(258, 122)
 start_tile = Vector2i(20, 2)
 unit_id = "player"
-debug_print_current_tile_info_enabled = true

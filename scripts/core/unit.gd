@@ -18,6 +18,7 @@ extends CharacterBody2D
 @export var map_id: String = ""
 
 @onready var inventory: Inventory = $Inventory
+@onready var sprite: Sprite2D = $Sprite2D
 
 var is_moving: bool = false
 var target_position: Vector2
@@ -37,6 +38,28 @@ var units_node: Node = null
 @onready var controller = $Controller
 @onready var targeting = Targeting
 @onready var combat_manager = CombatManager
+
+enum Facing {
+	RIGHT,
+	LEFT,
+	DOWN,
+	UP
+}
+
+var facing: int = Facing.DOWN
+var walk_frame_index: int = -1
+
+@export var idle_right_frames: Array[Texture2D] = []
+@export var walk_right_frames: Array[Texture2D] = []
+
+@export var idle_left_frames: Array[Texture2D] = []
+@export var walk_left_frames: Array[Texture2D] = []
+
+@export var idle_down_frames: Array[Texture2D] = []
+@export var walk_down_frames: Array[Texture2D] = []
+
+@export var idle_up_frames: Array[Texture2D] = []
+@export var walk_up_frames: Array[Texture2D] = []
 
 
 func _ready() -> void:
@@ -87,6 +110,7 @@ func _ready() -> void:
 		print("READY controller =", controller)
 
 	TimeManager.is_resolving_turn = false
+	set_idle_animation()
 
 	#if is_player_unit and inventory != null:
 	#	if PlayerData.inventory_data.is_empty():
@@ -101,6 +125,8 @@ func _physics_process(delta: float) -> void:
 
 	if is_moving:
 		global_position = global_position.move_toward(target_position, move_speed * delta)
+		
+		#print("FACE : ",get_facing())
 
 		if global_position.distance_to(target_position) < 1.0:
 			global_position = target_position
@@ -210,7 +236,93 @@ func get_occupied_tile_coords() -> Vector2i:
 	return get_current_tile_coords()
 
 
+func facing_from_dir(dir: Vector2) -> int:
+	if dir == Vector2.RIGHT:
+		return Facing.RIGHT
+	elif dir == Vector2.LEFT:
+		return Facing.LEFT
+	elif dir == Vector2.DOWN:
+		return Facing.DOWN
+	elif dir == Vector2.UP:
+		return Facing.UP
+	return facing
+
+
+func get_idle_frames_for_facing(face: int) -> Array[Texture2D]:
+	match face:
+		Facing.RIGHT:
+			return idle_right_frames
+		Facing.LEFT:
+			return idle_left_frames
+		Facing.DOWN:
+			return idle_down_frames
+		Facing.UP:
+			return idle_up_frames
+	return []
+
+
+func get_walk_frames_for_facing(face: int) -> Array[Texture2D]:
+	match face:
+		Facing.RIGHT:
+			return walk_right_frames
+		Facing.LEFT:
+			return walk_left_frames
+		Facing.DOWN:
+			return walk_down_frames
+		Facing.UP:
+			return walk_up_frames
+	return []
+
+
+func set_idle_animation() -> void:
+	var frames = get_idle_frames_for_facing(facing)
+	if frames.is_empty():
+		return
+	sprite.texture = frames[0]
+
+
+func update_walk_animation_for_move(dir: Vector2) -> void:
+	facing = facing_from_dir(dir)
+
+	var frames = get_walk_frames_for_facing(facing)
+	if frames.is_empty():
+		return
+
+	walk_frame_index += 1
+	walk_frame_index %= frames.size()
+	sprite.texture = frames[walk_frame_index]
+
+
+func apply_animation_frames(
+	p_idle_right: Array[Texture2D],
+	p_walk_right: Array[Texture2D],
+	p_idle_left: Array[Texture2D],
+	p_walk_left: Array[Texture2D],
+	p_idle_down: Array[Texture2D],
+	p_walk_down: Array[Texture2D],
+	p_idle_up: Array[Texture2D],
+	p_walk_up: Array[Texture2D]
+) -> void:
+	idle_right_frames = p_idle_right.duplicate()
+	walk_right_frames = p_walk_right.duplicate()
+
+	idle_left_frames = p_idle_left.duplicate()
+	walk_left_frames = p_walk_left.duplicate()
+
+	idle_down_frames = p_idle_down.duplicate()
+	walk_down_frames = p_walk_down.duplicate()
+
+	idle_up_frames = p_idle_up.duplicate()
+	walk_up_frames = p_walk_up.duplicate()
+
+	walk_frame_index = -1
+	set_idle_animation()
+
+
 func try_move(dir: Vector2) -> bool:
+	
+	update_facing_only(dir)
+	
 	var next_pos = global_position + dir * tile_size
 	var next_tile = ground_layer.local_to_map(ground_layer.to_local(next_pos))
 
@@ -225,6 +337,7 @@ func try_move(dir: Vector2) -> bool:
 	if target_unit != null:
 		if combat_manager.try_bump_attack(self, target_unit):
 			return true
+		
 		return false
 
 	var space_state = get_world_2d().direct_space_state
@@ -240,6 +353,8 @@ func try_move(dir: Vector2) -> bool:
 	#	sprint("TRY MOVE collision_result=", result)
 
 	if result.is_empty():
+		update_walk_animation_for_move(dir)
+
 		if instant_move:
 			global_position = next_pos
 			target_position = next_pos
@@ -470,6 +585,7 @@ func try_interact_transition() -> void:
 func wait_action() -> void:
 	is_moving = false
 	repeat_timer = repeat_delay
+	set_idle_animation()
 
 
 func get_hp_status_text() -> String:
@@ -579,8 +695,16 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 	stats.defense = enemy_data.defense
 	stats.speed = enemy_data.speed
 
-	if has_node("Sprite2D"):
-		$Sprite2D.texture = enemy_data.sprite_texture
+	apply_animation_frames(
+		enemy_data.idle_right_frames,
+		enemy_data.walk_right_frames,
+		enemy_data.idle_left_frames,
+		enemy_data.walk_left_frames,
+		enemy_data.idle_down_frames,
+		enemy_data.walk_down_frames,
+		enemy_data.idle_up_frames,
+		enemy_data.walk_up_frames
+	)
 
 
 func handle_death() -> void:
@@ -607,8 +731,16 @@ func apply_npc_data(npc_data: NpcData) -> void:
 	stats.defense = npc_data.defense
 	stats.speed = npc_data.speed
 
-	if has_node("Sprite2D"):
-		$Sprite2D.texture = npc_data.sprite_texture
+	apply_animation_frames(
+		npc_data.idle_right_frames,
+		npc_data.walk_right_frames,
+		npc_data.idle_left_frames,
+		npc_data.walk_left_frames,
+		npc_data.idle_down_frames,
+		npc_data.walk_down_frames,
+		npc_data.idle_up_frames,
+		npc_data.walk_up_frames
+	)
 
 
 func sync_map_id_from_scene() -> void:
@@ -840,3 +972,10 @@ func try_open_chest_on_current_tile() -> bool:
 		return true
 
 	return false
+	
+func get_facing() -> int:
+	return facing
+	
+func update_facing_only(dir: Vector2) -> void:
+	facing = facing_from_dir(dir)
+	set_idle_animation()

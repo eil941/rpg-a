@@ -2,9 +2,17 @@
 
 [ext_resource type="Script" uid="uid://nsxuuyuvfqyd" path="res://scripts/core/unit.gd" id="1_1jvru"]
 [ext_resource type="Texture2D" uid="uid://ckj4j0fakksd0" path="res://assets/player.png" id="2_gic7v"]
+[ext_resource type="Texture2D" uid="uid://b12tg0svvrhs0" path="res://assets/player_right_1.png" id="3_omkap"]
 [ext_resource type="Script" uid="uid://b1xneybof8tc7" path="res://scripts/core/stats.gd" id="3_tb304"]
 [ext_resource type="Script" uid="uid://chtsgc7lseb8o" path="res://scripts/core/player_controller.gd" id="4_gic7v"]
+[ext_resource type="Texture2D" uid="uid://cpme3gt481683" path="res://assets/player_right_2.png" id="4_gr2wx"]
+[ext_resource type="Texture2D" uid="uid://wmyi70jn13b5" path="res://assets/player_left_1.png" id="5_5pi0r"]
 [ext_resource type="Script" uid="uid://gj4ek5g6ew7q" path="res://scripts/inventory.gd" id="5_tb304"]
+[ext_resource type="Texture2D" uid="uid://dfeut20fmihst" path="res://assets/player_left_2.png" id="6_ofq0c"]
+[ext_resource type="Texture2D" uid="uid://dlveghvsq1u8j" path="res://assets/player_front_1.png" id="7_4jta7"]
+[ext_resource type="Texture2D" uid="uid://baltw6yxkp3n0" path="res://assets/player_front_2.png" id="8_uhfok"]
+[ext_resource type="Texture2D" uid="uid://bcoul43amc5om" path="res://assets/player_back_1.png" id="9_8vpj5"]
+[ext_resource type="Texture2D" uid="uid://dhwmdfybcy4n3" path="res://assets/player_back_2.png" id="10_urede"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ruro2"]
 size = Vector2(30, 30)
@@ -16,6 +24,14 @@ can_bump_attack = true
 receives_time_turns = false
 instant_move = false
 is_player_unit = true
+idle_right_frames = Array[Texture2D]([ExtResource("2_gic7v")])
+walk_right_frames = Array[Texture2D]([ExtResource("3_omkap"), ExtResource("4_gr2wx")])
+idle_left_frames = Array[Texture2D]([ExtResource("2_gic7v")])
+walk_left_frames = Array[Texture2D]([ExtResource("5_5pi0r"), ExtResource("6_ofq0c")])
+idle_down_frames = Array[Texture2D]([ExtResource("2_gic7v")])
+walk_down_frames = Array[Texture2D]([ExtResource("7_4jta7"), ExtResource("8_uhfok")])
+idle_up_frames = Array[Texture2D]([ExtResource("2_gic7v")])
+walk_up_frames = Array[Texture2D]([ExtResource("9_8vpj5"), ExtResource("10_urede")])
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=427796898]
 texture = ExtResource("2_gic7v")

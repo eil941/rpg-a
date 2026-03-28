@@ -2,14 +2,28 @@
 
 [ext_resource type="Script" uid="uid://dnv8aysj2gsac" path="res://scripts/data/enemy_data.gd" id="1_oert2"]
 [ext_resource type="Texture2D" uid="uid://ci1uxejq1rcpi" path="res://assets/orc.png" id="2_5sla6"]
+[ext_resource type="Texture2D" uid="uid://c0r387au3uoch" path="res://assets/orc_back_1.png" id="3_qlm73"]
+[ext_resource type="Texture2D" uid="uid://bad3vdvg2qtpf" path="res://assets/orc_back_2.png" id="4_hy6yr"]
+[ext_resource type="Texture2D" uid="uid://b8hj74knyqr4g" path="res://assets/orc_left_1.png" id="5_x55hc"]
+[ext_resource type="Texture2D" uid="uid://inay1a0g8rgf" path="res://assets/orc_left_2.png" id="6_un7lp"]
+[ext_resource type="Texture2D" uid="uid://dwe88psdaoi6o" path="res://assets/orc_right_1.png" id="7_act77"]
+[ext_resource type="Texture2D" uid="uid://hnbrif66wglq" path="res://assets/orc_right_2.png" id="8_p068q"]
+[ext_resource type="Texture2D" uid="uid://csfcad488ghe8" path="res://assets/orc_front_1.png" id="9_4vo8c"]
+[ext_resource type="Texture2D" uid="uid://dtkoetinnjxfn" path="res://assets/orc_front_2.png" id="10_puu53"]
 
 [resource]
 script = ExtResource("1_oert2")
-enemy_name = "Orc"
-sprite_texture = ExtResource("2_5sla6")
 enemy_type_id = "orc"
 max_hp = 25
 attack = 8
 defense = 4
 speed = 88.0
+idle_right_frames = Array[Texture2D]([ExtResource("2_5sla6")])
+walk_right_frames = Array[Texture2D]([ExtResource("7_act77"), ExtResource("8_p068q")])
+idle_left_frames = Array[Texture2D]([ExtResource("2_5sla6")])
+walk_left_frames = Array[Texture2D]([ExtResource("5_x55hc"), ExtResource("6_un7lp")])
+idle_down_frames = Array[Texture2D]([ExtResource("2_5sla6")])
+walk_down_frames = Array[Texture2D]([ExtResource("3_qlm73"), ExtResource("4_hy6yr")])
+idle_up_frames = Array[Texture2D]([ExtResource("2_5sla6")])
+walk_up_frames = Array[Texture2D]([ExtResource("9_4vo8c"), ExtResource("10_puu53")])
 metadata/_custom_type_script = "uid://dnv8aysj2gsac"

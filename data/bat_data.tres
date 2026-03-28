@@ -2,14 +2,25 @@
 
 [ext_resource type="Script" uid="uid://dnv8aysj2gsac" path="res://scripts/data/enemy_data.gd" id="1_1g683"]
 [ext_resource type="Texture2D" uid="uid://beq3x3etje1lv" path="res://assets/bat.png" id="2_7ab8l"]
+[ext_resource type="Texture2D" uid="uid://bhcrrex7womxr" path="res://assets/bat_back_1.png" id="3_l5ma7"]
+[ext_resource type="Texture2D" uid="uid://fn6twn6i2gx5" path="res://assets/bat_back_2.png" id="4_ymo5e"]
+[ext_resource type="Texture2D" uid="uid://h113kmtxmot" path="res://assets/bat_left_1.png" id="5_uam8x"]
+[ext_resource type="Texture2D" uid="uid://vepgycco3ko1" path="res://assets/bat_left_2.png" id="6_0xbde"]
+[ext_resource type="Texture2D" uid="uid://bs84lnwdcy3jx" path="res://assets/bat_right_1.png" id="7_c8gaj"]
+[ext_resource type="Texture2D" uid="uid://bxlcg5n2ul0qa" path="res://assets/bat_right_2.png" id="8_gleao"]
 
 [resource]
 script = ExtResource("1_1g683")
-enemy_name = "Bat"
-sprite_texture = ExtResource("2_7ab8l")
 enemy_type_id = "bat"
 max_hp = 8
 attack = 2
-defense = 0
 speed = 180.0
+idle_right_frames = Array[Texture2D]([ExtResource("2_7ab8l")])
+walk_right_frames = Array[Texture2D]([ExtResource("7_c8gaj"), ExtResource("8_gleao")])
+idle_left_frames = Array[Texture2D]([ExtResource("2_7ab8l")])
+walk_left_frames = Array[Texture2D]([ExtResource("5_uam8x"), ExtResource("6_0xbde")])
+idle_down_frames = Array[Texture2D]([ExtResource("2_7ab8l")])
+walk_down_frames = Array[Texture2D]([ExtResource("3_l5ma7"), ExtResource("4_ymo5e")])
+idle_up_frames = Array[Texture2D]([ExtResource("2_7ab8l")])
+walk_up_frames = Array[Texture2D]([ExtResource("2_7ab8l"), ExtResource("2_7ab8l")])
 metadata/_custom_type_script = "uid://dnv8aysj2gsac"
