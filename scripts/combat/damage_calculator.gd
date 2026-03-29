@@ -10,4 +10,7 @@ func calculate_damage(attacker, target) -> int:
 	if not target.has_node("Stats"):
 		return 0
 
-	return max(1, attacker.stats.attack - target.stats.defense)
+	var attack_value = attacker.get_total_attack()
+	var defense_value = target.get_total_defense()
+
+	return max(1, attack_value - defense_value)

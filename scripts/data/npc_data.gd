@@ -3,10 +3,17 @@ class_name NpcData
 
 @export var npc_name: String = "no_name"
 @export var npc_type_id: String = "no_id"
+
+
 @export var max_hp: int = 20
 @export var attack: int = 5
 @export var defense: int = 2
 @export var speed: float = 120.0
+
+@export var equipped_weapon: EquipmentData
+@export var equipped_armor: EquipmentData
+@export var equipped_accessory: EquipmentData
+
 
 @export var animation_profile: AnimationProfile
 

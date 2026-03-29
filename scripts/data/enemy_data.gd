@@ -3,10 +3,16 @@ class_name EnemyData
 
 @export var enemy_type_id: String = "Enemy"
 @export var enemy_name: String = "no_id"
+
+
 @export var max_hp: int = 10
 @export var attack: int = 1
 @export var defense: int = 0
 @export var speed: float = 120.0
+
+@export var equipped_weapon: EquipmentData
+@export var equipped_armor: EquipmentData
+@export var equipped_accessory: EquipmentData
 
 @export var animation_profile: AnimationProfile
 

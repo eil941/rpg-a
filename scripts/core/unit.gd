@@ -20,6 +20,11 @@ extends CharacterBody2D
 
 @export var animation_profile: AnimationProfile
 
+# 装備
+@export var equipped_weapon: EquipmentData
+@export var equipped_armor: EquipmentData
+@export var equipped_accessory: EquipmentData
+
 # unit 個別の微調整
 @export var sprite_offset_adjust: Vector2 = Vector2.ZERO
 
@@ -186,15 +191,73 @@ func get_current_tile_data():
 	return event_layer.get_cell_tile_data(coords)
 
 
+func get_total_max_hp() -> int:
+	var total = stats.max_hp
+
+	if equipped_weapon != null:
+		total += equipped_weapon.max_hp_bonus
+	if equipped_armor != null:
+		total += equipped_armor.max_hp_bonus
+	if equipped_accessory != null:
+		total += equipped_accessory.max_hp_bonus
+
+	return max(total, 1)
+
+
+func get_total_attack() -> int:
+	var total = stats.attack
+
+	if equipped_weapon != null:
+		total += equipped_weapon.attack_bonus
+	if equipped_armor != null:
+		total += equipped_armor.attack_bonus
+	if equipped_accessory != null:
+		total += equipped_accessory.attack_bonus
+
+	return max(total, 0)
+
+
+func get_total_defense() -> int:
+	var total = stats.defense
+
+	if equipped_weapon != null:
+		total += equipped_weapon.defense_bonus
+	if equipped_armor != null:
+		total += equipped_armor.defense_bonus
+	if equipped_accessory != null:
+		total += equipped_accessory.defense_bonus
+
+	return max(total, 0)
+
+
+func get_total_speed() -> float:
+	var total = stats.speed
+
+	if equipped_weapon != null:
+		total += equipped_weapon.speed_bonus
+	if equipped_armor != null:
+		total += equipped_armor.speed_bonus
+	if equipped_accessory != null:
+		total += equipped_accessory.speed_bonus
+
+	return max(total, 1.0)
+
+
 func get_attack_type_id() -> String:
+	if equipped_weapon != null:
+		return equipped_weapon.attack_type_id
 	return "melee"
 
 
 func get_attack_min_range() -> int:
+	if equipped_weapon != null:
+		return equipped_weapon.attack_min_range
 	return 1
 
 
 func get_attack_max_range() -> int:
+	if equipped_weapon != null:
+		return equipped_weapon.attack_max_range
 	return 1
 
 
@@ -807,6 +870,10 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 	stats.defense = enemy_data.defense
 	stats.speed = enemy_data.speed
 
+	equipped_weapon = enemy_data.equipped_weapon
+	equipped_armor = enemy_data.equipped_armor
+	equipped_accessory = enemy_data.equipped_accessory
+
 	if enemy_data.animation_profile != null:
 		apply_animation_profile(enemy_data.animation_profile)
 	else:
@@ -845,6 +912,10 @@ func apply_npc_data(npc_data: NpcData) -> void:
 	stats.attack = npc_data.attack
 	stats.defense = npc_data.defense
 	stats.speed = npc_data.speed
+
+	equipped_weapon = npc_data.equipped_weapon
+	equipped_armor = npc_data.equipped_armor
+	equipped_accessory = npc_data.equipped_accessory
 
 	if npc_data.animation_profile != null:
 		apply_animation_profile(npc_data.animation_profile)
@@ -891,7 +962,7 @@ func create_detail_map_config(generator_type: String, field_tile: Vector2i) -> D
 		"GRASS":
 			config["enemy_spawn_count"] = 5
 			config["npc_spawn_count"] = 3
-			config["enemy_type_ids"] = ["bat"]#, "slime"]
+			config["enemy_type_ids"] = ["bat", "slime"]
 			config["npc_type_ids"] = ["sabo"]
 
 		"FOREST":
