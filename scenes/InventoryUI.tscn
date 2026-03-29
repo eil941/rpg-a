@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bcwisg05o4qoq"]
 
-[ext_resource type="Script" uid="uid://b1vl6jrm2wgir" path="res://scripts/inventory_ui.gd" id="1_wqexf"]
+[ext_resource type="Script" uid="uid://b1vl6jrm2wgir" path="res://scripts/item/inventory_ui.gd" id="1_wqexf"]
 [ext_resource type="PackedScene" uid="uid://dfgn5h8yb1xwa" path="res://scenes/inventory_slot.tscn" id="2_ju2k0"]
 
 [node name="InventoryUI" type="CanvasLayer" unique_id=1691748069]

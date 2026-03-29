@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="AnimationProfile" format=3 uid="uid://bkpgh1ni8dk52"]
 
-[ext_resource type="Script" uid="uid://dh57busqtv542" path="res://scripts/AnimationProfile.gd" id="1_14731"]
+[ext_resource type="Script" uid="uid://dh57busqtv542" path="res://scripts/data/AnimationProfile.gd" id="1_14731"]
 [ext_resource type="Texture2D" uid="uid://ofv7xc7kvp4t" path="res://assets/player/SC-Funassi01.png" id="2_e1kv2"]
 
 [resource]

@@ -1,6 +1,6 @@
 [gd_scene format=4 uid="uid://dkvs460vr4b50"]
 
-[ext_resource type="Script" uid="uid://b2qxwulxhho24" path="res://scripts/dungeon_main.gd" id="1_34o28"]
+[ext_resource type="Script" uid="uid://b2qxwulxhho24" path="res://scripts/dungeon/dungeon_main.gd" id="1_34o28"]
 [ext_resource type="PackedScene" uid="uid://cmvysxaa458bi" path="res://scenes/Enemyunit_1.tscn" id="2_4ijeh"]
 [ext_resource type="Script" uid="uid://dnv8aysj2gsac" path="res://scripts/data/enemy_data.gd" id="3_qmoe5"]
 [ext_resource type="Resource" uid="uid://sq1on05oxw1q" path="res://data/test/slime_data.tres" id="4_gls5y"]

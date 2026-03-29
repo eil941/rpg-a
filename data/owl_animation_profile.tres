@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="AnimationProfile" format=3 uid="uid://d214rjm1ejybn"]
 
-[ext_resource type="Script" uid="uid://dh57busqtv542" path="res://scripts/AnimationProfile.gd" id="1_14731"]
+[ext_resource type="Script" uid="uid://dh57busqtv542" path="res://scripts/data/AnimationProfile.gd" id="1_14731"]
 [ext_resource type="Texture2D" uid="uid://cnoeu05ir3y52" path="res://assets/SC-Owl01.png" id="2_14731"]
 
 [resource]

@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="AnimationProfile" format=3 uid="uid://ca8bjch8fppet"]
 
-[ext_resource type="Script" uid="uid://dh57busqtv542" path="res://scripts/AnimationProfile.gd" id="1_p7iaq"]
+[ext_resource type="Script" uid="uid://dh57busqtv542" path="res://scripts/data/AnimationProfile.gd" id="1_p7iaq"]
 [ext_resource type="Texture2D" uid="uid://cr4ydklnjjkrh" path="res://assets/SC-Lama01.png" id="2_p7iaq"]
 
 [resource]

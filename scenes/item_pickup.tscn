@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://ds64we2akg2ou"]
 
-[ext_resource type="Script" uid="uid://bp8trghtejbio" path="res://scripts/item_pickup.gd" id="1_lgqak"]
+[ext_resource type="Script" uid="uid://bp8trghtejbio" path="res://scripts/item/item_pickup.gd" id="1_lgqak"]
 
 [node name="ItemPickup" type="Node2D" unique_id=1380570859]
 script = ExtResource("1_lgqak")

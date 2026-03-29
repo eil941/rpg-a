@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bji7srxp1ov88"]
 
-[ext_resource type="Script" uid="uid://cqgayefbsqgyp" path="res://scripts/game_hud.gd" id="1_jna2d"]
+[ext_resource type="Script" uid="uid://cqgayefbsqgyp" path="res://scripts/hud/game_hud.gd" id="1_jna2d"]
 
 [node name="GameHUD" type="Control" unique_id=275878376]
 layout_mode = 3

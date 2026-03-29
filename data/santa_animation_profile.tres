@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="AnimationProfile" format=3 uid="uid://d2vbfb7uxelhe"]
 
-[ext_resource type="Script" uid="uid://dh57busqtv542" path="res://scripts/AnimationProfile.gd" id="1_ot88c"]
+[ext_resource type="Script" uid="uid://dh57busqtv542" path="res://scripts/data/AnimationProfile.gd" id="1_ot88c"]
 [ext_resource type="Texture2D" uid="uid://dowhpvsl8mjgp" path="res://assets/SC-Santa01.png" id="2_ot88c"]
 
 [resource]

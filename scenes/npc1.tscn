@@ -3,8 +3,8 @@
 [ext_resource type="Script" uid="uid://nsxuuyuvfqyd" path="res://scripts/core/unit.gd" id="1_c0u8k"]
 [ext_resource type="Texture2D" uid="uid://dpybn5gfi6y7t" path="res://assets/npc.png" id="2_c0u8k"]
 [ext_resource type="Script" uid="uid://b1xneybof8tc7" path="res://scripts/core/stats.gd" id="3_6isdo"]
-[ext_resource type="Script" uid="uid://b8bma5e8pbpvv" path="res://scripts/ai_controller.gd" id="4_ktlip"]
-[ext_resource type="Script" uid="uid://gj4ek5g6ew7q" path="res://scripts/inventory.gd" id="5_ktlip"]
+[ext_resource type="Script" uid="uid://b8bma5e8pbpvv" path="res://scripts/controllers/ai_controller.gd" id="4_ktlip"]
+[ext_resource type="Script" uid="uid://gj4ek5g6ew7q" path="res://scripts/item/inventory.gd" id="5_ktlip"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fs0b5"]
 size = Vector2(30, 30)
