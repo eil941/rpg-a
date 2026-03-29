@@ -16,6 +16,25 @@ extends CharacterBody2D
 @export var unit_id: String = ""
 @export var is_player_unit: bool = false
 @export var map_id: String = ""
+@export var faction: String = "neutral"
+
+@export var animation_profile: AnimationProfile
+
+# unit 個別の微調整
+@export var sprite_offset_adjust: Vector2 = Vector2.ZERO
+
+# 従来方式とも共存
+@export var idle_right_frames: Array[Texture2D] = []
+@export var walk_right_frames: Array[Texture2D] = []
+
+@export var idle_left_frames: Array[Texture2D] = []
+@export var walk_left_frames: Array[Texture2D] = []
+
+@export var idle_down_frames: Array[Texture2D] = []
+@export var walk_down_frames: Array[Texture2D] = []
+
+@export var idle_up_frames: Array[Texture2D] = []
+@export var walk_up_frames: Array[Texture2D] = []
 
 @onready var inventory: Inventory = $Inventory
 @onready var sprite: Sprite2D = $Sprite2D
@@ -49,18 +68,6 @@ enum Facing {
 var facing: int = Facing.DOWN
 var walk_frame_index: int = -1
 
-@export var idle_right_frames: Array[Texture2D] = []
-@export var walk_right_frames: Array[Texture2D] = []
-
-@export var idle_left_frames: Array[Texture2D] = []
-@export var walk_left_frames: Array[Texture2D] = []
-
-@export var idle_down_frames: Array[Texture2D] = []
-@export var walk_down_frames: Array[Texture2D] = []
-
-@export var idle_up_frames: Array[Texture2D] = []
-@export var walk_up_frames: Array[Texture2D] = []
-
 
 func _ready() -> void:
 	print("UNIT READY name=", name)
@@ -80,6 +87,11 @@ func _ready() -> void:
 
 	if controller != null and controller.has_method("setup"):
 		controller.setup(self)
+
+	if animation_profile != null:
+		apply_animation_profile(animation_profile)
+	else:
+		apply_current_sprite_offset_only()
 
 	if enemy_data_to_apply != null:
 		apply_enemy_data(enemy_data_to_apply)
@@ -112,12 +124,6 @@ func _ready() -> void:
 	TimeManager.is_resolving_turn = false
 	set_idle_animation()
 
-	#if is_player_unit and inventory != null:
-	#	if PlayerData.inventory_data.is_empty():
-	#		inventory.add_item("potion", 6)
-	#		inventory.add_item("wood", 5)
-	#		inventory.add_item("apple", 2)
-
 
 func _physics_process(delta: float) -> void:
 	if is_transitioning:
@@ -125,8 +131,6 @@ func _physics_process(delta: float) -> void:
 
 	if is_moving:
 		global_position = global_position.move_toward(target_position, move_speed * delta)
-		
-		#print("FACE : ",get_facing())
 
 		if global_position.distance_to(target_position) < 1.0:
 			global_position = target_position
@@ -180,6 +184,18 @@ func get_current_tile_coords() -> Vector2i:
 func get_current_tile_data():
 	var coords = get_current_tile_coords()
 	return event_layer.get_cell_tile_data(coords)
+
+
+func get_attack_type_id() -> String:
+	return "melee"
+
+
+func get_attack_min_range() -> int:
+	return 1
+
+
+func get_attack_max_range() -> int:
+	return 1
 
 
 func debug_print_current_tile_info() -> void:
@@ -275,14 +291,25 @@ func get_walk_frames_for_facing(face: int) -> Array[Texture2D]:
 
 
 func set_idle_animation() -> void:
+	if sprite == null:
+		return
+
 	var frames = get_idle_frames_for_facing(facing)
 	if frames.is_empty():
 		return
 	sprite.texture = frames[0]
 
 
+func update_facing_only(dir: Vector2) -> void:
+	facing = facing_from_dir(dir)
+	set_idle_animation()
+
+
 func update_walk_animation_for_move(dir: Vector2) -> void:
 	facing = facing_from_dir(dir)
+
+	if sprite == null:
+		return
 
 	var frames = get_walk_frames_for_facing(facing)
 	if frames.is_empty():
@@ -291,6 +318,94 @@ func update_walk_animation_for_move(dir: Vector2) -> void:
 	walk_frame_index += 1
 	walk_frame_index %= frames.size()
 	sprite.texture = frames[walk_frame_index]
+
+
+func build_frame_from_index(sheet: Texture2D, frame_w: int, frame_h: int, index: int) -> Texture2D:
+	if sheet == null:
+		return null
+	if frame_w <= 0 or frame_h <= 0:
+		return null
+
+	var atlas := AtlasTexture.new()
+	atlas.atlas = sheet
+
+	var columns := int(sheet.get_width() / frame_w)
+	if columns <= 0:
+		return null
+
+	var x := index % columns
+	var y := index / columns
+
+	atlas.region = Rect2(
+		x * frame_w,
+		y * frame_h,
+		frame_w,
+		frame_h
+	)
+
+	return atlas
+
+
+func build_frames_from_indices(sheet: Texture2D, frame_w: int, frame_h: int, indices: Array[int]) -> Array[Texture2D]:
+	var result: Array[Texture2D] = []
+
+	for index in indices:
+		var frame := build_frame_from_index(sheet, frame_w, frame_h, index)
+		if frame != null:
+			result.append(frame)
+
+	return result
+
+
+func apply_sprite_offset_from_profile(profile: AnimationProfile) -> void:
+	if sprite == null:
+		return
+
+	if profile == null:
+		sprite.offset = sprite_offset_adjust
+		return
+
+	var auto_offset := Vector2.ZERO
+	var actual_frame_height := profile.get_frame_height()
+
+	if profile.auto_bottom_align:
+		auto_offset.y = -float(actual_frame_height - profile.base_tile_height) / 2.0
+
+	sprite.offset = auto_offset + profile.profile_offset + sprite_offset_adjust
+
+
+func apply_current_sprite_offset_only() -> void:
+	if sprite == null:
+		return
+
+	sprite.offset = sprite_offset_adjust
+
+
+func apply_animation_profile(profile: AnimationProfile) -> void:
+	if profile == null:
+		return
+	if profile.sprite_sheet == null:
+		return
+
+	var sheet = profile.sprite_sheet
+	var fw = profile.get_frame_width()
+	var fh = profile.get_frame_height()
+
+	idle_right_frames = build_frames_from_indices(sheet, fw, fh, profile.idle_right_indices)
+	walk_right_frames = build_frames_from_indices(sheet, fw, fh, profile.walk_right_indices)
+
+	idle_left_frames = build_frames_from_indices(sheet, fw, fh, profile.idle_left_indices)
+	walk_left_frames = build_frames_from_indices(sheet, fw, fh, profile.walk_left_indices)
+
+	idle_down_frames = build_frames_from_indices(sheet, fw, fh, profile.idle_down_indices)
+	walk_down_frames = build_frames_from_indices(sheet, fw, fh, profile.walk_down_indices)
+
+	idle_up_frames = build_frames_from_indices(sheet, fw, fh, profile.idle_up_indices)
+	walk_up_frames = build_frames_from_indices(sheet, fw, fh, profile.walk_up_indices)
+
+	walk_frame_index = -1
+	apply_sprite_offset_from_profile(profile)
+	set_idle_animation()
 
 
 func apply_animation_frames(
@@ -316,13 +431,13 @@ func apply_animation_frames(
 	walk_up_frames = p_walk_up.duplicate()
 
 	walk_frame_index = -1
+	apply_current_sprite_offset_only()
 	set_idle_animation()
 
 
 func try_move(dir: Vector2) -> bool:
-	
 	update_facing_only(dir)
-	
+
 	var next_pos = global_position + dir * tile_size
 	var next_tile = ground_layer.local_to_map(ground_layer.to_local(next_pos))
 
@@ -337,7 +452,6 @@ func try_move(dir: Vector2) -> bool:
 	if target_unit != null:
 		if combat_manager.try_bump_attack(self, target_unit):
 			return true
-		
 		return false
 
 	var space_state = get_world_2d().direct_space_state
@@ -349,8 +463,6 @@ func try_move(dir: Vector2) -> bool:
 	query.collide_with_bodies = true
 
 	var result = space_state.intersect_shape(query)
-	#if not result.is_empty():
-	#	sprint("TRY MOVE collision_result=", result)
 
 	if result.is_empty():
 		update_walk_animation_for_move(dir)
@@ -695,16 +807,19 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 	stats.defense = enemy_data.defense
 	stats.speed = enemy_data.speed
 
-	apply_animation_frames(
-		enemy_data.idle_right_frames,
-		enemy_data.walk_right_frames,
-		enemy_data.idle_left_frames,
-		enemy_data.walk_left_frames,
-		enemy_data.idle_down_frames,
-		enemy_data.walk_down_frames,
-		enemy_data.idle_up_frames,
-		enemy_data.walk_up_frames
-	)
+	if enemy_data.animation_profile != null:
+		apply_animation_profile(enemy_data.animation_profile)
+	else:
+		apply_animation_frames(
+			enemy_data.idle_right_frames,
+			enemy_data.walk_right_frames,
+			enemy_data.idle_left_frames,
+			enemy_data.walk_left_frames,
+			enemy_data.idle_down_frames,
+			enemy_data.walk_down_frames,
+			enemy_data.idle_up_frames,
+			enemy_data.walk_up_frames
+		)
 
 
 func handle_death() -> void:
@@ -731,16 +846,19 @@ func apply_npc_data(npc_data: NpcData) -> void:
 	stats.defense = npc_data.defense
 	stats.speed = npc_data.speed
 
-	apply_animation_frames(
-		npc_data.idle_right_frames,
-		npc_data.walk_right_frames,
-		npc_data.idle_left_frames,
-		npc_data.walk_left_frames,
-		npc_data.idle_down_frames,
-		npc_data.walk_down_frames,
-		npc_data.idle_up_frames,
-		npc_data.walk_up_frames
-	)
+	if npc_data.animation_profile != null:
+		apply_animation_profile(npc_data.animation_profile)
+	else:
+		apply_animation_frames(
+			npc_data.idle_right_frames,
+			npc_data.walk_right_frames,
+			npc_data.idle_left_frames,
+			npc_data.walk_left_frames,
+			npc_data.idle_down_frames,
+			npc_data.walk_down_frames,
+			npc_data.idle_up_frames,
+			npc_data.walk_up_frames
+		)
 
 
 func sync_map_id_from_scene() -> void:
@@ -773,7 +891,7 @@ func create_detail_map_config(generator_type: String, field_tile: Vector2i) -> D
 		"GRASS":
 			config["enemy_spawn_count"] = 5
 			config["npc_spawn_count"] = 3
-			config["enemy_type_ids"] = ["bat", "slime"]
+			config["enemy_type_ids"] = ["bat"]#, "slime"]
 			config["npc_type_ids"] = ["sabo"]
 
 		"FOREST":
@@ -972,10 +1090,3 @@ func try_open_chest_on_current_tile() -> bool:
 		return true
 
 	return false
-	
-func get_facing() -> int:
-	return facing
-	
-func update_facing_only(dir: Vector2) -> void:
-	facing = facing_from_dir(dir)
-	set_idle_animation()

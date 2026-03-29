@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="NpcData" format=3 uid="uid://sponxcnnn0fd"]
+
+[ext_resource type="Resource" uid="uid://d2vbfb7uxelhe" path="res://data/santa_animation_profile.tres" id="1_flbg5"]
+[ext_resource type="Script" uid="uid://bgt8humnn3jqj" path="res://scripts/data/npc_data.gd" id="2_n2gxl"]
+
+[resource]
+script = ExtResource("2_n2gxl")
+npc_type_id = "sabo"
+animation_profile = ExtResource("1_flbg5")
+metadata/_custom_type_script = "uid://bgt8humnn3jqj"

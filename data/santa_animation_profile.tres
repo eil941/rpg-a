@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AnimationProfile" format=3 uid="uid://d2vbfb7uxelhe"]
+
+[ext_resource type="Script" uid="uid://dh57busqtv542" path="res://scripts/AnimationProfile.gd" id="1_ot88c"]
+[ext_resource type="Texture2D" uid="uid://dowhpvsl8mjgp" path="res://assets/SC-Santa01.png" id="2_ot88c"]
+
+[resource]
+script = ExtResource("1_ot88c")
+sprite_sheet = ExtResource("2_ot88c")
+frame_width = 40
+frame_height = 64
+idle_right_indices = Array[int]([8])
+walk_right_indices = Array[int]([9, 11])
+idle_left_indices = Array[int]([4])
+walk_left_indices = Array[int]([5, 7])
+idle_down_indices = Array[int]([0])
+walk_down_indices = Array[int]([1, 3])
+idle_up_indices = Array[int]([12])
+walk_up_indices = Array[int]([13, 15])
+metadata/_custom_type_script = "uid://dh57busqtv542"

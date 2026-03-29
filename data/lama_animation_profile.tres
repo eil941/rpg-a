@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AnimationProfile" format=3 uid="uid://ca8bjch8fppet"]
+
+[ext_resource type="Script" uid="uid://dh57busqtv542" path="res://scripts/AnimationProfile.gd" id="1_p7iaq"]
+[ext_resource type="Texture2D" uid="uid://cr4ydklnjjkrh" path="res://assets/SC-Lama01.png" id="2_p7iaq"]
+
+[resource]
+script = ExtResource("1_p7iaq")
+sprite_sheet = ExtResource("2_p7iaq")
+frame_width = 40
+frame_height = 64
+idle_right_indices = Array[int]([8])
+walk_right_indices = Array[int]([9, 11])
+idle_left_indices = Array[int]([4])
+walk_left_indices = Array[int]([5, 7])
+idle_down_indices = Array[int]([0])
+walk_down_indices = Array[int]([1, 3])
+idle_up_indices = Array[int]([12])
+walk_up_indices = Array[int]([13, 15])
+metadata/_custom_type_script = "uid://dh57busqtv542"

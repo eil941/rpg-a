@@ -10,6 +10,9 @@ var wall_source_id: int
 var floor_atlas_coords: Vector2i
 var wall_atlas_coords: Vector2i
 
+
+
+
 func _init(
 	p_map_width: int,
 	p_map_height: int,

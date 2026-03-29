@@ -11,6 +11,13 @@ const BIOME_SEA := 0
 const BIOME_PLAINS := 1
 const BIOME_MOUNTAIN := 2
 
+const TILE_SEA := 33
+const TILE_SAND := 20
+const TILE_GRASS := 22
+const TILE_FOREST := 17
+const TILE_ROCK := 5
+
+
 var terrain_result: Array = []
 
 func generate_map(
@@ -268,24 +275,24 @@ func generate_map(
 
 			match terrain:
 				TERRAIN_SEA:
-					ground_layer.set_cell(cell, 33, Vector2i(1, 4), 0)
-					event_layer.set_cell(cell, 33, Vector2i(1, 4), 0)
+					ground_layer.set_cell(cell, TILE_SEA, Vector2i(1, 4), 0)
+					event_layer.set_cell(cell, TILE_SEA, Vector2i(1, 4), 0)
 
 				TERRAIN_SAND:
-					ground_layer.set_cell(cell, 20, Vector2i(1, 4), 0)
-					event_layer.set_cell(cell, 20, Vector2i(1, 4), 0)
+					ground_layer.set_cell(cell, TILE_SAND, Vector2i(1, 4), 0)
+					event_layer.set_cell(cell, TILE_SAND, Vector2i(1, 4), 0)
 					
 				TERRAIN_GRASS:
-					ground_layer.set_cell(cell, 22, Vector2i(1, 4), 0)
-					event_layer.set_cell(cell, 22, Vector2i(1, 4), 0)
+					ground_layer.set_cell(cell, TILE_GRASS, Vector2i(1, 4), 0)
+					event_layer.set_cell(cell, TILE_GRASS, Vector2i(1, 4), 0)
 					
 				TERRAIN_FOREST:
-					ground_layer.set_cell(cell, 17, Vector2i(1, 4), 0)
-					event_layer.set_cell(cell, 17, Vector2i(1, 4), 0)
+					ground_layer.set_cell(cell, TILE_FOREST, Vector2i(1, 4), 0)
+					event_layer.set_cell(cell, TILE_FOREST, Vector2i(1, 4), 0)
 
 				TERRAIN_ROCK:
-					ground_layer.set_cell(cell, 6, Vector2i(1, 4), 0)
-					wall_layer.set_cell(cell, 5, Vector2i(0, 0), 0)
+					ground_layer.set_cell(cell, TILE_ROCK, Vector2i(1, 4), 0)
+					wall_layer.set_cell(cell, TILE_ROCK, Vector2i(0, 0), 0)
 
 	# =========================
 	# 外周にWallを付ける

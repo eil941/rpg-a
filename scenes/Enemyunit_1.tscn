@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://nsxuuyuvfqyd" path="res://scripts/core/unit.gd" id="1_j1e6r"]
 [ext_resource type="Texture2D" uid="uid://b0v3y154dsf23" path="res://assets/enemy.png" id="2_s7nbo"]
 [ext_resource type="Script" uid="uid://b1xneybof8tc7" path="res://scripts/core/stats.gd" id="3_xdelc"]
-[ext_resource type="Script" uid="uid://c0kxoaa0k4v65" path="res://scripts/core/enemy_controller.gd" id="4_j1e6r"]
+[ext_resource type="Script" uid="uid://b8bma5e8pbpvv" path="res://scripts/ai_controller.gd" id="4_ehtk4"]
 [ext_resource type="Script" uid="uid://gj4ek5g6ew7q" path="res://scripts/inventory.gd" id="5_ehtk4"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ruro2"]
@@ -12,6 +12,7 @@ size = Vector2(30, 30)
 [node name="Unit" type="CharacterBody2D" unique_id=40692456]
 script = ExtResource("1_j1e6r")
 is_enemy = true
+faction = "enemy"
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=427796898]
 texture = ExtResource("2_s7nbo")
@@ -23,7 +24,7 @@ shape = SubResource("RectangleShape2D_ruro2")
 script = ExtResource("3_xdelc")
 
 [node name="Controller" type="Node" parent="." unique_id=498416143]
-script = ExtResource("4_j1e6r")
+script = ExtResource("4_ehtk4")
 
 [node name="Inventory" type="Node" parent="." unique_id=391474538]
 script = ExtResource("5_ehtk4")

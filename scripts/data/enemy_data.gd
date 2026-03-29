@@ -8,6 +8,8 @@ class_name EnemyData
 @export var defense: int = 0
 @export var speed: float = 120.0
 
+@export var animation_profile: AnimationProfile
+
 @export var idle_right_frames: Array[Texture2D] = []
 @export var walk_right_frames: Array[Texture2D] = []
 

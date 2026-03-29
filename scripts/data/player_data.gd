@@ -1,8 +1,8 @@
 extends Node
 
 var max_hp: int = 20
-var hp: int = 20
-var attack: int = 5
+var hp: int = 2000
+var attack: int = 1
 var defense: int = 2
 var speed: float = 120.0
 

@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://sq1on05oxw1q"]
+
+[ext_resource type="Resource" uid="uid://ca8bjch8fppet" path="res://data/lama_animation_profile.tres" id="1_ex81s"]
+[ext_resource type="Texture2D" uid="uid://dkvllwbkdf2tx" path="res://assets/slime.png" id="2_majvy"]
+[ext_resource type="Script" uid="uid://dnv8aysj2gsac" path="res://scripts/data/enemy_data.gd" id="3_prihv"]
+[ext_resource type="Texture2D" uid="uid://bpqm8jdgcdw81" path="res://assets/slime_back_1.png" id="4_12df5"]
+[ext_resource type="Texture2D" uid="uid://bj4jp4lwoc1y" path="res://assets/slime_back_2.png" id="5_43wv8"]
+[ext_resource type="Texture2D" uid="uid://bj1gtr2kqtvcj" path="res://assets/slime_left_1.png" id="6_wyuac"]
+[ext_resource type="Texture2D" uid="uid://ytc6wwuh6evv" path="res://assets/slime_left_2.png" id="7_76v00"]
+[ext_resource type="Texture2D" uid="uid://bxaqw5nhulmt3" path="res://assets/slime_right_1.png" id="8_lwfxj"]
+[ext_resource type="Texture2D" uid="uid://cp0dijpogmwy4" path="res://assets/slime_right_2.png" id="9_ojo7h"]
+[ext_resource type="Texture2D" uid="uid://bjyyyq70plx24" path="res://assets/slime_front_1.png" id="10_h833t"]
+[ext_resource type="Texture2D" uid="uid://c042sgpnwdue7" path="res://assets/slime_front_2.png" id="11_op1ff"]
+
+[resource]
+script = ExtResource("3_prihv")
+enemy_type_id = "slime"
+enemy_name = "slime"
+attack = 3
+defense = 1
+speed = 100.0
+animation_profile = ExtResource("1_ex81s")
+idle_right_frames = Array[Texture2D]([ExtResource("2_majvy")])
+walk_right_frames = Array[Texture2D]([ExtResource("8_lwfxj"), ExtResource("9_ojo7h")])
+idle_left_frames = Array[Texture2D]([ExtResource("2_majvy")])
+walk_left_frames = Array[Texture2D]([ExtResource("6_wyuac"), ExtResource("7_76v00")])
+idle_down_frames = Array[Texture2D]([ExtResource("2_majvy")])
+walk_down_frames = Array[Texture2D]([ExtResource("4_12df5"), ExtResource("5_43wv8")])
+idle_up_frames = Array[Texture2D]([ExtResource("2_majvy")])
+walk_up_frames = Array[Texture2D]([ExtResource("10_h833t"), ExtResource("11_op1ff")])
+metadata/_custom_type_script = "uid://dnv8aysj2gsac"

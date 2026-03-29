@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://bx0ysoc4wt0rf"]
+
+[ext_resource type="Resource" uid="uid://d214rjm1ejybn" path="res://data/owl_animation_profile.tres" id="1_4gq8q"]
+[ext_resource type="Texture2D" uid="uid://beq3x3etje1lv" path="res://assets/bat.png" id="2_rlxby"]
+[ext_resource type="Script" uid="uid://dnv8aysj2gsac" path="res://scripts/data/enemy_data.gd" id="3_kdhrl"]
+[ext_resource type="Texture2D" uid="uid://bhcrrex7womxr" path="res://assets/bat_back_1.png" id="4_lrolu"]
+[ext_resource type="Texture2D" uid="uid://fn6twn6i2gx5" path="res://assets/bat_back_2.png" id="5_ra4o2"]
+[ext_resource type="Texture2D" uid="uid://h113kmtxmot" path="res://assets/bat_left_1.png" id="6_b0fuw"]
+[ext_resource type="Texture2D" uid="uid://vepgycco3ko1" path="res://assets/bat_left_2.png" id="7_d3ibj"]
+[ext_resource type="Texture2D" uid="uid://bs84lnwdcy3jx" path="res://assets/bat_right_1.png" id="8_ey43s"]
+[ext_resource type="Texture2D" uid="uid://bxlcg5n2ul0qa" path="res://assets/bat_right_2.png" id="9_rdqu4"]
+
+[resource]
+script = ExtResource("3_kdhrl")
+enemy_type_id = "bat"
+enemy_name = "bat"
+max_hp = 8
+attack = 2
+speed = 180.0
+animation_profile = ExtResource("1_4gq8q")
+idle_right_frames = Array[Texture2D]([ExtResource("2_rlxby")])
+walk_right_frames = Array[Texture2D]([ExtResource("8_ey43s"), ExtResource("9_rdqu4")])
+idle_left_frames = Array[Texture2D]([ExtResource("2_rlxby")])
+walk_left_frames = Array[Texture2D]([ExtResource("6_b0fuw"), ExtResource("7_d3ibj")])
+idle_down_frames = Array[Texture2D]([ExtResource("2_rlxby")])
+walk_down_frames = Array[Texture2D]([ExtResource("4_lrolu"), ExtResource("5_ra4o2")])
+idle_up_frames = Array[Texture2D]([ExtResource("2_rlxby")])
+walk_up_frames = Array[Texture2D]([ExtResource("2_rlxby"), ExtResource("2_rlxby")])
+metadata/_custom_type_script = "uid://dnv8aysj2gsac"

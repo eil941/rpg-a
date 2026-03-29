@@ -15,7 +15,7 @@ static func apply_item_effect(owner_unit, item_id: String) -> bool:
 	match effect_type:
 		"heal_hp":
 			if owner_unit != null and owner_unit.stats != null:
-				owner_unit.stats.hp = min(owner_unit.stats.max_hp, owner_unit.stats.hp - effect_value)
+				owner_unit.stats.hp = min(owner_unit.stats.max_hp, owner_unit.stats.hp + effect_value)
 
 			if owner_unit != null and owner_unit.has_method("notify_hud_log"):
 				owner_unit.notify_hud_log("%sを使用した" % item_name)
