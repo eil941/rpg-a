@@ -7,7 +7,8 @@ func try_bump_attack(attacker, target) -> bool:
 	if not attacker.can_bump_attack:
 		return false
 
-	if not target.is_enemy:
+	# 旧 is_enemy 判定は使わず、現在の敵対判定に統一
+	if not can_attack(attacker, target):
 		return false
 
 	var result = DamageCalculator.calculate_damage(attacker, target)
@@ -18,8 +19,8 @@ func try_bump_attack(attacker, target) -> bool:
 		return false
 
 	var damage = int(result["final_damage"])
-	if damage <= 0:
-		return false
+	if damage < 1:
+		damage = 1
 
 	target.stats.take_damage(damage)
 

@@ -17,15 +17,19 @@ func get_unit_on_tile(units_node: Node, tile: Vector2i, self_unit):
 
 	return null
 
+
 func is_hostile(unit_a, unit_b) -> bool:
 	if unit_a == null or unit_b == null:
 		return false
 	if unit_a == unit_b:
 		return false
-	return unit_a.faction != unit_b.faction
+
+	return FactionManager.are_units_hostile(unit_a, unit_b)
+
 
 func get_distance_between_tiles(a: Vector2i, b: Vector2i) -> int:
 	return abs(a.x - b.x) + abs(a.y - b.y)
+
 
 func get_distance_between_units(unit_a, unit_b) -> int:
 	if unit_a == null or unit_b == null:
@@ -34,7 +38,7 @@ func get_distance_between_units(unit_a, unit_b) -> int:
 		unit_a.get_occupied_tile_coords(),
 		unit_b.get_occupied_tile_coords()
 	)
-	
+
 
 func get_nearest_hostile_unit(units_node: Node, self_unit, max_range: int):
 	if units_node == null or self_unit == null:

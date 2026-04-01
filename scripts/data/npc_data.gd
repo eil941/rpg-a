@@ -1,9 +1,29 @@
 extends Resource
 class_name NpcData
 
+enum AICombatStyle {
+	AUTO,
+	MELEE,
+	MID,
+	LONG,
+	SUPPORTER,
+	HIT_AND_RUN,
+	DEFENSIVE
+}
+
+enum AIMoveStyle {
+	AUTO,
+	APPROACH,
+	KEEP_DISTANCE,
+	FLEE,
+	HOLD
+}
+
 @export var npc_name: String = "no_name"
 @export var npc_type_id: String = "no_id"
 
+@export_enum("PLAYER", "NPC", "ENEMY")
+var faction: String = "NPC"
 
 @export var max_hp: int = 20
 @export var attack: int = 5
@@ -14,6 +34,15 @@ class_name NpcData
 @export var equipped_armor: EquipmentData
 @export var equipped_accessory: EquipmentData
 
+# NPC個体ごとのAI override
+# NPC はデフォルトで逃走移動
+@export var override_combat_style: bool = false
+@export_enum("AUTO", "MELEE", "MID", "LONG", "SUPPORTER", "HIT_AND_RUN", "DEFENSIVE")
+var combat_style: int = AICombatStyle.AUTO
+
+@export var override_move_style: bool = true
+@export_enum("AUTO", "APPROACH", "KEEP_DISTANCE", "FLEE", "HOLD")
+var move_style: int = AIMoveStyle.FLEE
 
 @export var animation_profile: AnimationProfile
 

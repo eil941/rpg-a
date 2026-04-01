@@ -11,8 +11,7 @@ size = Vector2(30, 30)
 
 [node name="Unit" type="CharacterBody2D" unique_id=40692456]
 script = ExtResource("1_j1e6r")
-is_enemy = true
-faction = "enemy"
+faction = "ENEMY"
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=427796898]
 texture = ExtResource("2_s7nbo")

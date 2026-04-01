@@ -16,7 +16,7 @@ extends CharacterBody2D
 @export var unit_id: String = ""
 @export var is_player_unit: bool = false
 @export var map_id: String = ""
-@export var faction: String = "neutral"
+@export var faction: String = "PLAYER"
 
 @export var animation_profile: AnimationProfile
 
@@ -24,6 +24,32 @@ extends CharacterBody2D
 @export var equipped_weapon: EquipmentData
 @export var equipped_armor: EquipmentData
 @export var equipped_accessory: EquipmentData
+
+enum AICombatStyle {
+	AUTO,
+	MELEE,
+	MID,
+	LONG,
+	SUPPORTER,
+	HIT_AND_RUN,
+	DEFENSIVE
+}
+
+enum AIMoveStyle {
+	AUTO,
+	APPROACH,
+	KEEP_DISTANCE,
+	FLEE,
+	HOLD
+}
+
+# unit 側のAI設定
+# 未指定時はすべて近接攻撃型
+@export var override_combat_style: bool = false
+@export var combat_style: int = AICombatStyle.AUTO
+
+@export var override_move_style: bool = false
+@export var move_style: int = AIMoveStyle.AUTO
 
 # unit 個別の微調整
 @export var sprite_offset_adjust: Vector2 = Vector2.ZERO
@@ -105,6 +131,9 @@ func _ready() -> void:
 		apply_npc_data(npc_data_to_apply)
 
 	load_persistent_stats()
+
+	if is_player_unit:
+		faction = "PLAYER"
 
 	if is_player_unit and GlobalPlayerSpawn.has_next_tile:
 		if not PlayerData.map_positions.has(map_id):
@@ -259,6 +288,30 @@ func get_attack_max_range() -> int:
 	if equipped_weapon != null:
 		return equipped_weapon.attack_max_range
 	return 1
+
+
+func get_effective_combat_style() -> int:
+	if override_combat_style and combat_style != AICombatStyle.AUTO:
+		return combat_style
+
+	if equipped_weapon != null:
+		var weapon_combat_style = equipped_weapon.get("combat_style")
+		if weapon_combat_style != null and int(weapon_combat_style) != AICombatStyle.AUTO:
+			return int(weapon_combat_style)
+
+	return AICombatStyle.MELEE
+
+
+func get_effective_move_style() -> int:
+	if override_move_style and move_style != AIMoveStyle.AUTO:
+		return move_style
+
+	if equipped_weapon != null:
+		var weapon_move_style = equipped_weapon.get("move_style")
+		if weapon_move_style != null and int(weapon_move_style) != AIMoveStyle.AUTO:
+			return int(weapon_move_style)
+
+	return AIMoveStyle.APPROACH
 
 
 func debug_print_current_tile_info() -> void:
@@ -864,6 +917,8 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 		return
 
 	name = enemy_data.enemy_name
+	faction = enemy_data.faction.to_upper()
+
 	stats.max_hp = enemy_data.max_hp
 	stats.hp = enemy_data.max_hp
 	stats.attack = enemy_data.attack
@@ -873,6 +928,11 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 	equipped_weapon = enemy_data.equipped_weapon
 	equipped_armor = enemy_data.equipped_armor
 	equipped_accessory = enemy_data.equipped_accessory
+
+	override_combat_style = enemy_data.override_combat_style
+	combat_style = enemy_data.combat_style
+	override_move_style = enemy_data.override_move_style
+	move_style = enemy_data.move_style
 
 	if enemy_data.animation_profile != null:
 		apply_animation_profile(enemy_data.animation_profile)
@@ -907,6 +967,8 @@ func apply_npc_data(npc_data: NpcData) -> void:
 		return
 
 	name = npc_data.npc_name
+	faction = npc_data.faction.to_upper()
+
 	stats.max_hp = npc_data.max_hp
 	stats.hp = npc_data.max_hp
 	stats.attack = npc_data.attack
@@ -916,6 +978,11 @@ func apply_npc_data(npc_data: NpcData) -> void:
 	equipped_weapon = npc_data.equipped_weapon
 	equipped_armor = npc_data.equipped_armor
 	equipped_accessory = npc_data.equipped_accessory
+
+	override_combat_style = npc_data.override_combat_style
+	combat_style = npc_data.combat_style
+	override_move_style = npc_data.override_move_style
+	move_style = npc_data.move_style
 
 	if npc_data.animation_profile != null:
 		apply_animation_profile(npc_data.animation_profile)
