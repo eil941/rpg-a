@@ -10,21 +10,27 @@ func try_bump_attack(attacker, target) -> bool:
 	if not target.is_enemy:
 		return false
 
-	var damage = DamageCalculator.calculate_damage(attacker, target)
+	var result = DamageCalculator.calculate_damage(attacker, target)
+
+	if not result["hit"]:
+		_log_attack_message(attacker, target, "%s の攻撃は %s に回避された" % [attacker.name, target.name])
+		_refresh_hud_status(attacker, target)
+		return false
+
+	var damage = int(result["final_damage"])
 	if damage <= 0:
 		return false
 
 	target.stats.take_damage(damage)
+
+	if result["is_critical"]:
+		_log_attack_message(attacker, target, "%s の攻撃！ %s に %d ダメージ（クリティカル）" % [attacker.name, target.name, damage])
+	else:
+		_log_attack_message(attacker, target, "%s の攻撃！ %s に %d ダメージ" % [attacker.name, target.name, damage])
+
 	print("攻撃ダメージ: ", damage)
 
-	target.notify_hud_log("%s に %d ダメージ" % [target.name, damage])
-
-	if attacker != null and attacker.is_player_unit:
-		attacker.notify_hud_player_status_refresh()
-
-	if target != null and target.is_player_unit:
-		target.notify_hud_player_status_refresh()
-
+	_refresh_hud_status(attacker, target)
 	return true
 
 
@@ -54,23 +60,45 @@ func can_attack(attacker, target) -> bool:
 
 	return true
 
+
 func perform_attack(attacker, target) -> bool:
 	if not can_attack(attacker, target):
 		return false
 
-	var damage = DamageCalculator.calculate_damage(attacker, target)
+	var result = DamageCalculator.calculate_damage(attacker, target)
+
+	if not result["hit"]:
+		_log_attack_message(attacker, target, "%s の攻撃は %s に回避された" % [attacker.name, target.name])
+		_refresh_hud_status(attacker, target)
+		return false
+
+	var damage = int(result["final_damage"])
 	if damage < 1:
 		damage = 1
 
 	target.stats.take_damage(damage)
 
-	if attacker.has_method("notify_hud_log"):
-		attacker.notify_hud_log("%s に %d ダメージ" % [target.name, damage])
+	if result["is_critical"]:
+		_log_attack_message(attacker, target, "%s の攻撃！ %s に %d ダメージ（クリティカル）" % [attacker.name, target.name, damage])
+	else:
+		_log_attack_message(attacker, target, "%s の攻撃！ %s に %d ダメージ" % [attacker.name, target.name, damage])
 
-	if attacker.is_player_unit:
+	_refresh_hud_status(attacker, target)
+	return true
+
+
+func _log_attack_message(attacker, target, message: String) -> void:
+	if attacker != null and attacker.has_method("notify_hud_log"):
+		attacker.notify_hud_log(message)
+		return
+
+	if target != null and target.has_method("notify_hud_log"):
+		target.notify_hud_log(message)
+
+
+func _refresh_hud_status(attacker, target) -> void:
+	if attacker != null and attacker.is_player_unit:
 		attacker.notify_hud_player_status_refresh()
 
-	if target.is_player_unit:
+	if target != null and target.is_player_unit:
 		target.notify_hud_player_status_refresh()
-
-	return true

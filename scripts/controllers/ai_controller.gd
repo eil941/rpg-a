@@ -43,9 +43,9 @@ func take_turn() -> void:
 	var target = Targeting.get_nearest_hostile_unit(units_node, unit, detection_range)
 
 	if target == null:
-		#do_idle_behavior()
+		do_idle_behavior()
 		#ターゲットが近くにいない時は停止
-		unit.wait_action()
+		#unit.wait_action()
 		consume_pending_action()
 		return
 
