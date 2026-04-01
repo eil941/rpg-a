@@ -11,14 +11,21 @@ func _ready() -> void:
 
 
 func initialize_empty_slots() -> void:
-	if not items.is_empty():
-		return
+	items.clear()
 
 	for i in range(max_slots):
-		items.append({
-			"item_id": "",
-			"amount": 0
-		})
+		items.append(_make_empty_slot())
+
+
+func _make_empty_slot() -> Dictionary:
+	return {
+		"item_id": "",
+		"amount": 0
+	}
+
+
+func is_valid_index(index: int) -> bool:
+	return index >= 0 and index < items.size()
 
 
 func add_item(item_id: String, amount: int = 1) -> bool:
@@ -88,10 +95,7 @@ func remove_item(item_id: String, amount: int = 1) -> bool:
 		remaining -= removable
 
 		if current_amount <= 0:
-			items[i] = {
-				"item_id": "",
-				"amount": 0
-			}
+			items[i] = _make_empty_slot()
 		else:
 			entry["amount"] = current_amount
 			items[i] = entry
@@ -145,14 +149,13 @@ func get_all_items() -> Array[Dictionary]:
 
 
 func get_item_data_at(index: int) -> Dictionary:
-	if index < 0 or index >= items.size():
+	if not is_valid_index(index):
 		return {}
 
 	return items[index].duplicate(true)
 
 
 func clear_inventory() -> void:
-	items.clear()
 	initialize_empty_slots()
 
 
@@ -175,13 +178,7 @@ func save_inventory_data() -> Array:
 
 
 func load_inventory_data(data: Array) -> void:
-	items.clear()
-
-	for i in range(max_slots):
-		items.append({
-			"item_id": "",
-			"amount": 0
-		})
+	initialize_empty_slots()
 
 	for i in range(min(data.size(), max_slots)):
 		var entry = data[i]
@@ -201,7 +198,7 @@ func load_inventory_data(data: Array) -> void:
 
 
 func use_item_at(index: int) -> Dictionary:
-	if index < 0 or index >= items.size():
+	if not is_valid_index(index):
 		return {
 			"success": false,
 			"item_id": "",
@@ -219,6 +216,13 @@ func use_item_at(index: int) -> Dictionary:
 			"message": "空スロット"
 		}
 
+	if not ItemDatabase.is_usable(item_id):
+		return {
+			"success": false,
+			"item_id": item_id,
+			"message": "このアイテムは使用できない"
+		}
+
 	var owner_unit = get_parent()
 
 	if not ItemEffectManager.apply_item_effect(owner_unit, item_id):
@@ -231,10 +235,7 @@ func use_item_at(index: int) -> Dictionary:
 	amount -= 1
 
 	if amount <= 0:
-		items[index] = {
-			"item_id": "",
-			"amount": 0
-		}
+		items[index] = _make_empty_slot()
 	else:
 		entry["amount"] = amount
 		items[index] = entry

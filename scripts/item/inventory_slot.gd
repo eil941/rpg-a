@@ -1,11 +1,11 @@
 extends PanelContainer
 
-@onready var icon: TextureRect = $MarginContainer/Control/Icon
-@onready var amount_label: Label = $MarginContainer/Control/AmountLabel
-@onready var select_frame: ColorRect = $MarginContainer/Control/SelectFrame
+@onready var icon = $SlotRoot/Icon
+@onready var amount_label = $SlotRoot/AmountLabel
+@onready var select_frame = $SlotRoot/SelectFrame
 
-var item_id: String = ""
-var amount: int = 0
+var item_id = ""
+var amount = 0
 
 
 func set_slot_data(p_item_id: String, p_amount: int, texture: Texture2D = null) -> void:
@@ -14,11 +14,17 @@ func set_slot_data(p_item_id: String, p_amount: int, texture: Texture2D = null) 
 
 	if item_id == "" or amount <= 0:
 		icon.texture = null
+		icon.visible = false
 		amount_label.text = ""
 		return
 
+	icon.visible = true
 	icon.texture = texture
-	amount_label.text = "x%d" % amount
+
+	if amount > 1:
+		amount_label.text = "x%d" % amount
+	else:
+		amount_label.text = ""
 
 
 func set_selected(value: bool) -> void:

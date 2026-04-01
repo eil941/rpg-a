@@ -39,3 +39,4 @@ script = ExtResource("4_gic7v")
 
 [node name="Inventory" type="Node" parent="." unique_id=875404354]
 script = ExtResource("5_tb304")
+max_slots = null
