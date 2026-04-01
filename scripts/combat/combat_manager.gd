@@ -1,5 +1,57 @@
 extends Node
 
+
+
+func uses_forward_line_targeting(attacker) -> bool:
+	if attacker == null:
+		return false
+
+	return attacker.get_attack_max_range() > 1
+
+
+func is_target_in_attack_range(attacker, target) -> bool:
+	if attacker == null or target == null:
+		return false
+
+	var dist = Targeting.get_distance_between_units(attacker, target)
+	return dist >= attacker.get_attack_min_range() and dist <= attacker.get_attack_max_range()
+
+
+func is_target_in_forward_line(attacker, target) -> bool:
+	if attacker == null or target == null:
+		return false
+
+	var candidates = Targeting.get_hostile_units_in_forward_line(attacker.units_node, attacker)
+	return candidates.has(target)
+
+
+func get_attackable_targets(attacker) -> Array:
+	var result: Array = []
+
+	if attacker == null:
+		return result
+	if attacker.units_node == null:
+		return result
+
+	if uses_forward_line_targeting(attacker):
+		return Targeting.get_hostile_units_in_forward_line(attacker.units_node, attacker)
+
+	return Targeting.get_hostile_units_in_attack_range(attacker.units_node, attacker)
+
+
+func get_best_attack_target(attacker):
+	if attacker == null:
+		return null
+	if attacker.units_node == null:
+		return null
+
+	if uses_forward_line_targeting(attacker):
+		return Targeting.get_best_forward_line_hostile_target(attacker.units_node, attacker)
+
+	var candidates = Targeting.get_hostile_units_in_attack_range(attacker.units_node, attacker)
+	return Targeting.get_nearest_to_player(candidates, attacker.units_node)
+
+
 func try_bump_attack(attacker, target) -> bool:
 	if attacker == null or target == null:
 		return false
@@ -7,7 +59,6 @@ func try_bump_attack(attacker, target) -> bool:
 	if not attacker.can_bump_attack:
 		return false
 
-	# 旧 is_enemy 判定は使わず、現在の敵対判定に統一
 	if not can_attack(attacker, target):
 		return false
 
@@ -35,14 +86,6 @@ func try_bump_attack(attacker, target) -> bool:
 	return true
 
 
-func is_target_in_attack_range(attacker, target) -> bool:
-	if attacker == null or target == null:
-		return false
-
-	var dist = Targeting.get_distance_between_units(attacker, target)
-	return dist >= attacker.get_attack_min_range() and dist <= attacker.get_attack_max_range()
-
-
 func can_attack(attacker, target) -> bool:
 	if attacker == null or target == null:
 		return false
@@ -59,12 +102,34 @@ func can_attack(attacker, target) -> bool:
 	if not is_target_in_attack_range(attacker, target):
 		return false
 
+	if uses_forward_line_targeting(attacker):
+		if not is_target_in_forward_line(attacker, target):
+			return false
+
 	return true
 
 
 func perform_attack(attacker, target) -> bool:
 	if not can_attack(attacker, target):
 		return false
+
+	# 近接だけ向きを合わせる
+	if not uses_forward_line_targeting(attacker):
+		if attacker.has_method("update_facing_only"):
+			var my_tile = attacker.get_current_tile_coords()
+			var target_tile = target.get_current_tile_coords()
+			var diff = target_tile - my_tile
+
+			if abs(diff.x) > abs(diff.y):
+				if diff.x > 0:
+					attacker.update_facing_only(Vector2.RIGHT)
+				elif diff.x < 0:
+					attacker.update_facing_only(Vector2.LEFT)
+			else:
+				if diff.y > 0:
+					attacker.update_facing_only(Vector2.DOWN)
+				elif diff.y < 0:
+					attacker.update_facing_only(Vector2.UP)
 
 	var result = DamageCalculator.calculate_damage(attacker, target)
 

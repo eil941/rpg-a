@@ -25,5 +25,4 @@ tile_set = ExtResource("2_bbcss")
 [node name="Units" type="Node" parent="." unique_id=332583731]
 
 [node name="Unit" parent="Units" unique_id=40692456 instance=ExtResource("11_qok4n")]
-start_tile = Vector2i(10, 10)
-unit_id = "player"
+instant_move = true

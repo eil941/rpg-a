@@ -1,267 +1,330 @@
 extends BaseMapGenerator
 class_name PlainMapGenerator
 
-const TERRAIN_SEA := 0
-const TERRAIN_SAND := 1
-const TERRAIN_GRASS := 2
-const TERRAIN_FOREST := 3
-const TERRAIN_ROCK := 4
+const TERRAIN_SEA: int = 0
+const TERRAIN_SAND: int = 1
+const TERRAIN_GRASS: int = 2
+const TERRAIN_FOREST: int = 3
+const TERRAIN_ROCK: int = 4
+const TERRAIN_LAKE: int = 5
 
-const BIOME_SEA := 0
-const BIOME_PLAINS := 1
-const BIOME_MOUNTAIN := 2
+const BIOME_OCEAN: int = 0
+const BIOME_COAST: int = 1
+const BIOME_PLAINS: int = 2
+const BIOME_FOREST: int = 3
+const BIOME_DESERT: int = 4
+const BIOME_HIGHLAND: int = 5
+const BIOME_MOUNTAIN: int = 6
+const BIOME_LAKE: int = 7
+const BIOME_DRY_PLAINS: int = 8
 
-const TILE_SEA := 33
-const TILE_SAND := 20
-const TILE_GRASS := 22
-const TILE_FOREST := 17
-const TILE_ROCK := 5
+const TILE_SEA: int = 33
+const TILE_SAND: int = 20
+const TILE_GRASS: int = 22
+const TILE_FOREST: int = 17
+const TILE_ROCK: int = 5
+const TILE_LAKE: int = 33
 
+const GROUND_ATLAS_COORDS: Vector2i = Vector2i(1, 4)
+const DRY_PLAINS_ATLAS_COORDS: Vector2i = Vector2i(1, 3)
+const HIGHLAND_ATLAS_COORDS: Vector2i = Vector2i(1, 2)
+const MOUNTAIN_ATLAS_COORDS: Vector2i = Vector2i(1, 1)
+const LAKE_ATLAS_COORDS: Vector2i = Vector2i(1, 0)
+
+const ROCK_WALL_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
+
+const BORDER_WALL_SOURCE_ID: int = 5
+const BORDER_WALL_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
 
 var terrain_result: Array = []
+var biome_result: Array = []
+var world_seed: int = 0
+
+func _init(
+	p_map_width: int,
+	p_map_height: int,
+	p_floor_source_id: int,
+	p_wall_source_id: int,
+	p_floor_atlas_coords: Vector2i,
+	p_wall_atlas_coords: Vector2i,
+	p_world_seed: int = 0
+) -> void:
+	super(
+		p_map_width,
+		p_map_height,
+		p_floor_source_id,
+		p_wall_source_id,
+		p_floor_atlas_coords,
+		p_wall_atlas_coords
+	)
+	world_seed = p_world_seed
+
 
 func generate_map(
 	ground_layer: TileMapLayer,
 	wall_layer: TileMapLayer,
 	event_layer: TileMapLayer
 ) -> void:
-	# =========================
-	# タイル定義
-	# 必要に応じて外部から差し替えてください
-	# =========================
-	var SEA_SOURCE_ID := 0
-	var BEACH_SOURCE_ID := 1
-	var GRASS_SOURCE_ID := 2
-	var FOREST_SOURCE_ID := 3
-	var MOUNTAIN_SOURCE_ID := 4
-
-	var SEA_ATLAS_COORDS := Vector2i(0, 0)
-	var BEACH_ATLAS_COORDS := Vector2i(1, 0)
-	var GRASS_ATLAS_COORDS := Vector2i(2, 0)
-	var FOREST_ATLAS_COORDS := Vector2i(3, 0)
-	var MOUNTAIN_ATLAS_COORDS := Vector2i(4, 0)
-
-	# 外周用Wall
-	var BORDER_WALL_SOURCE_ID := 5
-	var BORDER_WALL_ATLAS_COORDS := Vector2i(0, 0)
-
-	# =========================
-	# 前半の旧ロジック
-	# 今は実際の最終結果には使っていない
-	# =========================
-	var biome_map: Array = []
-	for y in range(map_height):
-		biome_map.append([])
-		for x in range(map_width):
-			biome_map[y].append("grass")
-
-	for y in range(map_height):
-		var coast_x := 2 + randi() % 3
-		for x in range(coast_x):
-			biome_map[y][x] = "sea"
-
-	for y in range(map_height):
-		for x in range(map_width):
-			if biome_map[y][x] == "sea":
-				continue
-
-			var cell := Vector2i(x, y)
-			if _is_adjacent_to_biome(cell, biome_map, "sea"):
-				biome_map[y][x] = "beach"
-
-	for y in range(map_height):
-		for x in range(map_width):
-			if biome_map[y][x] != "grass":
-				continue
-
-			var sea_distance := _distance_from_left_sea(x, biome_map, y)
-			if sea_distance >= 4:
-				if randf() < 0.18:
-					biome_map[y][x] = "forest"
-
-	for y in range(map_height):
-		for x in range(map_width):
-			if biome_map[y][x] != "grass":
-				continue
-
-			var cell := Vector2i(x, y)
-			var sea_distance := _distance_from_left_sea(x, biome_map, y)
-
-			if sea_distance >= 4 and _count_adjacent_biome(cell, biome_map, "forest") >= 2:
-				if randf() < 0.55:
-					biome_map[y][x] = "forest"
-
-	for y in range(map_height):
-		for x in range(map_width):
-			if biome_map[y][x] != "grass" and biome_map[y][x] != "forest":
-				continue
-
-			var sea_distance := _distance_from_left_sea(x, biome_map, y)
-			if sea_distance < 7:
-				continue
-
-			var cell := Vector2i(x, y)
-			var forest_neighbors := _count_adjacent_biome(cell, biome_map, "forest")
-
-			if forest_neighbors >= 2 and randf() < 0.22:
-				biome_map[y][x] = "mountain"
-
-	for y in range(map_height):
-		for x in range(map_width):
-			if biome_map[y][x] != "grass" and biome_map[y][x] != "forest":
-				continue
-
-			var sea_distance := _distance_from_left_sea(x, biome_map, y)
-			if sea_distance < 7:
-				continue
-
-			var cell := Vector2i(x, y)
-			if _count_adjacent_biome(cell, biome_map, "mountain") >= 2:
-				if randf() < 0.45:
-					biome_map[y][x] = "mountain"
-
-	for y in range(map_height):
-		for x in range(map_width):
-			var cell := Vector2i(x, y)
-
-			match biome_map[y][x]:
-				"sea":
-					ground_layer.set_cell(cell, SEA_SOURCE_ID, SEA_ATLAS_COORDS, 0)
-				"beach":
-					ground_layer.set_cell(cell, BEACH_SOURCE_ID, BEACH_ATLAS_COORDS, 0)
-				"grass":
-					ground_layer.set_cell(cell, GRASS_SOURCE_ID, GRASS_ATLAS_COORDS, 0)
-				"forest":
-					ground_layer.set_cell(cell, FOREST_SOURCE_ID, FOREST_ATLAS_COORDS, 0)
-				"mountain":
-					ground_layer.set_cell(cell, MOUNTAIN_SOURCE_ID, MOUNTAIN_ATLAS_COORDS, 0)
-
-	# =========================
-	# 実際に使っている後半ロジック
-	# =========================
 	var terrain_data: Array = []
+	var biome_data: Array = []
 
-	var biome_noise := FastNoiseLite.new()
-	biome_noise.seed = randi()
-	biome_noise.frequency = 0.018
-	biome_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
+	var continental_noise_a: FastNoiseLite = FastNoiseLite.new()
+	continental_noise_a.seed = world_seed + 11
+	continental_noise_a.frequency = 0.0075
+	continental_noise_a.noise_type = FastNoiseLite.TYPE_SIMPLEX
 
-	var detail_noise := FastNoiseLite.new()
-	detail_noise.seed = randi() + 1000
-	detail_noise.frequency = 0.08
+	var continental_noise_b: FastNoiseLite = FastNoiseLite.new()
+	continental_noise_b.seed = world_seed + 19
+	continental_noise_b.frequency = 0.014
+	continental_noise_b.noise_type = FastNoiseLite.TYPE_SIMPLEX
+
+	var continental_noise_c: FastNoiseLite = FastNoiseLite.new()
+	continental_noise_c.seed = world_seed + 29
+	continental_noise_c.frequency = 0.028
+	continental_noise_c.noise_type = FastNoiseLite.TYPE_SIMPLEX
+
+	var split_noise: FastNoiseLite = FastNoiseLite.new()
+	split_noise.seed = world_seed + 37
+	split_noise.frequency = 0.010
+	split_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
+
+	var temperature_noise: FastNoiseLite = FastNoiseLite.new()
+	temperature_noise.seed = world_seed + 43
+	temperature_noise.frequency = 0.004
+	temperature_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
+
+	var humidity_noise: FastNoiseLite = FastNoiseLite.new()
+	humidity_noise.seed = world_seed + 57
+	humidity_noise.frequency = 0.004
+	humidity_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
+
+	var mountain_noise_a: FastNoiseLite = FastNoiseLite.new()
+	mountain_noise_a.seed = world_seed + 71
+	mountain_noise_a.frequency = 0.008
+	mountain_noise_a.noise_type = FastNoiseLite.TYPE_SIMPLEX
+
+	var mountain_noise_b: FastNoiseLite = FastNoiseLite.new()
+	mountain_noise_b.seed = world_seed + 79
+	mountain_noise_b.frequency = 0.018
+	mountain_noise_b.noise_type = FastNoiseLite.TYPE_SIMPLEX
+
+	var lake_noise: FastNoiseLite = FastNoiseLite.new()
+	lake_noise.seed = world_seed + 83
+	lake_noise.frequency = 0.020
+	lake_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
+
+	var detail_noise: FastNoiseLite = FastNoiseLite.new()
+	detail_noise.seed = world_seed + 89
+	detail_noise.frequency = 0.040
 	detail_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
 
 	for y in range(map_height):
 		var terrain_row: Array = []
+		var biome_row: Array = []
 
 		for x in range(map_width):
-			var b := (biome_noise.get_noise_2d(x, y) + 1.0) * 0.5
-			var d := (detail_noise.get_noise_2d(x, y) + 1.0) * 0.5
+			var cont_a: float = (continental_noise_a.get_noise_2d(x, y) + 1.0) * 0.5
+			var cont_b: float = (continental_noise_b.get_noise_2d(x, y) + 1.0) * 0.5
+			var cont_c: float = (continental_noise_c.get_noise_2d(x, y) + 1.0) * 0.5
+			var split_value_raw: float = (split_noise.get_noise_2d(x, y) + 1.0) * 0.5
 
-			var dist_left := x
-			var dist_right := map_width - 1 - x
-			var dist_top := y
-			var dist_bottom := map_height - 1 - y
-			var edge_dist = min(dist_left, dist_right, dist_top, dist_bottom)
+			var raw_temperature: float = (temperature_noise.get_noise_2d(x, y) + 1.0) * 0.5
+			var raw_humidity: float = (humidity_noise.get_noise_2d(x, y) + 1.0) * 0.5
 
-			var max_edge_dist = min(map_width, map_height) / 2.0
-			var edge_factor = clamp(float(edge_dist) / max_edge_dist, 0.0, 1.0)
+			var mountain_a: float = (mountain_noise_a.get_noise_2d(x, y) + 1.0) * 0.5
+			var mountain_b: float = (mountain_noise_b.get_noise_2d(x, y) + 1.0) * 0.5
+			var raw_lake: float = (lake_noise.get_noise_2d(x, y) + 1.0) * 0.5
+			var detail: float = (detail_noise.get_noise_2d(x, y) + 1.0) * 0.5
 
-			var sea_value = b * 0.55 + edge_factor * 0.45
+			var continent_value: float = cont_a * 0.50 + cont_b * 0.30 + cont_c * 0.20
 
-			var biome := BIOME_PLAINS
-			if sea_value < 0.35:
-				biome = BIOME_SEA
-			elif b > 0.75:
-				biome = BIOME_MOUNTAIN
+			var split_strength: float = 0.0
+			if split_value_raw > 0.60 and split_value_raw < 0.76:
+				split_strength = 0.12
+			elif split_value_raw > 0.54 and split_value_raw < 0.82:
+				split_strength = 0.06
+
+			var dist_left: int = x
+			var dist_right: int = map_width - 1 - x
+			var dist_top: int = y
+			var dist_bottom: int = map_height - 1 - y
+			var edge_dist: int = min(dist_left, dist_right, dist_top, dist_bottom)
+			var max_edge_dist: float = float(min(map_width, map_height)) / 2.0
+			var edge_factor: float = clamp(float(edge_dist) / max_edge_dist, 0.0, 1.0)
+
+			var land_value: float = continent_value * 0.94 + edge_factor * 0.06 - split_strength
+
+			var mountain_value: float = mountain_a * 0.72 + mountain_b * 0.28
+			var temperature: float = clamp(raw_temperature - mountain_value * 0.10, 0.0, 1.0)
+			var humidity: float = clamp(raw_humidity - mountain_value * 0.12, 0.0, 1.0)
+
+			var biome: int = BIOME_PLAINS
+			var terrain: int = TERRAIN_GRASS
+
+			if land_value < 0.41:
+				biome = BIOME_OCEAN
+			elif land_value < 0.47:
+				biome = BIOME_COAST
 			else:
-				biome = BIOME_PLAINS
+				var lake_edge_ok: bool = edge_dist >= 8
+				var lake_land_ok: bool = land_value > 0.53
+				var lake_height_ok: bool = mountain_value < 0.58
 
-			var terrain := TERRAIN_GRASS
+				if lake_edge_ok and lake_land_ok and lake_height_ok and raw_lake > 0.79 and raw_lake < 0.90:
+					biome = BIOME_LAKE
+				elif mountain_value > 0.74 and land_value > 0.52:
+					biome = BIOME_MOUNTAIN
+				elif mountain_value > 0.64 and land_value > 0.50:
+					biome = BIOME_HIGHLAND
+				else:
+					if temperature > 0.66 and humidity < 0.28:
+						biome = BIOME_DESERT
+					elif temperature > 0.60 and humidity < 0.38:
+						biome = BIOME_DRY_PLAINS
+					elif humidity > 0.66:
+						biome = BIOME_FOREST
+					else:
+						biome = BIOME_PLAINS
 
 			match biome:
-				BIOME_SEA:
-					if d < 0.82:
-						terrain = TERRAIN_SEA
+				BIOME_OCEAN:
+					terrain = TERRAIN_SEA
+
+				BIOME_COAST:
+					terrain = TERRAIN_SAND
+
+				BIOME_PLAINS:
+					if mountain_value > 0.82 and detail > 0.76:
+						terrain = TERRAIN_ROCK
+					else:
+						terrain = TERRAIN_GRASS
+
+				BIOME_DRY_PLAINS:
+					if detail > 0.82:
+						terrain = TERRAIN_SAND
+					else:
+						terrain = TERRAIN_GRASS
+
+				BIOME_FOREST:
+					if mountain_value > 0.68 and detail > 0.66:
+						terrain = TERRAIN_GRASS
+					else:
+						terrain = TERRAIN_FOREST
+
+				BIOME_DESERT:
+					if mountain_value > 0.78 and detail > 0.58:
+						terrain = TERRAIN_ROCK
 					else:
 						terrain = TERRAIN_SAND
 
-				BIOME_PLAINS:
-					if d < 0.08:
-						terrain = TERRAIN_SAND
-					elif d < 0.72:
+				BIOME_HIGHLAND:
+					if detail < 0.20:
 						terrain = TERRAIN_GRASS
-					elif d < 0.90:
+					elif detail < 0.58:
 						terrain = TERRAIN_FOREST
 					else:
 						terrain = TERRAIN_ROCK
 
 				BIOME_MOUNTAIN:
-					if d < 0.12:
+					if detail < 0.12:
 						terrain = TERRAIN_GRASS
-					elif d < 0.38:
+					elif detail < 0.28:
 						terrain = TERRAIN_FOREST
 					else:
 						terrain = TERRAIN_ROCK
 
+				BIOME_LAKE:
+					terrain = TERRAIN_LAKE
+
 			terrain_row.append(terrain)
+			biome_row.append(biome)
 
 		terrain_data.append(terrain_row)
+		biome_data.append(biome_row)
 
-	# 海の隣を砂浜に補正
-	# 森は海の近くに置かない
-	# 岩の近くの森も草原に落とす
 	terrain_result.clear()
+	biome_result.clear()
 
 	for y in range(map_height):
-		var row: Array = []
+		var terrain_row_fixed: Array = []
+		var biome_row_fixed: Array = []
 
 		for x in range(map_width):
-			var current: int = terrain_data[y][x]
+			var current_terrain: int = terrain_data[y][x]
+			var current_biome: int = biome_data[y][x]
 
-			var near_sea := false
-			var near_rock := false
+			var near_sea: bool = false
+			var near_lake: bool = false
+			var near_sand: bool = false
+			var near_forest: bool = false
+			var near_rock: bool = false
+			var near_mountain: bool = false
 
 			for dy in range(-1, 2):
 				for dx in range(-1, 2):
 					if dx == 0 and dy == 0:
 						continue
 
-					var nx := x + dx
-					var ny := y + dy
+					var nx: int = x + dx
+					var ny: int = y + dy
 
 					if nx < 0 or nx >= map_width or ny < 0 or ny >= map_height:
 						continue
 
-					var neighbor: int = terrain_data[ny][nx]
+					var neighbor_terrain: int = terrain_data[ny][nx]
+					var neighbor_biome: int = biome_data[ny][nx]
 
-					if neighbor == TERRAIN_SEA:
+					if neighbor_terrain == TERRAIN_SEA:
 						near_sea = true
-					elif neighbor == TERRAIN_ROCK:
+					if neighbor_terrain == TERRAIN_LAKE:
+						near_lake = true
+					if neighbor_terrain == TERRAIN_SAND:
+						near_sand = true
+					if neighbor_terrain == TERRAIN_FOREST:
+						near_forest = true
+					if neighbor_terrain == TERRAIN_ROCK:
 						near_rock = true
+					if neighbor_biome == BIOME_MOUNTAIN or neighbor_biome == BIOME_HIGHLAND:
+						near_mountain = true
 
-			if current == TERRAIN_GRASS and near_sea:
-				current = TERRAIN_SAND
-			elif current == TERRAIN_FOREST and near_sea:
-				current = TERRAIN_GRASS
+			if current_terrain == TERRAIN_GRASS and near_sea:
+				current_terrain = TERRAIN_SAND
+				if current_biome == BIOME_PLAINS:
+					current_biome = BIOME_COAST
 
-			if current == TERRAIN_FOREST and near_rock:
-				current = TERRAIN_GRASS
+			if current_terrain == TERRAIN_SAND and near_lake and current_biome != BIOME_DESERT:
+				current_terrain = TERRAIN_GRASS
+				if current_biome == BIOME_COAST:
+					current_biome = BIOME_PLAINS
 
-			row.append(current)
+			if current_terrain == TERRAIN_FOREST and near_sand and current_biome != BIOME_FOREST:
+				current_terrain = TERRAIN_GRASS
 
-		terrain_result.append(row)
+			if current_terrain == TERRAIN_SAND and near_forest and current_biome != BIOME_DESERT and current_biome != BIOME_COAST:
+				current_terrain = TERRAIN_GRASS
 
-	
-	
-	# 外周は必ず海にする
+			if current_terrain == TERRAIN_FOREST and near_rock and near_mountain:
+				current_terrain = TERRAIN_GRASS
+
+			terrain_row_fixed.append(current_terrain)
+			biome_row_fixed.append(current_biome)
+
+		terrain_result.append(terrain_row_fixed)
+		biome_result.append(biome_row_fixed)
+
 	for x in range(map_width):
 		terrain_result[0][x] = TERRAIN_SEA
+		biome_result[0][x] = BIOME_OCEAN
+
 		terrain_result[map_height - 1][x] = TERRAIN_SEA
+		biome_result[map_height - 1][x] = BIOME_OCEAN
 
 	for y in range(map_height):
 		terrain_result[y][0] = TERRAIN_SEA
+		biome_result[y][0] = BIOME_OCEAN
+
 		terrain_result[y][map_width - 1] = TERRAIN_SEA
+		biome_result[y][map_width - 1] = BIOME_OCEAN
 
 	ground_layer.clear()
 	wall_layer.clear()
@@ -269,45 +332,69 @@ func generate_map(
 
 	for y in range(map_height):
 		for x in range(map_width):
-			var cell := Vector2i(x, y)
-			var terrain: int = terrain_result[y][x]
-			printraw(str(terrain))
+			var cell: Vector2i = Vector2i(x, y)
+			var biome: int = biome_result[y][x]
 
-			match terrain:
-				TERRAIN_SEA:
-					ground_layer.set_cell(cell, TILE_SEA, Vector2i(1, 4), 0)
-					event_layer.set_cell(cell, TILE_SEA, Vector2i(1, 4), 0)
+			match biome:
+				BIOME_OCEAN:
+					ground_layer.set_cell(cell, TILE_SEA, GROUND_ATLAS_COORDS, 0)
+					event_layer.set_cell(cell, TILE_SEA, GROUND_ATLAS_COORDS, 0)
 
-				TERRAIN_SAND:
-					ground_layer.set_cell(cell, TILE_SAND, Vector2i(1, 4), 0)
-					event_layer.set_cell(cell, TILE_SAND, Vector2i(1, 4), 0)
-					
-				TERRAIN_GRASS:
-					ground_layer.set_cell(cell, TILE_GRASS, Vector2i(1, 4), 0)
-					event_layer.set_cell(cell, TILE_GRASS, Vector2i(1, 4), 0)
-					
-				TERRAIN_FOREST:
-					ground_layer.set_cell(cell, TILE_FOREST, Vector2i(1, 4), 0)
-					event_layer.set_cell(cell, TILE_FOREST, Vector2i(1, 4), 0)
+				BIOME_COAST:
+					ground_layer.set_cell(cell, TILE_SAND, GROUND_ATLAS_COORDS, 0)
+					event_layer.set_cell(cell, TILE_SAND, GROUND_ATLAS_COORDS, 0)
 
-				TERRAIN_ROCK:
-					ground_layer.set_cell(cell, TILE_ROCK, Vector2i(1, 4), 0)
-					wall_layer.set_cell(cell, TILE_ROCK, Vector2i(0, 0), 0)
+				BIOME_PLAINS:
+					ground_layer.set_cell(cell, TILE_GRASS, GROUND_ATLAS_COORDS, 0)
+					event_layer.set_cell(cell, TILE_GRASS, GROUND_ATLAS_COORDS, 0)
 
-	# =========================
-	# 外周にWallを付ける
-	# =========================
-	
-	ground_layer.set_cell(Vector2i(10,10), 30, Vector2i(1, 4), 0)
-	event_layer.set_cell(Vector2i(10,10),30, Vector2i(1, 4), 0)
-	
+				BIOME_DRY_PLAINS:
+					ground_layer.set_cell(cell, TILE_GRASS, DRY_PLAINS_ATLAS_COORDS, 0)
+					event_layer.set_cell(cell, TILE_GRASS, DRY_PLAINS_ATLAS_COORDS, 0)
+
+				BIOME_FOREST:
+					ground_layer.set_cell(cell, TILE_FOREST, GROUND_ATLAS_COORDS, 0)
+					event_layer.set_cell(cell, TILE_FOREST, GROUND_ATLAS_COORDS, 0)
+
+				BIOME_DESERT:
+					ground_layer.set_cell(cell, TILE_SAND, GROUND_ATLAS_COORDS, 0)
+					event_layer.set_cell(cell, TILE_SAND, GROUND_ATLAS_COORDS, 0)
+
+				BIOME_HIGHLAND:
+					var terrain_highland: int = terrain_result[y][x]
+					if terrain_highland == TERRAIN_ROCK:
+						ground_layer.set_cell(cell, TILE_ROCK, HIGHLAND_ATLAS_COORDS, 0)
+						wall_layer.set_cell(cell, TILE_ROCK, ROCK_WALL_ATLAS_COORDS, 0)
+					elif terrain_highland == TERRAIN_FOREST:
+						ground_layer.set_cell(cell, TILE_FOREST, HIGHLAND_ATLAS_COORDS, 0)
+						event_layer.set_cell(cell, TILE_FOREST, HIGHLAND_ATLAS_COORDS, 0)
+					else:
+						ground_layer.set_cell(cell, TILE_GRASS, HIGHLAND_ATLAS_COORDS, 0)
+						event_layer.set_cell(cell, TILE_GRASS, HIGHLAND_ATLAS_COORDS, 0)
+
+				BIOME_MOUNTAIN:
+					var terrain_mountain: int = terrain_result[y][x]
+					if terrain_mountain == TERRAIN_ROCK:
+						ground_layer.set_cell(cell, TILE_ROCK, MOUNTAIN_ATLAS_COORDS, 0)
+						wall_layer.set_cell(cell, TILE_ROCK, ROCK_WALL_ATLAS_COORDS, 0)
+					elif terrain_mountain == TERRAIN_FOREST:
+						ground_layer.set_cell(cell, TILE_FOREST, MOUNTAIN_ATLAS_COORDS, 0)
+						event_layer.set_cell(cell, TILE_FOREST, MOUNTAIN_ATLAS_COORDS, 0)
+					else:
+						ground_layer.set_cell(cell, TILE_GRASS, MOUNTAIN_ATLAS_COORDS, 0)
+						event_layer.set_cell(cell, TILE_GRASS, MOUNTAIN_ATLAS_COORDS, 0)
+
+				BIOME_LAKE:
+					ground_layer.set_cell(cell, TILE_LAKE, LAKE_ATLAS_COORDS, 0)
+					event_layer.set_cell(cell, TILE_LAKE, LAKE_ATLAS_COORDS, 0)
+
 	for x in range(map_width):
 		wall_layer.set_cell(Vector2i(x, 0), BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
-		wall_layer.set_cell(Vector2i(x, map_height ), BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
+		wall_layer.set_cell(Vector2i(x, map_height - 1), BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
 
 	for y in range(map_height):
 		wall_layer.set_cell(Vector2i(0, y), BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
-		wall_layer.set_cell(Vector2i(map_width , y), BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
+		wall_layer.set_cell(Vector2i(map_width - 1, y), BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
 
 
 func get_walkable_tiles() -> Array[Vector2i]:
@@ -327,56 +414,3 @@ func get_walkable_tiles() -> Array[Vector2i]:
 
 func _is_in_bounds(x: int, y: int) -> bool:
 	return x >= 0 and x < map_width and y >= 0 and y < map_height
-
-
-func _is_adjacent_to_biome(cell: Vector2i, biome_map: Array, target: String) -> bool:
-	var directions = [
-		Vector2i(1, 0),
-		Vector2i(-1, 0),
-		Vector2i(0, 1),
-		Vector2i(0, -1)
-	]
-
-	for dir in directions:
-		var nx = cell.x + dir.x
-		var ny = cell.y + dir.y
-
-		if _is_in_bounds(nx, ny):
-			if biome_map[ny][nx] == target:
-				return true
-
-	return false
-
-
-func _count_adjacent_biome(cell: Vector2i, biome_map: Array, target: String) -> int:
-	var count := 0
-	var directions = [
-		Vector2i(1, 0),
-		Vector2i(-1, 0),
-		Vector2i(0, 1),
-		Vector2i(0, -1)
-	]
-
-	for dir in directions:
-		var nx = cell.x + dir.x
-		var ny = cell.y + dir.y
-
-		if _is_in_bounds(nx, ny):
-			if biome_map[ny][nx] == target:
-				count += 1
-
-	return count
-
-
-func _distance_from_left_sea(x: int, biome_map: Array, y: int) -> int:
-	var nearest_sea_x := -1
-
-	for sx in range(x, -1, -1):
-		if biome_map[y][sx] == "sea":
-			nearest_sea_x = sx
-			break
-
-	if nearest_sea_x == -1:
-		return 999
-
-	return x - nearest_sea_x

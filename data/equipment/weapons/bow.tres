@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="EquipmentData" format=3 uid="uid://gxh453poc5a6"]
+
+[ext_resource type="Script" uid="uid://des0lbvolo0p1" path="res://scripts/data/equipment_data.gd" id="1_ubbxd"]
+
+[resource]
+script = ExtResource("1_ubbxd")
+item_id = "bow"
+display_name = "bow"
+attack_bonus = 20
+attack_max_range = 5
+metadata/_custom_type_script = "uid://des0lbvolo0p1"

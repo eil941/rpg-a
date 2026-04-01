@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://dws5qrsx22iah"]
 
 [ext_resource type="Texture2D" uid="uid://ci1uxejq1rcpi" path="res://assets/orc.png" id="1_dx26u"]
+[ext_resource type="Resource" uid="uid://gxh453poc5a6" path="res://data/equipment/weapons/bow.tres" id="1_ti33a"]
 [ext_resource type="Script" uid="uid://dnv8aysj2gsac" path="res://scripts/data/enemy_data.gd" id="2_ti33a"]
 [ext_resource type="Texture2D" uid="uid://c0r387au3uoch" path="res://assets/orc_back_1.png" id="3_kbb4g"]
 [ext_resource type="Texture2D" uid="uid://bad3vdvg2qtpf" path="res://assets/orc_back_2.png" id="4_othuj"]
@@ -19,7 +20,8 @@ max_hp = 25
 attack = 8
 defense = 4
 speed = 88.0
-combat_style = 1
+equipped_weapon = ExtResource("1_ti33a")
+combat_style = 2
 move_style = 1
 idle_right_frames = Array[Texture2D]([ExtResource("1_dx26u")])
 walk_right_frames = Array[Texture2D]([ExtResource("7_0h0he"), ExtResource("8_xwee4")])

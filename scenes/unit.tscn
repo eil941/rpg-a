@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://nsxuuyuvfqyd" path="res://scripts/core/unit.gd" id="1_1jvru"]
 [ext_resource type="Resource" uid="uid://bkpgh1ni8dk52" path="res://data/player_animation_profile.tres" id="2_gr2wx"]
+[ext_resource type="Resource" uid="uid://gxh453poc5a6" path="res://data/equipment/weapons/bow.tres" id="2_tb304"]
 [ext_resource type="Script" uid="uid://b1xneybof8tc7" path="res://scripts/core/stats.gd" id="3_tb304"]
 [ext_resource type="Script" uid="uid://chtsgc7lseb8o" path="res://scripts/controllers/player_controller.gd" id="4_gic7v"]
 [ext_resource type="Script" uid="uid://gj4ek5g6ew7q" path="res://scripts/item/inventory.gd" id="5_tb304"]
@@ -15,9 +16,10 @@ can_trigger_scene_transition = true
 can_bump_attack = true
 receives_time_turns = false
 instant_move = false
+unit_id = "Player"
 is_player_unit = true
-faction = "player"
 animation_profile = ExtResource("2_gr2wx")
+equipped_weapon = ExtResource("2_tb304")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=427796898]
 

@@ -45,6 +45,15 @@ func _physics_process(_delta: float) -> void:
 		if unit.is_transitioning:
 			return
 
+	if Input.is_action_just_pressed("attack"):
+		var acted = try_attack_action()
+		if acted:
+			if not DebugSettings.debug_free_action:
+				TimeManager.advance_time(units_node, unit.stats.speed)
+				notify_hud()
+				TimeManager.resolve_ai_turns(units_node)
+		return
+
 	if Input.is_action_just_pressed("wait"):
 		unit.wait_action()
 
@@ -64,6 +73,20 @@ func _physics_process(_delta: float) -> void:
 				TimeManager.advance_time(units_node, unit.stats.speed)
 				notify_hud()
 				TimeManager.resolve_ai_turns(units_node)
+
+
+func try_attack_action() -> bool:
+	if unit == null:
+		return false
+
+	var target = CombatManager.get_best_attack_target(unit)
+	if target == null:
+		if unit.has_method("notify_hud_log"):
+			unit.notify_hud_log("攻撃できる対象がいない")
+		return false
+
+	var acted = CombatManager.perform_attack(unit, target)
+	return acted
 
 
 func notify_hud() -> void:

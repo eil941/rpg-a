@@ -7,22 +7,49 @@ extends Node2D
 @onready var event_layer: TileMapLayer = $EventLayer
 @onready var units_node: Node = $Units
 
-@export var MAP_WIDTH = 200
-@export var MAP_HEIGHT = 200
+@export var MAP_WIDTH: int = 200
+@export var MAP_HEIGHT: int = 200
 @export var map_id: String = ""
+@export var world_seed: int = 123456
 
-const FLOOR_SOURCE_ID = 1
-const WALL_SOURCE_ID = 0
-const HIGHROCK_SOURCE_ID = 5
+const FLOOR_SOURCE_ID: int = 1
+const WALL_SOURCE_ID: int = 0
+const HIGHROCK_SOURCE_ID: int = 5
 
-const FLOOR_ATLAS_COORDS = Vector2i(0, 0)
-const WALL_ATLAS_COORDS = Vector2i(0, 0)
-const HIGHROCK_ATLAS_COORDS = Vector2i(0, 0)
+const FLOOR_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
+const WALL_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
+const HIGHROCK_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
 
-@export var dungeon_entrance_count = 300
+@export var dungeon_entrance_count: int = 300
+
+const SPECIAL_PLACE_TILE_MAP: Dictionary = {
+	"start_1": {"source_id": 14, "atlas_coords": Vector2i(0, 0)},
+
+	"town_1": {"source_id": 15, "atlas_coords": Vector2i(1, 0)},
+	"town_2": {"source_id": 16, "atlas_coords": Vector2i(2, 0)},
+
+	"village_1": {"source_id": 17, "atlas_coords": Vector2i(0, 1)},
+	"village_2": {"source_id": 18, "atlas_coords": Vector2i(1, 1)},
+	"village_3": {"source_id": 19, "atlas_coords": Vector2i(2, 1)},
+	"village_4": {"source_id": 20, "atlas_coords": Vector2i(3, 1)},
+	"village_5": {"source_id": 21, "atlas_coords": Vector2i(4, 1)},
+
+	"castle_1": {"source_id": 22, "atlas_coords": Vector2i(0, 2)},
+	"castle_2": {"source_id": 23, "atlas_coords": Vector2i(1, 2)},
+
+	"unique_dungeon_1": {"source_id": 24, "atlas_coords": Vector2i(0, 3)},
+	"unique_dungeon_2": {"source_id": 25, "atlas_coords": Vector2i(1, 3)},
+	"unique_dungeon_3": {"source_id": 26, "atlas_coords": Vector2i(2, 3)},
+	"unique_dungeon_4": {"source_id": 27, "atlas_coords": Vector2i(3, 3)},
+
+	"special_map_1": {"source_id": 28, "atlas_coords": Vector2i(0, 4)},
+	"special_map_2": {"source_id": 29, "atlas_coords": Vector2i(1, 4)},
+	"special_map_3": {"source_id": 30, "atlas_coords": Vector2i(2, 4)}
+}
 
 var map_generator: PlainMapGenerator
 var dungeon_entrance_generator: FieldDungeonEntranceGenerator
+var special_place_generator: FieldSpecialPlaceGenerator
 
 func _ready() -> void:
 	print("FIELDMAP READY START")
@@ -36,6 +63,9 @@ func _ready() -> void:
 	if not WorldState.field_dungeon_entrances.has(map_id):
 		WorldState.field_dungeon_entrances[map_id] = []
 
+	if not WorldState.field_special_places.has(map_id):
+		WorldState.field_special_places[map_id] = []
+
 	if WorldState.map_tile_data.has(map_id):
 		load_map_tiles()
 	else:
@@ -45,32 +75,50 @@ func _ready() -> void:
 			FLOOR_SOURCE_ID,
 			WALL_SOURCE_ID,
 			FLOOR_ATLAS_COORDS,
-			WALL_ATLAS_COORDS
+			WALL_ATLAS_COORDS,
+			world_seed
 		)
 		map_generator.generate_map(ground_layer, wall_layer, event_layer)
 
 		dungeon_entrance_generator = FieldDungeonEntranceGenerator.new(MAP_WIDTH, MAP_HEIGHT)
-		var entrances = dungeon_entrance_generator.generate_map(
+		var entrances: Array = dungeon_entrance_generator.generate_map(
 			map_id,
 			ground_layer,
 			wall_layer,
 			event_layer,
 			dungeon_entrance_count
 		)
-
 		WorldState.field_dungeon_entrances[map_id] = entrances
-		
+
+		special_place_generator = FieldSpecialPlaceGenerator.new(
+			MAP_WIDTH,
+			MAP_HEIGHT,
+			map_generator.biome_result,
+			map_generator.terrain_result,
+			world_seed + 1000
+		)
+
+		var special_places: Array = special_place_generator.generate_all_places()
+		WorldState.field_special_places[map_id] = special_places
+
+		apply_special_places_to_event_layer(special_places)
+
 		save_map_tiles()
 
+	if WorldState.field_special_places.has(map_id):
+		apply_special_places_to_event_layer(WorldState.field_special_places[map_id])
+
 	print("FIELDMAP READY END")
+
 
 func generate_map() -> void:
 	for y in range(MAP_HEIGHT):
 		for x in range(MAP_WIDTH):
-			var cell = Vector2i(x, y)
+			var cell: Vector2i = Vector2i(x, y)
 
 			if x == 0 or y == 0 or x == MAP_WIDTH - 1 or y == MAP_HEIGHT - 1:
 				wall_layer.set_cell(cell, HIGHROCK_SOURCE_ID, HIGHROCK_ATLAS_COORDS, 0)
+
 
 func get_dungeon_id_at_cell(cell: Vector2i) -> String:
 	if not WorldState.field_dungeon_entrances.has(map_id):
@@ -82,12 +130,24 @@ func get_dungeon_id_at_cell(cell: Vector2i) -> String:
 
 	return ""
 
+
+func get_special_place_at_cell(cell: Vector2i) -> Dictionary:
+	if not WorldState.field_special_places.has(map_id):
+		return {}
+
+	for place in WorldState.field_special_places[map_id]:
+		if place["x"] == cell.x and place["y"] == cell.y:
+			return place
+
+	return {}
+
+
 func try_enter_dungeon_from_player_position() -> bool:
-	var current_cell = ground_layer.local_to_map(
+	var current_cell: Vector2i = ground_layer.local_to_map(
 		ground_layer.to_local(player.global_position)
 	)
 
-	var dungeon_id = get_dungeon_id_at_cell(current_cell)
+	var dungeon_id: String = get_dungeon_id_at_cell(current_cell)
 	if dungeon_id == "":
 		return false
 
@@ -101,6 +161,40 @@ func try_enter_dungeon_from_player_position() -> bool:
 	return true
 
 
+func try_enter_special_place_from_player_position() -> bool:
+	var current_cell: Vector2i = ground_layer.local_to_map(
+		ground_layer.to_local(player.global_position)
+	)
+
+	var place: Dictionary = get_special_place_at_cell(current_cell)
+	if place.is_empty():
+		return false
+
+	if not place.has("enter_scene"):
+		return false
+
+	var enter_scene: String = place["enter_scene"]
+	if enter_scene == "":
+		return false
+
+	get_tree().change_scene_to_file(enter_scene)
+	return true
+
+
+func apply_special_places_to_event_layer(places: Array) -> void:
+	for place in places:
+		var cell: Vector2i = Vector2i(place["x"], place["y"])
+		var place_id: String = place["place_id"]
+
+		if not SPECIAL_PLACE_TILE_MAP.has(place_id):
+			continue
+
+		var tile_info: Dictionary = SPECIAL_PLACE_TILE_MAP[place_id]
+		var source_id: int = tile_info["source_id"]
+		var atlas_coords: Vector2i = tile_info["atlas_coords"]
+
+		event_layer.set_cell(cell, source_id, atlas_coords, 0)
+
 
 func save_all_units() -> void:
 	if not has_node("Units"):
@@ -110,17 +204,18 @@ func save_all_units() -> void:
 		if unit.has_method("save_persistent_stats"):
 			unit.save_persistent_stats()
 
+
 func save_layer_data(layer: TileMapLayer) -> Array:
 	var result: Array = []
-	var used_cells = layer.get_used_cells()
+	var used_cells: Array = layer.get_used_cells()
 
 	for cell in used_cells:
-		var source_id = layer.get_cell_source_id(cell)
+		var source_id: int = layer.get_cell_source_id(cell)
 		if source_id == -1:
 			continue
 
-		var atlas_coords = layer.get_cell_atlas_coords(cell)
-		var alternative = layer.get_cell_alternative_tile(cell)
+		var atlas_coords: Vector2i = layer.get_cell_atlas_coords(cell)
+		var alternative: int = layer.get_cell_alternative_tile(cell)
 
 		result.append({
 			"x": cell.x,
@@ -133,16 +228,18 @@ func save_layer_data(layer: TileMapLayer) -> Array:
 
 	return result
 
+
 func load_layer_data(layer: TileMapLayer, data: Array) -> void:
 	layer.clear()
 
 	for cell_data in data:
-		var cell = Vector2i(cell_data["x"], cell_data["y"])
-		var source_id = cell_data["source_id"]
-		var atlas_coords = Vector2i(cell_data["atlas_x"], cell_data["atlas_y"])
-		var alternative = cell_data["alternative"]
+		var cell: Vector2i = Vector2i(cell_data["x"], cell_data["y"])
+		var source_id: int = cell_data["source_id"]
+		var atlas_coords: Vector2i = Vector2i(cell_data["atlas_x"], cell_data["atlas_y"])
+		var alternative: int = cell_data["alternative"]
 
 		layer.set_cell(cell, source_id, atlas_coords, alternative)
+
 
 func save_map_tiles() -> void:
 	WorldState.map_tile_data[map_id] = {
@@ -151,11 +248,12 @@ func save_map_tiles() -> void:
 		"event": save_layer_data(event_layer)
 	}
 
+
 func load_map_tiles() -> void:
 	if not WorldState.map_tile_data.has(map_id):
 		return
 
-	var data = WorldState.map_tile_data[map_id]
+	var data: Dictionary = WorldState.map_tile_data[map_id]
 
 	load_layer_data(ground_layer, data.get("ground", []))
 	load_layer_data(wall_layer, data.get("wall", []))

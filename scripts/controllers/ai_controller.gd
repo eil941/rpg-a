@@ -1,13 +1,5 @@
 extends Node
 
-enum ActionType {
-	ATTACK,
-	SUPPORT,
-	USE_ITEM,
-	MOVE,
-	WAIT
-}
-
 enum MoveStyle {
 	AUTO,
 	APPROACH,
@@ -26,11 +18,18 @@ enum CombatStyle {
 	DEFENSIVE
 }
 
+enum ActionType {
+	ATTACK,
+	SUPPORT,
+	USE_ITEM,
+	MOVE,
+	WAIT
+}
+
 @export var detection_range: int = 5
 @export var preferred_distance: int = 2
 @export var random_idle_move_chance: float = 0.7
 
-# 暫定設定
 @export var default_move_style: int = MoveStyle.APPROACH
 @export var default_combat_style: int = CombatStyle.MELEE
 
@@ -47,10 +46,6 @@ func setup(owner_unit) -> void:
 
 func take_turn() -> void:
 	if not can_act():
-		if DebugSettings.debug_ai_turn:
-			print("----- AI TURN SKIP -----")
-			print("unit: ", unit.name if unit != null else "null")
-			print("reason: can_act() == false")
 		consume_pending_action()
 		return
 
@@ -62,17 +57,11 @@ func take_turn() -> void:
 	if DebugSettings.debug_ai_turn:
 		print("----- AI TURN START -----")
 		print("unit: ", unit.name)
-		print("unit_id: ", unit.unit_id)
 		print("target: ", context["target"].name if context["target"] != null else "null")
+		print("attack_target: ", context["attack_target"].name if context["attack_target"] != null else "null")
 		print("distance_to_target: ", context["distance_to_target"])
-		print("hp_rate: ", context["hp_rate"])
 		print("move_style: ", context["move_style"])
 		print("combat_style: ", context["combat_style"])
-
-		if unit.has_method("get_effective_move_style"):
-			print("effective_move_style: ", unit.get_effective_move_style())
-		if unit.has_method("get_effective_combat_style"):
-			print("effective_combat_style: ", unit.get_effective_combat_style())
 
 	if DebugSettings.debug_ai_candidates:
 		print("----- AI CANDIDATES -----")
@@ -84,10 +73,6 @@ func take_turn() -> void:
 		if execute_candidate(candidate, context):
 			consume_pending_action()
 			return
-
-	if DebugSettings.debug_ai_turn:
-		print("----- AI FALLBACK WAIT -----")
-		print("unit: ", unit.name)
 
 	unit.wait_action()
 	consume_pending_action()
@@ -129,15 +114,19 @@ func build_ai_context() -> Dictionary:
 	if nearest_hostile != null:
 		dist_to_hostile = Targeting.get_distance_between_units(unit, nearest_hostile)
 
+	var attack_target = CombatManager.get_best_attack_target(unit)
+
 	if DebugSettings.debug_ai_target:
 		print("----- AI TARGET -----")
 		print("unit: ", unit.name)
 		print("target: ", nearest_hostile.name if nearest_hostile != null else "null")
+		print("attack_target: ", attack_target.name if attack_target != null else "null")
 		print("distance: ", dist_to_hostile)
 
 	return {
 		"self": unit,
 		"target": nearest_hostile,
+		"attack_target": attack_target,
 		"distance_to_target": dist_to_hostile,
 		"hp_rate": get_self_hp_rate(),
 		"move_style": get_effective_move_style(),
@@ -168,15 +157,13 @@ func get_effective_combat_style() -> int:
 func build_action_candidates(context: Dictionary) -> Array[Dictionary]:
 	var candidates: Array[Dictionary] = []
 
-	var target = context["target"]
-
 	candidates.append_array(build_self_item_candidates(context))
 	candidates.append_array(build_support_candidates(context))
 	candidates.append_array(build_attack_candidates(context))
 	candidates.append_array(build_move_candidates(context))
 	candidates.append(make_action_candidate(ActionType.WAIT, 5, {}))
 
-	if target == null:
+	if context["target"] == null:
 		candidates.append_array(build_idle_move_candidates())
 
 	return candidates
@@ -199,49 +186,27 @@ func build_support_candidates(context: Dictionary) -> Array[Dictionary]:
 func build_attack_candidates(context: Dictionary) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 
-	var target = context["target"]
-	if target == null:
+	var attack_target = context["attack_target"]
+	if attack_target == null:
 		return result
 
 	var move_style = context["move_style"]
 
-	if DebugSettings.debug_ai_attack:
-		print("----- BUILD ATTACK CANDIDATES -----")
-		print("unit: ", unit.name)
-		print("move_style: ", move_style)
-		print("target: ", target.name)
-
-	# FLEE の時は攻撃候補を作らない
 	if move_style == MoveStyle.FLEE:
-		if DebugSettings.debug_flee_ai:
-			print("----- FLEE ATTACK BLOCK -----")
-			print("unit: ", unit.name)
-			print("reason: move_style == FLEE")
 		return result
 
-	if CombatManager.can_attack(unit, target):
-		var score = get_normal_attack_score(context, target)
+	if CombatManager.can_attack(unit, attack_target):
+		var score = get_normal_attack_score(context, attack_target)
 		result.append(
 			make_action_candidate(
 				ActionType.ATTACK,
 				score,
 				{
-					"target": target,
+					"target": attack_target,
 					"attack_kind": "normal"
 				}
 			)
 		)
-
-		if DebugSettings.debug_ai_attack:
-			print("add attack candidate")
-			print("unit: ", unit.name)
-			print("target: ", target.name)
-			print("score: ", score)
-	else:
-		if DebugSettings.debug_ai_attack:
-			print("cannot attack")
-			print("unit: ", unit.name)
-			print("target: ", target.name)
 
 	return result
 
@@ -274,13 +239,6 @@ func build_move_candidates(context: Dictionary) -> Array[Dictionary]:
 		return result
 
 	var move_style = context["move_style"]
-
-	if DebugSettings.debug_ai_move:
-		print("----- BUILD MOVE CANDIDATES -----")
-		print("unit: ", unit.name)
-		print("move_style: ", move_style)
-		print("target: ", target.name)
-		print("distance_to_target: ", context["distance_to_target"])
 
 	match move_style:
 		MoveStyle.APPROACH:
@@ -321,9 +279,6 @@ func build_approach_move_candidates(context: Dictionary, target) -> Array[Dictio
 	var result: Array[Dictionary] = []
 	var dirs = get_candidate_steps_toward_target(target)
 
-	if DebugSettings.debug_ai_move:
-		print("APPROACH dirs: ", dirs)
-
 	var score := 60
 	for dir in dirs:
 		result.append(make_action_candidate(ActionType.MOVE, score, {"direction": dir}))
@@ -341,11 +296,6 @@ func build_keep_distance_move_candidates(context: Dictionary, target) -> Array[D
 		var away_dirs = get_candidate_steps_away_from_target(target)
 		var side_dirs = get_side_step_candidates(target)
 
-		if DebugSettings.debug_ai_move:
-			print("KEEP_DISTANCE near")
-			print("away_dirs: ", away_dirs)
-			print("side_dirs: ", side_dirs)
-
 		var score := 70
 		for dir in away_dirs:
 			result.append(make_action_candidate(ActionType.MOVE, score, {"direction": dir}))
@@ -358,11 +308,6 @@ func build_keep_distance_move_candidates(context: Dictionary, target) -> Array[D
 	elif dist > preferred_distance:
 		var toward_dirs = get_candidate_steps_toward_target(target)
 		var side_dirs2 = get_side_step_candidates(target)
-
-		if DebugSettings.debug_ai_move:
-			print("KEEP_DISTANCE far")
-			print("toward_dirs: ", toward_dirs)
-			print("side_dirs: ", side_dirs2)
 
 		var score2 := 55
 		for dir in toward_dirs:
@@ -381,14 +326,6 @@ func build_flee_move_candidates(context: Dictionary, target) -> Array[Dictionary
 
 	var away_dirs = get_candidate_steps_away_from_target(target)
 	var side_dirs = get_side_step_candidates(target)
-
-	if DebugSettings.debug_flee_ai or DebugSettings.debug_ai_move:
-		print("----- FLEE MOVE CANDIDATES -----")
-		print("unit: ", unit.name)
-		print("target: ", target.name)
-		print("away_dirs: ", away_dirs)
-		print("side_dirs: ", side_dirs)
-		print("distance_to_target: ", context["distance_to_target"])
 
 	var score := 75
 	for dir in away_dirs:
@@ -421,20 +358,13 @@ func execute_candidate(candidate: Dictionary, context: Dictionary) -> bool:
 	match action_type:
 		ActionType.ATTACK:
 			return execute_attack_candidate(data, context)
-
 		ActionType.SUPPORT:
 			return execute_support_candidate(data, context)
-
 		ActionType.USE_ITEM:
 			return execute_item_candidate(data, context)
-
 		ActionType.MOVE:
 			return execute_move_candidate(data, context)
-
 		ActionType.WAIT:
-			if DebugSettings.debug_ai_turn:
-				print("execute wait")
-				print("unit: ", unit.name)
 			unit.wait_action()
 			return true
 
@@ -448,18 +378,10 @@ func execute_attack_candidate(data: Dictionary, context: Dictionary) -> bool:
 
 	var attack_kind = data.get("attack_kind", "normal")
 
-	if DebugSettings.debug_ai_attack:
-		print("----- EXECUTE ATTACK -----")
-		print("unit: ", unit.name)
-		print("attack_kind: ", attack_kind)
-		print("target: ", target.name)
-
 	match attack_kind:
 		"normal":
 			if CombatManager.can_attack(unit, target):
-				face_target(target)
-				CombatManager.perform_attack(unit, target)
-				return true
+				return CombatManager.perform_attack(unit, target)
 
 	return false
 
@@ -477,32 +399,7 @@ func execute_move_candidate(data: Dictionary, context: Dictionary) -> bool:
 	if dir == Vector2.ZERO:
 		return false
 
-	if DebugSettings.debug_ai_move:
-		print("----- EXECUTE MOVE -----")
-		print("unit: ", unit.name)
-		print("dir: ", dir)
-
 	return unit.try_move(dir)
-
-
-func face_target(target) -> void:
-	if unit == null or target == null:
-		return
-
-	var my_tile = unit.get_current_tile_coords()
-	var target_tile = target.get_current_tile_coords()
-	var diff = target_tile - my_tile
-
-	if abs(diff.x) > abs(diff.y):
-		if diff.x > 0:
-			unit.update_facing_only(Vector2.RIGHT)
-		elif diff.x < 0:
-			unit.update_facing_only(Vector2.LEFT)
-	else:
-		if diff.y > 0:
-			unit.update_facing_only(Vector2.DOWN)
-		elif diff.y < 0:
-			unit.update_facing_only(Vector2.UP)
 
 
 func get_candidate_steps_toward_target(target) -> Array[Vector2]:

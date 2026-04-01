@@ -14,8 +14,12 @@ var field_dungeon_entrances: Dictionary = {}
 var dungeon_data: Dictionary = {}
 var dungeon_floor_data: Dictionary = {}
 
+var field_special_places: Dictionary = {}
+
 var map_item_pickups: Dictionary = {}
 var map_chests: Dictionary = {}
+
+
 
 
 func clear_enemy_spawns() -> void:
