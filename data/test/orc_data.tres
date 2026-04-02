@@ -23,6 +23,7 @@ speed = 88.0
 equipped_weapon = ExtResource("1_ti33a")
 combat_style = 2
 move_style = 1
+talk_portrait = ExtResource("10_88n2c")
 idle_right_frames = Array[Texture2D]([ExtResource("1_dx26u")])
 walk_right_frames = Array[Texture2D]([ExtResource("7_0h0he"), ExtResource("8_xwee4")])
 idle_left_frames = Array[Texture2D]([ExtResource("1_dx26u")])

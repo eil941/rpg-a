@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://cjntf4kbtxh73"]
 
 [ext_resource type="Script" uid="uid://nsxuuyuvfqyd" path="res://scripts/core/unit.gd" id="1_1jvru"]
+[ext_resource type="Texture2D" uid="uid://67hlg0nq7dth" path="res://assets/ねくら/tkaihen/kaihen/kot.png" id="2_e8hdl"]
 [ext_resource type="Resource" uid="uid://bkpgh1ni8dk52" path="res://data/player_animation_profile.tres" id="2_gr2wx"]
 [ext_resource type="Resource" uid="uid://gxh453poc5a6" path="res://data/equipment/weapons/bow.tres" id="2_tb304"]
 [ext_resource type="Script" uid="uid://b1xneybof8tc7" path="res://scripts/core/stats.gd" id="3_tb304"]
@@ -18,6 +19,8 @@ receives_time_turns = false
 instant_move = false
 unit_id = "Player"
 is_player_unit = true
+talk_display_name = "testaa"
+talk_portrait = ExtResource("2_e8hdl")
 animation_profile = ExtResource("2_gr2wx")
 equipped_weapon = ExtResource("2_tb304")
 
@@ -30,7 +33,6 @@ shape = SubResource("RectangleShape2D_ruro2")
 
 [node name="Stats" type="Node" parent="." unique_id=227265958]
 script = ExtResource("3_tb304")
-max_hp = 2000
 attack = 15
 defense = 10
 

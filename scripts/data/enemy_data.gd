@@ -45,6 +45,10 @@ var combat_style: int = AICombatStyle.AUTO
 @export_enum("AUTO", "APPROACH", "KEEP_DISTANCE", "FLEE", "HOLD")
 var move_style: int = AIMoveStyle.AUTO
 
+@export var talk_display_name: String = ""
+@export_multiline var talk_greeting_text: String = "……"
+@export var talk_portrait: Texture2D
+
 @export var animation_profile: AnimationProfile
 
 @export var idle_right_frames: Array[Texture2D] = []

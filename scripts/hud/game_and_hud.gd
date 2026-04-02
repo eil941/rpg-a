@@ -102,6 +102,10 @@ func toggle_inventory_ui() -> void:
 		print("inventory_ui is null")
 		return
 
+	if DialogueManager != null and DialogueManager.has_method("is_dialog_open"):
+		if DialogueManager.is_dialog_open():
+			return
+
 	var player = find_player()
 	if player == null:
 		print("player is null")

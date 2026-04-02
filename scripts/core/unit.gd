@@ -54,6 +54,15 @@ enum AIMoveStyle {
 # unit 個別の微調整
 @export var sprite_offset_adjust: Vector2 = Vector2.ZERO
 
+# 会話 / unitインタラクト用
+@export var can_talk: bool = true
+@export var talk_display_name: String = ""
+@export_multiline var talk_greeting_text: String = "……"
+@export var talk_portrait: Texture2D
+@export var can_trade: bool = false
+@export var can_receive_order: bool = false
+@export var extra_interact_actions: Array[String] = []
+
 # 従来方式とも共存
 @export var idle_right_frames: Array[Texture2D] = []
 @export var walk_right_frames: Array[Texture2D] = []
@@ -504,6 +513,157 @@ func get_occupied_tile_coords() -> Vector2i:
 	return get_current_tile_coords()
 
 
+func get_facing_vector() -> Vector2i:
+	match facing:
+		Facing.RIGHT:
+			return Vector2i.RIGHT
+		Facing.LEFT:
+			return Vector2i.LEFT
+		Facing.DOWN:
+			return Vector2i.DOWN
+		Facing.UP:
+			return Vector2i.UP
+	return Vector2i.DOWN
+
+
+func get_front_tile_coords() -> Vector2i:
+	return get_current_tile_coords() + get_facing_vector()
+
+
+func get_unit_in_front():
+	if units_node == null:
+		return null
+
+	var front_tile := get_front_tile_coords()
+
+	for other in units_node.get_children():
+		if other == null:
+			continue
+		if other == self:
+			continue
+		if not other.has_method("get_occupied_tile_coords"):
+			continue
+		if other.get_occupied_tile_coords() == front_tile:
+			return other
+
+	return null
+
+
+func can_start_talk() -> bool:
+	return can_talk
+
+
+func get_talk_name() -> String:
+	if talk_display_name != "":
+		return talk_display_name
+	return name
+
+
+func get_interact_header_text() -> String:
+	return talk_greeting_text
+
+
+func get_interact_actions() -> Array:
+	var actions: Array = []
+
+	actions.append({"id": "talk", "label": "話がしたい"})
+
+	if can_trade:
+		actions.append({"id": "trade", "label": "売買したい"})
+
+	if can_receive_order:
+		actions.append({"id": "wait_here", "label": "ここで待機してくれ"})
+
+	for action_id in extra_interact_actions:
+		match String(action_id):
+			"info":
+				actions.append({"id": "info", "label": "耳寄りな情報はないか？"})
+			"request":
+				actions.append({"id": "request", "label": "「調達依頼」について"})
+			"secret":
+				actions.append({"id": "secret", "label": "実は..."})
+			"home_wait":
+				actions.append({"id": "home_wait", "label": "ホームで待機しろ"})
+			_:
+				actions.append({"id": String(action_id), "label": String(action_id)})
+
+	actions.append({"id": "bye", "label": "さようなら"})
+	return actions
+
+
+func build_talk_context() -> Dictionary:
+	return {
+		"name": get_talk_name(),
+		"portrait": talk_portrait,
+		"text": get_interact_header_text(),
+		"unit": self,
+		"actions": get_interact_actions()
+	}
+
+
+func handle_interact_action(action_id: String) -> void:
+	match action_id:
+		"talk":
+			DialogueManager.set_dialog_text(get_interact_header_text())
+		"trade":
+			DialogueManager.set_dialog_text("売買はまだ未実装です。")
+		"wait_here":
+			DialogueManager.set_dialog_text("ここで待機するよう伝えた。")
+		"info":
+			DialogueManager.set_dialog_text("耳寄りな情報はまだないようだ。")
+		"request":
+			DialogueManager.set_dialog_text("調達依頼はまだ未実装です。")
+		"secret":
+			DialogueManager.set_dialog_text("実は……まだ未実装です。")
+		"home_wait":
+			DialogueManager.set_dialog_text("ホーム待機はまだ未実装です。")
+		"bye":
+			DialogueManager.close_dialog()
+		_:
+			DialogueManager.set_dialog_text("%s を選択した。" % action_id)
+
+
+func find_game_root_node() -> Node:
+	var node: Node = self
+	while node != null:
+		if node.has_method("is_inventory_open"):
+			return node
+		node = node.get_parent()
+	return null
+
+
+func is_inventory_open_from_root() -> bool:
+	var root = find_game_root_node()
+	if root == null:
+		return false
+	return root.is_inventory_open()
+
+
+func try_talk_to_front_unit() -> bool:
+	if not is_player_unit:
+		return false
+
+	if is_inventory_open_from_root():
+		return false
+
+	if DialogueManager != null and DialogueManager.has_method("is_dialog_open"):
+		if DialogueManager.is_dialog_open():
+			return false
+
+	var target_unit = get_unit_in_front()
+	if target_unit == null:
+		return false
+
+	if not target_unit.has_method("can_start_talk"):
+		return false
+
+	if not target_unit.can_start_talk():
+		return false
+
+	DialogueManager.open_unit_dialog(target_unit, self)
+	return true
+
+
 func facing_from_dir(dir: Vector2) -> int:
 	if dir == Vector2.RIGHT:
 		return Facing.RIGHT
@@ -688,7 +848,9 @@ func apply_animation_frames(
 
 
 func try_move(dir: Vector2) -> bool:
-	update_facing_only(dir)
+	var next_facing = facing_from_dir(dir)
+	if next_facing != facing:
+		update_facing_only(dir)
 
 	var next_pos = global_position + dir * tile_size
 	var next_tile = ground_layer.local_to_map(ground_layer.to_local(next_pos))
@@ -836,26 +998,26 @@ func try_move(dir: Vector2) -> bool:
 	return false
 
 
-func try_interact_transition() -> void:
+func try_interact_transition() -> bool:
 	if not can_trigger_scene_transition:
-		return
+		return false
 
 	if map_root != null and map_root.has_method("try_use_dungeon_stairs_from_player_position"):
 		if map_root.try_use_dungeon_stairs_from_player_position():
 			print("STAIRS TRANSITION HANDLED")
-			return
+			return true
 
 	var tile_data = get_current_tile_data()
 	if tile_data == null:
-		return
+		return false
 
 	var can_enter = tile_data.get_custom_data("can_enter")
 	if can_enter == null or can_enter == false:
-		return
+		return false
 
 	var next_scene = String(tile_data.get_custom_data("enter_scene"))
 	if next_scene == "":
-		return
+		return false
 
 	var current_tile = get_current_tile_coords()
 
@@ -870,7 +1032,7 @@ func try_interact_transition() -> void:
 
 		if dungeon_id == "":
 			push_error("Dungeon interact transfer failed: dungeon_id is empty")
-			return
+			return false
 
 		GlobalDungeon.current_dungeon_id = dungeon_id
 		GlobalDungeon.current_floor = 1
@@ -889,14 +1051,14 @@ func try_interact_transition() -> void:
 		GlobalPlayerSpawn.has_next_tile = false
 		notify_hud_log(next_scene + "へ移動")
 		request_map_change(next_scene)
-		return
+		return true
 
 	var spawn_x_data = tile_data.get_custom_data("spawn_x")
 	var spawn_y_data = tile_data.get_custom_data("spawn_y")
 
 	if spawn_x_data == null or spawn_y_data == null:
 		push_error("spawn_x or spawn_y is missing on event tile")
-		return
+		return false
 
 	var spawn_x = int(spawn_x_data)
 	var spawn_y = int(spawn_y_data)
@@ -944,6 +1106,7 @@ func try_interact_transition() -> void:
 
 	notify_hud_log(next_scene + "へ移動")
 	request_map_change(next_scene)
+	return true
 
 
 func wait_action() -> void:
@@ -1078,6 +1241,10 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 	override_move_style = enemy_data.override_move_style
 	move_style = enemy_data.move_style
 
+	talk_display_name = enemy_data.talk_display_name
+	talk_greeting_text = enemy_data.talk_greeting_text
+	talk_portrait = enemy_data.talk_portrait
+
 	if enemy_data.animation_profile != null:
 		apply_animation_profile(enemy_data.animation_profile)
 	else:
@@ -1127,6 +1294,13 @@ func apply_npc_data(npc_data: NpcData) -> void:
 	combat_style = npc_data.combat_style
 	override_move_style = npc_data.override_move_style
 	move_style = npc_data.move_style
+
+	talk_display_name = npc_data.talk_display_name
+	talk_greeting_text = npc_data.talk_greeting_text
+	talk_portrait = npc_data.talk_portrait
+	can_trade = npc_data.can_trade
+	can_receive_order = npc_data.can_receive_order
+	extra_interact_actions = npc_data.extra_interact_actions.duplicate()
 
 	if npc_data.animation_profile != null:
 		apply_animation_profile(npc_data.animation_profile)
@@ -1339,13 +1513,25 @@ func notify_inventory_refresh() -> void:
 
 
 func try_interact_action() -> void:
+	if is_inventory_open_from_root():
+		return
+
+	if DialogueManager != null and DialogueManager.has_method("is_dialog_open"):
+		if DialogueManager.is_dialog_open():
+			return
+
+	# 現在地タイルの遷移を最優先
+	if try_interact_transition():
+		return
+
+	if try_talk_to_front_unit():
+		return
+
 	if try_pickup_items_on_current_tile():
 		return
 
 	if try_open_chest_on_current_tile():
 		return
-
-	try_interact_transition()
 
 
 func try_open_chest_on_current_tile() -> bool:

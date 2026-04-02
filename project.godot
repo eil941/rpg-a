@@ -28,6 +28,7 @@ GlobalDetailMap="*uid://dqrkpmdklo3g2"
 GlobalDungeon="*uid://cwr50o7tfp2dm"
 DebugSettings="*uid://c83kw1x0ekokg"
 FactionManager="*uid://tnpaulqn0liv"
+DialogueManager="*uid://c81rxd3gqb7ju"
 
 [input]
 

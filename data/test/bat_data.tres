@@ -21,6 +21,7 @@ speed = 180.0
 equipped_weapon = ExtResource("2_kdhrl")
 combat_style = 1
 move_style = 1
+talk_portrait = ExtResource("2_rlxby")
 animation_profile = ExtResource("1_4gq8q")
 idle_right_frames = Array[Texture2D]([ExtResource("2_rlxby")])
 walk_right_frames = Array[Texture2D]([ExtResource("8_ey43s"), ExtResource("9_rdqu4")])
