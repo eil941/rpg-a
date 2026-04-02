@@ -1,10 +1,20 @@
 extends CanvasLayer
 
 @onready var root = $Root
+@onready var main_hbox = $Root/Overlay/CenterContainer/MainHBox
+
+@onready var inventory_panel = $Root/Overlay/CenterContainer/MainHBox/InventoryPanel
+@onready var inventory_margin = $Root/Overlay/CenterContainer/MainHBox/InventoryPanel/MarginContainer
 @onready var title_label = $Root/Overlay/CenterContainer/MainHBox/InventoryPanel/MarginContainer/LeftVBox/TitleLabel
 @onready var slot_grid = $Root/Overlay/CenterContainer/MainHBox/InventoryPanel/MarginContainer/LeftVBox/SlotGrid
 @onready var help_label = $Root/Overlay/CenterContainer/MainHBox/InventoryPanel/MarginContainer/LeftVBox/HelpLabel
+
+@onready var equipment_panel = $Root/Overlay/CenterContainer/MainHBox/EquipmentPanel
+@onready var equipment_margin = $Root/Overlay/CenterContainer/MainHBox/EquipmentPanel/MarginContainer
 @onready var equipment_vbox = $Root/Overlay/CenterContainer/MainHBox/EquipmentPanel/MarginContainer/RightVBox/EquipmentVBox
+
+@onready var inventory_bg = $Root/Overlay/CenterContainer/MainHBox/InventoryPanel/Background
+@onready var equipment_bg = $Root/Overlay/CenterContainer/MainHBox/EquipmentPanel/Background
 
 @onready var tooltip_panel = $Root/Overlay/TooltipPanel
 @onready var tooltip_name_label = $Root/Overlay/TooltipPanel/MarginContainer/TooltipVBox/TooltipNameLabel
@@ -16,6 +26,7 @@ extends CanvasLayer
 @onready var held_item_amount_label = $Root/Overlay/HeldItemPreview/AmountLabel
 
 @export var slot_scene: PackedScene
+@export var ui_config: InventoryUIConfig
 @export var tooltip_delay: float = 0.5
 
 var current_inventory = null
@@ -52,6 +63,64 @@ func _ready() -> void:
 
 	tooltip_panel.hide()
 	held_item_preview.hide()
+
+	apply_ui_config()
+	update_background_visibility()
+
+
+func apply_ui_config() -> void:
+	if ui_config == null:
+		return
+
+	if ui_config.inventory_max_slots > 0 and current_inventory != null:
+		if current_inventory.has_method("resize_inventory"):
+			current_inventory.resize_inventory(ui_config.inventory_max_slots)
+		else:
+			current_inventory.max_slots = ui_config.inventory_max_slots
+
+	if ui_config.inventory_panel_size != Vector2.ZERO:
+		inventory_panel.custom_minimum_size = ui_config.inventory_panel_size
+
+	if ui_config.equipment_panel_size != Vector2.ZERO:
+		equipment_panel.custom_minimum_size = ui_config.equipment_panel_size
+
+	if ui_config.inventory_columns > 0:
+		slot_grid.columns = ui_config.inventory_columns
+
+	if ui_config.main_hbox_separation >= 0:
+		main_hbox.add_theme_constant_override("separation", ui_config.main_hbox_separation)
+
+	if ui_config.inventory_margin_left >= 0:
+		inventory_margin.add_theme_constant_override("margin_left", ui_config.inventory_margin_left)
+	if ui_config.inventory_margin_top >= 0:
+		inventory_margin.add_theme_constant_override("margin_top", ui_config.inventory_margin_top)
+	if ui_config.inventory_margin_right >= 0:
+		inventory_margin.add_theme_constant_override("margin_right", ui_config.inventory_margin_right)
+	if ui_config.inventory_margin_bottom >= 0:
+		inventory_margin.add_theme_constant_override("margin_bottom", ui_config.inventory_margin_bottom)
+
+	if ui_config.equipment_margin_left >= 0:
+		equipment_margin.add_theme_constant_override("margin_left", ui_config.equipment_margin_left)
+	if ui_config.equipment_margin_top >= 0:
+		equipment_margin.add_theme_constant_override("margin_top", ui_config.equipment_margin_top)
+	if ui_config.equipment_margin_right >= 0:
+		equipment_margin.add_theme_constant_override("margin_right", ui_config.equipment_margin_right)
+	if ui_config.equipment_margin_bottom >= 0:
+		equipment_margin.add_theme_constant_override("margin_bottom", ui_config.equipment_margin_bottom)
+
+	if inventory_bg != null and ui_config.inventory_background != null:
+		inventory_bg.texture = ui_config.inventory_background
+
+	if equipment_bg != null and ui_config.equipment_background != null:
+		equipment_bg.texture = ui_config.equipment_background
+
+
+func update_background_visibility() -> void:
+	if inventory_bg != null:
+		inventory_bg.visible = inventory_bg.texture != null
+
+	if equipment_bg != null:
+		equipment_bg.visible = equipment_bg.texture != null
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -98,6 +167,9 @@ func open_with_inventory(inventory) -> void:
 
 	if current_unit != null and current_unit.has_method("get_equipment_slot_order"):
 		equipment_slot_order = current_unit.get_equipment_slot_order()
+
+	apply_ui_config()
+	update_background_visibility()
 
 	await rebuild_inventory_slots_if_needed()
 	build_equipment_slots()
@@ -166,6 +238,13 @@ func rebuild_inventory_slots_if_needed() -> void:
 
 	for i in range(target_count):
 		var slot = slot_scene.instantiate()
+
+		if ui_config != null and slot.has_method("apply_config"):
+			slot.apply_config(
+				ui_config.inventory_slot_size,
+				ui_config.inventory_icon_margin
+			)
+
 		slot_grid.add_child(slot)
 
 	await get_tree().process_frame
@@ -189,6 +268,12 @@ func build_equipment_slots() -> void:
 		label.text = slot_name.capitalize()
 
 		var slot = slot_scene.instantiate()
+
+		if ui_config != null and slot.has_method("apply_config"):
+			slot.apply_config(
+				ui_config.equipment_slot_size,
+				ui_config.equipment_icon_margin
+			)
 
 		row.add_child(label)
 		row.add_child(slot)
@@ -389,7 +474,10 @@ func pick_selected_entry() -> void:
 	else:
 		held_from_slot_name = equipment_slot_order[selected_index]
 		clear_equipment_entry(held_from_slot_name)
-
+		notify_message("%s を外した" % ItemDatabase.get_display_name(item_id))
+		refresh_status_ui()
+		
+	update_held_item_preview()
 
 func drop_held_entry() -> void:
 	if focus_area == "inventory":
@@ -430,6 +518,8 @@ func drop_held_entry_to_inventory(target_index: int) -> void:
 		current_inventory.set_item_data_at(origin_index, target_entry)
 	else:
 		set_equipment_entry(origin_slot_name, target_entry)
+		notify_message("%s を装備した" % ItemDatabase.get_display_name(String(target_entry.get("item_id", ""))))
+		refresh_status_ui()
 
 	clear_held_state()
 
@@ -440,9 +530,11 @@ func drop_held_entry_to_equipment(slot_name: String) -> void:
 		return
 
 	var target_entry = get_equipment_entry(slot_name)
+	var equipped_item_id = String(held_entry.get("item_id", ""))
 
 	if is_empty_entry(target_entry):
 		set_equipment_entry(slot_name, held_entry)
+		notify_message("%s を装備した" % ItemDatabase.get_display_name(equipped_item_id))
 		clear_held_state()
 		refresh_status_ui()
 		return
@@ -450,6 +542,8 @@ func drop_held_entry_to_equipment(slot_name: String) -> void:
 	if not can_return_entry_to_origin(target_entry):
 		notify_message("交換できない")
 		return
+
+	var removed_item_id = String(target_entry.get("item_id", ""))
 
 	var origin_area = held_from_area
 	var origin_index = held_from_index
@@ -461,6 +555,11 @@ func drop_held_entry_to_equipment(slot_name: String) -> void:
 		current_inventory.set_item_data_at(origin_index, target_entry)
 	else:
 		set_equipment_entry(origin_slot_name, target_entry)
+
+	notify_message("%s を装備した" % ItemDatabase.get_display_name(equipped_item_id))
+
+	if removed_item_id != "":
+		notify_message("%s を外した" % ItemDatabase.get_display_name(removed_item_id))
 
 	clear_held_state()
 	refresh_status_ui()
@@ -655,6 +754,50 @@ func refresh_status_ui() -> void:
 		node = node.get_parent()
 
 
+func build_item_tooltip_lines(item_id: String) -> Array[String]:
+	var lines: Array[String] = []
+
+	if ItemDatabase.is_equipment(item_id):
+		var eq = ItemDatabase.get_equipment_resource(item_id)
+		if eq == null:
+			return lines
+
+		var slot_name = eq.get_slot_name()
+		if slot_name != "":
+			lines.append("部位: %s" % slot_name)
+
+		if int(eq.attack_bonus) != 0:
+			lines.append("攻撃 %s%d" % ["+" if eq.attack_bonus > 0 else "", eq.attack_bonus])
+
+		if int(eq.defense_bonus) != 0:
+			lines.append("防御 %s%d" % ["+" if eq.defense_bonus > 0 else "", eq.defense_bonus])
+
+		if int(eq.max_hp_bonus) != 0:
+			lines.append("最大HP %s%d" % ["+" if eq.max_hp_bonus > 0 else "", eq.max_hp_bonus])
+
+		if int(eq.speed_bonus) != 0:
+			lines.append("速度 %s%d" % ["+" if eq.speed_bonus > 0 else "", eq.speed_bonus])
+
+		if slot_name == "weapon":
+			lines.append("射程 %d-%d" % [eq.attack_min_range, eq.attack_max_range])
+
+		return lines
+
+	var effect_type = ItemDatabase.get_effect_type(item_id)
+	var effect_value = ItemDatabase.get_effect_value(item_id)
+
+	match effect_type:
+		"heal_hp":
+			lines.append("効果: HPを%d回復" % effect_value)
+		"log_only":
+			pass
+		_:
+			if effect_type != "":
+				lines.append("効果: %s (%d)" % [effect_type, effect_value])
+
+	return lines
+
+
 func restart_tooltip_timer() -> void:
 	hide_tooltip()
 
@@ -693,7 +836,17 @@ func show_tooltip_for_selected() -> void:
 	var amount = int(entry.get("amount", 0))
 
 	tooltip_name_label.text = "%s x%d" % [ItemDatabase.get_display_name(item_id), amount]
-	tooltip_desc_label.text = ItemDatabase.get_description(item_id)
+
+	var desc = ItemDatabase.get_description(item_id)
+	var extra_lines = build_item_tooltip_lines(item_id)
+
+	if extra_lines.is_empty():
+		tooltip_desc_label.text = desc
+	else:
+		if desc == "":
+			tooltip_desc_label.text = "\n".join(extra_lines)
+		else:
+			tooltip_desc_label.text = desc + "\n" + "\n".join(extra_lines)
 
 	var usable_text = "使用可能" if ItemDatabase.is_usable(item_id) else "使用不可"
 	tooltip_meta_label.text = "種別: %s / %s" % [ItemDatabase.get_item_type(item_id), usable_text]
@@ -747,10 +900,30 @@ func update_held_item_preview() -> void:
 	held_item_icon.modulate = Color(1, 1, 1, 0.9)
 	held_item_amount_label.modulate = Color(1, 1, 1, 1)
 
+	var base_size = get_selected_slot_visual_size()
+	var preview_size = base_size * 0.9
+
+	if preview_size.x < 16.0:
+		preview_size.x = 16.0
+	if preview_size.y < 16.0:
+		preview_size.y = 16.0
+
+	held_item_icon.custom_minimum_size = preview_size
+	held_item_icon.size = preview_size
+	held_item_icon.offset_left = 0.0
+	held_item_icon.offset_top = 0.0
+	held_item_icon.offset_right = preview_size.x
+	held_item_icon.offset_bottom = preview_size.y
+
 	if amount > 1:
 		held_item_amount_label.text = "x%d" % amount
 	else:
 		held_item_amount_label.text = ""
+
+	held_item_amount_label.offset_left = max(0.0, preview_size.x - 30.0)
+	held_item_amount_label.offset_top = max(0.0, preview_size.y - 22.0)
+	held_item_amount_label.offset_right = preview_size.x + 12.0
+	held_item_amount_label.offset_bottom = preview_size.y + 4.0
 
 	var slot = get_selected_slot_node()
 	if slot == null:
@@ -758,21 +931,40 @@ func update_held_item_preview() -> void:
 		return
 
 	var slot_rect = slot.get_global_rect()
+
+	# 最初から常に「少し上」に表示する
 	var preview_pos = Vector2(
-		slot_rect.position.x + 10.0,
-		slot_rect.position.y - 10.0
+		slot_rect.position.x + (slot_rect.size.x - preview_size.x) * 0.5,
+		slot_rect.position.y + (slot_rect.size.y - preview_size.y) * 0.5 - 6.0
 	)
 
 	var viewport_rect = get_viewport().get_visible_rect()
 
-	if preview_pos.x + 48.0 > viewport_rect.position.x + viewport_rect.size.x:
-		preview_pos.x = viewport_rect.position.x + viewport_rect.size.x - 56.0
+	if preview_pos.x + preview_size.x > viewport_rect.position.x + viewport_rect.size.x:
+		preview_pos.x = viewport_rect.position.x + viewport_rect.size.x - preview_size.x - 8.0
 
 	if preview_pos.y < viewport_rect.position.y + 8.0:
-		preview_pos.y = slot_rect.position.y + 8.0
+		preview_pos.y = viewport_rect.position.y + 8.0
 
 	held_item_preview.global_position = preview_pos
 	held_item_preview.show()
+
+func get_selected_slot_visual_size() -> Vector2:
+	var slot = get_selected_slot_node()
+	if slot == null:
+		return Vector2(48, 48)
+
+	var rect = slot.get_global_rect()
+	if rect.size.x <= 0.0 or rect.size.y <= 0.0:
+		if slot is Control:
+			var control_slot = slot as Control
+			if control_slot.size.x > 0.0 and control_slot.size.y > 0.0:
+				return control_slot.size
+			if control_slot.custom_minimum_size.x > 0.0 and control_slot.custom_minimum_size.y > 0.0:
+				return control_slot.custom_minimum_size
+		return Vector2(48, 48)
+
+	return rect.size
 
 
 func get_selected_slot_node():

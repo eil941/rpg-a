@@ -1,6 +1,6 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://0vpnx24cn8i8"]
 
-[ext_resource type="Script" path="res://scripts/item/inventory_slot.gd" id="1"]
+[ext_resource type="Script" uid="uid://xr333628f40n" path="res://scripts/item/inventory_slot.gd" id="1"]
 
 [sub_resource type="StyleBoxFlat" id="1"]
 bg_color = Color(0.25, 0.25, 0.25, 0.95)
@@ -18,16 +18,17 @@ border_width_right = 3
 border_width_bottom = 3
 border_color = Color(1, 0.92, 0.2, 1)
 
-[node name="InventorySlot" type="PanelContainer"]
+[node name="InventorySlot" type="PanelContainer" unique_id=2098330328]
 custom_minimum_size = Vector2(64, 64)
 theme_override_styles/panel = SubResource("1")
 script = ExtResource("1")
+slot_size = Vector2(64, 64)
 
-[node name="SlotRoot" type="Control" parent="."]
-layout_mode = 2
+[node name="SlotRoot" type="Control" parent="." unique_id=22882944]
 custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
 
-[node name="Icon" type="TextureRect" parent="SlotRoot"]
+[node name="Icon" type="TextureRect" parent="SlotRoot" unique_id=950804435]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -41,7 +42,7 @@ grow_horizontal = 2
 grow_vertical = 2
 stretch_mode = 5
 
-[node name="AmountLabel" type="Label" parent="SlotRoot"]
+[node name="AmountLabel" type="Label" parent="SlotRoot" unique_id=840100000]
 layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0
@@ -52,11 +53,13 @@ offset_left = -34.0
 offset_top = -20.0
 offset_right = -4.0
 offset_bottom = -4.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "x64"
 horizontal_alignment = 2
 vertical_alignment = 2
-text = "x64"
 
-[node name="SelectFrame" type="Panel" parent="SlotRoot"]
+[node name="SelectFrame" type="Panel" parent="SlotRoot" unique_id=896950360]
 visible = false
 layout_mode = 1
 anchors_preset = 15

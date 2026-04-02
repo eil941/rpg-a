@@ -15,3 +15,13 @@ var last_tile: Vector2i = Vector2i.ZERO
 var map_positions: Dictionary = {}
 
 var inventory_data: Array = []
+
+var equipment_data: Dictionary = {
+	"weapon": "",
+	"armor": "",
+	"accessory": ""
+}
+
+# デバッグ用初期アイテムをすでに配ったか
+# シーン移動のたびに増殖しないように使う
+var debug_start_items_applied: bool = false

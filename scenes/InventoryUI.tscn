@@ -1,7 +1,8 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://bcwisg05o4qoq"]
 
-[ext_resource type="Script" path="res://scripts/item/inventory_ui.gd" id="1"]
-[ext_resource type="PackedScene" path="res://scenes/inventory_slot.tscn" id="2"]
+[ext_resource type="Script" uid="uid://b1vl6jrm2wgir" path="res://scripts/item/inventory_ui.gd" id="1"]
+[ext_resource type="PackedScene" uid="uid://0vpnx24cn8i8" path="res://scenes/inventory_slot.tscn" id="2"]
+[ext_resource type="Resource" uid="uid://sr73hupfneof" path="res://scripts/item/inventory_ui_config.tres" id="3_l5txx"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_inventory_panel"]
 bg_color = Color(0.18, 0.18, 0.18, 0.96)
@@ -39,12 +40,13 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[node name="InventoryUI" type="CanvasLayer"]
+[node name="InventoryUI" type="CanvasLayer" unique_id=1727045854]
 layer = 10
 script = ExtResource("1")
 slot_scene = ExtResource("2")
+ui_config = ExtResource("3_l5txx")
 
-[node name="Root" type="Control" parent="."]
+[node name="Root" type="Control" parent="." unique_id=339584304]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -52,7 +54,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Overlay" type="ColorRect" parent="Root"]
+[node name="Overlay" type="ColorRect" parent="Root" unique_id=1052647934]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -61,7 +63,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0, 0, 0, 0.35)
 
-[node name="CenterContainer" type="CenterContainer" parent="Root/Overlay"]
+[node name="CenterContainer" type="CenterContainer" parent="Root/Overlay" unique_id=1832662060]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -69,115 +71,127 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="MainHBox" type="HBoxContainer" parent="Root/Overlay/CenterContainer"]
+[node name="MainHBox" type="HBoxContainer" parent="Root/Overlay/CenterContainer" unique_id=1539500409]
 layout_mode = 2
 theme_override_constants/separation = 20
 
-[node name="InventoryPanel" type="PanelContainer" parent="Root/Overlay/CenterContainer/MainHBox"]
+[node name="InventoryPanel" type="PanelContainer" parent="Root/Overlay/CenterContainer/MainHBox" unique_id=909503846]
 custom_minimum_size = Vector2(420, 430)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_inventory_panel")
 
-[node name="MarginContainer" type="MarginContainer" parent="Root/Overlay/CenterContainer/MainHBox/InventoryPanel"]
+[node name="Background" type="TextureRect" parent="Root/Overlay/CenterContainer/MainHBox/InventoryPanel" unique_id=1539896432]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+stretch_mode = 6
+
+[node name="MarginContainer" type="MarginContainer" parent="Root/Overlay/CenterContainer/MainHBox/InventoryPanel" unique_id=1611519632]
 layout_mode = 2
 theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 12
 
-[node name="LeftVBox" type="VBoxContainer" parent="Root/Overlay/CenterContainer/MainHBox/InventoryPanel/MarginContainer"]
+[node name="LeftVBox" type="VBoxContainer" parent="Root/Overlay/CenterContainer/MainHBox/InventoryPanel/MarginContainer" unique_id=184998405]
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 theme_override_constants/separation = 8
 
-[node name="TitleLabel" type="Label" parent="Root/Overlay/CenterContainer/MainHBox/InventoryPanel/MarginContainer/LeftVBox"]
+[node name="TitleLabel" type="Label" parent="Root/Overlay/CenterContainer/MainHBox/InventoryPanel/MarginContainer/LeftVBox" unique_id=1297205732]
 layout_mode = 2
 text = "Inventory"
 
-[node name="SlotGrid" type="GridContainer" parent="Root/Overlay/CenterContainer/MainHBox/InventoryPanel/MarginContainer/LeftVBox"]
+[node name="SlotGrid" type="GridContainer" parent="Root/Overlay/CenterContainer/MainHBox/InventoryPanel/MarginContainer/LeftVBox" unique_id=580595663]
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 columns = 5
 
-[node name="HelpLabel" type="Label" parent="Root/Overlay/CenterContainer/MainHBox/InventoryPanel/MarginContainer/LeftVBox"]
+[node name="HelpLabel" type="Label" parent="Root/Overlay/CenterContainer/MainHBox/InventoryPanel/MarginContainer/LeftVBox" unique_id=715289198]
 layout_mode = 2
-autowrap_mode = 3
 text = "Enter: 持つ/置く/交換 / 使用キー: 使用 / Iキー: 閉じる"
+autowrap_mode = 3
 
-[node name="EquipmentPanel" type="PanelContainer" parent="Root/Overlay/CenterContainer/MainHBox"]
+[node name="EquipmentPanel" type="PanelContainer" parent="Root/Overlay/CenterContainer/MainHBox" unique_id=1090593253]
 custom_minimum_size = Vector2(190, 300)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_equipment_panel")
 
-[node name="MarginContainer" type="MarginContainer" parent="Root/Overlay/CenterContainer/MainHBox/EquipmentPanel"]
+[node name="Background" type="TextureRect" parent="Root/Overlay/CenterContainer/MainHBox/EquipmentPanel" unique_id=1871031651]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+stretch_mode = 6
+
+[node name="MarginContainer" type="MarginContainer" parent="Root/Overlay/CenterContainer/MainHBox/EquipmentPanel" unique_id=182900388]
 layout_mode = 2
 theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 12
 
-[node name="RightVBox" type="VBoxContainer" parent="Root/Overlay/CenterContainer/MainHBox/EquipmentPanel/MarginContainer"]
+[node name="RightVBox" type="VBoxContainer" parent="Root/Overlay/CenterContainer/MainHBox/EquipmentPanel/MarginContainer" unique_id=1488153093]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="EquipmentTitleLabel" type="Label" parent="Root/Overlay/CenterContainer/MainHBox/EquipmentPanel/MarginContainer/RightVBox"]
+[node name="EquipmentTitleLabel" type="Label" parent="Root/Overlay/CenterContainer/MainHBox/EquipmentPanel/MarginContainer/RightVBox" unique_id=968764340]
 layout_mode = 2
 text = "Equipment"
 
-[node name="EquipmentVBox" type="VBoxContainer" parent="Root/Overlay/CenterContainer/MainHBox/EquipmentPanel/MarginContainer/RightVBox"]
+[node name="EquipmentVBox" type="VBoxContainer" parent="Root/Overlay/CenterContainer/MainHBox/EquipmentPanel/MarginContainer/RightVBox" unique_id=803465877]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="TooltipPanel" type="PanelContainer" parent="Root/Overlay"]
+[node name="TooltipPanel" type="PanelContainer" parent="Root/Overlay" unique_id=1667011474]
 visible = false
-custom_minimum_size = Vector2(220, 84)
+custom_minimum_size = Vector2(260, 96)
 layout_mode = 0
 theme_override_styles/panel = SubResource("StyleBoxFlat_tooltip")
 
-[node name="MarginContainer" type="MarginContainer" parent="Root/Overlay/TooltipPanel"]
+[node name="MarginContainer" type="MarginContainer" parent="Root/Overlay/TooltipPanel" unique_id=1320703961]
 layout_mode = 2
 theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="TooltipVBox" type="VBoxContainer" parent="Root/Overlay/TooltipPanel/MarginContainer"]
+[node name="TooltipVBox" type="VBoxContainer" parent="Root/Overlay/TooltipPanel/MarginContainer" unique_id=805607556]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="TooltipNameLabel" type="Label" parent="Root/Overlay/TooltipPanel/MarginContainer/TooltipVBox"]
+[node name="TooltipNameLabel" type="Label" parent="Root/Overlay/TooltipPanel/MarginContainer/TooltipVBox" unique_id=317909500]
 layout_mode = 2
 text = "Potion x3"
 
-[node name="TooltipDescLabel" type="Label" parent="Root/Overlay/TooltipPanel/MarginContainer/TooltipVBox"]
+[node name="TooltipDescLabel" type="Label" parent="Root/Overlay/TooltipPanel/MarginContainer/TooltipVBox" unique_id=788516216]
 layout_mode = 2
-autowrap_mode = 3
 text = "HPを20回復する"
+autowrap_mode = 3
 
-[node name="TooltipMetaLabel" type="Label" parent="Root/Overlay/TooltipPanel/MarginContainer/TooltipVBox"]
+[node name="TooltipMetaLabel" type="Label" parent="Root/Overlay/TooltipPanel/MarginContainer/TooltipVBox" unique_id=1440031621]
 layout_mode = 2
 text = "種別: consumable / 使用可能"
 
-[node name="HeldItemPreview" type="Control" parent="Root/Overlay"]
+[node name="HeldItemPreview" type="Control" parent="Root/Overlay" unique_id=1343482966]
 visible = false
-layout_mode = 0
-mouse_filter = 2
 z_index = 20
+anchors_preset = 0
+mouse_filter = 2
 
-[node name="Icon" type="TextureRect" parent="Root/Overlay/HeldItemPreview"]
+[node name="Icon" type="TextureRect" parent="Root/Overlay/HeldItemPreview" unique_id=604205665]
 layout_mode = 0
 offset_right = 48.0
 offset_bottom = 48.0
 stretch_mode = 5
 
-[node name="AmountLabel" type="Label" parent="Root/Overlay/HeldItemPreview"]
+[node name="AmountLabel" type="Label" parent="Root/Overlay/HeldItemPreview" unique_id=568964107]
 layout_mode = 0
 offset_left = 18.0
 offset_top = 26.0
 offset_right = 60.0
 offset_bottom = 48.0
+text = "x1"
 horizontal_alignment = 2
 vertical_alignment = 2
-text = "x1"

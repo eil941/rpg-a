@@ -1,11 +1,18 @@
 [gd_resource type="Resource" script_class="EquipmentData" format=3 uid="uid://gxh453poc5a6"]
 
 [ext_resource type="Script" uid="uid://des0lbvolo0p1" path="res://scripts/data/equipment_data.gd" id="1_ubbxd"]
+[ext_resource type="Texture2D" uid="uid://d02hro7vluxmt" path="res://assets/items/bow.png" id="1_ye7ly"]
 
 [resource]
 script = ExtResource("1_ubbxd")
+attack_bonus = 10
+attack_max_range = 5
+combat_style = 3
+move_style = 2
 item_id = "bow"
 display_name = "bow"
-attack_bonus = 20
-attack_max_range = 5
+description = "弓"
+icon = ExtResource("1_ye7ly")
+category = 2
+max_stack = 1
 metadata/_custom_type_script = "uid://des0lbvolo0p1"

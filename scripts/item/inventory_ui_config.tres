@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="InventoryUIConfig" format=3 uid="uid://sr73hupfneof"]
+
+[ext_resource type="Script" uid="uid://b24ixqtwc3kec" path="res://scripts/data/inventory_ui_config.gd" id="1_jae62"]
+
+[resource]
+script = ExtResource("1_jae62")
+inventory_max_slots = 36
+inventory_columns = 9
+inventory_slot_size = Vector2(32, 32)
+equipment_slot_size = Vector2(32, 32)
+metadata/_custom_type_script = "uid://b24ixqtwc3kec"

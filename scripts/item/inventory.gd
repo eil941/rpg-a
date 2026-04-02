@@ -17,6 +17,34 @@ func initialize_empty_slots() -> void:
 		items.append(_make_empty_slot())
 
 
+func resize_inventory(new_max_slots: int) -> void:
+	if new_max_slots <= 0:
+		return
+
+	if new_max_slots == max_slots and items.size() == max_slots:
+		return
+
+	var old_items = get_all_items()
+	max_slots = new_max_slots
+
+	items.clear()
+	for i in range(max_slots):
+		items.append(_make_empty_slot())
+
+	for i in range(min(old_items.size(), max_slots)):
+		var entry = old_items[i]
+		var item_id = String(entry.get("item_id", ""))
+		var amount = int(entry.get("amount", 0))
+
+		if item_id == "" or amount <= 0:
+			items[i] = _make_empty_slot()
+		else:
+			items[i] = {
+				"item_id": item_id,
+				"amount": amount
+			}
+
+
 func _make_empty_slot() -> Dictionary:
 	return {
 		"item_id": "",

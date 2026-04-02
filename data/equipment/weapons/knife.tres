@@ -1,10 +1,17 @@
 [gd_resource type="Resource" script_class="EquipmentData" format=3 uid="uid://kowquc370oyr"]
 
 [ext_resource type="Script" uid="uid://des0lbvolo0p1" path="res://scripts/data/equipment_data.gd" id="1_0w15b"]
+[ext_resource type="Texture2D" uid="uid://cb1gukf636x7y" path="res://assets/items/knife.png" id="1_5gtg2"]
 
 [resource]
 script = ExtResource("1_0w15b")
+attack_bonus = 20
+combat_style = 1
+move_style = 1
 item_id = "knife"
 display_name = "Knife"
-attack_bonus = 20
+description = "ナイフ"
+icon = ExtResource("1_5gtg2")
+category = 2
+max_stack = 1
 metadata/_custom_type_script = "uid://des0lbvolo0p1"

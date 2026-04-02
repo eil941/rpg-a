@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://qkeocxsl5fqh"]
+
+[ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_0jtar"]
+[ext_resource type="Texture2D" uid="uid://snxa032qnsjt" path="res://assets/items/potion.png" id="1_wdku8"]
+
+[resource]
+script = ExtResource("1_0jtar")
+display_name = "potion"
+icon = ExtResource("1_wdku8")
+category = 0
+usable = true
+effect_type = 1
+effect_value = 500
+metadata/_custom_type_script = "uid://cmkxp6ab4l88m"

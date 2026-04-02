@@ -1,105 +1,115 @@
 extends Node
 class_name ItemDatabase
 
-static var ITEM_DATA = {
-	"potion": {
-		"display_name": "Potion",
-		"description": "HPを20回復する。",
-		"icon": preload("res://assets/items/potion.png"),
-		"max_stack": 10,
-		"item_type": "consumable",
-		"usable": true,
-		"effect_type": "heal_hp",
-		"effect_value": 20
-	},
-	"wood": {
-		"display_name": "Wood",
-		"description": "クラフトなどに使う素材。",
-		"icon": preload("res://assets/items/wood.png"),
-		"max_stack": 99,
-		"item_type": "material",
-		"usable": false,
-		"effect_type": "log_only",
-		"effect_value": 0
-	},
-	"apple": {
-		"display_name": "Apple",
-		"description": "HPを5回復する。",
-		"icon": preload("res://assets/items/apple.png"),
-		"max_stack": 20,
-		"item_type": "consumable",
-		"usable": true,
-		"effect_type": "heal_hp",
-		"effect_value": 5
-	}
+static var ITEM_RESOURCES = {
+	"potion": preload("res://data/items/potion.tres"),
+	"wood": preload("res://data/items/wood.tres"),
+	"apple": preload("res://data/items/apple.tres"),
 
-	# 装備品はこういう形で追加
-	# "bronze_sword": {
-	# 	"display_name": "Bronze Sword",
-	# 	"description": "基本的な剣。",
-	# 	"icon": preload("res://assets/items/bronze_sword.png"),
-	# 	"max_stack": 1,
-	# 	"item_type": "equipment",
-	# 	"usable": false,
-	# 	"equipment_slot": "weapon",
-	# 	"equipment_resource": preload("res://data/equipment/bronze_sword.tres")
-	# }
+	"knife": preload("res://data/equipment/weapons/knife.tres"),
+	"bow": preload("res://data/equipment/weapons/bow.tres"),
+	"cloth_armor": preload("res://data/equipment/armor/cloth_armor.tres"),
+	"power_ring": preload("res://data/equipment/accessories/power_ring.tres")
 }
 
 
-static func get_item_data(item_id: String) -> Dictionary:
-	return ITEM_DATA.get(item_id, {})
+static func has_item(item_id: String) -> bool:
+	return ITEM_RESOURCES.has(item_id)
+
+
+static func get_item_resource(item_id: String):
+	return ITEM_RESOURCES.get(item_id, null)
+
+
+static func get_item_data(item_id: String):
+	return get_item_resource(item_id)
 
 
 static func get_display_name(item_id: String) -> String:
-	var data = get_item_data(item_id)
-	return String(data.get("display_name", item_id))
+	var data = get_item_resource(item_id)
+	if data == null:
+		return item_id
+	return String(data.display_name)
 
 
 static func get_description(item_id: String) -> String:
-	var data = get_item_data(item_id)
-	return String(data.get("description", ""))
+	var data = get_item_resource(item_id)
+	if data == null:
+		return ""
+	return String(data.description)
 
 
 static func get_item_icon(item_id: String) -> Texture2D:
-	var data = get_item_data(item_id)
-	return data.get("icon", null)
+	var data = get_item_resource(item_id)
+	if data == null:
+		return null
+	return data.icon
 
 
 static func get_max_stack(item_id: String) -> int:
-	var data = get_item_data(item_id)
-	return int(data.get("max_stack", 99))
+	var data = get_item_resource(item_id)
+	if data == null:
+		return 99
+	return int(data.max_stack)
 
 
 static func get_item_type(item_id: String) -> String:
-	var data = get_item_data(item_id)
-	return String(data.get("item_type", "misc"))
+	var data = get_item_resource(item_id)
+	if data == null:
+		return "misc"
+
+	if data is EquipmentData:
+		return "equipment"
+
+	if data.has_method("get_item_type_name"):
+		return data.get_item_type_name()
+
+	return "misc"
 
 
 static func is_usable(item_id: String) -> bool:
-	var data = get_item_data(item_id)
-	return bool(data.get("usable", false))
+	var data = get_item_resource(item_id)
+	if data == null:
+		return false
+	return bool(data.usable)
 
 
 static func is_equipment(item_id: String) -> bool:
-	return get_item_type(item_id) == "equipment"
+	var data = get_item_resource(item_id)
+	return data is EquipmentData
 
 
 static func get_equipment_slot(item_id: String) -> String:
-	var data = get_item_data(item_id)
-	return String(data.get("equipment_slot", ""))
+	var data = get_item_resource(item_id)
+	if data == null:
+		return ""
+
+	if data is EquipmentData:
+		return data.get_slot_name()
+
+	return ""
 
 
 static func get_equipment_resource(item_id: String):
-	var data = get_item_data(item_id)
-	return data.get("equipment_resource", null)
+	var data = get_item_resource(item_id)
+	if data is EquipmentData:
+		return data
+	return null
 
 
 static func get_effect_type(item_id: String) -> String:
-	var data = get_item_data(item_id)
-	return String(data.get("effect_type", "log_only"))
+	var data = get_item_resource(item_id)
+	if data == null:
+		return "none"
+
+	if data.has_method("get_effect_type_name"):
+		return data.get_effect_type_name()
+
+	return "none"
 
 
 static func get_effect_value(item_id: String) -> int:
-	var data = get_item_data(item_id)
-	return int(data.get("effect_value", 0))
+	var data = get_item_resource(item_id)
+	if data == null:
+		return 0
+	return int(data.effect_value)

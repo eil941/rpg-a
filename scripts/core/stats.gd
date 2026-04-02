@@ -1,7 +1,7 @@
 extends Node
 class_name Stats
 
-@export var max_hp: int = 20
+@export var max_hp: int = 2000
 @export var attack: int = 5
 @export var defense: int = 2
 @export var speed: float = 120.0

@@ -131,6 +131,7 @@ func _ready() -> void:
 		apply_npc_data(npc_data_to_apply)
 
 	load_persistent_stats()
+	apply_debug_start_items_if_needed()
 
 	if is_player_unit:
 		faction = "PLAYER"
@@ -151,6 +152,8 @@ func _ready() -> void:
 		print("READY has_next_tile =", GlobalPlayerSpawn.has_next_tile)
 		print("READY next_tile =", GlobalPlayerSpawn.next_tile)
 		print("READY saved_positions =", PlayerData.map_positions)
+		print("READY saved_equipment =", PlayerData.equipment_data)
+		print("READY debug_start_items_applied =", PlayerData.debug_start_items_applied)
 		print("READY units_node =", units_node)
 		print("READY map_root =", map_root)
 		print("READY controller =", controller)
@@ -290,14 +293,148 @@ func get_attack_max_range() -> int:
 	return 1
 
 
+func get_equipment_slot_order() -> Array:
+	return ["weapon", "armor", "accessory"]
+
+
+func get_equipped_item_entry(slot_name: String) -> Dictionary:
+	var resource = null
+
+	match slot_name:
+		"weapon":
+			resource = equipped_weapon
+		"armor":
+			resource = equipped_armor
+		"accessory":
+			resource = equipped_accessory
+		_:
+			resource = null
+
+	if resource == null:
+		return {
+			"item_id": "",
+			"amount": 0
+		}
+
+	var item_id = String(resource.item_id)
+
+	if item_id == "":
+		return {
+			"item_id": "",
+			"amount": 0
+		}
+
+	return {
+		"item_id": item_id,
+		"amount": 1
+	}
+
+
+func can_equip_item_id_to_slot(item_id: String, slot_name: String) -> bool:
+	var equipment_resource = ItemDatabase.get_equipment_resource(item_id)
+	if equipment_resource == null:
+		return false
+
+	if equipment_resource.get_slot_name() != slot_name:
+		return false
+
+	return true
+
+
+func set_equipped_item_by_id(slot_name: String, item_id: String) -> bool:
+	var equipment_resource = ItemDatabase.get_equipment_resource(item_id)
+	if equipment_resource == null:
+		return false
+
+	if equipment_resource.get_slot_name() != slot_name:
+		return false
+
+	match slot_name:
+		"weapon":
+			equipped_weapon = equipment_resource
+		"armor":
+			equipped_armor = equipment_resource
+		"accessory":
+			equipped_accessory = equipment_resource
+		_:
+			return false
+
+	return true
+
+
+func clear_equipment_slot(slot_name: String) -> void:
+	match slot_name:
+		"weapon":
+			equipped_weapon = null
+		"armor":
+			equipped_armor = null
+		"accessory":
+			equipped_accessory = null
+
+
+func get_equipment_save_data() -> Dictionary:
+	return {
+		"weapon": String(equipped_weapon.item_id) if equipped_weapon != null else "",
+		"armor": String(equipped_armor.item_id) if equipped_armor != null else "",
+		"accessory": String(equipped_accessory.item_id) if equipped_accessory != null else ""
+	}
+
+
+func apply_equipment_save_data(data: Dictionary) -> void:
+	var weapon_id = String(data.get("weapon", ""))
+	var armor_id = String(data.get("armor", ""))
+	var accessory_id = String(data.get("accessory", ""))
+
+	equipped_weapon = ItemDatabase.get_equipment_resource(weapon_id) if weapon_id != "" else null
+	equipped_armor = ItemDatabase.get_equipment_resource(armor_id) if armor_id != "" else null
+	equipped_accessory = ItemDatabase.get_equipment_resource(accessory_id) if accessory_id != "" else null
+
+
+func apply_debug_start_items_if_needed() -> void:
+	if not is_player_unit:
+		return
+
+	if not DebugSettings.debug_give_player_start_items:
+		return
+
+	if PlayerData.debug_start_items_applied:
+		print("DEBUG START ITEMS SKIP: already applied")
+		return
+
+	if inventory == null:
+		print("DEBUG START ITEMS SKIP: inventory is null")
+		return
+
+	for entry in DebugSettings.debug_player_start_items:
+		if typeof(entry) != TYPE_DICTIONARY:
+			continue
+
+		var item_id = String(entry.get("item_id", ""))
+		var amount = int(entry.get("amount", 1))
+
+		if item_id == "" or amount <= 0:
+			continue
+
+		var added = inventory.add_item(item_id, amount)
+
+		if added:
+			print("DEBUG START ITEM ADDED: ", item_id, " x", amount)
+		else:
+			print("DEBUG START ITEM FAILED: ", item_id, " x", amount)
+			notify_hud_log("デバッグアイテム追加失敗: %s x%d" % [item_id, amount])
+
+	PlayerData.inventory_data = inventory.save_inventory_data()
+	PlayerData.debug_start_items_applied = true
+	print("DEBUG START ITEMS APPLIED")
+
+
 func get_effective_combat_style() -> int:
 	if override_combat_style and combat_style != AICombatStyle.AUTO:
 		return combat_style
 
 	if equipped_weapon != null:
-		var weapon_combat_style = equipped_weapon.get("combat_style")
-		if weapon_combat_style != null and int(weapon_combat_style) != AICombatStyle.AUTO:
-			return int(weapon_combat_style)
+		if int(equipped_weapon.combat_style) != AICombatStyle.AUTO:
+			return int(equipped_weapon.combat_style)
 
 	return AICombatStyle.MELEE
 
@@ -307,9 +444,8 @@ func get_effective_move_style() -> int:
 		return move_style
 
 	if equipped_weapon != null:
-		var weapon_move_style = equipped_weapon.get("move_style")
-		if weapon_move_style != null and int(weapon_move_style) != AIMoveStyle.AUTO:
-			return int(weapon_move_style)
+		if int(equipped_weapon.move_style) != AIMoveStyle.AUTO:
+			return int(equipped_weapon.move_style)
 
 	return AIMoveStyle.APPROACH
 
@@ -442,15 +578,15 @@ func build_frame_from_index(sheet: Texture2D, frame_w: int, frame_h: int, index:
 	if frame_w <= 0 or frame_h <= 0:
 		return null
 
-	var atlas := AtlasTexture.new()
+	var atlas = AtlasTexture.new()
 	atlas.atlas = sheet
 
-	var columns := int(sheet.get_width() / frame_w)
+	var columns = int(sheet.get_width() / frame_w)
 	if columns <= 0:
 		return null
 
-	var x := index % columns
-	var y := index / columns
+	var x = index % columns
+	var y = index / columns
 
 	atlas.region = Rect2(
 		x * frame_w,
@@ -466,7 +602,7 @@ func build_frames_from_indices(sheet: Texture2D, frame_w: int, frame_h: int, ind
 	var result: Array[Texture2D] = []
 
 	for index in indices:
-		var frame := build_frame_from_index(sheet, frame_w, frame_h, index)
+		var frame = build_frame_from_index(sheet, frame_w, frame_h, index)
 		if frame != null:
 			result.append(frame)
 
@@ -481,8 +617,8 @@ func apply_sprite_offset_from_profile(profile: AnimationProfile) -> void:
 		sprite.offset = sprite_offset_adjust
 		return
 
-	var auto_offset := Vector2.ZERO
-	var actual_frame_height := profile.get_frame_height()
+	var auto_offset = Vector2.ZERO
+	var actual_frame_height = profile.get_frame_height()
 
 	if profile.auto_bottom_align:
 		auto_offset.y = -float(actual_frame_height - profile.base_tile_height) / 2.0
@@ -572,7 +708,7 @@ func try_move(dir: Vector2) -> bool:
 
 	var space_state = get_world_2d().direct_space_state
 
-	var query := PhysicsShapeQueryParameters2D.new()
+	var query = PhysicsShapeQueryParameters2D.new()
 	query.shape = $CollisionShape2D.shape
 	query.transform = Transform2D(0, next_pos)
 	query.collide_with_areas = false
@@ -817,7 +953,7 @@ func wait_action() -> void:
 
 
 func get_hp_status_text() -> String:
-	return "%s HP: %d/%d" % [name, stats.hp, stats.max_hp]
+	return "%s HP: %d/%d" % [name, stats.hp, get_total_max_hp()]
 
 
 func get_stats_data() -> Dictionary:
@@ -829,7 +965,8 @@ func get_stats_data() -> Dictionary:
 		"speed": stats.speed,
 		"tile_x": get_current_tile_coords().x,
 		"tile_y": get_current_tile_coords().y,
-		"inventory": inventory.save_inventory_data() if inventory != null else []
+		"inventory": inventory.save_inventory_data() if inventory != null else [],
+		"equipment": get_equipment_save_data()
 	}
 
 
@@ -850,6 +987,8 @@ func apply_stats_data(data: Dictionary) -> void:
 		target_position = global_position
 	if data.has("inventory") and inventory != null:
 		inventory.load_inventory_data(data["inventory"])
+	if data.has("equipment"):
+		apply_equipment_save_data(data["equipment"])
 
 
 func save_persistent_stats() -> void:
@@ -865,10 +1004,13 @@ func save_persistent_stats() -> void:
 		if inventory != null:
 			PlayerData.inventory_data = inventory.save_inventory_data()
 
+		PlayerData.equipment_data = get_equipment_save_data()
+
 		print("PLAYER SAVE map_id=", map_id)
 		print("PLAYER SAVE global_position=", global_position)
 		print("PLAYER SAVE local position=", position)
 		print("PLAYER SAVE current_tile=", get_current_tile_coords())
+		print("PLAYER SAVE equipment_data=", PlayerData.equipment_data)
 
 		if map_id != "":
 			PlayerData.map_positions[map_id] = get_current_tile_coords()
@@ -898,6 +1040,8 @@ func load_persistent_stats() -> void:
 
 		if inventory != null:
 			inventory.load_inventory_data(PlayerData.inventory_data)
+
+		apply_equipment_save_data(PlayerData.equipment_data)
 
 		if map_id != "" and PlayerData.map_positions.has(map_id):
 			var saved_tile: Vector2i = PlayerData.map_positions[map_id]

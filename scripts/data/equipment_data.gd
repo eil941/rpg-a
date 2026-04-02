@@ -1,4 +1,4 @@
-extends Resource
+extends ItemData
 class_name EquipmentData
 
 enum EquipmentSlot {
@@ -25,22 +25,42 @@ enum AIMoveStyle {
 	HOLD
 }
 
-@export var item_id: String = ""
-@export var display_name: String = ""
-@export var slot_type: int = EquipmentSlot.WEAPON
+@export var slot_type: EquipmentSlot = EquipmentSlot.WEAPON
 
 @export var max_hp_bonus: int = 0
 @export var attack_bonus: int = 0
 @export var defense_bonus: int = 0
 @export var speed_bonus: int = 0
 
-# 攻撃情報
-@export var attack_type_id: String = "melee"
+@export_enum("melee", "shot", "magic", "heal")
+var attack_type_id: String = "melee"
+
 @export var attack_min_range: int = 1
 @export var attack_max_range: int = 1
 
-# AI傾向
-# AUTO の場合は unit 側設定へ委譲
-# unit 側も未指定なら最終的に近接型へ
-@export var combat_style: int = AICombatStyle.AUTO
-@export var move_style: int = AIMoveStyle.AUTO
+@export var combat_style: AICombatStyle = AICombatStyle.AUTO
+@export var move_style: AIMoveStyle = AIMoveStyle.AUTO
+
+
+func get_slot_name() -> String:
+	match slot_type:
+		EquipmentSlot.WEAPON:
+			return "weapon"
+		EquipmentSlot.ARMOR:
+			return "armor"
+		EquipmentSlot.ACCESSORY:
+			return "accessory"
+		_:
+			return ""
+
+
+func is_weapon() -> bool:
+	return slot_type == EquipmentSlot.WEAPON
+
+
+func is_armor() -> bool:
+	return slot_type == EquipmentSlot.ARMOR
+
+
+func is_accessory() -> bool:
+	return slot_type == EquipmentSlot.ACCESSORY
