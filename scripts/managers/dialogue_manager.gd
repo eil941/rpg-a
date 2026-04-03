@@ -1,59 +1,127 @@
 extends Node
 
-var dialogue_ui: CanvasLayer = null
-var current_target_unit = null
+var dialogue_ui = null
+var current_unit = null
 var current_player_unit = null
+var current_context: Dictionary = {}
+var base_context: Dictionary = {}
+var is_open: bool = false
 
 
-func register_ui(ui: CanvasLayer) -> void:
+func register_ui(ui) -> void:
 	dialogue_ui = ui
 
 
-func is_dialog_open() -> bool:
-	if dialogue_ui == null:
-		return false
-	if dialogue_ui.has_method("is_dialog_visible"):
-		return dialogue_ui.is_dialog_visible()
-	return dialogue_ui.visible
-
-
 func open_unit_dialog(target_unit, player_unit) -> void:
-	current_target_unit = target_unit
+	if target_unit == null:
+		return
+
+	current_unit = target_unit
 	current_player_unit = player_unit
+	current_context = target_unit.build_talk_context()
+	base_context = current_context.duplicate(true)
+	is_open = true
 
-	if dialogue_ui == null:
-		push_error("DialogueUI が未登録です")
-		return
-
-	if not target_unit.has_method("build_talk_context"):
-		push_error("target_unit に build_talk_context() がありません")
-		return
-
-	var context: Dictionary = target_unit.build_talk_context()
-	dialogue_ui.open_dialog(context)
+	if dialogue_ui != null:
+		dialogue_ui.open_dialog(current_context)
 
 
 func close_dialog() -> void:
-	if dialogue_ui != null and dialogue_ui.has_method("close_dialog"):
+	is_open = false
+	current_unit = null
+	current_player_unit = null
+	current_context = {}
+	base_context = {}
+
+	if dialogue_ui != null:
 		dialogue_ui.close_dialog()
 
-	current_target_unit = null
-	current_player_unit = null
+
+func is_dialog_open() -> bool:
+	return is_open
 
 
 func set_dialog_text(text: String) -> void:
-	if dialogue_ui != null and dialogue_ui.has_method("set_dialog_text"):
+	if not is_open:
+		return
+
+	current_context["text"] = text
+
+	if dialogue_ui != null:
 		dialogue_ui.set_dialog_text(text)
 
 
+func set_dialog_actions(actions: Array) -> void:
+	if not is_open:
+		return
+
+	current_context["actions"] = actions
+
+	if dialogue_ui != null:
+		dialogue_ui.set_actions(actions)
+
+
+func update_dialog(text: String, actions: Array) -> void:
+	if not is_open:
+		return
+
+	current_context["text"] = text
+	current_context["actions"] = actions
+
+	if dialogue_ui != null:
+		dialogue_ui.open_dialog(current_context)
+
+
+func return_to_root_dialog(text: String) -> void:
+	if not is_open:
+		return
+
+	var restored_context := base_context.duplicate(true)
+	restored_context["text"] = text
+	current_context = restored_context
+
+	if dialogue_ui != null:
+		dialogue_ui.open_dialog(current_context)
+
+
 func on_action_selected(action_id: String) -> void:
-	if current_target_unit == null:
+	if not is_open:
+		return
+
+	if current_unit == null:
 		close_dialog()
 		return
 
-	if current_target_unit.has_method("handle_interact_action"):
-		current_target_unit.handle_interact_action(action_id)
+	if not current_unit.has_method("handle_interact_action"):
+		close_dialog()
 		return
 
-	if action_id == "bye":
-		close_dialog()
+	var result = current_unit.handle_interact_action(action_id)
+
+	if typeof(result) != TYPE_DICTIONARY:
+		return
+
+	var result_type := String(result.get("type", ""))
+
+	match result_type:
+		"update_text":
+			set_dialog_text(String(result.get("text", "")))
+
+		"update_dialog":
+			update_dialog(
+				String(result.get("text", "")),
+				result.get("actions", [])
+			)
+
+		"return_to_root":
+			return_to_root_dialog(String(result.get("text", "")))
+
+		"open_trade_ui":
+			set_dialog_text(String(result.get("text", "売買画面を開く予定です。")))
+
+		"close_dialog":
+			close_dialog()
+
+		_:
+			if result.has("text"):
+				set_dialog_text(String(result.get("text", "")))

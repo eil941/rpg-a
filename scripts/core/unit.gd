@@ -16,7 +16,8 @@ extends CharacterBody2D
 @export var unit_id: String = ""
 @export var is_player_unit: bool = false
 @export var map_id: String = ""
-@export var faction: String = "PLAYER"
+@export_enum("PLAYER", "NPC", "ENEMY")
+var faction: String = "PLAYER"
 
 @export var animation_profile: AnimationProfile
 
@@ -43,8 +44,16 @@ enum AIMoveStyle {
 	HOLD
 }
 
+enum UnitRole {
+	VILLAGER = 1,
+	MERCHANT = 2,
+	GUARD = 4,
+	RECRUIT = 8,
+	QUEST_GIVER = 16,
+	ENEMY_BOSS = 32
+}
+
 # unit 側のAI設定
-# 未指定時はすべて近接攻撃型
 @export var override_combat_style: bool = false
 @export var combat_style: int = AICombatStyle.AUTO
 
@@ -59,9 +68,15 @@ enum AIMoveStyle {
 @export var talk_display_name: String = ""
 @export_multiline var talk_greeting_text: String = "……"
 @export var talk_portrait: Texture2D
+@export_flags("VILLAGER", "MERCHANT", "GUARD", "RECRUIT", "QUEST_GIVER", "ENEMY_BOSS")
+var unit_roles: int = 0
+@export var friendliness: int = 0
+@export var can_offer_request: bool = false
 @export var can_trade: bool = false
 @export var can_receive_order: bool = false
 @export var extra_interact_actions: Array[String] = []
+@export_multiline var request_description: String = ""
+@export var random_talk_texts: Array[String] = []
 
 # 従来方式とも共存
 @export var idle_right_frames: Array[Texture2D] = []
@@ -560,35 +575,11 @@ func get_talk_name() -> String:
 
 
 func get_interact_header_text() -> String:
-	return talk_greeting_text
+	return UnitInteractionLogic.build_header_text(self)
 
 
 func get_interact_actions() -> Array:
-	var actions: Array = []
-
-	actions.append({"id": "talk", "label": "話がしたい"})
-
-	if can_trade:
-		actions.append({"id": "trade", "label": "売買したい"})
-
-	if can_receive_order:
-		actions.append({"id": "wait_here", "label": "ここで待機してくれ"})
-
-	for action_id in extra_interact_actions:
-		match String(action_id):
-			"info":
-				actions.append({"id": "info", "label": "耳寄りな情報はないか？"})
-			"request":
-				actions.append({"id": "request", "label": "「調達依頼」について"})
-			"secret":
-				actions.append({"id": "secret", "label": "実は..."})
-			"home_wait":
-				actions.append({"id": "home_wait", "label": "ホームで待機しろ"})
-			_:
-				actions.append({"id": String(action_id), "label": String(action_id)})
-
-	actions.append({"id": "bye", "label": "さようなら"})
-	return actions
+	return UnitInteractionLogic.build_actions(self)
 
 
 func build_talk_context() -> Dictionary:
@@ -601,26 +592,8 @@ func build_talk_context() -> Dictionary:
 	}
 
 
-func handle_interact_action(action_id: String) -> void:
-	match action_id:
-		"talk":
-			DialogueManager.set_dialog_text(get_interact_header_text())
-		"trade":
-			DialogueManager.set_dialog_text("売買はまだ未実装です。")
-		"wait_here":
-			DialogueManager.set_dialog_text("ここで待機するよう伝えた。")
-		"info":
-			DialogueManager.set_dialog_text("耳寄りな情報はまだないようだ。")
-		"request":
-			DialogueManager.set_dialog_text("調達依頼はまだ未実装です。")
-		"secret":
-			DialogueManager.set_dialog_text("実は……まだ未実装です。")
-		"home_wait":
-			DialogueManager.set_dialog_text("ホーム待機はまだ未実装です。")
-		"bye":
-			DialogueManager.close_dialog()
-		_:
-			DialogueManager.set_dialog_text("%s を選択した。" % action_id)
+func handle_interact_action(action_id: String) -> Dictionary:
+	return UnitInteractionLogic.handle_action(self, action_id)
 
 
 func find_game_root_node() -> Node:
@@ -998,26 +971,26 @@ func try_move(dir: Vector2) -> bool:
 	return false
 
 
-func try_interact_transition() -> bool:
+func try_interact_transition() -> void:
 	if not can_trigger_scene_transition:
-		return false
+		return
 
 	if map_root != null and map_root.has_method("try_use_dungeon_stairs_from_player_position"):
 		if map_root.try_use_dungeon_stairs_from_player_position():
 			print("STAIRS TRANSITION HANDLED")
-			return true
+			return
 
 	var tile_data = get_current_tile_data()
 	if tile_data == null:
-		return false
+		return
 
 	var can_enter = tile_data.get_custom_data("can_enter")
 	if can_enter == null or can_enter == false:
-		return false
+		return
 
 	var next_scene = String(tile_data.get_custom_data("enter_scene"))
 	if next_scene == "":
-		return false
+		return
 
 	var current_tile = get_current_tile_coords()
 
@@ -1032,7 +1005,7 @@ func try_interact_transition() -> bool:
 
 		if dungeon_id == "":
 			push_error("Dungeon interact transfer failed: dungeon_id is empty")
-			return false
+			return
 
 		GlobalDungeon.current_dungeon_id = dungeon_id
 		GlobalDungeon.current_floor = 1
@@ -1051,14 +1024,14 @@ func try_interact_transition() -> bool:
 		GlobalPlayerSpawn.has_next_tile = false
 		notify_hud_log(next_scene + "へ移動")
 		request_map_change(next_scene)
-		return true
+		return
 
 	var spawn_x_data = tile_data.get_custom_data("spawn_x")
 	var spawn_y_data = tile_data.get_custom_data("spawn_y")
 
 	if spawn_x_data == null or spawn_y_data == null:
 		push_error("spawn_x or spawn_y is missing on event tile")
-		return false
+		return
 
 	var spawn_x = int(spawn_x_data)
 	var spawn_y = int(spawn_y_data)
@@ -1106,7 +1079,6 @@ func try_interact_transition() -> bool:
 
 	notify_hud_log(next_scene + "へ移動")
 	request_map_change(next_scene)
-	return true
 
 
 func wait_action() -> void:
@@ -1244,6 +1216,11 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 	talk_display_name = enemy_data.talk_display_name
 	talk_greeting_text = enemy_data.talk_greeting_text
 	talk_portrait = enemy_data.talk_portrait
+	unit_roles = enemy_data.unit_roles
+	friendliness = enemy_data.friendliness
+	can_offer_request = enemy_data.can_offer_request
+	request_description = enemy_data.request_description
+	random_talk_texts = enemy_data.random_talk_texts.duplicate()
 
 	if enemy_data.animation_profile != null:
 		apply_animation_profile(enemy_data.animation_profile)
@@ -1298,9 +1275,14 @@ func apply_npc_data(npc_data: NpcData) -> void:
 	talk_display_name = npc_data.talk_display_name
 	talk_greeting_text = npc_data.talk_greeting_text
 	talk_portrait = npc_data.talk_portrait
+	unit_roles = npc_data.unit_roles
+	friendliness = npc_data.friendliness
+	can_offer_request = npc_data.can_offer_request
 	can_trade = npc_data.can_trade
 	can_receive_order = npc_data.can_receive_order
 	extra_interact_actions = npc_data.extra_interact_actions.duplicate()
+	request_description = npc_data.request_description
+	random_talk_texts = npc_data.random_talk_texts.duplicate()
 
 	if npc_data.animation_profile != null:
 		apply_animation_profile(npc_data.animation_profile)
@@ -1346,31 +1328,31 @@ func create_detail_map_config(generator_type: String, field_tile: Vector2i) -> D
 	match generator_type:
 		"GRASS":
 			config["enemy_spawn_count"] = 5
-			config["npc_spawn_count"] = 3
+			config["npc_spawn_count"] = 10
 			config["enemy_type_ids"] = ["bat", "slime"]
 			config["npc_type_ids"] = ["sabo"]
 
 		"FOREST":
 			config["enemy_spawn_count"] = 8
-			config["npc_spawn_count"] = 1
+			config["npc_spawn_count"] = 10
 			config["enemy_type_ids"] = ["bat", "orc"]
 			config["npc_type_ids"] = ["npc-1"]
 
 		"SAND":
 			config["enemy_spawn_count"] = 4
-			config["npc_spawn_count"] = 0
+			config["npc_spawn_count"] = 10
 			config["enemy_type_ids"] = ["slime"]
 			config["npc_type_ids"] = []
 
 		"SEA":
 			config["enemy_spawn_count"] = 6
-			config["npc_spawn_count"] = 0
+			config["npc_spawn_count"] = 10
 			config["enemy_type_ids"] = ["bat"]
 			config["npc_type_ids"] = []
 
 		"BEACH":
 			config["enemy_spawn_count"] = 3
-			config["npc_spawn_count"] = 2
+			config["npc_spawn_count"] = 12
 			config["enemy_type_ids"] = ["slime"]
 			config["npc_type_ids"] = ["sabo"]
 
@@ -1520,10 +1502,6 @@ func try_interact_action() -> void:
 		if DialogueManager.is_dialog_open():
 			return
 
-	# 現在地タイルの遷移を最優先
-	if try_interact_transition():
-		return
-
 	if try_talk_to_front_unit():
 		return
 
@@ -1532,6 +1510,8 @@ func try_interact_action() -> void:
 
 	if try_open_chest_on_current_tile():
 		return
+
+	try_interact_transition()
 
 
 func try_open_chest_on_current_tile() -> bool:

@@ -2,9 +2,12 @@
 
 [ext_resource type="Resource" uid="uid://d2vbfb7uxelhe" path="res://data/santa_animation_profile.tres" id="1_flbg5"]
 [ext_resource type="Script" uid="uid://bgt8humnn3jqj" path="res://scripts/data/npc_data.gd" id="2_n2gxl"]
+[ext_resource type="Texture2D" uid="uid://cu2ogfvyg8oai" path="res://assets/npc1.png" id="3_n2gxl"]
 
 [resource]
 script = ExtResource("2_n2gxl")
-npc_type_id = "sabo"
+talk_display_name = "sabosan"
+talk_portrait = ExtResource("3_n2gxl")
+unit_roles = 31
 animation_profile = ExtResource("1_flbg5")
 metadata/_custom_type_script = "uid://bgt8humnn3jqj"

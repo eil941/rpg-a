@@ -34,9 +34,6 @@ var faction: String = "ENEMY"
 @export var equipped_armor: EquipmentData
 @export var equipped_accessory: EquipmentData
 
-# 敵個体ごとのAI override
-# false / AUTO の場合は武器依存
-# 武器も未指定なら最終的に近接型
 @export var override_combat_style: bool = false
 @export_enum("AUTO", "MELEE", "MID", "LONG", "SUPPORTER", "HIT_AND_RUN", "DEFENSIVE")
 var combat_style: int = AICombatStyle.AUTO
@@ -48,6 +45,22 @@ var move_style: int = AIMoveStyle.AUTO
 @export var talk_display_name: String = ""
 @export_multiline var talk_greeting_text: String = "……"
 @export var talk_portrait: Texture2D
+
+@export_flags("VILLAGER", "MERCHANT", "GUARD", "RECRUIT", "QUEST_GIVER", "ENEMY_BOSS")
+var unit_roles: int = 0
+
+@export var friendliness: int = -100
+@export var can_offer_request: bool = false
+
+@export_multiline var request_description: String = "こちらの頼みを聞くつもりか？"
+@export_multiline var request_accept_text: String = "いい度胸だ。"
+@export_multiline var request_decline_text: String = "賢明な判断かもしれんな。"
+
+@export var random_talk_texts: Array[String] = [
+	"……。",
+	"こちらを見るな。",
+	"近づきすぎるな。"
+]
 
 @export var animation_profile: AnimationProfile
 
@@ -62,3 +75,9 @@ var move_style: int = AIMoveStyle.AUTO
 
 @export var idle_up_frames: Array[Texture2D] = []
 @export var walk_up_frames: Array[Texture2D] = []
+
+
+func get_effective_enemy_type_id() -> String:
+	if enemy_type_id != "":
+		return enemy_type_id
+	return enemy_name

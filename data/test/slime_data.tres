@@ -16,8 +16,6 @@
 script = ExtResource("3_prihv")
 enemy_type_id = "slime"
 enemy_name = "slime"
-attack = 3
-defense = 1
 speed = 100.0
 combat_style = 1
 move_style = 1
