@@ -3,8 +3,10 @@ extends Node
 @onready var current_map_container: Node = $CurrentMapContainer
 @onready var game_hud = $GameHUD
 @onready var inventory_ui = $InventoryUI
+@onready var trade_ui: TradeUI = $TradeUI
 
 var current_map: Node = null
+var trade_return_context: Dictionary = {}
 
 
 func _ready() -> void:
@@ -48,6 +50,7 @@ func update_hud_time() -> void:
 		TimeManager.get_time_string(),
 		TimeManager.get_time_of_day()
 	)
+
 
 func update_hud_player_status() -> void:
 	if game_hud == null:
@@ -96,7 +99,8 @@ func find_player():
 			return child
 
 	return null
-	
+
+
 func toggle_inventory_ui() -> void:
 	if inventory_ui == null:
 		print("inventory_ui is null")
@@ -105,6 +109,9 @@ func toggle_inventory_ui() -> void:
 	if DialogueManager != null and DialogueManager.has_method("is_dialog_open"):
 		if DialogueManager.is_dialog_open():
 			return
+
+	if is_trade_ui_open():
+		return
 
 	var player = find_player()
 	if player == null:
@@ -118,7 +125,51 @@ func toggle_inventory_ui() -> void:
 	print("OPEN INVENTORY", player.inventory.get_all_items())
 	inventory_ui.toggle_with_inventory(player.inventory)
 
+
 func is_inventory_open() -> bool:
 	if inventory_ui == null:
 		return false
 	return inventory_ui.visible
+
+
+func open_trade_ui(player_unit, merchant_unit, return_context: Dictionary = {}) -> void:
+	if trade_ui == null:
+		push_error("TradeUI が見つかりません")
+		return
+
+	trade_return_context = return_context.duplicate(true)
+
+	if DialogueManager != null and DialogueManager.has_method("close_dialog"):
+		DialogueManager.close_dialog()
+
+	trade_ui.open_trade_ui(player_unit, merchant_unit)
+
+
+func close_trade_ui() -> void:
+	if trade_ui == null:
+		return
+
+	trade_ui.close_trade_ui()
+
+
+func is_trade_ui_open() -> bool:
+	if trade_ui == null:
+		return false
+
+	if trade_ui.has_method("is_trade_open"):
+		return trade_ui.is_trade_open()
+
+	return trade_ui.visible
+
+
+func on_trade_ui_closed() -> void:
+	if DialogueManager == null:
+		return
+
+	if trade_return_context.is_empty():
+		return
+
+	if DialogueManager.has_method("reopen_dialog_from_context"):
+		DialogueManager.reopen_dialog_from_context(trade_return_context)
+
+	trade_return_context = {}

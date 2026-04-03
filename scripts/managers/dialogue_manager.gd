@@ -26,7 +26,25 @@ func open_unit_dialog(target_unit, player_unit) -> void:
 		dialogue_ui.open_dialog(current_context)
 
 
+func reopen_dialog_from_context(context: Dictionary) -> void:
+	if context.is_empty():
+		return
+
+	current_context = context.duplicate(true)
+	is_open = true
+
+	if dialogue_ui != null:
+		dialogue_ui.open_dialog(current_context)
+
+
 func close_dialog() -> void:
+	is_open = false
+
+	if dialogue_ui != null:
+		dialogue_ui.close_dialog()
+
+
+func fully_close_dialog() -> void:
 	is_open = false
 	current_unit = null
 	current_player_unit = null
@@ -47,7 +65,7 @@ func set_dialog_text(text: String) -> void:
 
 	current_context["text"] = text
 
-	if dialogue_ui != null:
+	if dialogue_ui != null and dialogue_ui.has_method("set_dialog_text"):
 		dialogue_ui.set_dialog_text(text)
 
 
@@ -57,7 +75,7 @@ func set_dialog_actions(actions: Array) -> void:
 
 	current_context["actions"] = actions
 
-	if dialogue_ui != null:
+	if dialogue_ui != null and dialogue_ui.has_method("set_actions"):
 		dialogue_ui.set_actions(actions)
 
 
@@ -85,15 +103,12 @@ func return_to_root_dialog(text: String) -> void:
 
 
 func on_action_selected(action_id: String) -> void:
-	if not is_open:
-		return
-
 	if current_unit == null:
-		close_dialog()
+		fully_close_dialog()
 		return
 
 	if not current_unit.has_method("handle_interact_action"):
-		close_dialog()
+		fully_close_dialog()
 		return
 
 	var result = current_unit.handle_interact_action(action_id)
@@ -117,11 +132,40 @@ func on_action_selected(action_id: String) -> void:
 			return_to_root_dialog(String(result.get("text", "")))
 
 		"open_trade_ui":
-			set_dialog_text(String(result.get("text", "売買画面を開く予定です。")))
+			_open_trade_ui()
 
 		"close_dialog":
-			close_dialog()
+			fully_close_dialog()
 
 		_:
 			if result.has("text"):
 				set_dialog_text(String(result.get("text", "")))
+
+
+func _open_trade_ui() -> void:
+	if current_player_unit == null or current_unit == null:
+		return
+
+	var root = _find_game_root_from_unit(current_player_unit)
+	if root == null:
+		push_error("TradeUI を開く親ノードが見つかりません")
+		return
+
+	if not root.has_method("open_trade_ui"):
+		push_error("親ノードに open_trade_ui() がありません")
+		return
+
+	root.open_trade_ui(
+		current_player_unit,
+		current_unit,
+		base_context
+	)
+
+
+func _find_game_root_from_unit(unit) -> Node:
+	var node: Node = unit
+	while node != null:
+		if node.has_method("open_trade_ui"):
+			return node
+		node = node.get_parent()
+	return null

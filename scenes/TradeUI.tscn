@@ -1,0 +1,150 @@
+[gd_scene format=3 uid="uid://0luokh358jcn"]
+
+[ext_resource type="Script" uid="uid://us4ehaqco2h6" path="res://scripts/trade_ui.gd" id="1_1t2qp"]
+
+[node name="TradeUI" type="CanvasLayer" unique_id=296009473]
+layer = 10
+script = ExtResource("1_1t2qp")
+
+[node name="RootPanel" type="Panel" parent="." unique_id=766753246]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+
+[node name="TitleLabel" type="Label" parent="RootPanel" unique_id=908233193]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 16.0
+offset_right = 180.0
+offset_bottom = 52.0
+theme_override_font_sizes/font_size = 30
+text = "売買"
+
+[node name="NpcTitleLabel" type="Label" parent="RootPanel" unique_id=474771559]
+layout_mode = 0
+offset_left = 36.0
+offset_top = 70.0
+offset_right = 280.0
+offset_bottom = 104.0
+theme_override_font_sizes/font_size = 18
+text = "NPC の商品"
+
+[node name="NpcPanel" type="Panel" parent="RootPanel" unique_id=935847360]
+layout_mode = 0
+offset_left = 36.0
+offset_top = 104.0
+offset_right = 840.0
+offset_bottom = 256.0
+
+[node name="NpcItemGrid" type="GridContainer" parent="RootPanel/NpcPanel" unique_id=1515579011]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 8
+
+[node name="PlayerTitleLabel" type="Label" parent="RootPanel" unique_id=851059133]
+layout_mode = 0
+offset_left = 36.0
+offset_top = 288.0
+offset_right = 330.0
+offset_bottom = 322.0
+theme_override_font_sizes/font_size = 18
+text = "プレイヤーのインベントリ"
+
+[node name="PlayerPanel" type="Panel" parent="RootPanel" unique_id=397600187]
+layout_mode = 0
+offset_left = 36.0
+offset_top = 322.0
+offset_right = 840.0
+offset_bottom = 688.0
+
+[node name="PlayerItemGrid" type="GridContainer" parent="RootPanel/PlayerPanel" unique_id=1548244121]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 8
+
+[node name="EquipmentTitleLabel" type="Label" parent="RootPanel" unique_id=1150735352]
+layout_mode = 0
+offset_left = 860.0
+offset_top = 288.0
+offset_right = 980.0
+offset_bottom = 322.0
+theme_override_font_sizes/font_size = 18
+text = "そうび"
+
+[node name="EquipmentPanel" type="Panel" parent="RootPanel" unique_id=660389156]
+layout_mode = 0
+offset_left = 860.0
+offset_top = 322.0
+offset_right = 1110.0
+offset_bottom = 520.0
+
+[node name="EquipmentList" type="VBoxContainer" parent="RootPanel/EquipmentPanel" unique_id=488114355]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+theme_override_constants/separation = 8
+
+[node name="SidePanel" type="Panel" parent="RootPanel" unique_id=270614799]
+layout_mode = 0
+offset_left = 860.0
+offset_top = 540.0
+offset_right = 1110.0
+offset_bottom = 688.0
+
+[node name="MerchantNameLabel" type="Label" parent="RootPanel/SidePanel" unique_id=30270752]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 14.0
+offset_right = 220.0
+offset_bottom = 42.0
+theme_override_font_sizes/font_size = 22
+text = "商人"
+
+[node name="TradeInfoLabel" type="RichTextLabel" parent="RootPanel/SidePanel" unique_id=1820030829]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 46.0
+offset_right = 224.0
+offset_bottom = 96.0
+bbcode_enabled = true
+text = "[center]取引画面[/center]"
+scroll_active = false
+
+[node name="HintLabel" type="Label" parent="RootPanel/SidePanel" unique_id=1857935712]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 100.0
+offset_right = 220.0
+offset_bottom = 122.0
+theme_override_font_sizes/font_size = 16
+text = "Esc: 戻る"
+
+[node name="BackButton" type="Button" parent="RootPanel/SidePanel" unique_id=2125594638]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 96.0
+offset_right = 220.0
+offset_bottom = 140.0
+text = "戻る"

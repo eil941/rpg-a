@@ -76,6 +76,8 @@ var unit_roles: int = 0
 @export var can_receive_order: bool = false
 @export var extra_interact_actions: Array[String] = []
 @export_multiline var request_description: String = ""
+@export_multiline var request_accept_text: String = "ありがとうございます。"
+@export_multiline var request_decline_text: String = "また今度おねがいします。"
 @export var random_talk_texts: Array[String] = []
 
 # 従来方式とも共存
@@ -1220,6 +1222,8 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 	friendliness = enemy_data.friendliness
 	can_offer_request = enemy_data.can_offer_request
 	request_description = enemy_data.request_description
+	request_accept_text = enemy_data.request_accept_text
+	request_decline_text = enemy_data.request_decline_text
 	random_talk_texts = enemy_data.random_talk_texts.duplicate()
 
 	if enemy_data.animation_profile != null:
@@ -1282,6 +1286,8 @@ func apply_npc_data(npc_data: NpcData) -> void:
 	can_receive_order = npc_data.can_receive_order
 	extra_interact_actions = npc_data.extra_interact_actions.duplicate()
 	request_description = npc_data.request_description
+	request_accept_text = npc_data.request_accept_text
+	request_decline_text = npc_data.request_decline_text
 	random_talk_texts = npc_data.random_talk_texts.duplicate()
 
 	if npc_data.animation_profile != null:

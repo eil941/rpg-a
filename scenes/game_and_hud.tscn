@@ -3,7 +3,8 @@
 [ext_resource type="Script" uid="uid://67w7un05lq1j" path="res://scripts/hud/game_and_hud.gd" id="1_xqwh5"]
 [ext_resource type="PackedScene" uid="uid://bji7srxp1ov88" path="res://scenes/game_hud.tscn" id="2_k43xj"]
 [ext_resource type="PackedScene" uid="uid://bcwisg05o4qoq" path="res://scenes/InventoryUI.tscn" id="3_k43xj"]
-[ext_resource type="PackedScene" uid="uid://bi4sy7xb7142o" path="res://scenes/DialogueUI.tscn" id="4_bfj8w"]
+[ext_resource type="PackedScene" uid="uid://bqg3cmcpdjxv6" path="res://scenes/DialogueUI.tscn" id="4_bfj8w"]
+[ext_resource type="PackedScene" uid="uid://0luokh358jcn" path="res://scenes/TradeUI.tscn" id="5_5msxm"]
 
 [node name="GameAndHud" type="Node2D" unique_id=777903396]
 script = ExtResource("1_xqwh5")
@@ -15,3 +16,5 @@ script = ExtResource("1_xqwh5")
 [node name="InventoryUI" parent="." unique_id=705904420 instance=ExtResource("3_k43xj")]
 
 [node name="DialogueUI" parent="." unique_id=532800773 instance=ExtResource("4_bfj8w")]
+
+[node name="TradeUI" parent="." unique_id=614399780 instance=ExtResource("5_5msxm")]
