@@ -27,15 +27,16 @@ func _physics_process(delta: float) -> void:
 		if units_node == null:
 			return
 
-	# インベントリは常にトグル可能にする
+	# Iキーの開閉はここだけで処理する
 	if Input.is_action_just_pressed("inventory"):
 		if is_dialog_open():
 			return
+
 		toggle_inventory_ui()
 		return
 
-	# 会話中だけは入力を止める
-	if is_dialog_open():
+	# dialogue / trade 中だけ入力ロック
+	if is_ui_locked():
 		clear_move_hold()
 		return
 
@@ -79,8 +80,18 @@ func _physics_process(delta: float) -> void:
 	handle_move_input(delta)
 
 
+func is_ui_locked() -> bool:
+	if is_dialog_open():
+		return true
+
+	if is_trade_ui_open():
+		return true
+
+	return false
+
+
 func handle_move_input(delta: float) -> void:
-	var input_dir := get_input_direction()
+	var input_dir: Vector2 = get_input_direction()
 
 	if input_dir == Vector2.ZERO:
 		clear_move_hold()
@@ -216,16 +227,13 @@ func toggle_inventory_ui() -> void:
 		node = node.get_parent()
 
 
-func is_inventory_open() -> bool:
-	var root := get_tree().current_scene
-	if root == null:
-		return false
-
-	var inventory_ui = root.find_child("InventoryUI", true, false)
-	if inventory_ui == null:
-		return false
-
-	return inventory_ui.visible
+func is_trade_ui_open() -> bool:
+	var node: Node = unit
+	while node != null:
+		if node.has_method("is_trade_ui_open"):
+			return node.is_trade_ui_open()
+		node = node.get_parent()
+	return false
 
 
 func is_dialog_open() -> bool:

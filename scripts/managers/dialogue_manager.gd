@@ -40,7 +40,7 @@ func reopen_dialog_from_context(context: Dictionary) -> void:
 func close_dialog() -> void:
 	is_open = false
 
-	if dialogue_ui != null:
+	if dialogue_ui != null and dialogue_ui.has_method("close_dialog"):
 		dialogue_ui.close_dialog()
 
 
@@ -51,7 +51,7 @@ func fully_close_dialog() -> void:
 	current_context = {}
 	base_context = {}
 
-	if dialogue_ui != null:
+	if dialogue_ui != null and dialogue_ui.has_method("close_dialog"):
 		dialogue_ui.close_dialog()
 
 
@@ -86,7 +86,7 @@ func update_dialog(text: String, actions: Array) -> void:
 	current_context["text"] = text
 	current_context["actions"] = actions
 
-	if dialogue_ui != null:
+	if dialogue_ui != null and dialogue_ui.has_method("open_dialog"):
 		dialogue_ui.open_dialog(current_context)
 
 
@@ -94,11 +94,11 @@ func return_to_root_dialog(text: String) -> void:
 	if not is_open:
 		return
 
-	var restored_context := base_context.duplicate(true)
+	var restored_context: Dictionary = base_context.duplicate(true)
 	restored_context["text"] = text
 	current_context = restored_context
 
-	if dialogue_ui != null:
+	if dialogue_ui != null and dialogue_ui.has_method("open_dialog"):
 		dialogue_ui.open_dialog(current_context)
 
 
@@ -116,7 +116,7 @@ func on_action_selected(action_id: String) -> void:
 	if typeof(result) != TYPE_DICTIONARY:
 		return
 
-	var result_type := String(result.get("type", ""))
+	var result_type: String = String(result.get("type", ""))
 
 	match result_type:
 		"update_text":

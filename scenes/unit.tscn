@@ -19,10 +19,10 @@ receives_time_turns = false
 instant_move = false
 unit_id = "Player"
 is_player_unit = true
-talk_display_name = "testaa"
-talk_portrait = ExtResource("2_e8hdl")
 animation_profile = ExtResource("2_gr2wx")
 equipped_weapon = ExtResource("2_tb304")
+talk_display_name = "testaa"
+talk_portrait = ExtResource("2_e8hdl")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=427796898]
 
@@ -41,3 +41,4 @@ script = ExtResource("4_gic7v")
 
 [node name="Inventory" type="Node" parent="." unique_id=875404354]
 script = ExtResource("5_tb304")
+max_slots = 27

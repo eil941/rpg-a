@@ -3,7 +3,6 @@ extends Node
 @onready var current_map_container: Node = $CurrentMapContainer
 @onready var game_hud = $GameHUD
 @onready var inventory_ui = $InventoryUI
-@onready var trade_ui: TradeUI = $TradeUI
 
 var current_map: Node = null
 var trade_return_context: Dictionary = {}
@@ -110,8 +109,9 @@ func toggle_inventory_ui() -> void:
 		if DialogueManager.is_dialog_open():
 			return
 
-	if is_trade_ui_open():
-		return
+	if inventory_ui.has_method("is_trade_mode_open"):
+		if inventory_ui.is_trade_mode_open():
+			return
 
 	var player = find_player()
 	if player == null:
@@ -129,12 +129,29 @@ func toggle_inventory_ui() -> void:
 func is_inventory_open() -> bool:
 	if inventory_ui == null:
 		return false
+
 	return inventory_ui.visible
 
 
 func open_trade_ui(player_unit, merchant_unit, return_context: Dictionary = {}) -> void:
-	if trade_ui == null:
-		push_error("TradeUI が見つかりません")
+	if inventory_ui == null:
+		push_error("InventoryUI が見つかりません")
+		return
+
+	if player_unit == null:
+		push_error("open_trade_ui: player_unit is null")
+		return
+
+	if merchant_unit == null:
+		push_error("open_trade_ui: merchant_unit is null")
+		return
+
+	if player_unit.inventory == null:
+		push_error("open_trade_ui: player_unit.inventory is null")
+		return
+
+	if merchant_unit.inventory == null:
+		push_error("open_trade_ui: merchant_unit.inventory is null")
 		return
 
 	trade_return_context = return_context.duplicate(true)
@@ -142,24 +159,37 @@ func open_trade_ui(player_unit, merchant_unit, return_context: Dictionary = {}) 
 	if DialogueManager != null and DialogueManager.has_method("close_dialog"):
 		DialogueManager.close_dialog()
 
-	trade_ui.open_trade_ui(player_unit, merchant_unit)
+	if inventory_ui.has_method("open_trade_mode"):
+		inventory_ui.open_trade_mode(
+			player_unit.inventory,
+			player_unit,
+			merchant_unit.inventory,
+			merchant_unit
+		)
+	else:
+		push_error("InventoryUI に open_trade_mode() がありません")
 
 
 func close_trade_ui() -> void:
-	if trade_ui == null:
+	if inventory_ui == null:
 		return
 
-	trade_ui.close_trade_ui()
+	if inventory_ui.has_method("is_trade_mode_open"):
+		if not inventory_ui.is_trade_mode_open():
+			return
+
+	if inventory_ui.has_method("close_inventory"):
+		inventory_ui.close_inventory()
 
 
 func is_trade_ui_open() -> bool:
-	if trade_ui == null:
+	if inventory_ui == null:
 		return false
 
-	if trade_ui.has_method("is_trade_open"):
-		return trade_ui.is_trade_open()
+	if inventory_ui.has_method("is_trade_mode_open"):
+		return inventory_ui.is_trade_mode_open()
 
-	return trade_ui.visible
+	return false
 
 
 func on_trade_ui_closed() -> void:

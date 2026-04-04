@@ -113,3 +113,14 @@ static func get_effect_value(item_id: String) -> int:
 	if data == null:
 		return 0
 	return int(data.effect_value)
+
+
+static func get_base_price(item_id: String) -> int:
+	var data = get_item_resource(item_id)
+	if data == null:
+		return 0
+
+	if "base_price" in data:
+		return int(data.base_price)
+
+	return 0

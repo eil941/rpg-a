@@ -27,3 +27,4 @@ script = ExtResource("4_ktlip")
 
 [node name="Inventory" type="Node" parent="." unique_id=755183580]
 script = ExtResource("5_ktlip")
+max_slots = 27
