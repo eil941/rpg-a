@@ -11,4 +11,5 @@ category = 0
 usable = true
 effect_type = 1
 effect_value = 10
+base_price = 50
 metadata/_custom_type_script = "uid://cmkxp6ab4l88m"

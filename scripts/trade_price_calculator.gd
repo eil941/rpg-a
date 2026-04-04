@@ -3,33 +3,51 @@ class_name TradePriceCalculator
 
 
 static func get_buy_price(player_unit, merchant_unit, item_id: String) -> int:
-	var base_price: int = ItemDatabase.get_base_price(item_id)
-	if base_price <= 0:
-		return 0
-
-	var price: float = float(base_price)
-
-	price *= _get_friendliness_buy_rate(merchant_unit)
-	price *= _get_player_trade_skill_buy_rate(player_unit)
-	price *= _get_sale_rate(merchant_unit, item_id)
-
-	return max(1, int(round(price)))
+	var rate: float = get_trade_buy_rate_snapshot(player_unit, merchant_unit, item_id)
+	return get_buy_price_with_rate(item_id, rate)
 
 
 static func get_sell_price(player_unit, merchant_unit, item_id: String) -> int:
+	var rate: float = get_trade_sell_rate_snapshot(player_unit, merchant_unit, item_id)
+	return get_sell_price_with_rate(item_id, rate)
+
+
+static func get_trade_buy_rate_snapshot(player_unit, merchant_unit, item_id: String = "") -> float:
+	var rate: float = 1.0
+
+	rate *= _get_friendliness_buy_rate(merchant_unit)
+	rate *= _get_player_trade_skill_buy_rate(player_unit)
+	rate *= _get_sale_rate(merchant_unit, item_id)
+
+	return max(rate, 0.01)
+
+
+static func get_trade_sell_rate_snapshot(player_unit, merchant_unit, item_id: String = "") -> float:
+	var rate: float = 1.0
+
+	# 基本は買値より安くなる想定
+	rate *= 0.5
+	rate *= _get_friendliness_sell_rate(merchant_unit)
+	rate *= _get_player_trade_skill_sell_rate(player_unit)
+	rate *= _get_sale_rate(merchant_unit, item_id)
+
+	return max(rate, 0.01)
+
+
+static func get_buy_price_with_rate(item_id: String, rate: float) -> int:
 	var base_price: int = ItemDatabase.get_base_price(item_id)
 	if base_price <= 0:
 		return 0
 
-	var price: float = float(base_price)
+	return max(1, int(round(float(base_price) * rate)))
 
-	# 基本は買値より安くなる想定
-	price *= 0.5
-	price *= _get_friendliness_sell_rate(merchant_unit)
-	price *= _get_player_trade_skill_sell_rate(player_unit)
-	price *= _get_sale_rate(merchant_unit, item_id)
 
-	return max(1, int(round(price)))
+static func get_sell_price_with_rate(item_id: String, rate: float) -> int:
+	var base_price: int = ItemDatabase.get_base_price(item_id)
+	if base_price <= 0:
+		return 0
+
+	return max(1, int(round(float(base_price) * rate)))
 
 
 static func _get_friendliness_buy_rate(merchant_unit) -> float:

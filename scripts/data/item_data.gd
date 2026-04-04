@@ -26,8 +26,8 @@ enum ItemEffectType {
 @export var effect_type: ItemEffectType = ItemEffectType.NONE
 @export var effect_value: int = 0
 
-# 基礎金額
 @export var base_price: int = 0
+@export var can_sell: bool = true
 
 
 func get_item_type_name() -> String:

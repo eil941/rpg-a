@@ -62,6 +62,10 @@ var is_building_slots: bool = false
 var equipment_slot_order: Array = ["weapon", "armor", "accessory"]
 var equipment_slot_nodes: Array = []
 
+var trade_session_buy_rate: float = 1.0
+var trade_session_sell_rate: float = 1.0
+var trade_session_active: bool = false
+
 
 func _ready() -> void:
 	layer = 10
@@ -161,6 +165,18 @@ func update_trade_panel_visibility() -> void:
 		trade_back_button.visible = ui_mode == UIMode.TRADE
 
 
+func begin_trade_session() -> void:
+	trade_session_active = true
+	trade_session_buy_rate = TradePriceCalculator.get_trade_buy_rate_snapshot(current_unit, trade_unit)
+	trade_session_sell_rate = TradePriceCalculator.get_trade_sell_rate_snapshot(current_unit, trade_unit)
+
+
+func end_trade_session() -> void:
+	trade_session_active = false
+	trade_session_buy_rate = 1.0
+	trade_session_sell_rate = 1.0
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
 		return
@@ -211,6 +227,7 @@ func open_with_inventory(inventory) -> void:
 	trade_inventory = null
 	trade_unit = null
 	ui_mode = UIMode.NORMAL
+	end_trade_session()
 
 	if current_inventory != null:
 		current_unit = current_inventory.get_parent()
@@ -255,6 +272,8 @@ func open_trade_mode(player_inventory, player_unit, merchant_inventory, merchant
 	await rebuild_trade_slots_if_needed()
 	build_equipment_slots()
 
+	begin_trade_session()
+
 	focus_area = "inventory"
 	selected_index = clamp(selected_index, 0, max(get_inventory_slot_count() - 1, 0))
 
@@ -277,9 +296,11 @@ func close_inventory() -> void:
 	if tooltip_timer != null:
 		tooltip_timer.stop()
 
-	hide()
-
 	var was_trade_mode: bool = ui_mode == UIMode.TRADE
+	if was_trade_mode:
+		end_trade_session()
+
+	hide()
 
 	current_inventory = null
 	current_unit = null
@@ -459,7 +480,7 @@ func refresh_trade_slots() -> void:
 			continue
 
 		if i < items.size():
-			var entry = items[i]
+			var entry: Dictionary = items[i]
 			var item_id: String = String(entry.get("item_id", ""))
 			var amount: int = int(entry.get("amount", 0))
 			slot.set_slot_data(item_id, amount, ItemDatabase.get_item_icon(item_id))
@@ -482,7 +503,7 @@ func refresh_inventory_slots() -> void:
 			continue
 
 		if i < items.size():
-			var entry = items[i]
+			var entry: Dictionary = items[i]
 			var item_id: String = String(entry.get("item_id", ""))
 			var amount: int = int(entry.get("amount", 0))
 			slot.set_slot_data(item_id, amount, ItemDatabase.get_item_icon(item_id))
@@ -497,7 +518,7 @@ func refresh_equipment_slots() -> void:
 		var slot = equipment_slot_nodes[i]
 		var slot_name: String = String(equipment_slot_order[i])
 
-		var entry = get_equipment_entry(slot_name)
+		var entry: Dictionary = get_equipment_entry(slot_name)
 		var item_id: String = String(entry.get("item_id", ""))
 		var amount: int = int(entry.get("amount", 0))
 
@@ -521,6 +542,7 @@ func update_help_text() -> void:
 
 	if ui_mode == UIMode.TRADE:
 		text = "Enter: 持つ/置く/交換 / 使用不可 / Esc: 閉じる"
+		text += "\n所持金: %dG" % get_player_gold_amount()
 
 	if not held_entry.is_empty():
 		var held_name: String = ItemDatabase.get_display_name(String(held_entry.get("item_id", "")))
@@ -764,7 +786,7 @@ func handle_confirm_action() -> void:
 
 
 func pick_selected_entry() -> void:
-	var entry = get_selected_entry()
+	var entry: Dictionary = get_selected_entry()
 	var item_id: String = String(entry.get("item_id", ""))
 	var amount: int = int(entry.get("amount", 0))
 
@@ -806,33 +828,119 @@ func set_held_origin(area: String, index: int = -1, slot_name: String = "") -> v
 	held_from_slot_name = slot_name
 
 
+func get_player_gold_amount() -> int:
+	if current_inventory == null:
+		return 0
+
+	if not current_inventory.has_method("get_total_amount"):
+		return 0
+
+	return int(current_inventory.get_total_amount("gold"))
+
+
+func try_spend_player_gold(amount: int) -> bool:
+	if amount <= 0:
+		return true
+
+	if current_inventory == null:
+		return false
+
+	if not current_inventory.has_method("consume_item_amount"):
+		return false
+
+	return bool(current_inventory.consume_item_amount("gold", amount))
+
+
+func give_player_gold(amount: int) -> bool:
+	if amount <= 0:
+		return true
+
+	if current_inventory == null:
+		return false
+
+	if current_inventory.has_method("force_add_item_amount"):
+		return bool(current_inventory.force_add_item_amount("gold", amount))
+
+	if current_inventory.has_method("add_item"):
+		return bool(current_inventory.add_item("gold", amount))
+
+	return false
+
+
+func get_entry_buy_price(entry: Dictionary) -> int:
+	if typeof(entry) != TYPE_DICTIONARY:
+		return 0
+
+	if entry.has("trade_buy_price"):
+		return int(entry.get("trade_buy_price", 0))
+
+	var item_id: String = String(entry.get("item_id", ""))
+	if item_id == "":
+		return 0
+
+	return TradePriceCalculator.get_buy_price_with_rate(item_id, trade_session_buy_rate)
+
+
+func get_entry_sell_price(entry: Dictionary) -> int:
+	if typeof(entry) != TYPE_DICTIONARY:
+		return 0
+
+	if entry.has("trade_sell_price"):
+		return int(entry.get("trade_sell_price", 0))
+
+	var item_id: String = String(entry.get("item_id", ""))
+	if item_id == "":
+		return 0
+
+	return TradePriceCalculator.get_sell_price_with_rate(item_id, trade_session_sell_rate)
+
+
+func apply_trade_price_to_entry(target_entry: Dictionary, source_entry: Dictionary) -> void:
+	if typeof(target_entry) != TYPE_DICTIONARY:
+		return
+	if typeof(source_entry) != TYPE_DICTIONARY:
+		return
+
+	if source_entry.has("trade_buy_price"):
+		target_entry["trade_buy_price"] = int(source_entry.get("trade_buy_price", 0))
+
+	if source_entry.has("trade_sell_price"):
+		target_entry["trade_sell_price"] = int(source_entry.get("trade_sell_price", 0))
+
+
 func drop_held_entry_to_inventory(target_index: int) -> void:
-	var target_entry = current_inventory.get_item_data_at(target_index)
-	var moved_item_id: String = String(held_entry.get("item_id", ""))
+	var target_entry: Dictionary = current_inventory.get_item_data_at(target_index)
 	var source_area_before_swap: String = held_from_area
+	var moved_entry: Dictionary = held_entry.duplicate(true)
 
 	if is_empty_entry(target_entry):
-		current_inventory.set_item_data_at(target_index, held_entry)
-		notify_trade_transfer_if_needed("inventory", moved_item_id, source_area_before_swap)
+		if not notify_trade_transfer_if_needed("inventory", moved_entry, source_area_before_swap):
+			return
+
+		current_inventory.set_item_data_at(target_index, movedEntryFix(moved_entry))
 		clear_held_state()
 		return
 
 	if can_merge_entries(held_entry, target_entry):
+		if not notify_trade_transfer_if_needed("inventory", moved_entry, source_area_before_swap):
+			return
+
+		apply_trade_price_to_entry(target_entry, moved_entry)
+
 		var remaining: int = merge_entries(held_entry, target_entry)
 		current_inventory.set_item_data_at(target_index, target_entry)
 
 		if remaining <= 0:
-			notify_trade_transfer_if_needed("inventory", moved_item_id, source_area_before_swap)
 			clear_held_state()
 		else:
 			held_entry["amount"] = remaining
 		return
 
-	var old_target_entry: Dictionary = target_entry.duplicate(true)
-	var old_held_entry: Dictionary = held_entry.duplicate(true)
+	if not notify_trade_transfer_if_needed("inventory", moved_entry, source_area_before_swap):
+		return
 
-	current_inventory.set_item_data_at(target_index, old_held_entry)
-	notify_trade_transfer_if_needed("inventory", moved_item_id, source_area_before_swap)
+	var old_target_entry: Dictionary = target_entry.duplicate(true)
+	current_inventory.set_item_data_at(target_index, moved_entry)
 
 	held_entry = old_target_entry
 	set_held_origin("inventory", target_index, "")
@@ -840,32 +948,38 @@ func drop_held_entry_to_inventory(target_index: int) -> void:
 
 
 func drop_held_entry_to_trade(target_index: int) -> void:
-	var target_entry = trade_inventory.get_item_data_at(target_index)
-	var moved_item_id: String = String(held_entry.get("item_id", ""))
+	var target_entry: Dictionary = trade_inventory.get_item_data_at(target_index)
 	var source_area_before_swap: String = held_from_area
+	var moved_entry: Dictionary = held_entry.duplicate(true)
 
 	if is_empty_entry(target_entry):
-		trade_inventory.set_item_data_at(target_index, held_entry)
-		notify_trade_transfer_if_needed("trade", moved_item_id, source_area_before_swap)
+		if not notify_trade_transfer_if_needed("trade", moved_entry, source_area_before_swap):
+			return
+
+		trade_inventory.set_item_data_at(target_index, moved_entry)
 		clear_held_state()
 		return
 
 	if can_merge_entries(held_entry, target_entry):
+		if not notify_trade_transfer_if_needed("trade", moved_entry, source_area_before_swap):
+			return
+
+		apply_trade_price_to_entry(target_entry, moved_entry)
+
 		var remaining: int = merge_entries(held_entry, target_entry)
 		trade_inventory.set_item_data_at(target_index, target_entry)
 
 		if remaining <= 0:
-			notify_trade_transfer_if_needed("trade", moved_item_id, source_area_before_swap)
 			clear_held_state()
 		else:
 			held_entry["amount"] = remaining
 		return
 
-	var old_target_entry: Dictionary = target_entry.duplicate(true)
-	var old_held_entry: Dictionary = held_entry.duplicate(true)
+	if not notify_trade_transfer_if_needed("trade", moved_entry, source_area_before_swap):
+		return
 
-	trade_inventory.set_item_data_at(target_index, old_held_entry)
-	notify_trade_transfer_if_needed("trade", moved_item_id, source_area_before_swap)
+	var old_target_entry: Dictionary = target_entry.duplicate(true)
+	trade_inventory.set_item_data_at(target_index, moved_entry)
 
 	held_entry = old_target_entry
 	set_held_origin("trade", target_index, "")
@@ -873,7 +987,7 @@ func drop_held_entry_to_trade(target_index: int) -> void:
 
 
 func drop_held_entry_to_equipment(slot_name: String) -> void:
-	var target_entry = get_equipment_entry(slot_name)
+	var target_entry: Dictionary = get_equipment_entry(slot_name)
 
 	if is_empty_entry(held_entry):
 		return
@@ -882,30 +996,33 @@ func drop_held_entry_to_equipment(slot_name: String) -> void:
 		notify_message("そこには装備できない")
 		return
 
-	var moved_item_id: String = String(held_entry.get("item_id", ""))
-	var held_item_name: String = ItemDatabase.get_display_name(moved_item_id)
+	var moved_entry: Dictionary = held_entry.duplicate(true)
+	var held_item_id: String = String(moved_entry.get("item_id", ""))
+	var held_item_name: String = ItemDatabase.get_display_name(held_item_id)
 	var source_area_before_swap: String = held_from_area
 
 	if is_empty_entry(target_entry):
-		set_equipment_entry(slot_name, held_entry)
+		if not notify_trade_transfer_if_needed("equipment", moved_entry, source_area_before_swap):
+			return
+
+		set_equipment_entry(slot_name, moved_entry)
 		notify_message("%s を装備した" % held_item_name)
-		notify_trade_transfer_if_needed("equipment", moved_item_id, source_area_before_swap)
 		clear_held_state()
 		refresh_status_ui()
 		return
 
+	if not notify_trade_transfer_if_needed("equipment", moved_entry, source_area_before_swap):
+		return
+
 	var old_target_entry: Dictionary = target_entry.duplicate(true)
-	var old_held_entry: Dictionary = held_entry.duplicate(true)
 	var removed_item_id: String = String(old_target_entry.get("item_id", ""))
 	var removed_item_name: String = ItemDatabase.get_display_name(removed_item_id)
 
-	set_equipment_entry(slot_name, old_held_entry)
+	set_equipment_entry(slot_name, moved_entry)
 
 	notify_message("%s を装備した" % held_item_name)
 	if removed_item_id != "":
 		notify_message("%s を外した" % removed_item_name)
-
-	notify_trade_transfer_if_needed("equipment", moved_item_id, source_area_before_swap)
 
 	held_entry = old_target_entry
 	set_held_origin("equipment", -1, slot_name)
@@ -913,32 +1030,56 @@ func drop_held_entry_to_equipment(slot_name: String) -> void:
 	update_held_item_preview()
 
 
-func notify_trade_transfer_if_needed(target_area: String, moved_item_id: String = "", source_area: String = "") -> void:
+func notify_trade_transfer_if_needed(target_area: String, moved_entry: Dictionary, source_area: String = "") -> bool:
 	if ui_mode != UIMode.TRADE:
-		return
+		return true
 
-	var item_id: String = moved_item_id
-	if item_id == "":
-		item_id = String(held_entry.get("item_id", ""))
+	if typeof(moved_entry) != TYPE_DICTIONARY:
+		return true
 
+	var item_id: String = String(moved_entry.get("item_id", ""))
 	if item_id == "":
-		return
+		return true
 
 	var actual_source_area: String = source_area
 	if actual_source_area == "":
 		actual_source_area = held_from_area
 
-	var item_name: String = ItemDatabase.get_display_name(item_id)
-
 	if actual_source_area == "trade":
 		if target_area == "inventory" or target_area == "equipment":
-			notify_message("%s を買った" % item_name)
-			return
+			var buy_price: int = get_entry_buy_price(moved_entry)
+
+			if not try_spend_player_gold(buy_price):
+				notify_message("お金が足りない")
+				return false
+
+			moved_entry["trade_buy_price"] = buy_price
+			moved_entry["trade_sell_price"] = buy_price
+
+			notify_message("%s を買った（%dG）" % [ItemDatabase.get_display_name(item_id), buy_price])
+			refresh()
+			return true
 
 	if actual_source_area == "inventory" or actual_source_area == "equipment":
 		if target_area == "trade":
-			notify_message("%s を売った" % item_name)
-			return
+			if not ItemDatabase.can_sell(item_id):
+				notify_message("そのアイテムは売れない")
+				return false
+
+			var sell_price: int = get_entry_sell_price(moved_entry)
+
+			if not give_player_gold(sell_price):
+				notify_message("ゴールドを追加できない")
+				return false
+
+			moved_entry["trade_buy_price"] = sell_price
+			moved_entry["trade_sell_price"] = sell_price
+
+			notify_message("%s を売った（%dG）" % [ItemDatabase.get_display_name(item_id), sell_price])
+			refresh()
+			return true
+
+	return true
 
 
 func restore_held_entry_on_close() -> bool:
@@ -977,7 +1118,7 @@ func restore_held_entry_on_close() -> bool:
 		return false
 
 	if held_from_area == "equipment":
-		var origin_entry = get_equipment_entry(held_from_slot_name)
+		var origin_entry: Dictionary = get_equipment_entry(held_from_slot_name)
 
 		if is_empty_entry(origin_entry) and can_place_entry_in_equipment_slot(held_entry, held_from_slot_name):
 			set_equipment_entry(held_from_slot_name, held_entry)
@@ -1016,6 +1157,16 @@ func can_merge_entries(source_entry: Dictionary, target_entry: Dictionary) -> bo
 		return false
 
 	if ItemDatabase.is_equipment(source_id):
+		return false
+
+	var source_buy_price: int = int(source_entry.get("trade_buy_price", -1))
+	var target_buy_price: int = int(target_entry.get("trade_buy_price", -1))
+	var source_sell_price: int = int(source_entry.get("trade_sell_price", -1))
+	var target_sell_price: int = int(target_entry.get("trade_sell_price", -1))
+
+	if source_buy_price != target_buy_price:
+		return false
+	if source_sell_price != target_sell_price:
 		return false
 
 	return ItemDatabase.get_max_stack(source_id) > 1
@@ -1089,6 +1240,9 @@ func set_equipment_entry(slot_name: String, entry: Dictionary) -> bool:
 			return true
 		return false
 
+	if current_unit.has_method("set_equipped_item_entry"):
+		return current_unit.set_equipped_item_entry(slot_name, entry)
+
 	if current_unit.has_method("set_equipped_item_by_id"):
 		return current_unit.set_equipped_item_by_id(slot_name, item_id)
 
@@ -1119,7 +1273,7 @@ func use_selected_item() -> void:
 	if not held_entry.is_empty():
 		return
 
-	var result = current_inventory.use_item_at(selected_index)
+	var result: Dictionary = current_inventory.use_item_at(selected_index)
 
 	if not bool(result.get("success", false)):
 		return
@@ -1186,18 +1340,26 @@ func build_item_tooltip_lines(item_id: String) -> Array[String]:
 	return lines
 
 
-func get_trade_price_lines(item_id: String) -> Array[String]:
+func get_trade_price_lines(entry: Dictionary) -> Array[String]:
 	var lines: Array[String] = []
 
+	if typeof(entry) != TYPE_DICTIONARY:
+		return lines
+
+	var item_id: String = String(entry.get("item_id", ""))
 	if item_id == "":
 		return lines
 
 	if focus_area == "trade":
-		var buy_price: int = TradePriceCalculator.get_buy_price(current_unit, trade_unit, item_id)
+		var buy_price: int = get_entry_buy_price(entry)
 		lines.append("買値: %dG" % buy_price)
+
 	elif focus_area == "inventory" or focus_area == "equipment":
-		var sell_price: int = TradePriceCalculator.get_sell_price(current_unit, trade_unit, item_id)
-		lines.append("売値: %dG" % sell_price)
+		if not ItemDatabase.can_sell(item_id):
+			lines.append("売却不可")
+		else:
+			var sell_price: int = get_entry_sell_price(entry)
+			lines.append("売値: %dG" % sell_price)
 
 	return lines
 
@@ -1222,7 +1384,7 @@ func restart_tooltip_timer() -> void:
 	if focus_area == "trade_back":
 		return
 
-	var entry = get_selected_entry()
+	var entry: Dictionary = get_selected_entry()
 	if is_empty_entry(entry):
 		return
 
@@ -1238,7 +1400,7 @@ func show_tooltip_for_selected() -> void:
 		hide_tooltip()
 		return
 
-	var entry = get_selected_entry()
+	var entry: Dictionary = get_selected_entry()
 	if is_empty_entry(entry):
 		hide_tooltip()
 		return
@@ -1252,7 +1414,7 @@ func show_tooltip_for_selected() -> void:
 	var extra_lines: Array[String] = build_item_tooltip_lines(item_id)
 
 	if ui_mode == UIMode.TRADE:
-		var price_lines: Array[String] = get_trade_price_lines(item_id)
+		var price_lines: Array[String] = get_trade_price_lines(entry)
 		for line in price_lines:
 			extra_lines.append(line)
 
@@ -1425,3 +1587,7 @@ func notify_message(text: String) -> void:
 		current_unit.notify_hud_log(text)
 	else:
 		print(text)
+
+
+func movedEntryFix(entry: Dictionary) -> Dictionary:
+	return entry

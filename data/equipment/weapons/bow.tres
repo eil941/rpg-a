@@ -15,4 +15,5 @@ description = "弓"
 icon = ExtResource("1_ye7ly")
 category = 2
 max_stack = 1
+base_price = 23
 metadata/_custom_type_script = "uid://des0lbvolo0p1"

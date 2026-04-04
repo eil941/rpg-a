@@ -2,10 +2,13 @@ extends Node
 class_name ItemDatabase
 
 static var ITEM_RESOURCES = {
+	# items
+	"gold": preload("res://data/items/gold.tres"),
 	"potion": preload("res://data/items/potion.tres"),
 	"wood": preload("res://data/items/wood.tres"),
 	"apple": preload("res://data/items/apple.tres"),
 
+	# equipment
 	"knife": preload("res://data/equipment/weapons/knife.tres"),
 	"bow": preload("res://data/equipment/weapons/bow.tres"),
 	"cloth_armor": preload("res://data/equipment/armor/cloth_armor.tres"),
@@ -17,7 +20,13 @@ static func has_item(item_id: String) -> bool:
 	return ITEM_RESOURCES.has(item_id)
 
 
+static func exists(item_id: String) -> bool:
+	return ITEM_RESOURCES.has(item_id)
+
+
 static func get_item_resource(item_id: String):
+	if item_id == "":
+		return null
 	return ITEM_RESOURCES.get(item_id, null)
 
 
@@ -124,3 +133,14 @@ static func get_base_price(item_id: String) -> int:
 		return int(data.base_price)
 
 	return 0
+
+
+static func can_sell(item_id: String) -> bool:
+	var data = get_item_resource(item_id)
+	if data == null:
+		return false
+
+	if "can_sell" in data:
+		return bool(data.can_sell)
+
+	return true

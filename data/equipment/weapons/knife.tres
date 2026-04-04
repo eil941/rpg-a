@@ -14,4 +14,5 @@ description = "ナイフ"
 icon = ExtResource("1_5gtg2")
 category = 2
 max_stack = 1
+base_price = 34
 metadata/_custom_type_script = "uid://des0lbvolo0p1"

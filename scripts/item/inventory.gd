@@ -24,7 +24,7 @@ func resize_inventory(new_max_slots: int) -> void:
 	if new_max_slots == max_slots and items.size() == max_slots:
 		return
 
-	var old_items = get_all_items()
+	var old_items: Array[Dictionary] = get_all_items()
 	max_slots = new_max_slots
 
 	items.clear()
@@ -32,9 +32,9 @@ func resize_inventory(new_max_slots: int) -> void:
 		items.append(_make_empty_slot())
 
 	for i in range(min(old_items.size(), max_slots)):
-		var entry = old_items[i]
-		var item_id = String(entry.get("item_id", ""))
-		var amount = int(entry.get("amount", 0))
+		var entry: Dictionary = old_items[i]
+		var item_id: String = String(entry.get("item_id", ""))
+		var amount: int = int(entry.get("amount", 0))
 
 		if item_id == "" or amount <= 0:
 			items[i] = _make_empty_slot()
@@ -60,9 +60,9 @@ func is_slot_empty(index: int) -> bool:
 	if not is_valid_index(index):
 		return true
 
-	var entry = items[index]
-	var item_id = String(entry.get("item_id", ""))
-	var amount = int(entry.get("amount", 0))
+	var entry: Dictionary = items[index]
+	var item_id: String = String(entry.get("item_id", ""))
+	var amount: int = int(entry.get("amount", 0))
 	return item_id == "" or amount <= 0
 
 
@@ -77,8 +77,8 @@ func set_item_data_at(index: int, entry: Dictionary) -> bool:
 	if not is_valid_index(index):
 		return false
 
-	var item_id = String(entry.get("item_id", ""))
-	var amount = int(entry.get("amount", 0))
+	var item_id: String = String(entry.get("item_id", ""))
+	var amount: int = int(entry.get("amount", 0))
 
 	if item_id == "" or amount <= 0:
 		items[index] = _make_empty_slot()
@@ -110,19 +110,19 @@ func add_item(item_id: String, amount: int = 1) -> bool:
 	if item_id == "" or amount <= 0:
 		return false
 
-	var max_stack = ItemDatabase.get_max_stack(item_id)
-	var remaining = amount
+	var max_stack: int = ItemDatabase.get_max_stack(item_id)
+	var remaining: int = amount
 
 	for i in range(items.size()):
-		var entry = items[i]
+		var entry: Dictionary = items[i]
 		if String(entry.get("item_id", "")) != item_id:
 			continue
 
-		var current_amount = int(entry.get("amount", 0))
+		var current_amount: int = int(entry.get("amount", 0))
 		if current_amount >= max_stack:
 			continue
 
-		var addable = min(max_stack - current_amount, remaining)
+		var addable: int = min(max_stack - current_amount, remaining)
 		entry["amount"] = current_amount + addable
 		items[i] = entry
 		remaining -= addable
@@ -131,14 +131,14 @@ func add_item(item_id: String, amount: int = 1) -> bool:
 			return true
 
 	for i in range(items.size()):
-		var entry = items[i]
-		var existing_id = String(entry.get("item_id", ""))
-		var existing_amount = int(entry.get("amount", 0))
+		var entry: Dictionary = items[i]
+		var existing_id: String = String(entry.get("item_id", ""))
+		var existing_amount: int = int(entry.get("amount", 0))
 
 		if existing_id != "" or existing_amount > 0:
 			continue
 
-		var addable = min(max_stack, remaining)
+		var addable: int = min(max_stack, remaining)
 		items[i] = {
 			"item_id": item_id,
 			"amount": addable
@@ -155,18 +155,18 @@ func remove_item(item_id: String, amount: int = 1) -> bool:
 	if item_id == "" or amount <= 0:
 		return false
 
-	var remaining = amount
+	var remaining: int = amount
 
 	for i in range(items.size()):
-		var entry = items[i]
+		var entry: Dictionary = items[i]
 		if String(entry.get("item_id", "")) != item_id:
 			continue
 
-		var current_amount = int(entry.get("amount", 0))
+		var current_amount: int = int(entry.get("amount", 0))
 		if current_amount <= 0:
 			continue
 
-		var removable = min(current_amount, remaining)
+		var removable: int = min(current_amount, remaining)
 		current_amount -= removable
 		remaining -= removable
 
@@ -187,7 +187,7 @@ func has_item(item_id: String, amount: int = 1) -> bool:
 
 
 func get_item_amount(item_id: String) -> int:
-	var total = 0
+	var total: int = 0
 
 	for entry in items:
 		if String(entry.get("item_id", "")) == item_id:
@@ -196,16 +196,110 @@ func get_item_amount(item_id: String) -> int:
 	return total
 
 
+func get_total_amount(item_id: String) -> int:
+	return get_item_amount(item_id)
+
+
+func can_consume_item_amount(item_id: String, amount: int) -> bool:
+	if item_id == "":
+		return false
+
+	if amount <= 0:
+		return true
+
+	return get_total_amount(item_id) >= amount
+
+
+func consume_item_amount(item_id: String, amount: int) -> bool:
+	if item_id == "":
+		return false
+
+	if amount <= 0:
+		return true
+
+	if not can_consume_item_amount(item_id, amount):
+		return false
+
+	var remaining: int = amount
+
+	for i in range(items.size()):
+		if remaining <= 0:
+			break
+
+		var entry: Dictionary = items[i]
+		if String(entry.get("item_id", "")) != item_id:
+			continue
+
+		var current_amount: int = int(entry.get("amount", 0))
+		if current_amount <= 0:
+			continue
+
+		if current_amount <= remaining:
+			remaining -= current_amount
+			items[i] = _make_empty_slot()
+		else:
+			entry["amount"] = current_amount - remaining
+			items[i] = entry
+			remaining = 0
+			break
+
+	return remaining <= 0
+
+
+func force_add_item_amount(item_id: String, amount: int) -> bool:
+	if item_id == "":
+		return false
+
+	if amount <= 0:
+		return true
+
+	var remaining: int = amount
+	var max_stack: int = ItemDatabase.get_max_stack(item_id)
+
+	for i in range(items.size()):
+		if remaining <= 0:
+			break
+
+		var entry: Dictionary = items[i]
+		if String(entry.get("item_id", "")) != item_id:
+			continue
+
+		var current_amount: int = int(entry.get("amount", 0))
+		if current_amount >= max_stack:
+			continue
+
+		var addable: int = min(max_stack - current_amount, remaining)
+		entry["amount"] = current_amount + addable
+		items[i] = entry
+		remaining -= addable
+
+	for i in range(items.size()):
+		if remaining <= 0:
+			break
+
+		if not is_slot_empty(i):
+			continue
+
+		var addable: int = min(max_stack, remaining)
+		items[i] = {
+			"item_id": item_id,
+			"amount": addable
+		}
+		remaining -= addable
+
+	return remaining <= 0
+
+
 func can_add_item(item_id: String, amount: int = 1) -> bool:
 	if item_id == "" or amount <= 0:
 		return false
 
-	var max_stack = ItemDatabase.get_max_stack(item_id)
-	var capacity = 0
+	var max_stack: int = ItemDatabase.get_max_stack(item_id)
+	var capacity: int = 0
 
 	for entry in items:
-		var existing_id = String(entry.get("item_id", ""))
-		var existing_amount = int(entry.get("amount", 0))
+		var existing_id: String = String(entry.get("item_id", ""))
+		var existing_amount: int = int(entry.get("amount", 0))
 
 		if existing_id == item_id:
 			capacity += max(0, max_stack - existing_amount)
@@ -229,11 +323,11 @@ func clear_inventory() -> void:
 
 
 func save_inventory_data() -> Array:
-	var result = []
+	var result: Array = []
 
 	for entry in items:
-		var item_id = String(entry.get("item_id", ""))
-		var amount = int(entry.get("amount", 0))
+		var item_id: String = String(entry.get("item_id", ""))
+		var amount: int = int(entry.get("amount", 0))
 
 		result.append({
 			"item_id": item_id,
@@ -252,8 +346,8 @@ func load_inventory_data(data: Array) -> void:
 		if typeof(entry) != TYPE_DICTIONARY:
 			continue
 
-		var item_id = String(entry.get("item_id", ""))
-		var amount = int(entry.get("amount", 0))
+		var item_id: String = String(entry.get("item_id", ""))
+		var amount: int = int(entry.get("amount", 0))
 
 		if item_id == "" or amount <= 0:
 			items[i] = _make_empty_slot()
@@ -272,9 +366,9 @@ func use_item_at(index: int) -> Dictionary:
 			"message": "範囲外"
 		}
 
-	var entry = items[index]
-	var item_id = String(entry.get("item_id", ""))
-	var amount = int(entry.get("amount", 0))
+	var entry: Dictionary = items[index]
+	var item_id: String = String(entry.get("item_id", ""))
+	var amount: int = int(entry.get("amount", 0))
 
 	if item_id == "" or amount <= 0:
 		return {
