@@ -72,6 +72,7 @@ var hold_repeat_action: StringName = &""
 var hold_repeat_is_pressed: bool = false
 var hold_repeat_delay_remaining: float = 0.0
 var hold_repeat_interval_remaining: float = 0.0
+var hold_repeat_secondary_mode: StringName = &""
 
 
 func _ready() -> void:
@@ -81,7 +82,7 @@ func _ready() -> void:
 
 	title_label.text = "Inventory"
 	trade_title_label.text = "Trade"
-	help_label.text = "Enter: 持つ/置く/交換 / 個別取得: 1個持つ / 個別配置: 1個置く / 使用キー: 使用 / Esc: 閉じる"
+	help_label.text = "主操作: 全部持つ/置く/交換 / 副操作: 半分持つ・1個置く / 使用キー: 使用 / Esc: 閉じる"
 
 	tooltip_timer = Timer.new()
 	tooltip_timer.one_shot = true
@@ -214,31 +215,36 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 
-	if event.is_action_pressed("inventory_take_one"):
-		handle_take_one_action()
-		start_hold_repeat(&"inventory_take_one")
+	if event.is_action_pressed("inventory_quick_move_primary"):
+		handle_quick_move_primary_action()
 		get_viewport().set_input_as_handled()
 		return
 
-	if event.is_action_released("inventory_take_one"):
-		if hold_repeat_action == &"inventory_take_one":
+	if event.is_action_pressed("inventory_quick_move_secondary"):
+		handle_quick_move_secondary_action()
+		get_viewport().set_input_as_handled()
+		return
+
+	if event.is_action_pressed("inventory_secondary_action"):
+		if held_entry.is_empty():
+			handle_split_pick_action()
+			stop_hold_repeat()
+		else:
+			handle_put_one_action()
+			if held_entry.is_empty():
+				stop_hold_repeat()
+			else:
+				start_hold_repeat(&"inventory_secondary_action", &"put_one")
+		get_viewport().set_input_as_handled()
+		return
+
+	if event.is_action_released("inventory_secondary_action"):
+		if hold_repeat_action == &"inventory_secondary_action":
 			stop_hold_repeat()
 			get_viewport().set_input_as_handled()
 			return
 
-	if event.is_action_pressed("inventory_put_one"):
-		handle_put_one_action()
-		start_hold_repeat(&"inventory_put_one")
-		get_viewport().set_input_as_handled()
-		return
-
-	if event.is_action_released("inventory_put_one"):
-		if hold_repeat_action == &"inventory_put_one":
-			stop_hold_repeat()
-			get_viewport().set_input_as_handled()
-			return
-
-	if event.is_action_pressed("ui_accept"):
+	if event.is_action_pressed("inventory_primary_action"):
 		handle_confirm_action()
 		get_viewport().set_input_as_handled()
 		return
@@ -273,8 +279,9 @@ func _process(delta: float) -> void:
 		hold_repeat_interval_remaining += max(hold_repeat_interval, 0.01)
 
 
-func start_hold_repeat(action_name: StringName) -> void:
+func start_hold_repeat(action_name: StringName, secondary_mode: StringName = &"") -> void:
 	hold_repeat_action = action_name
+	hold_repeat_secondary_mode = secondary_mode
 	hold_repeat_is_pressed = true
 	hold_repeat_delay_remaining = max(hold_repeat_initial_delay, 0.0)
 	hold_repeat_interval_remaining = max(hold_repeat_interval, 0.01)
@@ -282,18 +289,23 @@ func start_hold_repeat(action_name: StringName) -> void:
 
 func stop_hold_repeat() -> void:
 	hold_repeat_action = &""
+	hold_repeat_secondary_mode = &""
 	hold_repeat_is_pressed = false
 	hold_repeat_delay_remaining = 0.0
 	hold_repeat_interval_remaining = 0.0
 
 
 func perform_hold_repeat_action() -> void:
-	if hold_repeat_action == &"inventory_take_one":
-		handle_take_one_action()
-		return
-
-	if hold_repeat_action == &"inventory_put_one":
-		handle_put_one_action()
+	if hold_repeat_action == &"inventory_secondary_action":
+		if hold_repeat_secondary_mode == &"put_one":
+			if held_entry.is_empty():
+				stop_hold_repeat()
+				return
+			handle_put_one_action()
+			if held_entry.is_empty():
+				stop_hold_repeat()
+			return
+		stop_hold_repeat()
 		return
 
 
@@ -866,6 +878,34 @@ func handle_confirm_action() -> void:
 	restart_tooltip_timer()
 
 
+func handle_quick_move_primary_action() -> void:
+	pass
+
+
+func handle_quick_move_secondary_action() -> void:
+	pass
+
+
+func handle_secondary_action() -> void:
+	if held_entry.is_empty():
+		handle_split_pick_action()
+	else:
+		handle_put_one_action()
+
+
+func handle_split_pick_action() -> void:
+	if focus_area == "trade_back":
+		return
+
+	if not held_entry.is_empty():
+		return
+
+	pick_selected_entry_half()
+	hide_tooltip()
+	refresh()
+	restart_tooltip_timer()
+
+
 func handle_take_one_action() -> void:
 	if focus_area == "trade_back":
 		return
@@ -929,6 +969,46 @@ func pick_selected_entry() -> void:
 		clear_equipment_entry(held_from_slot_name)
 		notify_message("%s を外した" % ItemDatabase.get_display_name(item_id))
 		refresh_status_ui()
+
+	update_held_item_preview()
+
+
+func pick_selected_entry_half() -> void:
+	var entry: Dictionary = get_selected_entry()
+	var item_id: String = String(entry.get("item_id", ""))
+	var amount: int = int(entry.get("amount", 0))
+
+	if item_id == "" or amount <= 0:
+		return
+
+	if focus_area == "equipment":
+		pick_selected_entry()
+		return
+
+	if not held_entry.is_empty():
+		return
+
+	var pickup_amount: int = int(ceil(float(amount) / 2.0))
+	pickup_amount = clamp(pickup_amount, 1, amount)
+
+	held_entry = entry.duplicate(true)
+	held_entry["amount"] = pickup_amount
+	held_from_area = focus_area
+	held_from_index = selected_index
+	held_from_slot_name = ""
+
+	var remaining_amount: int = amount - pickup_amount
+	if remaining_amount <= 0:
+		if focus_area == "inventory":
+			current_inventory.clear_slot(selected_index)
+		else:
+			trade_inventory.clear_slot(selected_index)
+	else:
+		entry["amount"] = remaining_amount
+		if focus_area == "inventory":
+			current_inventory.set_item_data_at(selected_index, entry)
+		else:
+			trade_inventory.set_item_data_at(selected_index, entry)
 
 	update_held_item_preview()
 
