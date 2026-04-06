@@ -66,9 +66,9 @@ func setup_dungeon_floor_random_spawn_with_save(is_final_floor: bool) -> void:
 
 func generate_detail_map_item_data() -> Array:
 	var result: Array = []
-	var count := rng.randi_range(0, 5)
+	var count: int = rng.randi_range(0, 5)
 
-	var tiles := get_available_tiles()
+	var tiles: Array[Vector2i] = get_available_tiles()
 	tiles.shuffle()
 
 	for i in range(min(count, tiles.size())):
@@ -87,12 +87,12 @@ func generate_detail_map_item_data() -> Array:
 
 func generate_detail_map_chest_data() -> Array:
 	var result: Array = []
-	var chest_count := rng.randi_range(0, 1)
+	var chest_count: int = rng.randi_range(0, 1)
 
 	if chest_count <= 0:
 		return result
 
-	var tiles := get_available_tiles()
+	var tiles: Array[Vector2i] = get_available_tiles()
 	tiles.shuffle()
 
 	for i in range(min(chest_count, tiles.size())):
@@ -113,9 +113,9 @@ func generate_detail_map_chest_data() -> Array:
 
 func generate_dungeon_floor_item_data() -> Array:
 	var result: Array = []
-	var count := rng.randi_range(5, 15)
+	var count: int = rng.randi_range(5, 15)
 
-	var tiles := get_available_tiles()
+	var tiles: Array[Vector2i] = get_available_tiles()
 	tiles.shuffle()
 
 	for i in range(min(count, tiles.size())):
@@ -144,7 +144,7 @@ func generate_dungeon_floor_chest_data(is_final_floor: bool) -> Array:
 	if chest_count <= 0:
 		return result
 
-	var tiles := get_available_tiles()
+	var tiles: Array[Vector2i] = get_available_tiles()
 	tiles.shuffle()
 
 	for i in range(min(chest_count, tiles.size())):
@@ -184,7 +184,8 @@ func generate_random_chest_inventory_for_type(chest_type_id: String, is_final_fl
 		if loot_category == null:
 			continue
 
-		var item_id: String = ItemDatabase.get_random_item_id_by_type(loot_category.item_type, rng)
+		var normalized_type: String = loot_category.get_normalized_item_type()
+		var item_id: String = ItemDatabase.get_random_item_id_by_type(normalized_type, rng)
 		if item_id == "":
 			continue
 
@@ -239,7 +240,7 @@ func choose_weighted_loot_category(chest_data: ChestData) -> LootCategoryEntry:
 
 
 func choose_random_item_entry() -> Dictionary:
-	var roll := rng.randi_range(0, 100)
+	var roll: int = rng.randi_range(0, 100)
 
 	if roll < 40:
 		return {"item_id": "potion", "amount": 1}

@@ -26,6 +26,6 @@ metadata/_custom_type_script = "uid://0c32in4pchg3"
 [resource]
 script = ExtResource("1_yp4bw")
 closed_texture = ExtResource("1_iqdeb")
-allowed_item_type_flags = 15
+allowed_item_types = Array[String](["consumable", "material", "equipment", "misc"])
 loot_categories = Array[ExtResource("2_t5ie3")]([SubResource("Resource_t5ie3"), SubResource("Resource_2jj8n"), SubResource("Resource_g6hab"), SubResource("Resource_v1o45")])
 metadata/_custom_type_script = "uid://dqg3ncbyajhwu"

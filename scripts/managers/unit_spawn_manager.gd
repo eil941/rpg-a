@@ -217,7 +217,8 @@ func generate_random_shop_inventory_from_data(data) -> Array:
 		if loot_category == null:
 			continue
 
-		var item_id: String = ItemDatabase.get_random_item_id_by_type(loot_category.item_type, rng)
+		var normalized_type: String = loot_category.get_normalized_item_type()
+		var item_id: String = ItemDatabase.get_random_item_id_by_type(normalized_type, rng)
 		if item_id == "":
 			continue
 
@@ -286,7 +287,7 @@ func spawn_enemy_random(
 			continue
 
 		var enemy = enemy_unit_scene.instantiate()
-		var unique_unit_id := make_enemy_unit_id(index)
+		var unique_unit_id: String = make_enemy_unit_id(index)
 
 		debug_unit_structure(enemy, "SPAWN RANDOM ENEMY BEFORE")
 
@@ -325,7 +326,7 @@ func spawn_random_enemies(
 	enemy_data_list: Array[EnemyData],
 	enemy_spawn_count: int
 ) -> void:
-	var used_tiles = collect_used_tiles_from_units()
+	var used_tiles: Array[Vector2i] = collect_used_tiles_from_units()
 
 	for i in range(enemy_spawn_count):
 		spawn_enemy_random(enemy_unit_scene, enemy_data_list, used_tiles, i)
@@ -388,7 +389,7 @@ func spawn_npc_random(
 			continue
 
 		var npc = npc_unit_scene.instantiate()
-		var unique_unit_id := make_npc_unit_id(index)
+		var unique_unit_id: String = make_npc_unit_id(index)
 
 		debug_unit_structure(npc, "SPAWN RANDOM NPC BEFORE")
 
@@ -425,7 +426,7 @@ func spawn_random_npcs(
 	npc_data_list: Array[NpcData],
 	npc_spawn_count: int
 ) -> void:
-	var used_tiles = collect_used_tiles_from_units()
+	var used_tiles: Array[Vector2i] = collect_used_tiles_from_units()
 
 	for i in range(npc_spawn_count):
 		spawn_npc_random(npc_unit_scene, npc_data_list, used_tiles, i)

@@ -1,13 +1,6 @@
 extends Resource
 class_name ChestData
 
-enum ItemTypeFlag {
-	ITEM_CONSUMABLE = 1 << 0,
-	ITEM_MATERIAL = 1 << 1,
-	ITEM_EQUIPMENT = 1 << 2,
-	ITEM_MISC = 1 << 3
-}
-
 enum SpecialFunctionFlag {
 	SPECIAL_TRAP = 1 << 0,
 	SPECIAL_LOCKED = 1 << 1,
@@ -16,7 +9,7 @@ enum SpecialFunctionFlag {
 	SPECIAL_RESTOCK = 1 << 4
 }
 
-@export_enum("wooden", "treasure", "material", "storage") var chest_type_id: String = "wooden"
+@export var chest_type_id: String = "wooden"
 @export var chest_name: String = "Chest"
 
 @export var closed_texture: Texture2D
@@ -27,8 +20,8 @@ enum SpecialFunctionFlag {
 @export var can_put_items: bool = true
 @export var can_take_items: bool = true
 
-@export_flags("consumable", "material", "equipment", "misc") var allowed_item_type_flags: int = 0
-@export_flags("consumable", "material", "equipment", "misc") var denied_item_type_flags: int = 0
+@export var allowed_item_types: Array[String] = []
+@export var denied_item_types: Array[String] = []
 
 @export var is_shared_storage: bool = false
 @export var is_one_time_loot: bool = false
@@ -46,29 +39,27 @@ enum SpecialFunctionFlag {
 
 
 func has_allowed_item_type(item_type: String) -> bool:
-	if allowed_item_type_flags == 0:
+	if allowed_item_types.is_empty():
 		return true
 
-	return (allowed_item_type_flags & item_type_to_flag(item_type)) != 0
+	var normalized_type: String = ItemCategories.normalize(item_type)
+
+	for value in allowed_item_types:
+		if ItemCategories.normalize(String(value)) == normalized_type:
+			return true
+
+	return false
 
 
 func has_denied_item_type(item_type: String) -> bool:
-	return (denied_item_type_flags & item_type_to_flag(item_type)) != 0
+	var normalized_type: String = ItemCategories.normalize(item_type)
+
+	for value in denied_item_types:
+		if ItemCategories.normalize(String(value)) == normalized_type:
+			return true
+
+	return false
 
 
 func has_special_function_flag(flag: int) -> bool:
 	return (special_function_flags & flag) != 0
-
-
-func item_type_to_flag(item_type: String) -> int:
-	match item_type:
-		"consumable":
-			return ItemTypeFlag.ITEM_CONSUMABLE
-		"material":
-			return ItemTypeFlag.ITEM_MATERIAL
-		"equipment":
-			return ItemTypeFlag.ITEM_EQUIPMENT
-		"misc":
-			return ItemTypeFlag.ITEM_MISC
-		_:
-			return 0

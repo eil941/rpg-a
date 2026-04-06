@@ -12,9 +12,7 @@ enum ItemEffectType {
 @export_multiline var description: String = ""
 @export var icon: Texture2D
 
-@export_enum("consumable", "material", "equipment", "misc")
-var category: String = "misc"
-
+@export var category: String = "misc"
 @export var max_stack: int = 99
 @export var usable: bool = false
 

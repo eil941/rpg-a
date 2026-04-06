@@ -13,8 +13,9 @@ const ALL: Array[StringName] = [
 	MISC
 ]
 
+
 static func is_valid(category: String) -> bool:
-	return ALL.has(StringName(category))
+	return ALL.has(StringName(category.strip_edges().to_lower()))
 
 
 static func normalize(category: String) -> String:
@@ -26,6 +27,8 @@ static func normalize(category: String) -> String:
 
 static func get_all_as_strings() -> Array[String]:
 	var result: Array[String] = []
+
 	for value in ALL:
 		result.append(String(value))
+
 	return result

@@ -13,7 +13,6 @@ metadata/_custom_type_script = "uid://0c32in4pchg3"
 
 [sub_resource type="Resource" id="Resource_jwrdb"]
 script = ExtResource("3_jwrdb")
-max_amount = 100
 metadata/_custom_type_script = "uid://0c32in4pchg3"
 
 [resource]
@@ -22,6 +21,6 @@ talk_display_name = "sabosan"
 talk_portrait = ExtResource("3_n2gxl")
 unit_roles = 31
 can_generate_shop_inventory = true
-shop_loot_categories = Array[ExtResource("3_jwrdb")]([SubResource("Resource_knwna"), SubResource("Resource_jwrdb"), null])
+shop_loot_categories = Array[ExtResource("3_jwrdb")]([SubResource("Resource_knwna"), SubResource("Resource_jwrdb")])
 animation_profile = ExtResource("1_flbg5")
 metadata/_custom_type_script = "uid://bgt8humnn3jqj"

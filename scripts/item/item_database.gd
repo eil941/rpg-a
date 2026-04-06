@@ -65,22 +65,23 @@ static func get_max_stack(item_id: String) -> int:
 static func get_item_type(item_id: String) -> String:
 	var data = get_item_resource(item_id)
 	if data == null:
-		return "misc"
+		return String(ItemCategories.MISC)
 
 	if data is EquipmentData:
-		return "equipment"
+		return String(ItemCategories.EQUIPMENT)
 
 	if data.has_method("get_item_type_name"):
-		return data.get_item_type_name()
+		return ItemCategories.normalize(String(data.get_item_type_name()))
 
-	return "misc"
+	return String(ItemCategories.MISC)
 
 
 static func get_item_ids_by_type(item_type: String) -> Array[String]:
 	var result: Array[String] = []
+	var normalized_type: String = ItemCategories.normalize(item_type)
 
 	for item_id in ITEM_RESOURCES.keys():
-		if get_item_type(String(item_id)) == item_type:
+		if get_item_type(String(item_id)) == normalized_type:
 			result.append(String(item_id))
 
 	return result
@@ -88,12 +89,16 @@ static func get_item_ids_by_type(item_type: String) -> Array[String]:
 
 static func get_item_ids_by_types(item_types: Array[String]) -> Array[String]:
 	var result: Array[String] = []
+	var normalized_types: Array[String] = []
+
+	for item_type in item_types:
+		normalized_types.append(ItemCategories.normalize(String(item_type)))
 
 	for item_id in ITEM_RESOURCES.keys():
 		var id_text: String = String(item_id)
 		var type_text: String = get_item_type(id_text)
 
-		if item_types.has(type_text):
+		if normalized_types.has(type_text):
 			result.append(id_text)
 
 	return result
