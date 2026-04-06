@@ -76,6 +76,38 @@ static func get_item_type(item_id: String) -> String:
 	return "misc"
 
 
+static func get_item_ids_by_type(item_type: String) -> Array[String]:
+	var result: Array[String] = []
+
+	for item_id in ITEM_RESOURCES.keys():
+		if get_item_type(String(item_id)) == item_type:
+			result.append(String(item_id))
+
+	return result
+
+
+static func get_item_ids_by_types(item_types: Array[String]) -> Array[String]:
+	var result: Array[String] = []
+
+	for item_id in ITEM_RESOURCES.keys():
+		var id_text: String = String(item_id)
+		var type_text: String = get_item_type(id_text)
+
+		if item_types.has(type_text):
+			result.append(id_text)
+
+	return result
+
+
+static func get_random_item_id_by_type(item_type: String, rng: RandomNumberGenerator) -> String:
+	var candidates: Array[String] = get_item_ids_by_type(item_type)
+
+	if candidates.is_empty():
+		return ""
+
+	return candidates[rng.randi_range(0, candidates.size() - 1)]
+
+
 static func is_usable(item_id: String) -> bool:
 	var data = get_item_resource(item_id)
 	if data == null:

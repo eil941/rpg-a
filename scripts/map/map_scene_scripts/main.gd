@@ -19,6 +19,7 @@ extends Node2D
 
 @export var item_pickup_scene: PackedScene
 @export var chest_scene: PackedScene
+@export var chest_data_list: Array[ChestData]
 
 @export var map_id: String = ""
 
@@ -128,7 +129,8 @@ func _ready() -> void:
 		chests_node,
 		map_id,
 		item_pickup_scene,
-		chest_scene
+		chest_scene,
+		chest_data_list
 	)
 
 	item_world_manager.setup_detail_map_random_spawn_with_save()

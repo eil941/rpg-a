@@ -57,6 +57,12 @@ var unit_roles: int = 0
 @export var can_receive_order: bool = false
 @export var extra_interact_actions: Array[String] = []
 
+# ショップ設定
+@export var can_generate_shop_inventory: bool = false
+@export var shop_min_items: int = 3
+@export var shop_max_items: int = 6
+@export var shop_loot_categories: Array[LootCategoryEntry] = []
+
 @export_multiline var request_description: String = "薬草を3個集めてきてほしい。"
 @export_multiline var request_accept_text: String = "助かる。よろしく頼む。"
 @export_multiline var request_decline_text: String = "そうか……また気が向いたら頼む。"
@@ -86,3 +92,11 @@ func get_effective_npc_type_id() -> String:
 	if npc_type_id != "":
 		return npc_type_id
 	return npc_name
+
+
+func is_shopkeeper() -> bool:
+	return can_trade or can_generate_shop_inventory or has_merchant_role()
+
+
+func has_merchant_role() -> bool:
+	return (unit_roles & (1 << 1)) != 0

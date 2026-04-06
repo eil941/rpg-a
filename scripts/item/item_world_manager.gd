@@ -11,6 +11,7 @@ var map_id: String
 
 var item_pickup_scene: PackedScene
 var chest_scene: PackedScene
+var chest_data_list: Array[ChestData]
 
 var rng := RandomNumberGenerator.new()
 
@@ -24,7 +25,8 @@ func _init(
 	p_chests_node: Node,
 	p_map_id: String,
 	p_item_pickup_scene: PackedScene,
-	p_chest_scene: PackedScene
+	p_chest_scene: PackedScene,
+	p_chest_data_list: Array[ChestData]
 ) -> void:
 	map_root = p_map_root
 	ground_layer = p_ground_layer
@@ -35,6 +37,7 @@ func _init(
 	map_id = p_map_id
 	item_pickup_scene = p_item_pickup_scene
 	chest_scene = p_chest_scene
+	chest_data_list = p_chest_data_list
 
 	rng.randomize()
 
@@ -70,7 +73,7 @@ func generate_detail_map_item_data() -> Array:
 
 	for i in range(min(count, tiles.size())):
 		var tile: Vector2i = tiles[i]
-		var item_entry = choose_random_item_entry()
+		var item_entry: Dictionary = choose_random_item_entry()
 
 		result.append({
 			"item_id": item_entry["item_id"],
@@ -92,18 +95,18 @@ func generate_detail_map_chest_data() -> Array:
 	var tiles := get_available_tiles()
 	tiles.shuffle()
 
-	if tiles.is_empty():
-		return result
+	for i in range(min(chest_count, tiles.size())):
+		var chest_tile: Vector2i = tiles[i]
+		var chest_type_id: String = choose_random_chest_type_id(false)
 
-	var chest_tile: Vector2i = tiles[0]
-
-	result.append({
-		"chest_id": "%s_chest_0" % map_id,
-		"x": chest_tile.x,
-		"y": chest_tile.y,
-		"is_opened": false,
-		"inventory": generate_random_chest_inventory(false)
-	})
+		result.append({
+			"chest_id": "%s_chest_%d" % [map_id, i],
+			"chest_type_id": chest_type_id,
+			"x": chest_tile.x,
+			"y": chest_tile.y,
+			"is_opened": false,
+			"inventory": generate_random_chest_inventory_for_type(chest_type_id, false)
+		})
 
 	return result
 
@@ -117,7 +120,7 @@ func generate_dungeon_floor_item_data() -> Array:
 
 	for i in range(min(count, tiles.size())):
 		var tile: Vector2i = tiles[i]
-		var item_entry = choose_random_item_entry()
+		var item_entry: Dictionary = choose_random_item_entry()
 
 		result.append({
 			"item_id": item_entry["item_id"],
@@ -132,7 +135,7 @@ func generate_dungeon_floor_item_data() -> Array:
 func generate_dungeon_floor_chest_data(is_final_floor: bool) -> Array:
 	var result: Array = []
 
-	var chest_count := 0
+	var chest_count: int = 0
 	if is_final_floor:
 		chest_count = 1
 	else:
@@ -146,35 +149,93 @@ func generate_dungeon_floor_chest_data(is_final_floor: bool) -> Array:
 
 	for i in range(min(chest_count, tiles.size())):
 		var chest_tile: Vector2i = tiles[i]
+		var chest_type_id: String = choose_random_chest_type_id(is_final_floor)
 
 		result.append({
 			"chest_id": "%s_chest_%d" % [map_id, i],
+			"chest_type_id": chest_type_id,
 			"x": chest_tile.x,
 			"y": chest_tile.y,
 			"is_opened": false,
-			"inventory": generate_random_chest_inventory(is_final_floor)
+			"inventory": generate_random_chest_inventory_for_type(chest_type_id, is_final_floor)
 		})
 
 	return result
 
 
-func generate_random_chest_inventory(is_final_floor: bool) -> Array:
+func generate_random_chest_inventory_for_type(chest_type_id: String, is_final_floor: bool) -> Array:
 	var result: Array = []
+	var chest_data: ChestData = find_chest_data_by_type_id(chest_type_id)
 
-	var item_count := 0
-	if is_final_floor:
-		item_count = rng.randi_range(2, 4)
+	var item_count: int = 1
+
+	if chest_data != null:
+		var min_items: int = max(chest_data.loot_min_items, 0)
+		var max_items: int = max(chest_data.loot_max_items, min_items)
+		item_count = rng.randi_range(min_items, max_items)
 	else:
-		item_count = rng.randi_range(1, 3)
+		if is_final_floor:
+			item_count = rng.randi_range(2, 4)
+		else:
+			item_count = rng.randi_range(1, 3)
 
 	for i in range(item_count):
-		var item_entry = choose_random_chest_item_entry()
+		var loot_category: LootCategoryEntry = choose_weighted_loot_category(chest_data)
+		if loot_category == null:
+			continue
+
+		var item_id: String = ItemDatabase.get_random_item_id_by_type(loot_category.item_type, rng)
+		if item_id == "":
+			continue
+
+		var min_amount: int = max(loot_category.min_amount, 1)
+		var max_amount: int = max(loot_category.max_amount, min_amount)
+		var amount: int = rng.randi_range(min_amount, max_amount)
+
 		result.append({
-			"item_id": item_entry["item_id"],
-			"amount": item_entry["amount"]
+			"item_id": item_id,
+			"amount": amount
 		})
 
 	return result
+
+
+func choose_weighted_loot_category(chest_data: ChestData) -> LootCategoryEntry:
+	if chest_data == null:
+		return null
+
+	if chest_data.loot_categories.is_empty():
+		return null
+
+	var total_weight: int = 0
+
+	for entry in chest_data.loot_categories:
+		if entry == null:
+			continue
+		if entry.weight > 0:
+			total_weight += entry.weight
+
+	if total_weight <= 0:
+		return null
+
+	var roll: int = rng.randi_range(1, total_weight)
+	var accum: int = 0
+
+	for entry in chest_data.loot_categories:
+		if entry == null:
+			continue
+		if entry.weight <= 0:
+			continue
+
+		accum += entry.weight
+		if roll <= accum:
+			return entry
+
+	for entry in chest_data.loot_categories:
+		if entry != null:
+			return entry
+
+	return null
 
 
 func choose_random_item_entry() -> Dictionary:
@@ -183,19 +244,59 @@ func choose_random_item_entry() -> Dictionary:
 	if roll < 40:
 		return {"item_id": "potion", "amount": 1}
 	elif roll < 75:
-		return {"item_id": "apple", "amount": rng.randi_range(1, 1)}
+		return {"item_id": "apple", "amount": 1}
 	else:
-		return {"item_id": "wood", "amount": rng.randi_range(1, 1)}
+		return {"item_id": "wood", "amount": 1}
 
-func choose_random_chest_item_entry() -> Dictionary:
-	var roll := rng.randi_range(0, 100)
 
-	if roll < 40:
-		return {"item_id": "potion", "amount": rng.randi_range(1, 3)}
-	elif roll < 75:
-		return {"item_id": "apple", "amount": rng.randi_range(1, 2)}
-	else:
-		return {"item_id": "wood", "amount": rng.randi_range(1, 5)}
+func choose_random_chest_type_id(is_final_floor: bool) -> String:
+	var available_ids: Array[String] = get_available_chest_type_ids()
+
+	if available_ids.is_empty():
+		return ""
+
+	if is_final_floor:
+		if available_ids.has("treasure"):
+			return "treasure"
+
+	return available_ids[rng.randi_range(0, available_ids.size() - 1)]
+
+
+func get_available_chest_type_ids() -> Array[String]:
+	var result: Array[String] = []
+
+	for data in chest_data_list:
+		if data == null:
+			continue
+
+		var type_id: String = String(data.chest_type_id)
+		if type_id == "":
+			continue
+
+		if not result.has(type_id):
+			result.append(type_id)
+
+	return result
+
+
+func find_chest_data_by_type_id(type_id: String) -> ChestData:
+	if type_id == "":
+		return get_default_chest_data()
+
+	for data in chest_data_list:
+		if data == null:
+			continue
+		if String(data.chest_type_id) == type_id:
+			return data
+
+	return get_default_chest_data()
+
+
+func get_default_chest_data() -> ChestData:
+	for data in chest_data_list:
+		if data != null:
+			return data
+	return null
 
 
 func get_available_tiles() -> Array[Vector2i]:
@@ -259,9 +360,9 @@ func spawn_item_from_save(data: Dictionary) -> void:
 		push_error("ItemWorldManager: item_pickup_scene が未設定です")
 		return
 
-	var item_id := String(data.get("item_id", ""))
-	var amount := int(data.get("amount", 1))
-	var tile := Vector2i(int(data.get("x", 0)), int(data.get("y", 0)))
+	var item_id: String = String(data.get("item_id", ""))
+	var amount: int = int(data.get("amount", 1))
+	var tile: Vector2i = Vector2i(int(data.get("x", 0)), int(data.get("y", 0)))
 
 	if item_id == "":
 		return
@@ -277,6 +378,12 @@ func spawn_chest_from_save(data: Dictionary) -> void:
 		return
 
 	var chest = chest_scene.instantiate()
+
+	var chest_type_id: String = String(data.get("chest_type_id", ""))
+
+	if chest != null and chest.has_method("apply_chest_data"):
+		chest.chest_data = find_chest_data_by_type_id(chest_type_id)
+
 	chests_node.add_child(chest)
 
 	if chest.has_method("load_from_save_data"):
@@ -286,6 +393,8 @@ func spawn_chest_from_save(data: Dictionary) -> void:
 		chest.is_opened = bool(data.get("is_opened", false))
 		if data.has("inventory") and chest.has_node("Inventory"):
 			chest.get_node("Inventory").load_inventory_data(data["inventory"])
+		if chest.has_method("apply_chest_data"):
+			chest.apply_chest_data()
 		if chest.has_method("update_visual"):
 			chest.update_visual()
 		if chest.has_method("snap_to_tile"):

@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="ChestData" format=3 uid="uid://bolqbdkeyldr1"]
+
+[ext_resource type="Texture2D" uid="uid://c01wcqd8r8u2c" path="res://assets/chest2.png" id="1_iqdeb"]
+[ext_resource type="Script" uid="uid://dqg3ncbyajhwu" path="res://scripts/data/chest_data.gd" id="1_yp4bw"]
+[ext_resource type="Script" uid="uid://0c32in4pchg3" path="res://scripts/data/loot_category_entry.gd" id="2_t5ie3"]
+
+[sub_resource type="Resource" id="Resource_t5ie3"]
+script = ExtResource("2_t5ie3")
+metadata/_custom_type_script = "uid://0c32in4pchg3"
+
+[sub_resource type="Resource" id="Resource_2jj8n"]
+script = ExtResource("2_t5ie3")
+item_type = "material"
+metadata/_custom_type_script = "uid://0c32in4pchg3"
+
+[sub_resource type="Resource" id="Resource_g6hab"]
+script = ExtResource("2_t5ie3")
+item_type = "equipment"
+metadata/_custom_type_script = "uid://0c32in4pchg3"
+
+[sub_resource type="Resource" id="Resource_v1o45"]
+script = ExtResource("2_t5ie3")
+item_type = "equipment"
+metadata/_custom_type_script = "uid://0c32in4pchg3"
+
+[resource]
+script = ExtResource("1_yp4bw")
+closed_texture = ExtResource("1_iqdeb")
+allowed_item_type_flags = 15
+loot_categories = Array[ExtResource("2_t5ie3")]([SubResource("Resource_t5ie3"), SubResource("Resource_2jj8n"), SubResource("Resource_g6hab"), SubResource("Resource_v1o45")])
+metadata/_custom_type_script = "uid://dqg3ncbyajhwu"

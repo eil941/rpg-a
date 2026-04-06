@@ -1,13 +1,6 @@
 extends Resource
 class_name ItemData
 
-enum ItemCategory {
-	CONSUMABLE,
-	MATERIAL,
-	EQUIPMENT,
-	MISC
-}
-
 enum ItemEffectType {
 	NONE,
 	HEAL_HP,
@@ -19,7 +12,9 @@ enum ItemEffectType {
 @export_multiline var description: String = ""
 @export var icon: Texture2D
 
-@export var category: ItemCategory = ItemCategory.MISC
+@export_enum("consumable", "material", "equipment", "misc")
+var category: String = "misc"
+
 @export var max_stack: int = 99
 @export var usable: bool = false
 
@@ -31,17 +26,7 @@ enum ItemEffectType {
 
 
 func get_item_type_name() -> String:
-	match category:
-		ItemCategory.CONSUMABLE:
-			return "consumable"
-		ItemCategory.MATERIAL:
-			return "material"
-		ItemCategory.EQUIPMENT:
-			return "equipment"
-		ItemCategory.MISC:
-			return "misc"
-		_:
-			return "misc"
+	return ItemCategories.normalize(category)
 
 
 func get_effect_type_name() -> String:

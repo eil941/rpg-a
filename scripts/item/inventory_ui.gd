@@ -2,7 +2,8 @@ extends CanvasLayer
 
 enum UIMode {
 	NORMAL,
-	TRADE
+	TRADE,
+	CHEST
 }
 
 @onready var root = $Root
@@ -99,6 +100,7 @@ func _ready() -> void:
 	held_item_preview.hide()
 
 	apply_ui_config()
+	apply_side_panel_visuals_for_mode()
 	update_background_visibility()
 	update_trade_panel_visibility()
 	set_process(true)
@@ -157,6 +159,64 @@ func apply_ui_config() -> void:
 		equipment_bg.texture = ui_config.equipment_background
 
 
+func get_chest_ui_data() -> ChestData:
+	if ui_mode != UIMode.CHEST:
+		return null
+
+	if trade_unit == null:
+		return null
+
+	if "chest_data" in trade_unit:
+		return trade_unit.chest_data
+
+	return null
+
+
+func apply_side_panel_visuals_for_mode() -> void:
+	if ui_mode == UIMode.CHEST:
+		var chest_data: ChestData = get_chest_ui_data()
+
+		if chest_data != null:
+			if trade_slot_grid != null and chest_data.ui_slot_columns > 0:
+				trade_slot_grid.columns = chest_data.ui_slot_columns
+
+			if trade_panel != null and chest_data.ui_panel_min_size != Vector2.ZERO:
+				trade_panel.custom_minimum_size = chest_data.ui_panel_min_size
+
+			if trade_bg != null and chest_data.ui_background != null:
+				trade_bg.texture = chest_data.ui_background
+		else:
+			if ui_config != null:
+				if ui_config.inventory_columns > 0 and trade_slot_grid != null:
+					trade_slot_grid.columns = ui_config.inventory_columns
+				if ui_config.inventory_panel_size != Vector2.ZERO and trade_panel != null:
+					trade_panel.custom_minimum_size = ui_config.inventory_panel_size
+				if trade_bg != null and ui_config.inventory_background != null:
+					trade_bg.texture = ui_config.inventory_background
+	else:
+		if ui_config != null:
+			if ui_config.inventory_columns > 0 and trade_slot_grid != null:
+				trade_slot_grid.columns = ui_config.inventory_columns
+
+			if ui_config.inventory_panel_size != Vector2.ZERO and trade_panel != null:
+				trade_panel.custom_minimum_size = ui_config.inventory_panel_size
+
+			if trade_bg != null and ui_config.inventory_background != null:
+				trade_bg.texture = ui_config.inventory_background
+
+
+func get_trade_slot_visual_size() -> Vector2:
+	if ui_mode == UIMode.CHEST:
+		var chest_data: ChestData = get_chest_ui_data()
+		if chest_data != null and chest_data.ui_slot_size != Vector2.ZERO:
+			return chest_data.ui_slot_size
+
+	if ui_config != null and ui_config.inventory_slot_size != Vector2.ZERO:
+		return ui_config.inventory_slot_size
+
+	return Vector2(48, 48)
+
+
 func update_background_visibility() -> void:
 	if inventory_bg != null:
 		inventory_bg.visible = inventory_bg.texture != null
@@ -167,11 +227,13 @@ func update_background_visibility() -> void:
 
 
 func update_trade_panel_visibility() -> void:
+	var side_visible: bool = is_side_mode()
+
 	if trade_panel != null:
-		trade_panel.visible = ui_mode == UIMode.TRADE
+		trade_panel.visible = side_visible
 
 	if trade_back_button != null:
-		trade_back_button.visible = ui_mode == UIMode.TRADE
+		trade_back_button.visible = side_visible
 
 
 func begin_trade_session() -> void:
@@ -184,6 +246,10 @@ func end_trade_session() -> void:
 	trade_session_active = false
 	trade_session_buy_rate = 1.0
 	trade_session_sell_rate = 1.0
+
+
+func is_side_mode() -> bool:
+	return ui_mode == UIMode.TRADE or ui_mode == UIMode.CHEST
 
 
 func _input(event: InputEvent) -> void:
@@ -328,6 +394,7 @@ func open_with_inventory(inventory) -> void:
 		equipment_slot_order = current_unit.get_equipment_slot_order()
 
 	apply_ui_config()
+	apply_side_panel_visuals_for_mode()
 	update_background_visibility()
 	update_trade_panel_visibility()
 
@@ -357,6 +424,7 @@ func open_trade_mode(player_inventory, player_unit, merchant_inventory, merchant
 	trade_title_label.text = "Merchant"
 
 	apply_ui_config()
+	apply_side_panel_visuals_for_mode()
 	update_background_visibility()
 	update_trade_panel_visibility()
 
@@ -365,6 +433,42 @@ func open_trade_mode(player_inventory, player_unit, merchant_inventory, merchant
 	build_equipment_slots()
 
 	begin_trade_session()
+
+	focus_area = "inventory"
+	selected_index = clamp(selected_index, 0, max(get_inventory_slot_count() - 1, 0))
+
+	refresh()
+	show()
+	restart_tooltip_timer()
+
+
+func open_chest_mode(player_inventory, player_unit, chest_inventory, chest_owner) -> void:
+	current_inventory = player_inventory
+	current_unit = player_unit
+	trade_inventory = chest_inventory
+	trade_unit = chest_owner
+	ui_mode = UIMode.CHEST
+
+	if current_unit != null and current_unit.has_method("get_equipment_slot_order"):
+		equipment_slot_order = current_unit.get_equipment_slot_order()
+
+	title_label.text = "Player"
+
+	if trade_unit != null and trade_unit.has_method("get_inventory_title"):
+		trade_title_label.text = String(trade_unit.get_inventory_title())
+	else:
+		trade_title_label.text = "Chest"
+
+	apply_ui_config()
+	apply_side_panel_visuals_for_mode()
+	update_background_visibility()
+	update_trade_panel_visibility()
+
+	await rebuild_inventory_slots_if_needed()
+	await rebuild_trade_slots_if_needed()
+	build_equipment_slots()
+
+	end_trade_session()
 
 	focus_area = "inventory"
 	selected_index = clamp(selected_index, 0, max(get_inventory_slot_count() - 1, 0))
@@ -389,8 +493,8 @@ func close_inventory() -> void:
 	if tooltip_timer != null:
 		tooltip_timer.stop()
 
-	var was_trade_mode: bool = ui_mode == UIMode.TRADE
-	if was_trade_mode:
+	var was_side_mode: bool = is_side_mode()
+	if was_side_mode:
 		end_trade_session()
 
 	hide()
@@ -404,9 +508,13 @@ func close_inventory() -> void:
 	selected_index = 0
 	title_label.text = "Inventory"
 	trade_title_label.text = "Trade"
+
+	apply_ui_config()
+	apply_side_panel_visuals_for_mode()
+	update_background_visibility()
 	update_trade_panel_visibility()
 
-	if was_trade_mode:
+	if was_side_mode:
 		var node: Node = self
 		while node != null:
 			if node.has_method("on_trade_ui_closed"):
@@ -505,13 +613,18 @@ func rebuild_trade_slots_if_needed() -> void:
 
 	await get_tree().process_frame
 
+	var trade_slot_visual_size: Vector2 = get_trade_slot_visual_size()
+	var trade_icon_margin: int = 0
+	if ui_config != null:
+		trade_icon_margin = ui_config.inventory_icon_margin
+
 	for i in range(target_count):
 		var slot = slot_scene.instantiate()
 
-		if ui_config != null and slot.has_method("apply_config"):
+		if slot.has_method("apply_config"):
 			slot.apply_config(
-				ui_config.inventory_slot_size,
-				ui_config.inventory_icon_margin
+				trade_slot_visual_size,
+				trade_icon_margin
 			)
 
 		trade_slot_grid.add_child(slot)
@@ -623,7 +736,7 @@ func refresh_trade_back_button() -> void:
 	if trade_back_button == null:
 		return
 
-	if ui_mode != UIMode.TRADE:
+	if not is_side_mode():
 		trade_back_button.button_pressed = false
 		return
 
@@ -636,6 +749,8 @@ func update_help_text() -> void:
 	if ui_mode == UIMode.TRADE:
 		text = "Enter: 持つ/置く/交換 / Shift+Enter: 1個持つ / Ctrl+Enter: 1個置く / 使用不可 / Esc: 閉じる"
 		text += "\n所持金: %dG" % get_player_gold_amount()
+	elif ui_mode == UIMode.CHEST:
+		text = "Enter: 持つ/置く/交換 / Shift+Enter: 1個持つ / Ctrl+Enter: 1個置く / 使用不可 / Esc: 閉じる"
 
 	if not held_entry.is_empty():
 		var held_name: String = ItemDatabase.get_display_name(String(held_entry.get("item_id", "")))
@@ -682,7 +797,11 @@ func move_trade_selection(dx: int, dy: int) -> void:
 	var col: int = selected_index % columns
 	var max_row: int = int(ceil(float(slot_count) / float(columns))) - 1
 
-	if dx > 0 and col == columns - 1:
+	var row_start: int = row * columns
+	var row_end: int = min(row_start + columns - 1, slot_count - 1)
+	var row_last_col: int = row_end - row_start
+
+	if dx > 0 and col >= row_last_col:
 		focus_area = "inventory"
 		selected_index = map_trade_row_to_inventory_index(row)
 		return
@@ -695,21 +814,24 @@ func move_trade_selection(dx: int, dy: int) -> void:
 	col += dx
 	row += dy
 
-	if col < 0:
-		col = 0
-	if col >= columns:
-		col = columns - 1
-
 	if row < 0:
 		row = 0
 	if row > max_row:
 		row = max_row
 
-	var new_index: int = row * columns + col
-	if new_index >= slot_count:
-		new_index = slot_count - 1
+	row_start = row * columns
+	row_end = min(row_start + columns - 1, slot_count - 1)
+	row_last_col = row_end - row_start
 
-	selected_index = max(new_index, 0)
+	if col < 0:
+		col = 0
+	if col > row_last_col:
+		col = row_last_col
+
+	var new_index: int = row * columns + col
+	new_index = clamp(new_index, 0, slot_count - 1)
+
+	selected_index = new_index
 
 
 func move_inventory_selection(dx: int, dy: int) -> void:
@@ -723,13 +845,18 @@ func move_inventory_selection(dx: int, dy: int) -> void:
 
 	var row: int = selected_index / columns
 	var col: int = selected_index % columns
+	var max_row: int = int(ceil(float(slot_count) / float(columns))) - 1
 
-	if dx < 0 and col == 0 and ui_mode == UIMode.TRADE:
+	var row_start: int = row * columns
+	var row_end: int = min(row_start + columns - 1, slot_count - 1)
+	var row_last_col: int = row_end - row_start
+
+	if dx < 0 and col == 0 and is_side_mode():
 		focus_area = "trade"
 		selected_index = map_inventory_row_to_trade_index(row)
 		return
 
-	if dx > 0 and col == columns - 1:
+	if dx > 0 and col >= row_last_col:
 		focus_area = "equipment"
 		selected_index = map_inventory_row_to_equipment_index(row)
 		return
@@ -737,22 +864,24 @@ func move_inventory_selection(dx: int, dy: int) -> void:
 	col += dx
 	row += dy
 
-	if col < 0:
-		col = 0
-	if col >= columns:
-		col = columns - 1
-
-	var max_row: int = int(ceil(float(slot_count) / float(columns))) - 1
 	if row < 0:
 		row = 0
 	if row > max_row:
 		row = max_row
 
-	var new_index: int = row * columns + col
-	if new_index >= slot_count:
-		new_index = slot_count - 1
+	row_start = row * columns
+	row_end = min(row_start + columns - 1, slot_count - 1)
+	row_last_col = row_end - row_start
 
-	selected_index = max(new_index, 0)
+	if col < 0:
+		col = 0
+	if col > row_last_col:
+		col = row_last_col
+
+	var new_index: int = row * columns + col
+	new_index = clamp(new_index, 0, slot_count - 1)
+
+	selected_index = new_index
 
 
 func move_equipment_selection(dx: int, dy: int) -> void:
@@ -780,7 +909,7 @@ func move_equipment_selection(dx: int, dy: int) -> void:
 
 
 func move_trade_back_selection(dx: int, dy: int) -> void:
-	if ui_mode != UIMode.TRADE:
+	if not is_side_mode():
 		return
 
 	if dy < 0:
@@ -1421,9 +1550,6 @@ func consume_held_amount(amount: int) -> void:
 
 
 func notify_trade_transfer_if_needed(target_area: String, moved_entry: Dictionary, source_area: String = "") -> bool:
-	if ui_mode != UIMode.TRADE:
-		return true
-
 	if typeof(moved_entry) != TYPE_DICTIONARY:
 		return true
 
@@ -1438,6 +1564,27 @@ func notify_trade_transfer_if_needed(target_area: String, moved_entry: Dictionar
 	var actual_source_area: String = source_area
 	if actual_source_area == "":
 		actual_source_area = held_from_area
+
+	if ui_mode == UIMode.CHEST:
+		if trade_unit != null:
+			if actual_source_area == "trade":
+				if target_area == "inventory" or target_area == "equipment":
+					if trade_unit.has_method("can_player_take_item"):
+						if not bool(trade_unit.can_player_take_item(item_id)):
+							notify_message("このチェストからは取り出せない")
+							return false
+
+			if actual_source_area == "inventory" or actual_source_area == "equipment":
+				if target_area == "trade":
+					if trade_unit.has_method("can_player_put_item"):
+						if not bool(trade_unit.can_player_put_item(item_id)):
+							notify_message("このチェストには入れられない")
+							return false
+
+		return true
+
+	if ui_mode != UIMode.TRADE:
+		return true
 
 	if actual_source_area == "trade":
 		if target_area == "inventory" or target_area == "equipment":
@@ -1484,7 +1631,6 @@ func notify_trade_transfer_if_needed(target_area: String, moved_entry: Dictionar
 			return true
 
 	return true
-
 
 
 func restore_held_entry_on_close() -> bool:
@@ -1666,7 +1812,7 @@ func is_empty_entry(entry: Dictionary) -> bool:
 
 
 func use_selected_item() -> void:
-	if ui_mode == UIMode.TRADE:
+	if ui_mode == UIMode.TRADE or ui_mode == UIMode.CHEST:
 		return
 
 	if focus_area != "inventory":

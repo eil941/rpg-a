@@ -1,6 +1,8 @@
 [gd_resource type="Resource" script_class="InventoryUIConfig" format=3 uid="uid://sr73hupfneof"]
 
 [ext_resource type="Script" uid="uid://b24ixqtwc3kec" path="res://scripts/data/inventory_ui_config.gd" id="1_jae62"]
+[ext_resource type="Texture2D" uid="uid://bq007sqr4ej4b" path="res://assets/sea.png" id="1_tv773"]
+[ext_resource type="Texture2D" uid="uid://c5pfutrp3fa2a" path="res://icon.svg" id="2_xs55l"]
 
 [resource]
 script = ExtResource("1_jae62")
@@ -8,4 +10,6 @@ inventory_max_slots = 36
 inventory_columns = 9
 inventory_slot_size = Vector2(32, 32)
 equipment_slot_size = Vector2(32, 32)
+inventory_background = ExtResource("2_xs55l")
+equipment_background = ExtResource("1_tv773")
 metadata/_custom_type_script = "uid://b24ixqtwc3kec"
