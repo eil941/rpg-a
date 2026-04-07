@@ -128,26 +128,38 @@ func _refresh_equipment_list() -> void:
 
 	_clear_box(equipment_list)
 
-	if player_unit == null:
-		equipment_list.add_child(_build_equipment_row("ぶき", {}))
-		equipment_list.add_child(_build_equipment_row("よろい", {}))
-		equipment_list.add_child(_build_equipment_row("アクセサリ", {}))
-		return
 
-	if player_unit.has_method("get_equipment_slot_order"):
-		slot_order = player_unit.get_equipment_slot_order()
+	var grid: GridContainer = GridContainer.new()
+	grid.columns = 2
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 6)
+
+	if player_unit == null:
+		slot_order = [
+			"right_hand", "left_hand", "head", "body", "hands", "waist", "feet",
+			"accessory_1", "accessory_2", "accessory_3", "accessory_4"
+		]
 	else:
-		slot_order = ["weapon", "armor", "accessory"]
+		if player_unit.has_method("get_equipment_slot_order"):
+			slot_order = player_unit.get_equipment_slot_order()
+		else:
+			slot_order = [
+				"right_hand", "left_hand", "head", "body", "hands", "waist", "feet",
+				"accessory_1", "accessory_2", "accessory_3", "accessory_4"
+			]
 
 	for raw_slot_name in slot_order:
 		slot_name = String(raw_slot_name)
 
-		if player_unit.has_method("get_equipped_item_entry"):
+		if player_unit != null and player_unit.has_method("get_equipped_item_entry"):
 			entry = player_unit.get_equipped_item_entry(slot_name)
 		else:
 			entry = {}
 
-		equipment_list.add_child(_build_equipment_row(_get_equipment_slot_label(slot_name), entry))
+		grid.add_child(_build_equipment_row(_get_equipment_slot_label(slot_name), entry))
+
+	equipment_list.add_child(grid)
 
 
 func _get_inventory_entries(inventory) -> Array:
@@ -247,21 +259,21 @@ func _build_equipment_row(slot_label: String, entry: Dictionary) -> Control:
 	var amount: int = int(entry.get("amount", 0))
 	var display_text: String = "なし"
 
-	row.custom_minimum_size = Vector2(0, 56)
+	row.custom_minimum_size = Vector2(0, 30)
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
-	slot_name_label.custom_minimum_size = Vector2(88, 0)
+	slot_name_label.custom_minimum_size = Vector2(58, 0)
 	slot_name_label.text = slot_label
 
 	slot_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slot_panel.custom_minimum_size = Vector2(0, 52)
+	slot_panel.custom_minimum_size = Vector2(0, 28)
 
 	margin.anchor_right = 1.0
 	margin.anchor_bottom = 1.0
-	margin.offset_left = 8.0
-	margin.offset_top = 6.0
-	margin.offset_right = -8.0
-	margin.offset_bottom = -6.0
+	margin.offset_left = 6.0
+	margin.offset_top = 4.0
+	margin.offset_right = -6.0
+	margin.offset_bottom = -4.0
 
 	if item_id != "" and amount > 0:
 		display_text = ItemDatabase.get_display_name(item_id)
@@ -280,12 +292,28 @@ func _build_equipment_row(slot_label: String, entry: Dictionary) -> Control:
 
 func _get_equipment_slot_label(slot_name: String) -> String:
 	match slot_name:
-		"weapon":
-			return "ぶき"
-		"armor":
-			return "よろい"
-		"accessory":
-			return "アクセサリ"
+		"right_hand":
+			return "右手"
+		"left_hand":
+			return "左手"
+		"head":
+			return "頭"
+		"body":
+			return "胴"
+		"hands":
+			return "手"
+		"waist":
+			return "腰"
+		"feet":
+			return "足"
+		"accessory_1":
+			return "アクセ1"
+		"accessory_2":
+			return "アクセ2"
+		"accessory_3":
+			return "アクセ3"
+		"accessory_4":
+			return "アクセ4"
 		_:
 			return slot_name
 

@@ -20,9 +20,17 @@ var map_positions: Dictionary = {}
 var inventory_data: Array = []
 
 var equipment_data: Dictionary = {
-	"weapon": "",
-	"armor": "",
-	"accessory": ""
+	"right_hand": "",
+	"left_hand": "",
+	"head": "",
+	"body": "",
+	"hands": "",
+	"waist": "",
+	"feet": "",
+	"accessory_1": "",
+	"accessory_2": "",
+	"accessory_3": "",
+	"accessory_4": ""
 }
 
 var debug_start_items_applied: bool = false

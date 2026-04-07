@@ -21,9 +21,21 @@ var faction: String = "PLAYER"
 
 @export var animation_profile: AnimationProfile
 
-@export var equipped_weapon: EquipmentData
-@export var equipped_armor: EquipmentData
-@export var equipped_accessory: EquipmentData
+@export var equipment_slot_order: Array[String] = [
+	"right_hand",
+	"left_hand",
+	"head",
+	"body",
+	"hands",
+	"waist",
+	"feet",
+	"accessory_1",
+	"accessory_2",
+	"accessory_3",
+	"accessory_4"
+]
+
+var equipped_items: Dictionary = {}
 
 enum AICombatStyle {
 	AUTO,
@@ -246,15 +258,68 @@ func get_current_tile_data():
 	return event_layer.get_cell_tile_data(coords)
 
 
+func get_equipped_resource(slot_name: String) -> EquipmentData:
+	if not equipped_items.has(slot_name):
+		return null
+
+	var value = equipped_items[slot_name]
+	if value is EquipmentData:
+		return value as EquipmentData
+
+	return null
+
+
+func get_all_equipped_resources() -> Array[EquipmentData]:
+	var result: Array[EquipmentData] = []
+
+	for slot_name in equipment_slot_order:
+		var resource: EquipmentData = get_equipped_resource(slot_name)
+		if resource != null:
+			result.append(resource)
+
+	return result
+
+
+func get_main_weapon() -> EquipmentData:
+	var right_hand: EquipmentData = get_equipped_resource("right_hand")
+	if right_hand != null:
+		return right_hand
+
+	var left_hand: EquipmentData = get_equipped_resource("left_hand")
+	if left_hand != null:
+		return left_hand
+
+	return null
+
+
+func apply_legacy_equipment_fields(source: Object) -> void:
+	if source == null:
+		return
+
+	if source.has_method("get_equipment_save_data"):
+		var save_data: Variant = source.call("get_equipment_save_data")
+		if save_data is Dictionary:
+			apply_equipment_save_data(save_data)
+			return
+
+	var right_hand = source.get("equipped_weapon")
+	if right_hand is EquipmentData:
+		equipped_items["right_hand"] = right_hand
+
+	var body = source.get("equipped_armor")
+	if body is EquipmentData:
+		equipped_items["body"] = body
+
+	var accessory = source.get("equipped_accessory")
+	if accessory is EquipmentData:
+		equipped_items["accessory_1"] = accessory
+
+
 func get_total_max_hp() -> int:
 	var total: int = stats.max_hp
 
-	if equipped_weapon != null:
-		total += equipped_weapon.max_hp_bonus
-	if equipped_armor != null:
-		total += equipped_armor.max_hp_bonus
-	if equipped_accessory != null:
-		total += equipped_accessory.max_hp_bonus
+	for equipment in get_all_equipped_resources():
+		total += equipment.max_hp_bonus
 
 	return max(total, 1)
 
@@ -262,12 +327,8 @@ func get_total_max_hp() -> int:
 func get_total_attack() -> int:
 	var total: int = stats.attack
 
-	if equipped_weapon != null:
-		total += equipped_weapon.attack_bonus
-	if equipped_armor != null:
-		total += equipped_armor.attack_bonus
-	if equipped_accessory != null:
-		total += equipped_accessory.attack_bonus
+	for equipment in get_all_equipped_resources():
+		total += equipment.attack_bonus
 
 	return max(total, 0)
 
@@ -275,12 +336,8 @@ func get_total_attack() -> int:
 func get_total_defense() -> int:
 	var total: int = stats.defense
 
-	if equipped_weapon != null:
-		total += equipped_weapon.defense_bonus
-	if equipped_armor != null:
-		total += equipped_armor.defense_bonus
-	if equipped_accessory != null:
-		total += equipped_accessory.defense_bonus
+	for equipment in get_all_equipped_resources():
+		total += equipment.defense_bonus
 
 	return max(total, 0)
 
@@ -288,50 +345,39 @@ func get_total_defense() -> int:
 func get_total_speed() -> float:
 	var total: float = stats.get_effective_speed()
 
-	if equipped_weapon != null:
-		total += equipped_weapon.speed_bonus
-	if equipped_armor != null:
-		total += equipped_armor.speed_bonus
-	if equipped_accessory != null:
-		total += equipped_accessory.speed_bonus
+	for equipment in get_all_equipped_resources():
+		total += equipment.speed_bonus
 
 	return max(total, 1.0)
 
 
 func get_attack_type_id() -> String:
-	if equipped_weapon != null:
-		return equipped_weapon.attack_type_id
+	var weapon: EquipmentData = get_main_weapon()
+	if weapon != null:
+		return weapon.attack_type_id
 	return "melee"
 
 
 func get_attack_min_range() -> int:
-	if equipped_weapon != null:
-		return equipped_weapon.attack_min_range
+	var weapon: EquipmentData = get_main_weapon()
+	if weapon != null:
+		return weapon.attack_min_range
 	return 1
 
 
 func get_attack_max_range() -> int:
-	if equipped_weapon != null:
-		return equipped_weapon.attack_max_range
+	var weapon: EquipmentData = get_main_weapon()
+	if weapon != null:
+		return weapon.attack_max_range
 	return 1
 
 
 func get_equipment_slot_order() -> Array:
-	return ["weapon", "armor", "accessory"]
+	return equipment_slot_order.duplicate()
 
 
 func get_equipped_item_entry(slot_name: String) -> Dictionary:
-	var resource = null
-
-	match slot_name:
-		"weapon":
-			resource = equipped_weapon
-		"armor":
-			resource = equipped_armor
-		"accessory":
-			resource = equipped_accessory
-		_:
-			resource = null
+	var resource: EquipmentData = get_equipped_resource(slot_name)
 
 	if resource == null:
 		return {
@@ -358,10 +404,15 @@ func can_equip_item_id_to_slot(item_id: String, slot_name: String) -> bool:
 	if equipment_resource == null:
 		return false
 
-	if equipment_resource.get_slot_name() != slot_name:
-		return false
+	var item_slot: String = equipment_resource.get_slot_name()
 
-	return true
+	if item_slot == "hand":
+		return slot_name == "right_hand" or slot_name == "left_hand"
+
+	if slot_name.begins_with("accessory_"):
+		return item_slot == "accessory"
+
+	return item_slot == slot_name
 
 
 func set_equipped_item_by_id(slot_name: String, item_id: String) -> bool:
@@ -369,48 +420,39 @@ func set_equipped_item_by_id(slot_name: String, item_id: String) -> bool:
 	if equipment_resource == null:
 		return false
 
-	if equipment_resource.get_slot_name() != slot_name:
+	if not can_equip_item_id_to_slot(item_id, slot_name):
 		return false
 
-	match slot_name:
-		"weapon":
-			equipped_weapon = equipment_resource
-		"armor":
-			equipped_armor = equipment_resource
-		"accessory":
-			equipped_accessory = equipment_resource
-		_:
-			return false
-
+	equipped_items[slot_name] = equipment_resource
 	return true
 
 
 func clear_equipment_slot(slot_name: String) -> void:
-	match slot_name:
-		"weapon":
-			equipped_weapon = null
-		"armor":
-			equipped_armor = null
-		"accessory":
-			equipped_accessory = null
+	equipped_items.erase(slot_name)
 
 
 func get_equipment_save_data() -> Dictionary:
-	return {
-		"weapon": String(equipped_weapon.item_id) if equipped_weapon != null else "",
-		"armor": String(equipped_armor.item_id) if equipped_armor != null else "",
-		"accessory": String(equipped_accessory.item_id) if equipped_accessory != null else ""
-	}
+	var data: Dictionary = {}
+
+	for slot_name in equipment_slot_order:
+		var resource: EquipmentData = get_equipped_resource(slot_name)
+		data[slot_name] = String(resource.item_id) if resource != null else ""
+
+	return data
 
 
 func apply_equipment_save_data(data: Dictionary) -> void:
-	var weapon_id: String = String(data.get("weapon", ""))
-	var armor_id: String = String(data.get("armor", ""))
-	var accessory_id: String = String(data.get("accessory", ""))
+	equipped_items.clear()
 
-	equipped_weapon = ItemDatabase.get_equipment_resource(weapon_id) if weapon_id != "" else null
-	equipped_armor = ItemDatabase.get_equipment_resource(armor_id) if armor_id != "" else null
-	equipped_accessory = ItemDatabase.get_equipment_resource(accessory_id) if accessory_id != "" else null
+	for slot_name in equipment_slot_order:
+		var item_id: String = String(data.get(slot_name, ""))
+
+		if item_id == "":
+			continue
+
+		var resource = ItemDatabase.get_equipment_resource(item_id)
+		if resource != null and can_equip_item_id_to_slot(item_id, slot_name):
+			equipped_items[slot_name] = resource
 
 
 func apply_debug_start_items_if_needed() -> void:
@@ -455,9 +497,10 @@ func get_effective_combat_style() -> int:
 	if override_combat_style and combat_style != AICombatStyle.AUTO:
 		return combat_style
 
-	if equipped_weapon != null:
-		if int(equipped_weapon.combat_style) != AICombatStyle.AUTO:
-			return int(equipped_weapon.combat_style)
+	var weapon: EquipmentData = get_main_weapon()
+	if weapon != null:
+		if int(weapon.combat_style) != AICombatStyle.AUTO:
+			return int(weapon.combat_style)
 
 	return AICombatStyle.MELEE
 
@@ -466,9 +509,10 @@ func get_effective_move_style() -> int:
 	if override_move_style and move_style != AIMoveStyle.AUTO:
 		return move_style
 
-	if equipped_weapon != null:
-		if int(equipped_weapon.move_style) != AIMoveStyle.AUTO:
-			return int(equipped_weapon.move_style)
+	var weapon: EquipmentData = get_main_weapon()
+	if weapon != null:
+		if int(weapon.move_style) != AIMoveStyle.AUTO:
+			return int(weapon.move_style)
 
 	return AIMoveStyle.APPROACH
 
@@ -1241,9 +1285,8 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 		skills.speech = enemy_data.speech
 		skills.medical = enemy_data.medical
 
-	equipped_weapon = enemy_data.equipped_weapon
-	equipped_armor = enemy_data.equipped_armor
-	equipped_accessory = enemy_data.equipped_accessory
+	equipped_items.clear()
+	apply_legacy_equipment_fields(enemy_data)
 
 	override_combat_style = enemy_data.override_combat_style
 	combat_style = enemy_data.combat_style
@@ -1336,9 +1379,8 @@ func apply_npc_data(npc_data: NpcData) -> void:
 		skills.speech = npc_data.speech
 		skills.medical = npc_data.medical
 
-	equipped_weapon = npc_data.equipped_weapon
-	equipped_armor = npc_data.equipped_armor
-	equipped_accessory = npc_data.equipped_accessory
+	equipped_items.clear()
+	apply_legacy_equipment_fields(npc_data)
 
 	override_combat_style = npc_data.override_combat_style
 	combat_style = npc_data.combat_style

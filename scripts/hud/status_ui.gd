@@ -41,9 +41,9 @@ const PAGE_COUNT: int = 3
 @onready var page1_combat_text: RichTextLabel = $Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/TopRow/RightVBox/StatsRow/CombatPanel/CombatVBox/CombatStatusText
 @onready var page1_basic_text: RichTextLabel = $Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/TopRow/RightVBox/StatsRow/BasicPanel/BasicVBox/BasicStatusText
 
-@onready var weapon_icon: TextureRect = $Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/EquipmentPanel/EquipmentVBox/EquipmentRow/WeaponSlot/IconPanel/IconTexture
-@onready var armor_icon: TextureRect = $Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/EquipmentPanel/EquipmentVBox/EquipmentRow/ArmorSlot/IconPanel/IconTexture
-@onready var accessory_icon: TextureRect = $Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/EquipmentPanel/EquipmentVBox/EquipmentRow/AccessorySlot/IconPanel/IconTexture
+@onready var equipment_row: BoxContainer = $Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/EquipmentPanel/EquipmentVBox/EquipmentRow
+
+var equipment_icon_nodes: Dictionary = {}
 
 @onready var page1_notes_text: RichTextLabel = $Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/NotesPanel/NotesVBox/NotesText
 
@@ -82,6 +82,7 @@ func _ready() -> void:
 	_apply_base_button_settings(page_3_button)
 	_apply_close_button_style()
 	_apply_label_styles()
+	_build_page_1_equipment_icons()
 
 	set_page(0)
 
@@ -152,9 +153,7 @@ func refresh_view() -> void:
 		page1_name_label.text = "名前: 対象なし"
 		page1_combat_text.text = ""
 		page1_basic_text.text = ""
-		weapon_icon.texture = null
-		armor_icon.texture = null
-		accessory_icon.texture = null
+		_clear_page_1_equipment_icons()
 		page1_notes_text.text = ""
 		portrait_texture.texture = null
 
@@ -178,9 +177,7 @@ func refresh_page_1_layout(unit_node, stats) -> void:
 		page1_name_label.text = "名前: 対象なし"
 		page1_combat_text.text = ""
 		page1_basic_text.text = ""
-		weapon_icon.texture = null
-		armor_icon.texture = null
-		accessory_icon.texture = null
+		_clear_page_1_equipment_icons()
 		page1_notes_text.text = ""
 		portrait_texture.texture = null
 		return
@@ -199,18 +196,128 @@ func refresh_page_1_layout(unit_node, stats) -> void:
 
 
 func refresh_page_1_equipment(unit_node) -> void:
-	var weapon_res = null
-	var armor_res = null
-	var accessory_res = null
+	if equipment_icon_nodes.is_empty():
+		_build_page_1_equipment_icons()
 
-	if unit_node != null:
-		weapon_res = unit_node.equipped_weapon
-		armor_res = unit_node.equipped_armor
-		accessory_res = unit_node.equipped_accessory
+	_clear_page_1_equipment_icons()
 
-	weapon_icon.texture = get_equipment_icon(weapon_res)
-	armor_icon.texture = get_equipment_icon(armor_res)
-	accessory_icon.texture = get_equipment_icon(accessory_res)
+	if unit_node == null:
+		return
+
+	var slot_order: Array = [
+		"right_hand", "left_hand", "head", "body", "hands", "waist", "feet",
+		"accessory_1", "accessory_2", "accessory_3", "accessory_4"
+	]
+
+	if unit_node.has_method("get_equipment_slot_order"):
+		slot_order = unit_node.get_equipment_slot_order()
+
+	for raw_slot_name in slot_order:
+		var slot_name: String = String(raw_slot_name)
+		var icon_node: TextureRect = equipment_icon_nodes.get(slot_name)
+		if icon_node == null:
+			continue
+
+		var resource = null
+		if unit_node.has_method("get_equipped_resource"):
+			resource = unit_node.get_equipped_resource(slot_name)
+		elif slot_name == "right_hand" and "equipped_weapon" in unit_node:
+			resource = unit_node.equipped_weapon
+		elif slot_name == "body" and "equipped_armor" in unit_node:
+			resource = unit_node.equipped_armor
+		elif slot_name == "accessory_1" and "equipped_accessory" in unit_node:
+			resource = unit_node.equipped_accessory
+
+		icon_node.texture = get_equipment_icon(resource)
+
+
+func _build_page_1_equipment_icons() -> void:
+	equipment_icon_nodes.clear()
+
+	if equipment_row == null:
+		return
+
+	for child in equipment_row.get_children():
+		equipment_row.remove_child(child)
+		child.queue_free()
+
+	var row: HBoxContainer = HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_BEGIN
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 4)
+	equipment_row.add_child(row)
+
+	var slot_order: Array[String] = [
+		"right_hand", "left_hand", "head", "body", "hands", "waist", "feet",
+		"accessory_1", "accessory_2", "accessory_3", "accessory_4"
+	]
+
+	for slot_name in slot_order:
+		var panel: Panel = Panel.new()
+		panel.custom_minimum_size = Vector2(64, 64)
+		panel.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+
+		var black_bg: ColorRect = ColorRect.new()
+		black_bg.anchor_right = 1.0
+		black_bg.anchor_bottom = 1.0
+		black_bg.offset_left = 1.0
+		black_bg.offset_top = 1.0
+		black_bg.offset_right = -1.0
+		black_bg.offset_bottom = -1.0
+		black_bg.color = Color(0.0, 0.0, 0.0, 1.0)
+
+		var icon: TextureRect = TextureRect.new()
+		icon.anchor_right = 1.0
+		icon.anchor_bottom = 1.0
+		icon.offset_left = 1.0
+		icon.offset_top = 1.0
+		icon.offset_right = -1.0
+		icon.offset_bottom = -1.0
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+
+		panel.add_child(black_bg)
+		panel.add_child(icon)
+		row.add_child(panel)
+
+		equipment_icon_nodes[slot_name] = icon
+
+
+func _clear_page_1_equipment_icons() -> void:
+	if equipment_icon_nodes.is_empty():
+		_build_page_1_equipment_icons()
+
+	for icon_node in equipment_icon_nodes.values():
+		if icon_node is TextureRect:
+			icon_node.texture = null
+
+
+func _get_equipment_slot_short_label(slot_name: String) -> String:
+	match slot_name:
+		"right_hand":
+			return "右"
+		"left_hand":
+			return "左"
+		"head":
+			return "頭"
+		"body":
+			return "胴"
+		"hands":
+			return "手"
+		"waist":
+			return "腰"
+		"feet":
+			return "足"
+		"accessory_1":
+			return "飾1"
+		"accessory_2":
+			return "飾2"
+		"accessory_3":
+			return "飾3"
+		"accessory_4":
+			return "飾4"
+		_:
+			return slot_name
 
 
 func set_page(page_index: int) -> void:

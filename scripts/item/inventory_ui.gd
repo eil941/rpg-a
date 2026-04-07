@@ -62,7 +62,7 @@ var held_from_slot_name: String = ""
 var tooltip_timer = null
 var is_building_slots: bool = false
 
-var equipment_slot_order: Array = ["weapon", "armor", "accessory"]
+var equipment_slot_order: Array = ["right_hand", "left_hand", "head", "body", "hands", "waist", "feet", "accessory_1", "accessory_2", "accessory_3", "accessory_4"]
 var equipment_slot_nodes: Array = []
 
 var trade_session_buy_rate: float = 1.0
@@ -646,8 +646,8 @@ func build_equipment_slots() -> void:
 		row.add_theme_constant_override("separation", 8)
 
 		var label = Label.new()
-		label.custom_minimum_size = Vector2(72, 0)
-		label.text = slot_name.capitalize()
+		label.custom_minimum_size = Vector2(84, 0)
+		label.text = get_equipment_slot_label(slot_name)
 
 		var slot = slot_scene.instantiate()
 
@@ -1748,13 +1748,14 @@ func can_place_entry_in_equipment_slot(entry: Dictionary, slot_name: String) -> 
 	if not ItemDatabase.is_equipment(item_id):
 		return false
 
-	if ItemDatabase.get_equipment_slot(item_id) != slot_name:
-		return false
-
 	if current_unit != null and current_unit.has_method("can_equip_item_id_to_slot"):
 		return current_unit.can_equip_item_id_to_slot(item_id, slot_name)
 
-	return true
+	var item_slot: String = ItemDatabase.get_equipment_slot(item_id)
+	if slot_name.begins_with("accessory_"):
+		return item_slot == "accessory"
+
+	return item_slot == slot_name
 
 
 func get_selected_entry() -> Dictionary:
@@ -1871,7 +1872,7 @@ func build_item_tooltip_lines(item_id: String) -> Array[String]:
 		if int(eq.speed_bonus) != 0:
 			lines.append("速度 %s%d" % ["+" if eq.speed_bonus > 0 else "", eq.speed_bonus])
 
-		if slot_name == "weapon":
+		if slot_name == "right_hand" or slot_name == "left_hand":
 			lines.append("射程 %d-%d" % [eq.attack_min_range, eq.attack_max_range])
 
 		return lines
@@ -1889,6 +1890,34 @@ func build_item_tooltip_lines(item_id: String) -> Array[String]:
 				lines.append("効果: %s (%d)" % [effect_type, effect_value])
 
 	return lines
+
+
+func get_equipment_slot_label(slot_name: String) -> String:
+	match slot_name:
+		"right_hand":
+			return "右手"
+		"left_hand":
+			return "左手"
+		"head":
+			return "頭"
+		"body":
+			return "胴"
+		"hands":
+			return "手"
+		"waist":
+			return "腰"
+		"feet":
+			return "足"
+		"accessory_1":
+			return "アクセ1"
+		"accessory_2":
+			return "アクセ2"
+		"accessory_3":
+			return "アクセ3"
+		"accessory_4":
+			return "アクセ4"
+		_:
+			return slot_name
 
 
 func get_trade_price_lines(entry: Dictionary) -> Array[String]:

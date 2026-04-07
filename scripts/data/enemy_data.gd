@@ -68,6 +68,18 @@ var faction: String = "ENEMY"
 @export var equipped_armor: EquipmentData
 @export var equipped_accessory: EquipmentData
 
+@export var equipped_right_hand: EquipmentData
+@export var equipped_left_hand: EquipmentData
+@export var equipped_head: EquipmentData
+@export var equipped_body: EquipmentData
+@export var equipped_hands: EquipmentData
+@export var equipped_waist: EquipmentData
+@export var equipped_feet: EquipmentData
+@export var equipped_accessory_1: EquipmentData
+@export var equipped_accessory_2: EquipmentData
+@export var equipped_accessory_3: EquipmentData
+@export var equipped_accessory_4: EquipmentData
+
 @export var override_combat_style: bool = false
 @export_enum("AUTO", "MELEE", "MID", "LONG", "SUPPORTER", "HIT_AND_RUN", "DEFENSIVE")
 var combat_style: int = AICombatStyle.AUTO
@@ -132,3 +144,27 @@ func is_shopkeeper() -> bool:
 
 func has_merchant_role() -> bool:
 	return (unit_roles & (1 << 1)) != 0
+
+
+func get_equipment_save_data() -> Dictionary:
+	return {
+		"right_hand": _get_preferred_equipment_id(equipped_right_hand, equipped_weapon),
+		"left_hand": _get_preferred_equipment_id(equipped_left_hand, null),
+		"head": _get_preferred_equipment_id(equipped_head, null),
+		"body": _get_preferred_equipment_id(equipped_body, equipped_armor),
+		"hands": _get_preferred_equipment_id(equipped_hands, null),
+		"waist": _get_preferred_equipment_id(equipped_waist, null),
+		"feet": _get_preferred_equipment_id(equipped_feet, null),
+		"accessory_1": _get_preferred_equipment_id(equipped_accessory_1, equipped_accessory),
+		"accessory_2": _get_preferred_equipment_id(equipped_accessory_2, null),
+		"accessory_3": _get_preferred_equipment_id(equipped_accessory_3, null),
+		"accessory_4": _get_preferred_equipment_id(equipped_accessory_4, null)
+	}
+
+
+func _get_preferred_equipment_id(primary: EquipmentData, fallback: EquipmentData) -> String:
+	if primary != null and String(primary.item_id) != "":
+		return String(primary.item_id)
+	if fallback != null and String(fallback.item_id) != "":
+		return String(fallback.item_id)
+	return ""
