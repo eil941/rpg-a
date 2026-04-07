@@ -1,5 +1,8 @@
 extends Node
 
+# right_hand / left_hand は装備欄です。
+# 装備アイテム側のカテゴリは equipment_data.gd 側で hand に統一します。
+
 var max_hp: int = 20
 var hp: int = 2000
 var attack: int = 1

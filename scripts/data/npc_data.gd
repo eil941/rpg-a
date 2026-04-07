@@ -1,6 +1,9 @@
 extends Resource
 class_name NpcData
 
+# right_hand / left_hand は装備欄です。
+# 装備アイテム側のカテゴリは equipment_data.gd 側で hand に統一します。
+
 enum AICombatStyle {
 	AUTO,
 	MELEE,
