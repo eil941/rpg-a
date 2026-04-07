@@ -21,7 +21,6 @@ var faction: String = "PLAYER"
 
 @export var animation_profile: AnimationProfile
 
-# 装備
 @export var equipped_weapon: EquipmentData
 @export var equipped_armor: EquipmentData
 @export var equipped_accessory: EquipmentData
@@ -53,17 +52,14 @@ enum UnitRole {
 	ENEMY_BOSS = 32
 }
 
-# unit 側のAI設定
 @export var override_combat_style: bool = false
 @export var combat_style: int = AICombatStyle.AUTO
 
 @export var override_move_style: bool = false
 @export var move_style: int = AIMoveStyle.AUTO
 
-# unit 個別の微調整
 @export var sprite_offset_adjust: Vector2 = Vector2.ZERO
 
-# 会話 / unitインタラクト用
 @export var can_talk: bool = true
 @export var talk_display_name: String = ""
 @export_multiline var talk_greeting_text: String = "……"
@@ -80,7 +76,6 @@ var unit_roles: int = 0
 @export_multiline var request_decline_text: String = "また今度おねがいします。"
 @export var random_talk_texts: Array[String] = []
 
-# 従来方式とも共存
 @export var idle_right_frames: Array[Texture2D] = []
 @export var walk_right_frames: Array[Texture2D] = []
 
@@ -110,7 +105,8 @@ var wall_layer: TileMapLayer = null
 var event_layer: TileMapLayer = null
 var units_node: Node = null
 
-@onready var stats = $Stats
+@onready var stats: Stats = $Stats
+@onready var skills: Skills = get_node_or_null("Skills") as Skills
 @onready var controller = $Controller
 @onready var targeting = Targeting
 @onready var combat_manager = CombatManager
@@ -226,10 +222,11 @@ func on_time_advanced(elapsed_seconds: float) -> void:
 
 	stats.action_progress_seconds += elapsed_seconds
 
-	if stats.speed <= 0.0:
+	var effective_speed: float = stats.get_effective_speed()
+	if effective_speed <= 0.0:
 		return
 
-	var action_cost_seconds = 86400.0 / stats.speed
+	var action_cost_seconds: float = 86400.0 / effective_speed
 
 	while stats.action_progress_seconds >= action_cost_seconds:
 		stats.action_progress_seconds -= action_cost_seconds
@@ -245,12 +242,12 @@ func get_current_tile_coords() -> Vector2i:
 
 
 func get_current_tile_data():
-	var coords = get_current_tile_coords()
+	var coords: Vector2i = get_current_tile_coords()
 	return event_layer.get_cell_tile_data(coords)
 
 
 func get_total_max_hp() -> int:
-	var total = stats.max_hp
+	var total: int = stats.max_hp
 
 	if equipped_weapon != null:
 		total += equipped_weapon.max_hp_bonus
@@ -263,7 +260,7 @@ func get_total_max_hp() -> int:
 
 
 func get_total_attack() -> int:
-	var total = stats.attack
+	var total: int = stats.attack
 
 	if equipped_weapon != null:
 		total += equipped_weapon.attack_bonus
@@ -276,7 +273,7 @@ func get_total_attack() -> int:
 
 
 func get_total_defense() -> int:
-	var total = stats.defense
+	var total: int = stats.defense
 
 	if equipped_weapon != null:
 		total += equipped_weapon.defense_bonus
@@ -289,7 +286,7 @@ func get_total_defense() -> int:
 
 
 func get_total_speed() -> float:
-	var total = stats.speed
+	var total: float = stats.get_effective_speed()
 
 	if equipped_weapon != null:
 		total += equipped_weapon.speed_bonus
@@ -342,7 +339,7 @@ func get_equipped_item_entry(slot_name: String) -> Dictionary:
 			"amount": 0
 		}
 
-	var item_id = String(resource.item_id)
+	var item_id: String = String(resource.item_id)
 
 	if item_id == "":
 		return {
@@ -407,9 +404,9 @@ func get_equipment_save_data() -> Dictionary:
 
 
 func apply_equipment_save_data(data: Dictionary) -> void:
-	var weapon_id = String(data.get("weapon", ""))
-	var armor_id = String(data.get("armor", ""))
-	var accessory_id = String(data.get("accessory", ""))
+	var weapon_id: String = String(data.get("weapon", ""))
+	var armor_id: String = String(data.get("armor", ""))
+	var accessory_id: String = String(data.get("accessory", ""))
 
 	equipped_weapon = ItemDatabase.get_equipment_resource(weapon_id) if weapon_id != "" else null
 	equipped_armor = ItemDatabase.get_equipment_resource(armor_id) if armor_id != "" else null
@@ -435,13 +432,13 @@ func apply_debug_start_items_if_needed() -> void:
 		if typeof(entry) != TYPE_DICTIONARY:
 			continue
 
-		var item_id = String(entry.get("item_id", ""))
-		var amount = int(entry.get("amount", 1))
+		var item_id: String = String(entry.get("item_id", ""))
+		var amount: int = int(entry.get("amount", 1))
 
 		if item_id == "" or amount <= 0:
 			continue
 
-		var added = inventory.add_item(item_id, amount)
+		var added: bool = inventory.add_item(item_id, amount)
 
 		if added:
 			print("DEBUG START ITEM ADDED: ", item_id, " x", amount)
@@ -482,15 +479,15 @@ func debug_print_current_tile_info() -> void:
 	if not is_player_unit:
 		return
 
-	var coords = get_current_tile_coords()
+	var coords: Vector2i = get_current_tile_coords()
 
-	var ground_source_id = ground_layer.get_cell_source_id(coords)
-	var ground_atlas_coords = ground_layer.get_cell_atlas_coords(coords)
-	var ground_alternative_tile = ground_layer.get_cell_alternative_tile(coords)
+	var ground_source_id: int = ground_layer.get_cell_source_id(coords)
+	var ground_atlas_coords: Vector2i = ground_layer.get_cell_atlas_coords(coords)
+	var ground_alternative_tile: int = ground_layer.get_cell_alternative_tile(coords)
 
-	var wall_source_id = wall_layer.get_cell_source_id(coords)
-	var wall_atlas_coords = wall_layer.get_cell_atlas_coords(coords)
-	var wall_alternative_tile = wall_layer.get_cell_alternative_tile(coords)
+	var wall_source_id: int = wall_layer.get_cell_source_id(coords)
+	var wall_atlas_coords: Vector2i = wall_layer.get_cell_atlas_coords(coords)
+	var wall_alternative_tile: int = wall_layer.get_cell_alternative_tile(coords)
 
 	print("===== CURRENT TILE INFO =====")
 	print("unit=", name)
@@ -551,7 +548,7 @@ func get_unit_in_front():
 	if units_node == null:
 		return null
 
-	var front_tile := get_front_tile_coords()
+	var front_tile: Vector2i = get_front_tile_coords()
 
 	for other in units_node.get_children():
 		if other == null:
@@ -681,7 +678,7 @@ func set_idle_animation() -> void:
 	if sprite == null:
 		return
 
-	var frames = get_idle_frames_for_facing(facing)
+	var frames: Array[Texture2D] = get_idle_frames_for_facing(facing)
 	if frames.is_empty():
 		return
 	sprite.texture = frames[0]
@@ -698,7 +695,7 @@ func update_walk_animation_for_move(dir: Vector2) -> void:
 	if sprite == null:
 		return
 
-	var frames = get_walk_frames_for_facing(facing)
+	var frames: Array[Texture2D] = get_walk_frames_for_facing(facing)
 	if frames.is_empty():
 		return
 
@@ -716,12 +713,12 @@ func build_frame_from_index(sheet: Texture2D, frame_w: int, frame_h: int, index:
 	var atlas = AtlasTexture.new()
 	atlas.atlas = sheet
 
-	var columns = int(sheet.get_width() / frame_w)
+	var columns: int = int(sheet.get_width() / frame_w)
 	if columns <= 0:
 		return null
 
-	var x = index % columns
-	var y = index / columns
+	var x: int = index % columns
+	var y: int = index / columns
 
 	atlas.region = Rect2(
 		x * frame_w,
@@ -752,8 +749,8 @@ func apply_sprite_offset_from_profile(profile: AnimationProfile) -> void:
 		sprite.offset = sprite_offset_adjust
 		return
 
-	var auto_offset = Vector2.ZERO
-	var actual_frame_height = profile.get_frame_height()
+	var auto_offset: Vector2 = Vector2.ZERO
+	var actual_frame_height: int = profile.get_frame_height()
 
 	if profile.auto_bottom_align:
 		auto_offset.y = -float(actual_frame_height - profile.base_tile_height) / 2.0
@@ -774,9 +771,9 @@ func apply_animation_profile(profile: AnimationProfile) -> void:
 	if profile.sprite_sheet == null:
 		return
 
-	var sheet = profile.sprite_sheet
-	var fw = profile.get_frame_width()
-	var fh = profile.get_frame_height()
+	var sheet: Texture2D = profile.sprite_sheet
+	var fw: int = profile.get_frame_width()
+	var fh: int = profile.get_frame_height()
 
 	idle_right_frames = build_frames_from_indices(sheet, fw, fh, profile.idle_right_indices)
 	walk_right_frames = build_frames_from_indices(sheet, fw, fh, profile.walk_right_indices)
@@ -823,12 +820,12 @@ func apply_animation_frames(
 
 
 func try_move(dir: Vector2) -> bool:
-	var next_facing = facing_from_dir(dir)
+	var next_facing: int = facing_from_dir(dir)
 	if next_facing != facing:
 		update_facing_only(dir)
 
-	var next_pos = global_position + dir * tile_size
-	var next_tile = ground_layer.local_to_map(ground_layer.to_local(next_pos))
+	var next_pos: Vector2 = global_position + dir * tile_size
+	var next_tile: Vector2i = ground_layer.local_to_map(ground_layer.to_local(next_pos))
 
 	var next_tile_data = get_tile_data_at_coords(next_tile)
 	if next_tile_data != null:
@@ -885,16 +882,16 @@ func try_move(dir: Vector2) -> bool:
 	var scene_transfer = tile_data.get_custom_data("scene_transfer")
 
 	if can_trigger_scene_transition and scene_transfer != null and scene_transfer == true:
-		var next_scene = String(tile_data.get_custom_data("enter_scene"))
+		var next_scene: String = String(tile_data.get_custom_data("enter_scene"))
 
 		var spawn_x_data = tile_data.get_custom_data("spawn_x")
 		var spawn_y_data = tile_data.get_custom_data("spawn_y")
 
-		var current_tile = get_current_tile_coords()
+		var current_tile: Vector2i = get_current_tile_coords()
 
 		if next_scene != "":
 			if next_scene == "res://scenes/dungeon_main.tscn":
-				var dungeon_id = ""
+				var dungeon_id: String = ""
 
 				if map_root != null and map_root.has_method("get_dungeon_id_at_cell"):
 					dungeon_id = map_root.get_dungeon_id_at_cell(next_tile)
@@ -927,11 +924,11 @@ func try_move(dir: Vector2) -> bool:
 			if spawn_x_data == null or spawn_y_data == null:
 				return false
 
-			var spawn_x = int(spawn_x_data)
-			var spawn_y = int(spawn_y_data)
+			var spawn_x: int = int(spawn_x_data)
+			var spawn_y: int = int(spawn_y_data)
 
-			var field_tile = current_tile
-			var detail_map_key = "field_%d_%d" % [field_tile.x, field_tile.y]
+			var field_tile: Vector2i = current_tile
+			var detail_map_key: String = "field_%d_%d" % [field_tile.x, field_tile.y]
 
 			var generator_type = tile_data.get_custom_data("detail_generator")
 			if generator_type == null:
@@ -990,14 +987,14 @@ func try_interact_transition() -> void:
 	if can_enter == null or can_enter == false:
 		return
 
-	var next_scene = String(tile_data.get_custom_data("enter_scene"))
+	var next_scene: String = String(tile_data.get_custom_data("enter_scene"))
 	if next_scene == "":
 		return
 
-	var current_tile = get_current_tile_coords()
+	var current_tile: Vector2i = get_current_tile_coords()
 
 	if next_scene == "res://scenes/dungeon_main.tscn":
-		var dungeon_id = ""
+		var dungeon_id: String = ""
 
 		if map_root != null and map_root.has_method("get_dungeon_id_at_cell"):
 			dungeon_id = map_root.get_dungeon_id_at_cell(current_tile)
@@ -1035,11 +1032,11 @@ func try_interact_transition() -> void:
 		push_error("spawn_x or spawn_y is missing on event tile")
 		return
 
-	var spawn_x = int(spawn_x_data)
-	var spawn_y = int(spawn_y_data)
+	var spawn_x: int = int(spawn_x_data)
+	var spawn_y: int = int(spawn_y_data)
 
-	var field_tile = current_tile
-	var detail_map_key = "field_%d_%d" % [field_tile.x, field_tile.y]
+	var field_tile: Vector2i = current_tile
+	var detail_map_key: String = "field_%d_%d" % [field_tile.x, field_tile.y]
 
 	var generator_type = tile_data.get_custom_data("detail_generator")
 	if generator_type == null:
@@ -1094,38 +1091,35 @@ func get_hp_status_text() -> String:
 
 
 func get_stats_data() -> Dictionary:
-	return {
-		"hp": stats.hp,
-		"max_hp": stats.max_hp,
-		"attack": stats.attack,
-		"defense": stats.defense,
-		"speed": stats.speed,
-		"tile_x": get_current_tile_coords().x,
-		"tile_y": get_current_tile_coords().y,
-		"inventory": inventory.save_inventory_data() if inventory != null else [],
-		"equipment": get_equipment_save_data()
-	}
+	var data: Dictionary = stats.get_stats_data()
+	data["tile_x"] = get_current_tile_coords().x
+	data["tile_y"] = get_current_tile_coords().y
+	data["inventory"] = inventory.save_inventory_data() if inventory != null else []
+	data["equipment"] = get_equipment_save_data()
+
+	if skills != null:
+		data["skills"] = skills.get_skills_data()
+
+	return data
 
 
 func apply_stats_data(data: Dictionary) -> void:
-	if data.has("max_hp"):
-		stats.max_hp = data["max_hp"]
-	if data.has("hp"):
-		stats.hp = data["hp"]
-	if data.has("attack"):
-		stats.attack = data["attack"]
-	if data.has("defense"):
-		stats.defense = data["defense"]
-	if data.has("speed"):
-		stats.speed = data["speed"]
+	if stats != null:
+		stats.apply_stats_data(data)
+
 	if data.has("tile_x") and data.has("tile_y"):
-		var saved_tile = Vector2i(data["tile_x"], data["tile_y"])
+		var saved_tile: Vector2i = Vector2i(int(data["tile_x"]), int(data["tile_y"]))
 		global_position = ground_layer.to_global(ground_layer.map_to_local(saved_tile))
 		target_position = global_position
+
 	if data.has("inventory") and inventory != null:
 		inventory.load_inventory_data(data["inventory"])
+
 	if data.has("equipment"):
 		apply_equipment_save_data(data["equipment"])
+
+	if data.has("skills") and skills != null:
+		skills.apply_skills_data(data["skills"])
 
 
 func save_persistent_stats() -> void:
@@ -1137,6 +1131,10 @@ func save_persistent_stats() -> void:
 		PlayerData.attack = stats.attack
 		PlayerData.defense = stats.defense
 		PlayerData.speed = stats.speed
+		PlayerData.extended_stats_data = stats.get_stats_data()
+
+		if skills != null:
+			PlayerData.skills_data = skills.get_skills_data()
 
 		if inventory != null:
 			PlayerData.inventory_data = inventory.save_inventory_data()
@@ -1158,7 +1156,7 @@ func save_persistent_stats() -> void:
 		return
 
 	if unit_id != "":
-		var data = get_stats_data()
+		var data: Dictionary = get_stats_data()
 		data["is_dead"] = stats.hp <= 0
 		WorldState.unit_states[unit_id] = data
 		print("SAVE unit_id=", unit_id, " hp=", stats.hp)
@@ -1169,11 +1167,17 @@ func load_persistent_stats() -> void:
 		print("PLAYER LOAD map_id=", map_id)
 		print("PLAYER LOAD map_positions=", PlayerData.map_positions)
 
-		stats.max_hp = PlayerData.max_hp
-		stats.hp = PlayerData.hp
-		stats.attack = PlayerData.attack
-		stats.defense = PlayerData.defense
-		stats.speed = PlayerData.speed
+		if PlayerData.extended_stats_data.size() > 0:
+			stats.apply_stats_data(PlayerData.extended_stats_data)
+		else:
+			stats.max_hp = PlayerData.max_hp
+			stats.hp = PlayerData.hp
+			stats.attack = PlayerData.attack
+			stats.defense = PlayerData.defense
+			stats.speed = PlayerData.speed
+
+		if skills != null and PlayerData.skills_data.size() > 0:
+			skills.apply_skills_data(PlayerData.skills_data)
 
 		if inventory != null:
 			inventory.load_inventory_data(PlayerData.inventory_data)
@@ -1205,6 +1209,37 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 	stats.attack = enemy_data.attack
 	stats.defense = enemy_data.defense
 	stats.speed = enemy_data.speed
+	stats.accuracy = enemy_data.accuracy
+	stats.evasion = enemy_data.evasion
+	stats.crit_rate = enemy_data.crit_rate
+	stats.crit_damage = enemy_data.crit_damage
+	stats.luck = enemy_data.luck
+	stats.element = enemy_data.element
+	stats.element_resistances = enemy_data.element_resistances.duplicate(true)
+
+	stats.strength = enemy_data.strength
+	stats.vitality = enemy_data.vitality
+	stats.agility = enemy_data.agility
+	stats.dexterity = enemy_data.dexterity
+	stats.intelligence = enemy_data.intelligence
+	stats.spirit = enemy_data.spirit
+	stats.sense = enemy_data.sense
+	stats.charm = enemy_data.charm
+
+	if skills != null:
+		skills.gathering = enemy_data.gathering
+		skills.investigation = enemy_data.investigation
+		skills.stealth = enemy_data.stealth
+		skills.trap_disarm = enemy_data.trap_disarm
+		skills.fishing = enemy_data.fishing
+		skills.appraisal = enemy_data.appraisal
+		skills.cooking = enemy_data.cooking
+		skills.repair = enemy_data.repair
+		skills.smithing = enemy_data.smithing
+		skills.alchemy = enemy_data.alchemy
+		skills.negotiation = enemy_data.negotiation
+		skills.speech = enemy_data.speech
+		skills.medical = enemy_data.medical
 
 	equipped_weapon = enemy_data.equipped_weapon
 	equipped_armor = enemy_data.equipped_armor
@@ -1221,6 +1256,9 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 	unit_roles = enemy_data.unit_roles
 	friendliness = enemy_data.friendliness
 	can_offer_request = enemy_data.can_offer_request
+	can_trade = enemy_data.can_trade
+	can_receive_order = enemy_data.can_receive_order
+	extra_interact_actions = enemy_data.extra_interact_actions.duplicate()
 	request_description = enemy_data.request_description
 	request_accept_text = enemy_data.request_accept_text
 	request_decline_text = enemy_data.request_decline_text
@@ -1247,7 +1285,7 @@ func handle_death() -> void:
 		return
 
 	if unit_id != "":
-		var data = get_stats_data()
+		var data: Dictionary = get_stats_data()
 		data["is_dead"] = true
 		WorldState.unit_states[unit_id] = data
 
@@ -1266,6 +1304,37 @@ func apply_npc_data(npc_data: NpcData) -> void:
 	stats.attack = npc_data.attack
 	stats.defense = npc_data.defense
 	stats.speed = npc_data.speed
+	stats.accuracy = npc_data.accuracy
+	stats.evasion = npc_data.evasion
+	stats.crit_rate = npc_data.crit_rate
+	stats.crit_damage = npc_data.crit_damage
+	stats.luck = npc_data.luck
+	stats.element = npc_data.element
+	stats.element_resistances = npc_data.element_resistances.duplicate(true)
+
+	stats.strength = npc_data.strength
+	stats.vitality = npc_data.vitality
+	stats.agility = npc_data.agility
+	stats.dexterity = npc_data.dexterity
+	stats.intelligence = npc_data.intelligence
+	stats.spirit = npc_data.spirit
+	stats.sense = npc_data.sense
+	stats.charm = npc_data.charm
+
+	if skills != null:
+		skills.gathering = npc_data.gathering
+		skills.investigation = npc_data.investigation
+		skills.stealth = npc_data.stealth
+		skills.trap_disarm = npc_data.trap_disarm
+		skills.fishing = npc_data.fishing
+		skills.appraisal = npc_data.appraisal
+		skills.cooking = npc_data.cooking
+		skills.repair = npc_data.repair
+		skills.smithing = npc_data.smithing
+		skills.alchemy = npc_data.alchemy
+		skills.negotiation = npc_data.negotiation
+		skills.speech = npc_data.speech
+		skills.medical = npc_data.medical
 
 	equipped_weapon = npc_data.equipped_weapon
 	equipped_armor = npc_data.equipped_armor
@@ -1461,7 +1530,7 @@ func try_pickup_items_on_current_tile() -> bool:
 	if item_pickups_node == null:
 		return false
 
-	var current_tile = get_current_tile_coords()
+	var current_tile: Vector2i = get_current_tile_coords()
 
 	for pickup in item_pickups_node.get_children():
 		if pickup == null:
@@ -1473,7 +1542,7 @@ func try_pickup_items_on_current_tile() -> bool:
 		if inventory == null:
 			return false
 
-		var added = inventory.add_item(pickup.item_id, pickup.amount)
+		var added: bool = inventory.add_item(pickup.item_id, pickup.amount)
 		if not added:
 			notify_hud_log("インベントリがいっぱい")
 			return false
@@ -1531,7 +1600,7 @@ func try_open_chest_on_current_tile() -> bool:
 	if chests_node == null:
 		return false
 
-	var current_tile = get_current_tile_coords()
+	var current_tile: Vector2i = get_current_tile_coords()
 
 	for chest in chests_node.get_children():
 		if chest == null:

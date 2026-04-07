@@ -30,6 +30,40 @@ var faction: String = "ENEMY"
 @export var defense: int = 0
 @export var speed: float = 120.0
 
+@export_range(0.0, 1.0, 0.01) var accuracy: float = 0.95
+@export_range(0.0, 1.0, 0.01) var evasion: float = 0.05
+@export_range(0.0, 1.0, 0.01) var crit_rate: float = 0.05
+@export var crit_damage: float = 1.5
+@export var luck: int = 0
+
+@export var element: String = "neutral"
+@export var element_resistances: Dictionary = {
+	"neutral": 1.0
+}
+
+@export var strength: int = 10
+@export var vitality: int = 10
+@export var agility: int = 10
+@export var dexterity: int = 10
+@export var intelligence: int = 10
+@export var spirit: int = 10
+@export var sense: int = 10
+@export var charm: int = 10
+
+@export var gathering: int = 0
+@export var investigation: int = 0
+@export var stealth: int = 0
+@export var trap_disarm: int = 0
+@export var fishing: int = 0
+@export var appraisal: int = 0
+@export var cooking: int = 0
+@export var repair: int = 0
+@export var smithing: int = 0
+@export var alchemy: int = 0
+@export var negotiation: int = 0
+@export var speech: int = 0
+@export var medical: int = 0
+
 @export var equipped_weapon: EquipmentData
 @export var equipped_armor: EquipmentData
 @export var equipped_accessory: EquipmentData
@@ -52,7 +86,6 @@ var unit_roles: int = 0
 @export var friendliness: int = -100
 @export var can_offer_request: bool = false
 
-# NPC互換・ショップ設定
 @export var can_trade: bool = false
 @export var can_receive_order: bool = false
 @export var extra_interact_actions: Array[String] = []

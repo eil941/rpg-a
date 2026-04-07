@@ -1,6 +1,9 @@
 extends Node
 class_name Stats
 
+# =========================
+# 戦闘・派生ステータス
+# =========================
 @export var max_hp: int = 2000
 @export var attack: int = 5
 @export var defense: int = 2
@@ -21,12 +24,6 @@ class_name Stats
 @export var element: String = "neutral"
 
 # 受ける属性ダメージ倍率
-# 例:
-# {
-#   "neutral": 1.0,
-#   "fire": 1.5,   # 火が弱点
-#   "ice": 0.5     # 氷に耐性
-# }
 @export var element_resistances: Dictionary = {
 	"neutral": 1.0
 }
@@ -37,7 +34,22 @@ class_name Stats
 @export var accuracy_multiplier: float = 1.0
 @export var evasion_multiplier: float = 1.0
 @export var crit_rate_multiplier: float = 1.0
+@export var speed_multiplier: float = 1.0
 
+# =========================
+# 基礎能力ステータス
+# RPG的な側面 + 身体能力
+# =========================
+@export var strength: int = 10       # 筋力
+@export var vitality: int = 10       # 体力
+@export var agility: int = 10        # 敏捷
+@export var dexterity: int = 10      # 器用さ
+@export var intelligence: int = 10   # 知力
+@export var spirit: int = 10         # 精神力
+@export var sense: int = 10          # 感覚
+@export var charm: int = 10          # 魅力
+
+# 現在状態
 var hp: int = 0
 var action_progress_seconds: float = 0.0
 var pending_actions: int = 0
@@ -51,8 +63,6 @@ func reset_stats() -> void:
 	pending_actions = 0
 
 func take_damage(amount: int) -> void:
-	# 防御計算は DamageCalculator 側で済ませる
-	# ここでは受け取ったダメージをそのまま適用する
 	var final_damage = max(0, amount)
 	hp -= final_damage
 
@@ -92,11 +102,108 @@ func get_effective_evasion() -> float:
 func get_effective_crit_rate() -> float:
 	return clamp(crit_rate * crit_rate_multiplier, 0.0, 1.0)
 
+func get_effective_speed() -> float:
+	return max(0.0, speed * speed_multiplier)
+
 func get_element_rate(attacking_element: String) -> float:
 	if attacking_element == "" or attacking_element == "neutral":
 		return 1.0
 
 	if element_resistances.has(attacking_element):
-		return float(element_resistances[attacking_element])
+		var value = element_resistances[attacking_element]
+		if value is int or value is float:
+			return float(value)
 
 	return 1.0
+
+func get_stats_data() -> Dictionary:
+	return {
+		"hp": hp,
+		"max_hp": max_hp,
+		"attack": attack,
+		"defense": defense,
+		"speed": speed,
+		"accuracy": accuracy,
+		"evasion": evasion,
+		"crit_rate": crit_rate,
+		"crit_damage": crit_damage,
+		"luck": luck,
+		"element": element,
+		"element_resistances": element_resistances.duplicate(true),
+		"attack_multiplier": attack_multiplier,
+		"defense_multiplier": defense_multiplier,
+		"accuracy_multiplier": accuracy_multiplier,
+		"evasion_multiplier": evasion_multiplier,
+		"crit_rate_multiplier": crit_rate_multiplier,
+		"speed_multiplier": speed_multiplier,
+		"strength": strength,
+		"vitality": vitality,
+		"agility": agility,
+		"dexterity": dexterity,
+		"intelligence": intelligence,
+		"spirit": spirit,
+		"sense": sense,
+		"charm": charm,
+		"action_progress_seconds": action_progress_seconds,
+		"pending_actions": pending_actions
+	}
+
+func apply_stats_data(data: Dictionary) -> void:
+	if data.has("max_hp"):
+		max_hp = int(data["max_hp"])
+	if data.has("hp"):
+		hp = int(data["hp"])
+	if data.has("attack"):
+		attack = int(data["attack"])
+	if data.has("defense"):
+		defense = int(data["defense"])
+	if data.has("speed"):
+		speed = float(data["speed"])
+	if data.has("accuracy"):
+		accuracy = float(data["accuracy"])
+	if data.has("evasion"):
+		evasion = float(data["evasion"])
+	if data.has("crit_rate"):
+		crit_rate = float(data["crit_rate"])
+	if data.has("crit_damage"):
+		crit_damage = float(data["crit_damage"])
+	if data.has("luck"):
+		luck = int(data["luck"])
+	if data.has("element"):
+		element = String(data["element"])
+	if data.has("element_resistances"):
+		element_resistances = data["element_resistances"].duplicate(true)
+	if data.has("attack_multiplier"):
+		attack_multiplier = float(data["attack_multiplier"])
+	if data.has("defense_multiplier"):
+		defense_multiplier = float(data["defense_multiplier"])
+	if data.has("accuracy_multiplier"):
+		accuracy_multiplier = float(data["accuracy_multiplier"])
+	if data.has("evasion_multiplier"):
+		evasion_multiplier = float(data["evasion_multiplier"])
+	if data.has("crit_rate_multiplier"):
+		crit_rate_multiplier = float(data["crit_rate_multiplier"])
+	if data.has("speed_multiplier"):
+		speed_multiplier = float(data["speed_multiplier"])
+	if data.has("strength"):
+		strength = int(data["strength"])
+	if data.has("vitality"):
+		vitality = int(data["vitality"])
+	if data.has("agility"):
+		agility = int(data["agility"])
+	if data.has("dexterity"):
+		dexterity = int(data["dexterity"])
+	if data.has("intelligence"):
+		intelligence = int(data["intelligence"])
+	if data.has("spirit"):
+		spirit = int(data["spirit"])
+	if data.has("sense"):
+		sense = int(data["sense"])
+	if data.has("charm"):
+		charm = int(data["charm"])
+	if data.has("action_progress_seconds"):
+		action_progress_seconds = float(data["action_progress_seconds"])
+	if data.has("pending_actions"):
+		pending_actions = int(data["pending_actions"])
+
+	hp = clamp(hp, 0, max_hp)

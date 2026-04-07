@@ -6,6 +6,9 @@ var attack: int = 1
 var defense: int = 2
 var speed: float = 120.0
 
+var extended_stats_data: Dictionary = {}
+var skills_data: Dictionary = {}
+
 var current_map_id: String = ""
 var current_tile: Vector2i = Vector2i.ZERO
 
@@ -22,6 +25,4 @@ var equipment_data: Dictionary = {
 	"accessory": ""
 }
 
-# デバッグ用初期アイテムをすでに配ったか
-# シーン移動のたびに増殖しないように使う
 var debug_start_items_applied: bool = false

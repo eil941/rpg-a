@@ -1,12 +1,13 @@
 [gd_scene format=3 uid="uid://cjntf4kbtxh73"]
 
 [ext_resource type="Script" uid="uid://nsxuuyuvfqyd" path="res://scripts/core/unit.gd" id="1_1jvru"]
-[ext_resource type="Texture2D" uid="uid://67hlg0nq7dth" path="res://assets/ねくら/tkaihen/kaihen/kot.png" id="2_e8hdl"]
 [ext_resource type="Resource" uid="uid://bkpgh1ni8dk52" path="res://data/player_animation_profile.tres" id="2_gr2wx"]
 [ext_resource type="Resource" uid="uid://gxh453poc5a6" path="res://data/equipment/weapons/bow.tres" id="2_tb304"]
 [ext_resource type="Script" uid="uid://b1xneybof8tc7" path="res://scripts/core/stats.gd" id="3_tb304"]
 [ext_resource type="Script" uid="uid://chtsgc7lseb8o" path="res://scripts/controllers/player_controller.gd" id="4_gic7v"]
+[ext_resource type="Texture2D" uid="uid://ckj4j0fakksd0" path="res://assets/player.png" id="4_oee7j"]
 [ext_resource type="Script" uid="uid://gj4ek5g6ew7q" path="res://scripts/item/inventory.gd" id="5_tb304"]
+[ext_resource type="Script" uid="uid://bpt1qou48v5jr" path="res://scripts/core/skills.gd" id="6_oee7j"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ruro2"]
 size = Vector2(30, 30)
@@ -22,7 +23,7 @@ is_player_unit = true
 animation_profile = ExtResource("2_gr2wx")
 equipped_weapon = ExtResource("2_tb304")
 talk_display_name = "testaa"
-talk_portrait = ExtResource("2_e8hdl")
+talk_portrait = ExtResource("4_oee7j")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=427796898]
 
@@ -35,6 +36,9 @@ shape = SubResource("RectangleShape2D_ruro2")
 script = ExtResource("3_tb304")
 attack = 15
 defense = 10
+
+[node name="Skills" type="Node" parent="." unique_id=1324358935]
+script = ExtResource("6_oee7j")
 
 [node name="Controller" type="Node" parent="." unique_id=498416143]
 script = ExtResource("4_gic7v")

@@ -3,6 +3,7 @@ extends Node
 @onready var current_map_container: Node = $CurrentMapContainer
 @onready var game_hud = $GameHUD
 @onready var inventory_ui = $InventoryUI
+@onready var status_ui = $StatusUI
 
 var current_map: Node = null
 var trade_return_context: Dictionary = {}
@@ -11,6 +12,12 @@ var trade_return_context: Dictionary = {}
 func _ready() -> void:
 	load_map_by_path("res://scenes/field_map.tscn")
 	refresh_hud()
+
+	if status_ui != null:
+		if status_ui.has_method("close_ui"):
+			status_ui.close_ui()
+		else:
+			status_ui.visible = false
 
 
 func load_map_by_path(scene_path: String) -> void:
@@ -105,6 +112,9 @@ func toggle_inventory_ui() -> void:
 		print("inventory_ui is null")
 		return
 
+	if is_status_open():
+		return
+
 	if DialogueManager != null and DialogueManager.has_method("is_dialog_open"):
 		if DialogueManager.is_dialog_open():
 			return
@@ -136,6 +146,9 @@ func is_inventory_open() -> bool:
 func open_trade_ui(player_unit, merchant_unit, return_context: Dictionary = {}) -> void:
 	if inventory_ui == null:
 		push_error("InventoryUI が見つかりません")
+		return
+
+	if is_status_open():
 		return
 
 	if player_unit == null:
@@ -203,3 +216,75 @@ func on_trade_ui_closed() -> void:
 		DialogueManager.reopen_dialog_from_context(trade_return_context)
 
 	trade_return_context = {}
+
+
+func toggle_status_ui() -> void:
+	if status_ui == null:
+		push_error("StatusUI が見つかりません")
+		return
+
+	if is_trade_ui_open():
+		return
+
+	if DialogueManager != null and DialogueManager.has_method("is_dialog_open"):
+		if DialogueManager.is_dialog_open():
+			return
+
+	if is_inventory_open():
+		return
+
+	if is_status_open():
+		close_status_ui()
+		return
+
+	open_status_ui()
+
+
+func open_status_ui() -> void:
+	if status_ui == null:
+		return
+
+	if is_trade_ui_open():
+		return
+
+	if is_inventory_open():
+		return
+
+	if DialogueManager != null and DialogueManager.has_method("is_dialog_open"):
+		if DialogueManager.is_dialog_open():
+			return
+
+	var player = find_player()
+	if player == null:
+		return
+
+	if game_hud != null:
+		game_hud.visible = false
+
+	if status_ui.has_method("open_for_unit"):
+		status_ui.open_for_unit(player)
+	else:
+		status_ui.visible = true
+
+
+func close_status_ui() -> void:
+	if status_ui == null:
+		return
+
+	if status_ui.has_method("close_ui"):
+		status_ui.close_ui()
+	else:
+		status_ui.visible = false
+
+	if game_hud != null:
+		game_hud.visible = true
+
+
+func is_status_open() -> bool:
+	if status_ui == null:
+		return false
+
+	if status_ui.has_method("is_open"):
+		return status_ui.is_open()
+
+	return status_ui.visible

@@ -1,0 +1,471 @@
+[gd_scene format=3 uid="uid://d0mm44m0q6we6"]
+
+[ext_resource type="Script" uid="uid://b8hlkyrvv7u35" path="res://scripts/hud/status_ui.gd" id="1_y0gkx"]
+[ext_resource type="Texture2D" uid="uid://bbrtdl20cvc8d" path="res://assets/stats/base.png" id="2_7ihem"]
+[ext_resource type="Texture2D" uid="uid://c0wx1wa2y2u1e" path="res://assets/stats/no1.png" id="3_jjgbj"]
+[ext_resource type="Texture2D" uid="uid://gie6vr8rgo3v" path="res://assets/stats/no2.png" id="4_amine"]
+[ext_resource type="Texture2D" uid="uid://dc3kxwn5f5xle" path="res://assets/stats/no3.png" id="5_0dnql"]
+
+[node name="StatusUI" type="CanvasLayer" unique_id=1690818156]
+layer = 100
+script = ExtResource("1_y0gkx")
+default_background = ExtResource("2_7ihem")
+page_1_background = ExtResource("3_jjgbj")
+page_2_background = ExtResource("4_amine")
+page_3_background = ExtResource("5_0dnql")
+
+[node name="Root" type="Control" parent="." unique_id=1829591157]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+focus_mode = 2
+mouse_filter = 1
+
+[node name="SolidBackground" type="ColorRect" parent="Root" unique_id=1161288347]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.12, 0.12, 0.14, 1)
+
+[node name="BackgroundTexture" type="TextureRect" parent="Root" unique_id=1078943906]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="MainMargin" type="MarginContainer" parent="Root" unique_id=1545080697]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 6.0
+offset_right = -16.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_top = 2
+theme_override_constants/margin_right = 2
+theme_override_constants/margin_bottom = 2
+
+[node name="MainVBox" type="VBoxContainer" parent="Root/MainMargin" unique_id=1517065225]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 0
+
+[node name="ContentPanel" type="Panel" parent="Root/MainMargin/MainVBox" unique_id=1384865149]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="PageBackgroundTexture" type="TextureRect" parent="Root/MainMargin/MainVBox/ContentPanel" unique_id=827924515]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="PageHeader" type="Control" parent="Root/MainMargin/MainVBox/ContentPanel" unique_id=1009678301]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 8.0
+offset_top = 6.0
+offset_right = -8.0
+offset_bottom = 40.0
+grow_horizontal = 2
+
+[node name="CloseButton" type="Button" parent="Root/MainMargin/MainVBox/ContentPanel/PageHeader" unique_id=2100000001]
+custom_minimum_size = Vector2(40, 28)
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -40.0
+offset_bottom = 28.0
+grow_horizontal = 0
+text = "×"
+
+[node name="PageLabel" type="Label" parent="Root/MainMargin/MainVBox/ContentPanel/PageHeader" unique_id=2124866393]
+visible = false
+layout_mode = 1
+offset_left = 48.0
+offset_top = 2.0
+offset_right = 280.0
+offset_bottom = 24.0
+
+[node name="PageArea" type="Control" parent="Root/MainMargin/MainVBox/ContentPanel" unique_id=797087740]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 36.0
+offset_right = -10.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Page1Scroll" type="ScrollContainer" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea" unique_id=78277729]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_scroll_mode = 0
+
+[node name="Page1Content" type="MarginContainer" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll" unique_id=2123431019]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="MainVBox" type="VBoxContainer" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content" unique_id=824431654]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="TopRow" type="HBoxContainer" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox" unique_id=1758373178]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="PortraitPanel" type="Panel" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/TopRow" unique_id=1914901786]
+custom_minimum_size = Vector2(220, 300)
+layout_mode = 2
+
+[node name="PortraitTexture" type="TextureRect" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/TopRow/PortraitPanel" unique_id=1118283174]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="RightVBox" type="VBoxContainer" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/TopRow" unique_id=189380427]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="HeaderInfo" type="VBoxContainer" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/TopRow/RightVBox" unique_id=67507924]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="NameLabel" type="Label" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/TopRow/RightVBox/HeaderInfo" unique_id=1290965089]
+layout_mode = 2
+text = "名前"
+
+[node name="StatsRow" type="HBoxContainer" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/TopRow/RightVBox" unique_id=2135674227]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="CombatPanel" type="Panel" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/TopRow/RightVBox/StatsRow" unique_id=801784578]
+custom_minimum_size = Vector2(0, 250)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CombatVBox" type="VBoxContainer" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/TopRow/RightVBox/StatsRow/CombatPanel" unique_id=2093056212]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 4
+
+[node name="CombatTitleLabel" type="Label" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/TopRow/RightVBox/StatsRow/CombatPanel/CombatVBox" unique_id=971525936]
+layout_mode = 2
+text = "戦闘能力"
+
+[node name="CombatStatusText" type="RichTextLabel" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/TopRow/RightVBox/StatsRow/CombatPanel/CombatVBox" unique_id=1535230035]
+custom_minimum_size = Vector2(0, 188)
+layout_mode = 2
+size_flags_horizontal = 3
+fit_content = true
+scroll_active = false
+
+[node name="BasicPanel" type="Panel" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/TopRow/RightVBox/StatsRow" unique_id=75684037]
+custom_minimum_size = Vector2(0, 250)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BasicVBox" type="VBoxContainer" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/TopRow/RightVBox/StatsRow/BasicPanel" unique_id=777442149]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 4
+
+[node name="BasicTitleLabel" type="Label" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/TopRow/RightVBox/StatsRow/BasicPanel/BasicVBox" unique_id=1228475742]
+layout_mode = 2
+text = "基礎能力"
+
+[node name="BasicStatusText" type="RichTextLabel" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/TopRow/RightVBox/StatsRow/BasicPanel/BasicVBox" unique_id=1753845150]
+custom_minimum_size = Vector2(0, 188)
+layout_mode = 2
+size_flags_horizontal = 3
+fit_content = true
+scroll_active = false
+
+[node name="EquipmentPanel" type="Panel" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox" unique_id=576766412]
+custom_minimum_size = Vector2(0, 108)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EquipmentVBox" type="VBoxContainer" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/EquipmentPanel" unique_id=1638446841]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = -10.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 4
+
+[node name="EquipmentTitleLabel" type="Label" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/EquipmentPanel/EquipmentVBox" unique_id=415274397]
+layout_mode = 2
+text = "装備"
+
+[node name="EquipmentRow" type="HBoxContainer" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/EquipmentPanel/EquipmentVBox" unique_id=997024694]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 48
+alignment = 1
+
+[node name="WeaponSlot" type="CenterContainer" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/EquipmentPanel/EquipmentVBox/EquipmentRow" unique_id=1451079660]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="IconPanel" type="Panel" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/EquipmentPanel/EquipmentVBox/EquipmentRow/WeaponSlot" unique_id=1112785294]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+
+[node name="BlackBg" type="ColorRect" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/EquipmentPanel/EquipmentVBox/EquipmentRow/WeaponSlot/IconPanel" unique_id=1545951586]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+
+[node name="IconTexture" type="TextureRect" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/EquipmentPanel/EquipmentVBox/EquipmentRow/WeaponSlot/IconPanel" unique_id=1624316104]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = -4.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ArmorSlot" type="CenterContainer" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/EquipmentPanel/EquipmentVBox/EquipmentRow" unique_id=1751586586]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="IconPanel" type="Panel" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/EquipmentPanel/EquipmentVBox/EquipmentRow/ArmorSlot" unique_id=585469230]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+
+[node name="BlackBg" type="ColorRect" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/EquipmentPanel/EquipmentVBox/EquipmentRow/ArmorSlot/IconPanel" unique_id=1583310260]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+
+[node name="IconTexture" type="TextureRect" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/EquipmentPanel/EquipmentVBox/EquipmentRow/ArmorSlot/IconPanel" unique_id=1941570145]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = -4.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="AccessorySlot" type="CenterContainer" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/EquipmentPanel/EquipmentVBox/EquipmentRow" unique_id=1460095454]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="IconPanel" type="Panel" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/EquipmentPanel/EquipmentVBox/EquipmentRow/AccessorySlot" unique_id=2144538281]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+
+[node name="BlackBg" type="ColorRect" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/EquipmentPanel/EquipmentVBox/EquipmentRow/AccessorySlot/IconPanel" unique_id=486445639]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+
+[node name="IconTexture" type="TextureRect" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/EquipmentPanel/EquipmentVBox/EquipmentRow/AccessorySlot/IconPanel" unique_id=1125608724]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = -4.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NotesPanel" type="Panel" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox" unique_id=1960896108]
+custom_minimum_size = Vector2(0, 130)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NotesVBox" type="VBoxContainer" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/NotesPanel" unique_id=346833226]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = -10.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 4
+
+[node name="NotesTitleLabel" type="Label" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/NotesPanel/NotesVBox" unique_id=1305345993]
+layout_mode = 2
+text = "プレイヤーの余談"
+
+[node name="NotesText" type="RichTextLabel" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/NotesPanel/NotesVBox" unique_id=2110978173]
+custom_minimum_size = Vector2(0, 86)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+fit_content = true
+scroll_active = false
+
+[node name="Page2Scroll" type="ScrollContainer" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea" unique_id=1243816782]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_scroll_mode = 0
+
+[node name="Page2Content" type="MarginContainer" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page2Scroll" unique_id=332336611]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="Page2Text" type="RichTextLabel" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page2Scroll/Page2Content" unique_id=1631760740]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+size_flags_horizontal = 3
+scroll_active = false
+
+[node name="Page3Scroll" type="ScrollContainer" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea" unique_id=1888123737]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_scroll_mode = 0
+
+[node name="Page3Content" type="MarginContainer" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page3Scroll" unique_id=1797329642]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="Page3Text" type="RichTextLabel" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page3Scroll/Page3Content" unique_id=242535614]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+size_flags_horizontal = 3
+scroll_active = false
+
+[node name="BottomTabBar" type="MarginContainer" parent="Root/MainMargin/MainVBox" unique_id=1182562952]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_constants/margin_left = 0
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_right = 320
+theme_override_constants/margin_bottom = 0
+
+[node name="TabButtonsWrap" type="HBoxContainer" parent="Root/MainMargin/MainVBox/BottomTabBar" unique_id=1518650669]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Page1Button" type="Button" parent="Root/MainMargin/MainVBox/BottomTabBar/TabButtonsWrap" unique_id=1672161646]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "ステータス"
+
+[node name="Page2Button" type="Button" parent="Root/MainMargin/MainVBox/BottomTabBar/TabButtonsWrap" unique_id=1729313214]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "スキル"
+
+[node name="Page3Button" type="Button" parent="Root/MainMargin/MainVBox/BottomTabBar/TabButtonsWrap" unique_id=760672789]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "その他"

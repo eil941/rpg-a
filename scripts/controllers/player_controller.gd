@@ -27,7 +27,19 @@ func _physics_process(delta: float) -> void:
 		if units_node == null:
 			return
 
-	# Iキーの開閉はここだけで処理する
+	if Input.is_action_just_pressed("status"):
+		clear_move_hold()
+
+		if is_dialog_open():
+			return
+
+		toggle_status_ui()
+		return
+
+	if is_status_open():
+		clear_move_hold()
+		return
+
 	if Input.is_action_just_pressed("inventory"):
 		if is_dialog_open():
 			return
@@ -35,7 +47,6 @@ func _physics_process(delta: float) -> void:
 		toggle_inventory_ui()
 		return
 
-	# dialogue / trade 中だけ入力ロック
 	if is_ui_locked():
 		clear_move_hold()
 		return
@@ -63,7 +74,7 @@ func _physics_process(delta: float) -> void:
 			var acted = try_attack_action()
 			if acted:
 				if not DebugSettings.debug_free_action:
-					TimeManager.advance_time(units_node, unit.stats.speed)
+					TimeManager.advance_time(units_node, unit.get_total_speed())
 					notify_hud()
 					TimeManager.resolve_ai_turns(units_node)
 			return
@@ -72,7 +83,7 @@ func _physics_process(delta: float) -> void:
 			clear_move_hold()
 			unit.wait_action()
 			if not DebugSettings.debug_free_action:
-				TimeManager.advance_time(units_node, unit.stats.speed)
+				TimeManager.advance_time(units_node, unit.get_total_speed())
 				notify_hud()
 				TimeManager.resolve_ai_turns(units_node)
 			return
@@ -85,6 +96,9 @@ func is_ui_locked() -> bool:
 		return true
 
 	if is_trade_ui_open():
+		return true
+
+	if is_status_open():
 		return true
 
 	return false
@@ -177,7 +191,7 @@ func try_move_in_direction(dir: Vector2) -> void:
 
 	if acted:
 		if not DebugSettings.debug_free_action:
-			TimeManager.advance_time(units_node, unit.stats.speed)
+			TimeManager.advance_time(units_node, unit.get_total_speed())
 			notify_hud()
 			TimeManager.resolve_ai_turns(units_node)
 
@@ -227,11 +241,29 @@ func toggle_inventory_ui() -> void:
 		node = node.get_parent()
 
 
+func toggle_status_ui() -> void:
+	var node: Node = unit
+	while node != null:
+		if node.has_method("toggle_status_ui"):
+			node.toggle_status_ui()
+			return
+		node = node.get_parent()
+
+
 func is_trade_ui_open() -> bool:
 	var node: Node = unit
 	while node != null:
 		if node.has_method("is_trade_ui_open"):
 			return node.is_trade_ui_open()
+		node = node.get_parent()
+	return false
+
+
+func is_status_open() -> bool:
+	var node: Node = unit
+	while node != null:
+		if node.has_method("is_status_open"):
+			return node.is_status_open()
 		node = node.get_parent()
 	return false
 
