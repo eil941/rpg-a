@@ -199,6 +199,20 @@ func choose_weighted_shop_category(data) -> LootCategoryEntry:
 	return null
 
 
+func _build_shop_entry(item_id: String, amount: int) -> Dictionary:
+	var equipment_resource: EquipmentData = ItemDatabase.get_equipment_resource(item_id)
+
+	if equipment_resource != null:
+		var entry: Dictionary = ItemDatabase.build_random_equipment_entry(item_id, rng)
+		entry["amount"] = 1
+		return entry
+
+	return {
+		"item_id": item_id,
+		"amount": amount
+	}
+
+
 func generate_random_shop_inventory_from_data(data) -> Array:
 	var result: Array = []
 
@@ -226,10 +240,7 @@ func generate_random_shop_inventory_from_data(data) -> Array:
 		var max_amount: int = max(loot_category.max_amount, min_amount)
 		var amount: int = rng.randi_range(min_amount, max_amount)
 
-		result.append({
-			"item_id": item_id,
-			"amount": amount
-		})
+		result.append(_build_shop_entry(item_id, amount))
 
 	return result
 

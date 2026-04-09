@@ -1,9 +1,6 @@
 extends Resource
 class_name NpcData
 
-# right_hand / left_hand は装備欄です。
-# 装備アイテム側のカテゴリは equipment_data.gd 側で hand に統一します。
-
 enum AICombatStyle {
 	AUTO,
 	MELEE,
@@ -150,24 +147,47 @@ func has_merchant_role() -> bool:
 
 
 func get_equipment_save_data() -> Dictionary:
-	return {
-		"right_hand": _get_preferred_equipment_id(equipped_right_hand, equipped_weapon),
-		"left_hand": _get_preferred_equipment_id(equipped_left_hand, null),
-		"head": _get_preferred_equipment_id(equipped_head, null),
-		"body": _get_preferred_equipment_id(equipped_body, equipped_armor),
-		"hands": _get_preferred_equipment_id(equipped_hands, null),
-		"waist": _get_preferred_equipment_id(equipped_waist, null),
-		"feet": _get_preferred_equipment_id(equipped_feet, null),
-		"accessory_1": _get_preferred_equipment_id(equipped_accessory_1, equipped_accessory),
-		"accessory_2": _get_preferred_equipment_id(equipped_accessory_2, null),
-		"accessory_3": _get_preferred_equipment_id(equipped_accessory_3, null),
-		"accessory_4": _get_preferred_equipment_id(equipped_accessory_4, null)
+	var data: Dictionary = {
+		"right_hand": {},
+		"left_hand": {},
+		"head": {},
+		"body": {},
+		"hands": {},
+		"waist": {},
+		"feet": {},
+		"accessory_1": {},
+		"accessory_2": {},
+		"accessory_3": {},
+		"accessory_4": {}
 	}
 
+	if equipped_right_hand != null:
+		data["right_hand"] = {"item_id": String(equipped_right_hand.item_id), "amount": 1}
+	elif equipped_weapon != null:
+		data["right_hand"] = {"item_id": String(equipped_weapon.item_id), "amount": 1}
 
-func _get_preferred_equipment_id(primary: EquipmentData, fallback: EquipmentData) -> String:
-	if primary != null and String(primary.item_id) != "":
-		return String(primary.item_id)
-	if fallback != null and String(fallback.item_id) != "":
-		return String(fallback.item_id)
-	return ""
+	if equipped_left_hand != null:
+		data["left_hand"] = {"item_id": String(equipped_left_hand.item_id), "amount": 1}
+	if equipped_head != null:
+		data["head"] = {"item_id": String(equipped_head.item_id), "amount": 1}
+	if equipped_body != null:
+		data["body"] = {"item_id": String(equipped_body.item_id), "amount": 1}
+	elif equipped_armor != null:
+		data["body"] = {"item_id": String(equipped_armor.item_id), "amount": 1}
+	if equipped_hands != null:
+		data["hands"] = {"item_id": String(equipped_hands.item_id), "amount": 1}
+	if equipped_waist != null:
+		data["waist"] = {"item_id": String(equipped_waist.item_id), "amount": 1}
+	if equipped_feet != null:
+		data["feet"] = {"item_id": String(equipped_feet.item_id), "amount": 1}
+	if equipped_accessory_1 != null:
+		data["accessory_1"] = {"item_id": String(equipped_accessory_1.item_id), "amount": 1}
+	elif equipped_accessory != null:
+		data["accessory_1"] = {"item_id": String(equipped_accessory.item_id), "amount": 1}
+	if equipped_accessory_2 != null:
+		data["accessory_2"] = {"item_id": String(equipped_accessory_2.item_id), "amount": 1}
+	if equipped_accessory_3 != null:
+		data["accessory_3"] = {"item_id": String(equipped_accessory_3.item_id), "amount": 1}
+	if equipped_accessory_4 != null:
+		data["accessory_4"] = {"item_id": String(equipped_accessory_4.item_id), "amount": 1}
+	return data

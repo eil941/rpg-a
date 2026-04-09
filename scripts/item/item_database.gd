@@ -1,6 +1,8 @@
 extends Node
 class_name ItemDatabase
 
+const EQUIPMENT_ENCHANT_CHANCE: float = 1.1
+
 static var ITEM_RESOURCES = {
 	# items
 	"gold": preload("res://data/items/gold.tres"),
@@ -181,3 +183,116 @@ static func can_sell(item_id: String) -> bool:
 		return bool(data.can_sell)
 
 	return true
+
+
+static func get_entry_display_name(entry: Dictionary) -> String:
+	var item_id: String = String(entry.get("item_id", ""))
+	var base_name: String = get_display_name(item_id)
+
+	if item_id == "":
+		return ""
+
+	var instance_data: Variant = entry.get("instance_data", {})
+	if typeof(instance_data) != TYPE_DICTIONARY:
+		return base_name
+
+	var enchantments: Variant = instance_data.get("enchantments", [])
+	if not (enchantments is Array):
+		return base_name
+
+	if enchantments.is_empty():
+		return base_name
+
+	var first_data: Variant = enchantments[0]
+	if typeof(first_data) != TYPE_DICTIONARY:
+		return base_name
+
+	var enchant_id: String = String(first_data.get("id", ""))
+	match enchant_id:
+		"atk_up_small":
+			return "鋭い" + base_name
+		"def_up_small":
+			return "守りの" + base_name
+		"hp_up_small":
+			return "生命の" + base_name
+		_:
+			return base_name
+
+
+
+
+static func _debug_enchant_log(message: String) -> void:
+	if DebugSettings != null and DebugSettings.debug_enchant:
+		print(message)
+
+
+static func _shuffle_string_array(values: Array[String], rng: RandomNumberGenerator) -> Array[String]:
+	var result: Array[String] = values.duplicate()
+
+	for i in range(result.size() - 1, 0, -1):
+		var j: int = rng.randi_range(0, i)
+		var tmp: String = result[i]
+		result[i] = result[j]
+		result[j] = tmp
+
+	return result
+
+
+static func build_random_equipment_entry(item_id: String, rng: RandomNumberGenerator) -> Dictionary:
+	var entry: Dictionary = {
+		"item_id": item_id,
+		"amount": 1
+	}
+
+	var equipment_resource: EquipmentData = get_equipment_resource(item_id)
+	if equipment_resource == null:
+		_debug_enchant_log("[ENCHANT][ItemDatabase] BUILD RANDOM EQUIPMENT ENTRY = %s" % str(entry))
+		return entry
+
+	var enchant_roll: float = rng.randf()
+	_debug_enchant_log("[ENCHANT][ItemDatabase] roll item_id=%s roll=%s chance=%s" % [item_id, str(enchant_roll), str(EQUIPMENT_ENCHANT_CHANCE)])
+	if enchant_roll >= EQUIPMENT_ENCHANT_CHANCE:
+		_debug_enchant_log("[ENCHANT][ItemDatabase] no enchant item_id=%s" % item_id)
+		return entry
+
+	var slot_name: String = equipment_resource.get_slot_name()
+	var candidate_ids: Array[String] = EnchantmentDatabase.get_candidate_enchantment_ids_for_slot(slot_name)
+	_debug_enchant_log("[ENCHANT][ItemDatabase] candidates item_id=%s slot=%s candidate_ids=%s" % [item_id, slot_name, str(candidate_ids)])
+	if candidate_ids.is_empty():
+		_debug_enchant_log("[ENCHANT][ItemDatabase] no candidates item_id=%s slot=%s" % [item_id, slot_name])
+		return entry
+
+	var requested_count: int = rng.randi_range(1, 10)
+	var enchant_count: int = min(requested_count, candidate_ids.size())
+
+	var shuffled_ids: Array[String] = _shuffle_string_array(candidate_ids, rng)
+	var enchantments: Array = []
+
+	for i in range(enchant_count):
+		var enchant_id: String = shuffled_ids[i]
+		var enchant_data: EnchantmentData = EnchantmentDatabase.get_enchantment(enchant_id)
+		if enchant_data == null:
+			continue
+
+		var value: int = rng.randi_range(enchant_data.min_value, enchant_data.max_value)
+		enchantments.append({
+			"id": enchant_id,
+			"value": value
+		})
+
+	if enchantments.is_empty():
+		_debug_enchant_log("[ENCHANT][ItemDatabase] empty enchantments item_id=%s" % item_id)
+		return entry
+
+	entry["instance_data"] = {
+		"enchantments": enchantments
+	}
+	_debug_enchant_log("[ENCHANT][ItemDatabase] BUILD RANDOM EQUIPMENT ENTRY = %s" % str(entry))
+	return entry
+
+
+static func build_equipment_entry(item_id: String) -> Dictionary:
+	return {
+		"item_id": item_id,
+		"amount": 1
+	}

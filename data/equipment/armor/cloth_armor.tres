@@ -5,13 +5,12 @@
 
 [resource]
 script = ExtResource("1_y4oae")
-slot_type = 1
+slot_type = 2
 defense_bonus = 20
 item_id = "cloth_armor"
 display_name = "Cloth Armor"
 description = "防具"
 icon = ExtResource("1_bdtw2")
-category = 2
 max_stack = 1
 base_price = 56
 metadata/_custom_type_script = "uid://des0lbvolo0p1"

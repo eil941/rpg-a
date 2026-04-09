@@ -44,6 +44,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func open_trade_ui(p_player_unit, p_merchant_unit) -> void:
+	print("[TRADE_UI] open_trade_ui called merchant=", merchant_unit)
 	player_unit = p_player_unit
 	merchant_unit = p_merchant_unit
 	is_open = true
@@ -58,10 +59,8 @@ func open_trade_ui(p_player_unit, p_merchant_unit) -> void:
 	trade_info_label.text = (
 		"[center]"
 		+ "取引画面\n\n"
-		+ "今後は\n"
-		+ "NPC → プレイヤー = 買う\n"
-		+ "プレイヤー → NPC = 売る\n"
-		+ "の形に拡張予定"
+		+ "NPC側の金額 = 買値\n"
+		+ "プレイヤー側の金額 = 売値"
 		+ "[/center]"
 	)
 
@@ -107,7 +106,7 @@ func _refresh_npc_grid() -> void:
 	if merchant_unit != null and merchant_unit.inventory != null:
 		entries = _get_inventory_entries(merchant_unit.inventory)
 
-	_fill_grid_with_entries(npc_grid, entries, NPC_SLOT_COUNT)
+	_fill_grid_with_entries(npc_grid, entries, NPC_SLOT_COUNT, true)
 
 
 func _refresh_player_grid() -> void:
@@ -118,7 +117,7 @@ func _refresh_player_grid() -> void:
 	if player_unit != null and player_unit.inventory != null:
 		entries = _get_inventory_entries(player_unit.inventory)
 
-	_fill_grid_with_entries(player_grid, entries, PLAYER_SLOT_COUNT)
+	_fill_grid_with_entries(player_grid, entries, PLAYER_SLOT_COUNT, false)
 
 
 func _refresh_equipment_list() -> void:
@@ -128,38 +127,25 @@ func _refresh_equipment_list() -> void:
 
 	_clear_box(equipment_list)
 
-
-	var grid: GridContainer = GridContainer.new()
-	grid.columns = 2
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 8)
-	grid.add_theme_constant_override("v_separation", 6)
-
 	if player_unit == null:
-		slot_order = [
-			"right_hand", "left_hand", "head", "body", "hands", "waist", "feet",
-			"accessory_1", "accessory_2", "accessory_3", "accessory_4"
-		]
+		for empty_slot_name in ["right_hand", "left_hand", "head", "body", "hands", "waist", "feet", "accessory_1", "accessory_2", "accessory_3", "accessory_4"]:
+			equipment_list.add_child(_build_equipment_row(_get_equipment_slot_label(empty_slot_name), {}))
+		return
+
+	if player_unit.has_method("get_equipment_slot_order"):
+		slot_order = player_unit.get_equipment_slot_order()
 	else:
-		if player_unit.has_method("get_equipment_slot_order"):
-			slot_order = player_unit.get_equipment_slot_order()
-		else:
-			slot_order = [
-				"right_hand", "left_hand", "head", "body", "hands", "waist", "feet",
-				"accessory_1", "accessory_2", "accessory_3", "accessory_4"
-			]
+		slot_order = ["right_hand", "left_hand", "head", "body", "hands", "waist", "feet", "accessory_1", "accessory_2", "accessory_3", "accessory_4"]
 
 	for raw_slot_name in slot_order:
 		slot_name = String(raw_slot_name)
 
-		if player_unit != null and player_unit.has_method("get_equipped_item_entry"):
+		if player_unit.has_method("get_equipped_item_entry"):
 			entry = player_unit.get_equipped_item_entry(slot_name)
 		else:
 			entry = {}
 
-		grid.add_child(_build_equipment_row(_get_equipment_slot_label(slot_name), entry))
-
-	equipment_list.add_child(grid)
+		equipment_list.add_child(_build_equipment_row(_get_equipment_slot_label(slot_name), entry))
 
 
 func _get_inventory_entries(inventory) -> Array:
@@ -176,7 +162,7 @@ func _get_inventory_entries(inventory) -> Array:
 	return []
 
 
-func _fill_grid_with_entries(target_grid: GridContainer, entries: Array, slot_count: int) -> void:
+func _fill_grid_with_entries(target_grid: GridContainer, entries: Array, slot_count: int, is_merchant_grid: bool) -> void:
 	var index: int = 0
 	var entry: Dictionary = {}
 
@@ -192,7 +178,7 @@ func _fill_grid_with_entries(target_grid: GridContainer, entries: Array, slot_co
 		if int(entry.get("amount", 0)) <= 0:
 			continue
 
-		target_grid.add_child(_build_item_slot(entry))
+		target_grid.add_child(_build_item_slot(entry, is_merchant_grid))
 		index += 1
 
 	while index < slot_count:
@@ -200,18 +186,21 @@ func _fill_grid_with_entries(target_grid: GridContainer, entries: Array, slot_co
 		index += 1
 
 
-func _build_item_slot(entry: Dictionary) -> Control:
+func _build_item_slot(entry: Dictionary, is_merchant_item: bool) -> Control:
 	var panel: Panel = Panel.new()
 	var margin: MarginContainer = MarginContainer.new()
 	var vbox: VBoxContainer = VBoxContainer.new()
 	var item_name_label: Label = Label.new()
+	var price_label: Label = Label.new()
 	var amount_label: Label = Label.new()
 
 	var item_id: String = String(entry.get("item_id", ""))
 	var amount: int = int(entry.get("amount", 0))
 	var display_name: String = item_id
+	var price: int = 0
+	var price_prefix: String = "価格"
 
-	panel.custom_minimum_size = Vector2(84, 64)
+	panel.custom_minimum_size = Vector2(92, 78)
 
 	margin.anchor_right = 1.0
 	margin.anchor_bottom = 1.0
@@ -225,16 +214,25 @@ func _build_item_slot(entry: Dictionary) -> Control:
 	item_name_label.clip_text = true
 	item_name_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 
+	price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	amount_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 
 	if item_id != "":
-		display_name = ItemDatabase.get_display_name(item_id)
+		display_name = ItemDatabase.get_entry_display_name(entry)
+
+		if is_merchant_item:
+			price = TradePriceCalculator.get_buy_price_for_entry(player_unit, merchant_unit, entry)
+			price_prefix = "買値"
+		else:
+			price = TradePriceCalculator.get_sell_price_for_entry(player_unit, merchant_unit, entry)
+			price_prefix = "売値"
 
 	item_name_label.text = display_name
+	price_label.text = "%s: %dG" % [price_prefix, price]
 	amount_label.text = "x%d" % amount
 
 	vbox.add_child(item_name_label)
-	vbox.add_spacer(false)
+	vbox.add_child(price_label)
 	vbox.add_child(amount_label)
 
 	margin.add_child(vbox)
@@ -244,7 +242,7 @@ func _build_item_slot(entry: Dictionary) -> Control:
 
 func _build_empty_slot() -> Control:
 	var panel: Panel = Panel.new()
-	panel.custom_minimum_size = Vector2(84, 64)
+	panel.custom_minimum_size = Vector2(92, 78)
 	return panel
 
 
@@ -259,24 +257,24 @@ func _build_equipment_row(slot_label: String, entry: Dictionary) -> Control:
 	var amount: int = int(entry.get("amount", 0))
 	var display_text: String = "なし"
 
-	row.custom_minimum_size = Vector2(0, 30)
+	row.custom_minimum_size = Vector2(0, 56)
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
-	slot_name_label.custom_minimum_size = Vector2(58, 0)
+	slot_name_label.custom_minimum_size = Vector2(88, 0)
 	slot_name_label.text = slot_label
 
 	slot_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slot_panel.custom_minimum_size = Vector2(0, 28)
+	slot_panel.custom_minimum_size = Vector2(0, 52)
 
 	margin.anchor_right = 1.0
 	margin.anchor_bottom = 1.0
-	margin.offset_left = 6.0
-	margin.offset_top = 4.0
-	margin.offset_right = -6.0
-	margin.offset_bottom = -4.0
+	margin.offset_left = 8.0
+	margin.offset_top = 6.0
+	margin.offset_right = -8.0
+	margin.offset_bottom = -6.0
 
 	if item_id != "" and amount > 0:
-		display_text = ItemDatabase.get_display_name(item_id)
+		display_text = ItemDatabase.get_entry_display_name(entry)
 
 	item_label.text = display_text
 	item_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -307,13 +305,17 @@ func _get_equipment_slot_label(slot_name: String) -> String:
 		"feet":
 			return "足"
 		"accessory_1":
-			return "アクセ1"
+			return "飾1"
 		"accessory_2":
-			return "アクセ2"
+			return "飾2"
 		"accessory_3":
-			return "アクセ3"
+			return "飾3"
 		"accessory_4":
-			return "アクセ4"
+			return "飾4"
+		"hand":
+			return "手"
+		"accessory":
+			return "アクセサリ"
 		_:
 			return slot_name
 

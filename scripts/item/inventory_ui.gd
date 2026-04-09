@@ -646,8 +646,8 @@ func build_equipment_slots() -> void:
 		row.add_theme_constant_override("separation", 8)
 
 		var label = Label.new()
-		label.custom_minimum_size = Vector2(84, 0)
-		label.text = get_equipment_slot_label(slot_name)
+		label.custom_minimum_size = Vector2(72, 0)
+		label.text = slot_name.capitalize()
 
 		var slot = slot_scene.instantiate()
 
@@ -688,10 +688,16 @@ func refresh_trade_slots() -> void:
 		if i < items.size():
 			var entry: Dictionary = items[i]
 			var item_id: String = String(entry.get("item_id", ""))
-			var amount: int = int(entry.get("amount", 0))
-			slot.set_slot_data(item_id, amount, ItemDatabase.get_item_icon(item_id))
+			if slot.has_method("set_item_entry"):
+				slot.set_item_entry(entry, ItemDatabase.get_item_icon(item_id))
+			else:
+				var amount: int = int(entry.get("amount", 0))
+				slot.set_slot_data(item_id, amount, ItemDatabase.get_item_icon(item_id))
 		else:
-			slot.set_slot_data("", 0, null)
+			if slot.has_method("set_item_entry"):
+				slot.set_item_entry({}, null)
+			else:
+				slot.set_slot_data("", 0, null)
 
 		slot.set_selected(focus_area == "trade" and i == selected_index)
 
@@ -711,10 +717,16 @@ func refresh_inventory_slots() -> void:
 		if i < items.size():
 			var entry: Dictionary = items[i]
 			var item_id: String = String(entry.get("item_id", ""))
-			var amount: int = int(entry.get("amount", 0))
-			slot.set_slot_data(item_id, amount, ItemDatabase.get_item_icon(item_id))
+			if slot.has_method("set_item_entry"):
+				slot.set_item_entry(entry, ItemDatabase.get_item_icon(item_id))
+			else:
+				var amount: int = int(entry.get("amount", 0))
+				slot.set_slot_data(item_id, amount, ItemDatabase.get_item_icon(item_id))
 		else:
-			slot.set_slot_data("", 0, null)
+			if slot.has_method("set_item_entry"):
+				slot.set_item_entry({}, null)
+			else:
+				slot.set_slot_data("", 0, null)
 
 		slot.set_selected(focus_area == "inventory" and i == selected_index)
 
@@ -726,9 +738,13 @@ func refresh_equipment_slots() -> void:
 
 		var entry: Dictionary = get_equipment_entry(slot_name)
 		var item_id: String = String(entry.get("item_id", ""))
-		var amount: int = int(entry.get("amount", 0))
 
-		slot.set_slot_data(item_id, amount, ItemDatabase.get_item_icon(item_id))
+		if slot.has_method("set_item_entry"):
+			slot.set_item_entry(entry, ItemDatabase.get_item_icon(item_id))
+		else:
+			var amount: int = int(entry.get("amount", 0))
+			slot.set_slot_data(item_id, amount, ItemDatabase.get_item_icon(item_id))
+
 		slot.set_selected(focus_area == "equipment" and i == selected_index)
 
 
@@ -1276,7 +1292,11 @@ func get_entry_buy_price(entry: Dictionary) -> int:
 	if item_id == "":
 		return 0
 
-	return TradePriceCalculator.get_buy_price_with_rate(item_id, trade_session_buy_rate)
+	var base_price: int = TradePriceCalculator.get_entry_base_price(entry)
+	if base_price <= 0:
+		return 0
+
+	return max(1, int(round(float(base_price) * trade_session_buy_rate)))
 
 
 func get_entry_sell_price(entry: Dictionary) -> int:
@@ -1290,7 +1310,11 @@ func get_entry_sell_price(entry: Dictionary) -> int:
 	if item_id == "":
 		return 0
 
-	return TradePriceCalculator.get_sell_price_with_rate(item_id, trade_session_sell_rate)
+	var base_price: int = TradePriceCalculator.get_entry_base_price(entry)
+	if base_price <= 0:
+		return 0
+
+	return max(1, int(round(float(base_price) * trade_session_sell_rate)))
 
 
 func apply_trade_price_to_entry(target_entry: Dictionary, source_entry: Dictionary) -> void:
@@ -1752,8 +1776,12 @@ func can_place_entry_in_equipment_slot(entry: Dictionary, slot_name: String) -> 
 		return current_unit.can_equip_item_id_to_slot(item_id, slot_name)
 
 	var item_slot: String = ItemDatabase.get_equipment_slot(item_id)
-	if slot_name.begins_with("accessory_"):
-		return item_slot == "accessory"
+
+	if item_slot == "hand":
+		return slot_name == "right_hand" or slot_name == "left_hand"
+
+	if item_slot == "accessory":
+		return slot_name.begins_with("accessory_")
 
 	return item_slot == slot_name
 
@@ -1791,6 +1819,9 @@ func set_equipment_entry(slot_name: String, entry: Dictionary) -> bool:
 			current_unit.clear_equipment_slot(slot_name)
 			return true
 		return false
+
+	if current_unit.has_method("set_equipped_entry"):
+		return current_unit.set_equipped_entry(slot_name, entry)
 
 	if current_unit.has_method("set_equipped_item_entry"):
 		return current_unit.set_equipped_item_entry(slot_name, entry)
@@ -1848,8 +1879,64 @@ func refresh_status_ui() -> void:
 		node = node.get_parent()
 
 
-func build_item_tooltip_lines(item_id: String) -> Array[String]:
+func _get_slot_display_name(slot_name: String) -> String:
+	match slot_name:
+		"hand":
+			return "手"
+		"right_hand":
+			return "右手"
+		"left_hand":
+			return "左手"
+		"head":
+			return "頭"
+		"body":
+			return "胴"
+		"hands":
+			return "手"
+		"waist":
+			return "腰"
+		"feet":
+			return "足"
+		"accessory":
+			return "アクセサリー"
+		_:
+			return slot_name
+
+
+func build_enchantment_tooltip_lines(entry: Dictionary) -> Array[String]:
 	var lines: Array[String] = []
+	var instance_data: Variant = entry.get("instance_data", {})
+	if typeof(instance_data) != TYPE_DICTIONARY:
+		return lines
+
+	var enchantments: Variant = (instance_data as Dictionary).get("enchantments", [])
+	if not (enchantments is Array):
+		return lines
+
+	for raw_data in enchantments:
+		if typeof(raw_data) != TYPE_DICTIONARY:
+			continue
+		var data: Dictionary = raw_data
+		var enchant_id: String = String(data.get("id", ""))
+		var value: int = int(data.get("value", 0))
+		match enchant_id:
+			"atk_up_small":
+				lines.append("エンチャント: 攻撃 +%d" % value)
+			"def_up_small":
+				lines.append("エンチャント: 防御 +%d" % value)
+			"hp_up_small":
+				lines.append("エンチャント: 最大HP +%d" % value)
+			_:
+				lines.append("エンチャント: %s +%d" % [enchant_id, value])
+
+	return lines
+
+
+func build_item_tooltip_lines(entry: Dictionary) -> Array[String]:
+	var lines: Array[String] = []
+	var item_id: String = String(entry.get("item_id", ""))
+	if item_id == "":
+		return lines
 
 	if ItemDatabase.is_equipment(item_id):
 		var eq = ItemDatabase.get_equipment_resource(item_id)
@@ -1858,7 +1945,7 @@ func build_item_tooltip_lines(item_id: String) -> Array[String]:
 
 		var slot_name: String = eq.get_slot_name()
 		if slot_name != "":
-			lines.append("部位: %s" % slot_name)
+			lines.append("部位: %s" % _get_slot_display_name(slot_name))
 
 		if int(eq.attack_bonus) != 0:
 			lines.append("攻撃 %s%d" % ["+" if eq.attack_bonus > 0 else "", eq.attack_bonus])
@@ -1872,8 +1959,11 @@ func build_item_tooltip_lines(item_id: String) -> Array[String]:
 		if int(eq.speed_bonus) != 0:
 			lines.append("速度 %s%d" % ["+" if eq.speed_bonus > 0 else "", eq.speed_bonus])
 
-		if slot_name == "right_hand" or slot_name == "left_hand":
+		if slot_name == "hand" or slot_name == "right_hand" or slot_name == "left_hand":
 			lines.append("射程 %d-%d" % [eq.attack_min_range, eq.attack_max_range])
+
+		for line in build_enchantment_tooltip_lines(entry):
+			lines.append(line)
 
 		return lines
 
@@ -1890,34 +1980,6 @@ func build_item_tooltip_lines(item_id: String) -> Array[String]:
 				lines.append("効果: %s (%d)" % [effect_type, effect_value])
 
 	return lines
-
-
-func get_equipment_slot_label(slot_name: String) -> String:
-	match slot_name:
-		"right_hand":
-			return "右手"
-		"left_hand":
-			return "左手"
-		"head":
-			return "頭"
-		"body":
-			return "胴"
-		"hands":
-			return "手"
-		"waist":
-			return "腰"
-		"feet":
-			return "足"
-		"accessory_1":
-			return "アクセ1"
-		"accessory_2":
-			return "アクセ2"
-		"accessory_3":
-			return "アクセ3"
-		"accessory_4":
-			return "アクセ4"
-		_:
-			return slot_name
 
 
 func get_trade_price_lines(entry: Dictionary) -> Array[String]:
@@ -1991,7 +2053,7 @@ func show_tooltip_for_selected() -> void:
 	tooltip_name_label.text = "%s x%d" % [ItemDatabase.get_display_name(item_id), amount]
 
 	var desc: String = ItemDatabase.get_description(item_id)
-	var extra_lines: Array[String] = build_item_tooltip_lines(item_id)
+	var extra_lines: Array[String] = build_item_tooltip_lines(entry)
 
 	if ui_mode == UIMode.TRADE:
 		var price_lines: Array[String] = get_trade_price_lines(entry)
@@ -2041,11 +2103,46 @@ func show_tooltip_for_selected() -> void:
 	tooltip_panel.show()
 
 
+func _held_entry_has_enchantments() -> bool:
+	if held_entry.is_empty():
+		return false
+
+	var instance_data: Variant = held_entry.get("instance_data", {})
+	if typeof(instance_data) != TYPE_DICTIONARY:
+		return false
+
+	var enchantments: Variant = (instance_data as Dictionary).get("enchantments", [])
+	return enchantments is Array and not enchantments.is_empty()
+
+
+func _get_or_create_held_enchant_overlay() -> ColorRect:
+	if held_item_preview == null:
+		return null
+
+	var existing: Node = held_item_preview.get_node_or_null("EnchantOverlay")
+	if existing is ColorRect:
+		return existing
+
+	var rect := ColorRect.new()
+	rect.name = "EnchantOverlay"
+	rect.color = Color(0.7, 0.35, 0.95, 0.28)
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rect.visible = false
+	held_item_preview.add_child(rect)
+	if held_item_icon != null:
+		held_item_preview.move_child(rect, held_item_icon.get_index() + 1)
+	return rect
+
+
 func update_held_item_preview() -> void:
 	if held_item_preview == null:
 		return
 
+	var enchant_overlay: ColorRect = _get_or_create_held_enchant_overlay()
+
 	if held_entry.is_empty():
+		if enchant_overlay != null:
+			enchant_overlay.visible = false
 		held_item_preview.hide()
 		return
 
@@ -2053,6 +2150,8 @@ func update_held_item_preview() -> void:
 	var amount: int = int(held_entry.get("amount", 0))
 
 	if item_id == "" or amount <= 0:
+		if enchant_overlay != null:
+			enchant_overlay.visible = false
 		held_item_preview.hide()
 		return
 
@@ -2076,6 +2175,11 @@ func update_held_item_preview() -> void:
 	held_item_icon.offset_right = preview_size.x
 	held_item_icon.offset_bottom = preview_size.y
 
+	if enchant_overlay != null:
+		enchant_overlay.position = Vector2.ZERO
+		enchant_overlay.size = preview_size
+		enchant_overlay.visible = _held_entry_has_enchantments()
+
 	if amount > 1:
 		held_item_amount_label.text = "x%d" % amount
 	else:
@@ -2088,6 +2192,8 @@ func update_held_item_preview() -> void:
 
 	var slot = get_selected_slot_node()
 	if slot == null:
+		if enchant_overlay != null:
+			enchant_overlay.visible = false
 		held_item_preview.hide()
 		return
 

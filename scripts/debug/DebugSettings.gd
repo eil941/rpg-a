@@ -3,6 +3,7 @@ extends Node
 var debug_free_action: bool = false
 var print_tile_info: bool = false
 var debug_damage_calculate: bool = false
+var debug_enchant: bool = true
 
 # AI 全般
 var debug_ai: bool = false

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="EnchantmentData" format=3 uid="uid://ddw5slwxt8g6n"]
+
+[ext_resource type="Script" uid="uid://chjrn3kmbp4l3" path="res://scripts/data/enchantment_data.gd" id="1_wphi0"]
+
+[resource]
+script = ExtResource("1_wphi0")
+enchant_id = "hp_up_small"
+display_name = "体力強化・小"
+description = "最大HPが少し上がる"
+stat_name = "max_hp"
+price_bonus_at_min_value = 5
+price_bonus_at_max_value = 100
+metadata/_custom_type_script = "uid://chjrn3kmbp4l3"

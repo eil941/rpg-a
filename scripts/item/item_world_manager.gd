@@ -13,7 +13,12 @@ var item_pickup_scene: PackedScene
 var chest_scene: PackedScene
 var chest_data_list: Array[ChestData]
 
-var rng := RandomNumberGenerator.new()
+var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+
+func _debug_enchant_log(message: String) -> void:
+	if DebugSettings != null and DebugSettings.debug_enchant:
+		print(message)
+
 
 
 func _init(
@@ -74,13 +79,10 @@ func generate_detail_map_item_data() -> Array:
 	for i in range(min(count, tiles.size())):
 		var tile: Vector2i = tiles[i]
 		var item_entry: Dictionary = choose_random_item_entry()
+		var save_entry: Dictionary = _build_world_item_save_data(item_entry, tile)
 
-		result.append({
-			"item_id": item_entry["item_id"],
-			"amount": item_entry["amount"],
-			"x": tile.x,
-			"y": tile.y
-		})
+		if not save_entry.is_empty():
+			result.append(save_entry)
 
 	return result
 
@@ -121,13 +123,10 @@ func generate_dungeon_floor_item_data() -> Array:
 	for i in range(min(count, tiles.size())):
 		var tile: Vector2i = tiles[i]
 		var item_entry: Dictionary = choose_random_item_entry()
+		var save_entry: Dictionary = _build_world_item_save_data(item_entry, tile)
 
-		result.append({
-			"item_id": item_entry["item_id"],
-			"amount": item_entry["amount"],
-			"x": tile.x,
-			"y": tile.y
-		})
+		if not save_entry.is_empty():
+			result.append(save_entry)
 
 	return result
 
@@ -193,10 +192,9 @@ func generate_random_chest_inventory_for_type(chest_type_id: String, is_final_fl
 		var max_amount: int = max(loot_category.max_amount, min_amount)
 		var amount: int = rng.randi_range(min_amount, max_amount)
 
-		result.append({
-			"item_id": item_id,
-			"amount": amount
-		})
+		var chest_entry: Dictionary = _build_inventory_entry(item_id, amount)
+		_debug_enchant_log("[ENCHANT][ItemWorldManager] chest item chest_type=%s item_id=%s entry=%s" % [chest_type_id, item_id, str(chest_entry)])
+		result.append(chest_entry)
 
 	return result
 
@@ -240,14 +238,53 @@ func choose_weighted_loot_category(chest_data: ChestData) -> LootCategoryEntry:
 
 
 func choose_random_item_entry() -> Dictionary:
-	var roll: int = rng.randi_range(0, 100)
+	var roll: int = rng.randi_range(0, 99)
+	_debug_enchant_log("[ENCHANT][ItemWorldManager] floor roll=%d" % roll)
 
-	if roll < 40:
-		return {"item_id": "potion", "amount": 1}
-	elif roll < 75:
-		return {"item_id": "apple", "amount": 1}
+	var result_entry: Dictionary = {}
+	if roll < 28:
+		result_entry = {"item_id": "potion", "amount": 1}
+	elif roll < 48:
+		result_entry = {"item_id": "apple", "amount": 1}
+	elif roll < 63:
+		result_entry = {"item_id": "wood", "amount": 1}
+	elif roll < 78:
+		result_entry = _build_inventory_entry("knife", 1)
+	elif roll < 88:
+		result_entry = _build_inventory_entry("cloth_armor", 1)
+	elif roll < 96:
+		result_entry = _build_inventory_entry("power_ring", 1)
 	else:
-		return {"item_id": "wood", "amount": 1}
+		result_entry = _build_inventory_entry("bow", 1)
+
+	_debug_enchant_log("[ENCHANT][ItemWorldManager] floor entry=%s" % str(result_entry))
+	return result_entry
+
+
+func _build_inventory_entry(item_id: String, amount: int = 1) -> Dictionary:
+	if item_id == "":
+		return {}
+
+	var equipment_resource: EquipmentData = ItemDatabase.get_equipment_resource(item_id)
+	if equipment_resource != null:
+		var equipment_entry: Dictionary = ItemDatabase.build_random_equipment_entry(item_id, rng)
+		_debug_enchant_log("[ENCHANT][ItemWorldManager] equipment spawn item_id=%s entry=%s" % [item_id, str(equipment_entry)])
+		return equipment_entry
+
+	return {
+		"item_id": item_id,
+		"amount": amount
+	}
+
+
+func _build_world_item_save_data(item_entry: Dictionary, tile: Vector2i) -> Dictionary:
+	if item_entry.is_empty():
+		return {}
+
+	var save_entry: Dictionary = item_entry.duplicate(true)
+	save_entry["x"] = tile.x
+	save_entry["y"] = tile.y
+	return save_entry
 
 
 func choose_random_chest_type_id(is_final_floor: bool) -> String:
@@ -370,7 +407,11 @@ func spawn_item_from_save(data: Dictionary) -> void:
 
 	var pickup = item_pickup_scene.instantiate()
 	item_pickups_node.add_child(pickup)
-	pickup.setup(item_id, amount, map_id, tile)
+
+	if pickup.has_method("setup_with_entry"):
+		pickup.setup_with_entry(data.duplicate(true), map_id, tile)
+	else:
+		pickup.setup(item_id, amount, map_id, tile)
 
 
 func spawn_chest_from_save(data: Dictionary) -> void:

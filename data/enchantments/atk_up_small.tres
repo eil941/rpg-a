@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="EnchantmentData" format=3 uid="uid://cikrh7fm08bx5"]
+
+[ext_resource type="Script" uid="uid://chjrn3kmbp4l3" path="res://scripts/data/enchantment_data.gd" id="1_jjnla"]
+
+[resource]
+script = ExtResource("1_jjnla")
+enchant_id = "atk_up_small"
+display_name = "攻撃強化・小"
+description = "攻撃力が少し上がる"
+metadata/_custom_type_script = "uid://chjrn3kmbp4l3"

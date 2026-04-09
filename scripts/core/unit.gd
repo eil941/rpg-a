@@ -258,15 +258,38 @@ func get_current_tile_data():
 	return event_layer.get_cell_tile_data(coords)
 
 
-func get_equipped_resource(slot_name: String) -> EquipmentData:
+func get_equipped_entry(slot_name: String) -> Dictionary:
 	if not equipped_items.has(slot_name):
+		return {}
+
+	var value: Variant = equipped_items[slot_name]
+	if typeof(value) != TYPE_DICTIONARY:
+		return {}
+
+	return (value as Dictionary).duplicate(true)
+
+
+func get_equipped_resource(slot_name: String) -> EquipmentData:
+	var entry: Dictionary = get_equipped_entry(slot_name)
+	var item_id: String = String(entry.get("item_id", ""))
+	if item_id == "":
 		return null
 
-	var value = equipped_items[slot_name]
-	if value is EquipmentData:
-		return value as EquipmentData
+	return ItemDatabase.get_equipment_resource(item_id)
 
-	return null
+
+func get_equipped_enchantments(slot_name: String) -> Array:
+	var entry: Dictionary = get_equipped_entry(slot_name)
+	var instance_data: Variant = entry.get("instance_data", {})
+
+	if typeof(instance_data) != TYPE_DICTIONARY:
+		return []
+
+	var enchantments: Variant = (instance_data as Dictionary).get("enchantments", [])
+	if enchantments is Array:
+		return (enchantments as Array).duplicate(true)
+
+	return []
 
 
 func get_all_equipped_resources() -> Array[EquipmentData]:
@@ -296,23 +319,56 @@ func apply_legacy_equipment_fields(source: Object) -> void:
 	if source == null:
 		return
 
-	if source.has_method("get_equipment_save_data"):
-		var save_data: Variant = source.call("get_equipment_save_data")
-		if save_data is Dictionary:
-			apply_equipment_save_data(save_data)
-			return
-
 	var right_hand = source.get("equipped_weapon")
 	if right_hand is EquipmentData:
-		equipped_items["right_hand"] = right_hand
+		equipped_items["right_hand"] = {
+			"item_id": String((right_hand as EquipmentData).item_id),
+			"amount": 1
+		}
 
 	var body = source.get("equipped_armor")
 	if body is EquipmentData:
-		equipped_items["body"] = body
+		equipped_items["body"] = {
+			"item_id": String((body as EquipmentData).item_id),
+			"amount": 1
+		}
 
 	var accessory = source.get("equipped_accessory")
 	if accessory is EquipmentData:
-		equipped_items["accessory_1"] = accessory
+		equipped_items["accessory_1"] = {
+			"item_id": String((accessory as EquipmentData).item_id),
+			"amount": 1
+		}
+
+
+func _get_enchantment_stat_bonus(slot_name: String, stat_name: String) -> int:
+	var total: int = 0
+	var enchantments: Array = get_equipped_enchantments(slot_name)
+
+	for raw_data in enchantments:
+		if typeof(raw_data) != TYPE_DICTIONARY:
+			continue
+
+		var data: Dictionary = raw_data
+		var enchant_id: String = String(data.get("id", ""))
+		var value: int = int(data.get("value", 0))
+		var enchant_data: EnchantmentData = EnchantmentDatabase.get_enchantment(enchant_id)
+		if enchant_data == null:
+			continue
+		if enchant_data.effect_type != EnchantmentData.EffectType.STAT:
+			continue
+		if enchant_data.stat_name != stat_name:
+			continue
+		total += value
+
+	return total
+
+
+func _get_total_enchantment_bonus(stat_name: String) -> int:
+	var total: int = 0
+	for slot_name in equipment_slot_order:
+		total += _get_enchantment_stat_bonus(slot_name, stat_name)
+	return total
 
 
 func get_total_max_hp() -> int:
@@ -321,6 +377,7 @@ func get_total_max_hp() -> int:
 	for equipment in get_all_equipped_resources():
 		total += equipment.max_hp_bonus
 
+	total += _get_total_enchantment_bonus("max_hp")
 	return max(total, 1)
 
 
@@ -330,6 +387,7 @@ func get_total_attack() -> int:
 	for equipment in get_all_equipped_resources():
 		total += equipment.attack_bonus
 
+	total += _get_total_enchantment_bonus("attack")
 	return max(total, 0)
 
 
@@ -339,6 +397,7 @@ func get_total_defense() -> int:
 	for equipment in get_all_equipped_resources():
 		total += equipment.defense_bonus
 
+	total += _get_total_enchantment_bonus("defense")
 	return max(total, 0)
 
 
@@ -348,6 +407,7 @@ func get_total_speed() -> float:
 	for equipment in get_all_equipped_resources():
 		total += equipment.speed_bonus
 
+	total += float(_get_total_enchantment_bonus("speed"))
 	return max(total, 1.0)
 
 
@@ -377,26 +437,13 @@ func get_equipment_slot_order() -> Array:
 
 
 func get_equipped_item_entry(slot_name: String) -> Dictionary:
-	var resource: EquipmentData = get_equipped_resource(slot_name)
-
-	if resource == null:
+	var entry: Dictionary = get_equipped_entry(slot_name)
+	if entry.is_empty():
 		return {
 			"item_id": "",
 			"amount": 0
 		}
-
-	var item_id: String = String(resource.item_id)
-
-	if item_id == "":
-		return {
-			"item_id": "",
-			"amount": 0
-		}
-
-	return {
-		"item_id": item_id,
-		"amount": 1
-	}
+	return entry
 
 
 func can_equip_item_id_to_slot(item_id: String, slot_name: String) -> bool:
@@ -415,6 +462,18 @@ func can_equip_item_id_to_slot(item_id: String, slot_name: String) -> bool:
 	return item_slot == slot_name
 
 
+func set_equipped_entry(slot_name: String, entry: Dictionary) -> bool:
+	var item_id: String = String(entry.get("item_id", ""))
+	if item_id == "":
+		return false
+
+	if not can_equip_item_id_to_slot(item_id, slot_name):
+		return false
+
+	equipped_items[slot_name] = entry.duplicate(true)
+	return true
+
+
 func set_equipped_item_by_id(slot_name: String, item_id: String) -> bool:
 	var equipment_resource = ItemDatabase.get_equipment_resource(item_id)
 	if equipment_resource == null:
@@ -423,7 +482,10 @@ func set_equipped_item_by_id(slot_name: String, item_id: String) -> bool:
 	if not can_equip_item_id_to_slot(item_id, slot_name):
 		return false
 
-	equipped_items[slot_name] = equipment_resource
+	equipped_items[slot_name] = {
+		"item_id": item_id,
+		"amount": 1
+	}
 	return true
 
 
@@ -435,8 +497,7 @@ func get_equipment_save_data() -> Dictionary:
 	var data: Dictionary = {}
 
 	for slot_name in equipment_slot_order:
-		var resource: EquipmentData = get_equipped_resource(slot_name)
-		data[slot_name] = String(resource.item_id) if resource != null else ""
+		data[slot_name] = get_equipped_item_entry(slot_name)
 
 	return data
 
@@ -445,14 +506,28 @@ func apply_equipment_save_data(data: Dictionary) -> void:
 	equipped_items.clear()
 
 	for slot_name in equipment_slot_order:
-		var item_id: String = String(data.get(slot_name, ""))
+		var raw_value: Variant = data.get(slot_name, {})
+		var entry: Dictionary = {}
 
-		if item_id == "":
+		if typeof(raw_value) == TYPE_DICTIONARY:
+			entry = (raw_value as Dictionary).duplicate(true)
+		else:
+			var item_id: String = String(raw_value)
+			if item_id != "":
+				entry = {
+					"item_id": item_id,
+					"amount": 1
+				}
+
+		if entry.is_empty():
 			continue
 
-		var resource = ItemDatabase.get_equipment_resource(item_id)
-		if resource != null and can_equip_item_id_to_slot(item_id, slot_name):
-			equipped_items[slot_name] = resource
+		var item_id2: String = String(entry.get("item_id", ""))
+		if item_id2 == "":
+			continue
+
+		if can_equip_item_id_to_slot(item_id2, slot_name):
+			equipped_items[slot_name] = entry
 
 
 func apply_debug_start_items_if_needed() -> void:
@@ -480,7 +555,10 @@ func apply_debug_start_items_if_needed() -> void:
 		if item_id == "" or amount <= 0:
 			continue
 
-		var added: bool = inventory.add_item(item_id, amount)
+		var normalized_entry: Dictionary = entry.duplicate(true)
+		normalized_entry["item_id"] = item_id
+		normalized_entry["amount"] = amount
+		var added: bool = inventory.add_item_entry(normalized_entry)
 
 		if added:
 			print("DEBUG START ITEM ADDED: ", item_id, " x", amount)
@@ -1562,39 +1640,42 @@ func reset_after_map_transition() -> void:
 
 
 func try_pickup_items_on_current_tile() -> bool:
-	if not is_player_unit:
+	var map_root_local: Node = get_parent().get_parent()
+	if map_root_local == null:
 		return false
 
-	if map_root == null:
-		return false
-
-	var item_pickups_node = map_root.get_node_or_null("ItemPickups")
+	var item_pickups_node = map_root_local.get_node_or_null("ItemPickups")
 	if item_pickups_node == null:
 		return false
 
-	var current_tile: Vector2i = get_current_tile_coords()
+	var current_tile = ground_layer.local_to_map(
+		ground_layer.to_local(global_position)
+	)
 
 	for pickup in item_pickups_node.get_children():
 		if pickup == null:
 			continue
-
 		if pickup.tile_coords != current_tile:
 			continue
 
-		if inventory == null:
-			return false
+		var pickup_entry: Dictionary = {}
+		if pickup.has_method("get_item_entry"):
+			pickup_entry = pickup.get_item_entry()
+		else:
+			pickup_entry = {
+				"item_id": pickup.item_id,
+				"amount": pickup.amount
+			}
 
-		var added: bool = inventory.add_item(pickup.item_id, pickup.amount)
+		var added: bool = inventory.add_item_entry(pickup_entry)
 		if not added:
-			notify_hud_log("インベントリがいっぱい")
-			return false
+			continue
 
-		notify_hud_log("%s を %d 個手に入れた" % [
-			ItemDatabase.get_display_name(pickup.item_id),
-			pickup.amount
+		print("%s x%d を拾った" % [
+			ItemDatabase.get_entry_display_name(pickup_entry),
+			int(pickup_entry.get("amount", 1))
 		])
 
-		notify_inventory_refresh()
 		pickup.queue_free()
 		return true
 
