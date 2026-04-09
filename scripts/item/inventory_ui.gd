@@ -322,6 +322,9 @@ func _input(event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
+	if visible:
+		refresh()
+
 	if hold_repeat_action == &"":
 		return
 
@@ -1292,11 +1295,7 @@ func get_entry_buy_price(entry: Dictionary) -> int:
 	if item_id == "":
 		return 0
 
-	var base_price: int = TradePriceCalculator.get_entry_base_price(entry)
-	if base_price <= 0:
-		return 0
-
-	return max(1, int(round(float(base_price) * trade_session_buy_rate)))
+	return TradePriceCalculator.get_buy_price_with_rate(item_id, trade_session_buy_rate)
 
 
 func get_entry_sell_price(entry: Dictionary) -> int:
@@ -1310,11 +1309,7 @@ func get_entry_sell_price(entry: Dictionary) -> int:
 	if item_id == "":
 		return 0
 
-	var base_price: int = TradePriceCalculator.get_entry_base_price(entry)
-	if base_price <= 0:
-		return 0
-
-	return max(1, int(round(float(base_price) * trade_session_sell_rate)))
+	return TradePriceCalculator.get_sell_price_with_rate(item_id, trade_session_sell_rate)
 
 
 func apply_trade_price_to_entry(target_entry: Dictionary, source_entry: Dictionary) -> void:
