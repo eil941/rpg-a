@@ -1,11 +1,13 @@
 [gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://dws5qrsx22iah"]
 
 [ext_resource type="Texture2D" uid="uid://ci1uxejq1rcpi" path="res://assets/orc.png" id="1_dx26u"]
+[ext_resource type="Resource" uid="uid://r7fsvv64mog2" path="res://data/unit/animation_profiles/enemy/slime1_animation_profile.tres" id="1_othuj"]
 [ext_resource type="Resource" uid="uid://gxh453poc5a6" path="res://data/equipment/weapons/bow.tres" id="1_ti33a"]
 [ext_resource type="Script" uid="uid://dnv8aysj2gsac" path="res://scripts/data/enemy_data.gd" id="2_ti33a"]
 [ext_resource type="Texture2D" uid="uid://c0r387au3uoch" path="res://assets/orc_back_1.png" id="3_kbb4g"]
 [ext_resource type="Texture2D" uid="uid://bad3vdvg2qtpf" path="res://assets/orc_back_2.png" id="4_othuj"]
 [ext_resource type="Texture2D" uid="uid://b8hj74knyqr4g" path="res://assets/orc_left_1.png" id="5_oal6p"]
+[ext_resource type="Script" uid="uid://0c32in4pchg3" path="res://scripts/data/loot_category_entry.gd" id="5_w38p7"]
 [ext_resource type="Texture2D" uid="uid://inay1a0g8rgf" path="res://assets/orc_left_2.png" id="6_w38p7"]
 [ext_resource type="Texture2D" uid="uid://dwe88psdaoi6o" path="res://assets/orc_right_1.png" id="7_0h0he"]
 [ext_resource type="Texture2D" uid="uid://hnbrif66wglq" path="res://assets/orc_right_2.png" id="8_xwee4"]
@@ -24,6 +26,7 @@ equipped_weapon = ExtResource("1_ti33a")
 combat_style = 2
 move_style = 1
 talk_portrait = ExtResource("10_88n2c")
+animation_profile = ExtResource("1_othuj")
 idle_right_frames = Array[Texture2D]([ExtResource("1_dx26u")])
 walk_right_frames = Array[Texture2D]([ExtResource("7_0h0he"), ExtResource("8_xwee4")])
 idle_left_frames = Array[Texture2D]([ExtResource("1_dx26u")])

@@ -1,7 +1,7 @@
 extends Node
 class_name ItemDatabase
 
-const EQUIPMENT_ENCHANT_CHANCE: float = 1.1
+const EQUIPMENT_ENCHANT_CHANCE: float = 0.1
 
 static var ITEM_RESOURCES = {
 	# items

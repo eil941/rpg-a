@@ -1,22 +1,21 @@
 [gd_scene format=3 uid="uid://763h4n8mfcrw"]
 
 [ext_resource type="Script" uid="uid://dvk2f4dxietfj" path="res://scripts/map/map_scene_scripts/FiledMap.gd" id="1_bf576"]
-[ext_resource type="TileSet" uid="uid://ccm51ihc4pruf" path="res://data/test/test_field_ground.tres" id="2_bbcss"]
+[ext_resource type="TileSet" uid="uid://cg36ceoxkfmsq" path="res://data/nekura.tres" id="2_4fq26"]
 [ext_resource type="PackedScene" uid="uid://cjntf4kbtxh73" path="res://scenes/unit.tscn" id="11_qok4n"]
-[ext_resource type="TileSet" uid="uid://bc0aui1htbk1v" path="res://data/test/test_wall.tres" id="16_kbqwi"]
 
 [node name="FieldMap" type="Node2D" unique_id=1202522057]
 script = ExtResource("1_bf576")
 map_id = "FieldMap"
 
 [node name="GroundLayer" type="TileMapLayer" parent="." unique_id=808028674]
-tile_set = ExtResource("2_bbcss")
+tile_set = ExtResource("2_4fq26")
 
 [node name="WallLayer" type="TileMapLayer" parent="." unique_id=1210940059]
-tile_set = ExtResource("16_kbqwi")
+tile_set = ExtResource("2_4fq26")
 
 [node name="EventLayer" type="TileMapLayer" parent="." unique_id=1337611593]
-tile_set = ExtResource("2_bbcss")
+tile_set = ExtResource("2_4fq26")
 
 [node name="ItemPickups" type="Node" parent="." unique_id=915461164]
 

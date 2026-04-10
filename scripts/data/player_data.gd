@@ -1,6 +1,8 @@
 extends Node
 
-var max_hp: int = 20
+#HP上限値
+var max_hp: int = 2000
+#現在のHP
 var hp: int = 2000
 var attack: int = 1
 var defense: int = 2

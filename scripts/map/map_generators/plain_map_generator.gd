@@ -18,27 +18,83 @@ const BIOME_MOUNTAIN: int = 6
 const BIOME_LAKE: int = 7
 const BIOME_DRY_PLAINS: int = 8
 
-const TILE_SEA: int = 33
-const TILE_SAND: int = 20
-const TILE_GRASS: int = 22
-const TILE_FOREST: int = 17
-const TILE_ROCK: int = 5
-const TILE_LAKE: int = 33
+# =========================
+# biome visual settings
+# 値が同じでも意味ごとに分ける
+# =========================
 
-const GROUND_ATLAS_COORDS: Vector2i = Vector2i(1, 4)
-const DRY_PLAINS_ATLAS_COORDS: Vector2i = Vector2i(1, 3)
-const HIGHLAND_ATLAS_COORDS: Vector2i = Vector2i(1, 2)
-const MOUNTAIN_ATLAS_COORDS: Vector2i = Vector2i(1, 1)
-const LAKE_ATLAS_COORDS: Vector2i = Vector2i(1, 0)
+const OCEAN_GROUND_SOURCE_ID: int = 87
+const OCEAN_GROUND_ATLAS_COORDS: Vector2i = Vector2i(0, 4)
+const OCEAN_EVENT_SOURCE_ID: int = 87
+const OCEAN_EVENT_ATLAS_COORDS: Vector2i = Vector2i(0, 4)
 
-const ROCK_WALL_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
+const COAST_GROUND_SOURCE_ID: int = 14
+const COAST_GROUND_ATLAS_COORDS: Vector2i = Vector2i(1, 0)
+const COAST_EVENT_SOURCE_ID: int = 14
+const COAST_EVENT_ATLAS_COORDS: Vector2i = Vector2i(1, 0)
 
-const BORDER_WALL_SOURCE_ID: int = 5
-const BORDER_WALL_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
+const PLAINS_GROUND_SOURCE_ID: int = 14
+const PLAINS_GROUND_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
+const PLAINS_EVENT_SOURCE_ID: int = 14
+const PLAINS_EVENT_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
+
+const DRY_PLAINS_GROUND_SOURCE_ID: int = 25
+const DRY_PLAINS_GROUND_ATLAS_COORDS: Vector2i = Vector2i(2, 0)
+const DRY_PLAINS_EVENT_SOURCE_ID: int = 25
+const DRY_PLAINS_EVENT_ATLAS_COORDS: Vector2i = Vector2i(2, 0)
+
+const FOREST_GROUND_SOURCE_ID: int = 14
+const FOREST_GROUND_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
+const FOREST_EVENT_SOURCE_ID: int = 14
+const FOREST_EVENT_ATLAS_COORDS: Vector2i = Vector2i(5, 11)
+
+const DESERT_GROUND_SOURCE_ID: int = 25
+const DESERT_GROUND_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
+const DESERT_EVENT_SOURCE_ID: int = 25
+const DESERT_EVENT_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
+
+const HIGHLAND_GRASS_GROUND_SOURCE_ID: int = 73
+const HIGHLAND_GRASS_GROUND_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
+const HIGHLAND_GRASS_EVENT_SOURCE_ID: int = 73
+const HIGHLAND_GRASS_EVENT_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
+
+const HIGHLAND_FOREST_GROUND_SOURCE_ID: int = 59
+const HIGHLAND_FOREST_GROUND_ATLAS_COORDS: Vector2i = Vector2i(1, 0)
+const HIGHLAND_FOREST_EVENT_SOURCE_ID: int = 59
+const HIGHLAND_FOREST_EVENT_ATLAS_COORDS: Vector2i = Vector2i(7, 9)
+
+const HIGHLAND_ROCK_GROUND_SOURCE_ID: int = 59
+const HIGHLAND_ROCK_GROUND_ATLAS_COORDS: Vector2i = Vector2i(1, 6)
+const HIGHLAND_ROCK_WALL_SOURCE_ID: int = 59
+const HIGHLAND_ROCK_WALL_ATLAS_COORDS: Vector2i = Vector2i(1, 6)
+
+const MOUNTAIN_GRASS_GROUND_SOURCE_ID: int = 58
+const MOUNTAIN_GRASS_GROUND_ATLAS_COORDS: Vector2i = Vector2i(2, 0)
+const MOUNTAIN_GRASS_EVENT_SOURCE_ID: int = 58
+const MOUNTAIN_GRASS_EVENT_ATLAS_COORDS: Vector2i = Vector2i(2, 0)
+
+const MOUNTAIN_FOREST_GROUND_SOURCE_ID: int = 58
+const MOUNTAIN_FOREST_GROUND_ATLAS_COORDS: Vector2i = Vector2i(2, 0)
+const MOUNTAIN_FOREST_EVENT_SOURCE_ID: int = 14
+const MOUNTAIN_FOREST_EVENT_ATLAS_COORDS: Vector2i = Vector2i(1, 1)
+
+const MOUNTAIN_ROCK_GROUND_SOURCE_ID: int = 58
+const MOUNTAIN_ROCK_GROUND_ATLAS_COORDS: Vector2i = Vector2i(1, 5)
+const MOUNTAIN_ROCK_WALL_SOURCE_ID: int = 58
+const MOUNTAIN_ROCK_WALL_ATLAS_COORDS: Vector2i = Vector2i(1, 5)
+
+const LAKE_GROUND_SOURCE_ID: int = 15
+const LAKE_GROUND_ATLAS_COORDS: Vector2i = Vector2i(2, 4)
+const LAKE_EVENT_SOURCE_ID: int = 15
+const LAKE_EVENT_ATLAS_COORDS: Vector2i = Vector2i(2, 4)
+
+const BORDER_WALL_SOURCE_ID: int = 86
+const BORDER_WALL_ATLAS_COORDS: Vector2i = Vector2i(0, 4)
 
 var terrain_result: Array = []
 var biome_result: Array = []
 var world_seed: int = 0
+
 
 func _init(
 	p_map_width: int,
@@ -337,56 +393,56 @@ func generate_map(
 
 			match biome:
 				BIOME_OCEAN:
-					ground_layer.set_cell(cell, TILE_SEA, GROUND_ATLAS_COORDS, 0)
-					event_layer.set_cell(cell, TILE_SEA, GROUND_ATLAS_COORDS, 0)
+					ground_layer.set_cell(cell, OCEAN_GROUND_SOURCE_ID, OCEAN_GROUND_ATLAS_COORDS, 0)
+					event_layer.set_cell(cell, OCEAN_EVENT_SOURCE_ID, OCEAN_EVENT_ATLAS_COORDS, 0)
 
 				BIOME_COAST:
-					ground_layer.set_cell(cell, TILE_SAND, GROUND_ATLAS_COORDS, 0)
-					event_layer.set_cell(cell, TILE_SAND, GROUND_ATLAS_COORDS, 0)
+					ground_layer.set_cell(cell, COAST_GROUND_SOURCE_ID, COAST_GROUND_ATLAS_COORDS, 0)
+					event_layer.set_cell(cell, COAST_EVENT_SOURCE_ID, COAST_EVENT_ATLAS_COORDS, 0)
 
 				BIOME_PLAINS:
-					ground_layer.set_cell(cell, TILE_GRASS, GROUND_ATLAS_COORDS, 0)
-					event_layer.set_cell(cell, TILE_GRASS, GROUND_ATLAS_COORDS, 0)
+					ground_layer.set_cell(cell, PLAINS_GROUND_SOURCE_ID, PLAINS_GROUND_ATLAS_COORDS, 0)
+					event_layer.set_cell(cell, PLAINS_EVENT_SOURCE_ID, PLAINS_EVENT_ATLAS_COORDS, 0)
 
 				BIOME_DRY_PLAINS:
-					ground_layer.set_cell(cell, TILE_GRASS, DRY_PLAINS_ATLAS_COORDS, 0)
-					event_layer.set_cell(cell, TILE_GRASS, DRY_PLAINS_ATLAS_COORDS, 0)
+					ground_layer.set_cell(cell, DRY_PLAINS_GROUND_SOURCE_ID, DRY_PLAINS_GROUND_ATLAS_COORDS, 0)
+					event_layer.set_cell(cell, DRY_PLAINS_EVENT_SOURCE_ID, DRY_PLAINS_EVENT_ATLAS_COORDS, 0)
 
 				BIOME_FOREST:
-					ground_layer.set_cell(cell, TILE_FOREST, GROUND_ATLAS_COORDS, 0)
-					event_layer.set_cell(cell, TILE_FOREST, GROUND_ATLAS_COORDS, 0)
+					ground_layer.set_cell(cell, FOREST_GROUND_SOURCE_ID, FOREST_GROUND_ATLAS_COORDS, 0)
+					event_layer.set_cell(cell, FOREST_EVENT_SOURCE_ID, FOREST_EVENT_ATLAS_COORDS, 0)
 
 				BIOME_DESERT:
-					ground_layer.set_cell(cell, TILE_SAND, GROUND_ATLAS_COORDS, 0)
-					event_layer.set_cell(cell, TILE_SAND, GROUND_ATLAS_COORDS, 0)
+					ground_layer.set_cell(cell, DESERT_GROUND_SOURCE_ID, DESERT_GROUND_ATLAS_COORDS, 0)
+					event_layer.set_cell(cell, DESERT_EVENT_SOURCE_ID, DESERT_EVENT_ATLAS_COORDS, 0)
 
 				BIOME_HIGHLAND:
 					var terrain_highland: int = terrain_result[y][x]
 					if terrain_highland == TERRAIN_ROCK:
-						ground_layer.set_cell(cell, TILE_ROCK, HIGHLAND_ATLAS_COORDS, 0)
-						wall_layer.set_cell(cell, TILE_ROCK, ROCK_WALL_ATLAS_COORDS, 0)
+						ground_layer.set_cell(cell, HIGHLAND_ROCK_GROUND_SOURCE_ID, HIGHLAND_ROCK_GROUND_ATLAS_COORDS, 0)
+						wall_layer.set_cell(cell, HIGHLAND_ROCK_WALL_SOURCE_ID, HIGHLAND_ROCK_WALL_ATLAS_COORDS, 0)
 					elif terrain_highland == TERRAIN_FOREST:
-						ground_layer.set_cell(cell, TILE_FOREST, HIGHLAND_ATLAS_COORDS, 0)
-						event_layer.set_cell(cell, TILE_FOREST, HIGHLAND_ATLAS_COORDS, 0)
+						ground_layer.set_cell(cell, HIGHLAND_FOREST_GROUND_SOURCE_ID, HIGHLAND_FOREST_GROUND_ATLAS_COORDS, 0)
+						event_layer.set_cell(cell, HIGHLAND_FOREST_EVENT_SOURCE_ID, HIGHLAND_FOREST_EVENT_ATLAS_COORDS, 0)
 					else:
-						ground_layer.set_cell(cell, TILE_GRASS, HIGHLAND_ATLAS_COORDS, 0)
-						event_layer.set_cell(cell, TILE_GRASS, HIGHLAND_ATLAS_COORDS, 0)
+						ground_layer.set_cell(cell, HIGHLAND_GRASS_GROUND_SOURCE_ID, HIGHLAND_GRASS_GROUND_ATLAS_COORDS, 0)
+						event_layer.set_cell(cell, HIGHLAND_GRASS_EVENT_SOURCE_ID, HIGHLAND_GRASS_EVENT_ATLAS_COORDS, 0)
 
 				BIOME_MOUNTAIN:
 					var terrain_mountain: int = terrain_result[y][x]
 					if terrain_mountain == TERRAIN_ROCK:
-						ground_layer.set_cell(cell, TILE_ROCK, MOUNTAIN_ATLAS_COORDS, 0)
-						wall_layer.set_cell(cell, TILE_ROCK, ROCK_WALL_ATLAS_COORDS, 0)
+						ground_layer.set_cell(cell, MOUNTAIN_ROCK_GROUND_SOURCE_ID, MOUNTAIN_ROCK_GROUND_ATLAS_COORDS, 0)
+						wall_layer.set_cell(cell, MOUNTAIN_ROCK_WALL_SOURCE_ID, MOUNTAIN_ROCK_WALL_ATLAS_COORDS, 0)
 					elif terrain_mountain == TERRAIN_FOREST:
-						ground_layer.set_cell(cell, TILE_FOREST, MOUNTAIN_ATLAS_COORDS, 0)
-						event_layer.set_cell(cell, TILE_FOREST, MOUNTAIN_ATLAS_COORDS, 0)
+						ground_layer.set_cell(cell, MOUNTAIN_FOREST_GROUND_SOURCE_ID, MOUNTAIN_FOREST_GROUND_ATLAS_COORDS, 0)
+						event_layer.set_cell(cell, MOUNTAIN_FOREST_EVENT_SOURCE_ID, MOUNTAIN_FOREST_EVENT_ATLAS_COORDS, 0)
 					else:
-						ground_layer.set_cell(cell, TILE_GRASS, MOUNTAIN_ATLAS_COORDS, 0)
-						event_layer.set_cell(cell, TILE_GRASS, MOUNTAIN_ATLAS_COORDS, 0)
+						ground_layer.set_cell(cell, MOUNTAIN_GRASS_GROUND_SOURCE_ID, MOUNTAIN_GRASS_GROUND_ATLAS_COORDS, 0)
+						event_layer.set_cell(cell, MOUNTAIN_GRASS_EVENT_SOURCE_ID, MOUNTAIN_GRASS_EVENT_ATLAS_COORDS, 0)
 
 				BIOME_LAKE:
-					ground_layer.set_cell(cell, TILE_LAKE, LAKE_ATLAS_COORDS, 0)
-					event_layer.set_cell(cell, TILE_LAKE, LAKE_ATLAS_COORDS, 0)
+					ground_layer.set_cell(cell, LAKE_GROUND_SOURCE_ID, LAKE_GROUND_ATLAS_COORDS, 0)
+					event_layer.set_cell(cell, LAKE_EVENT_SOURCE_ID, LAKE_EVENT_ATLAS_COORDS, 0)
 
 	for x in range(map_width):
 		wall_layer.set_cell(Vector2i(x, 0), BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)

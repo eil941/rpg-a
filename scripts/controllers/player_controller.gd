@@ -190,10 +190,25 @@ func try_move_in_direction(dir: Vector2) -> void:
 	var acted = unit.try_move(dir)
 
 	if acted:
+		apply_move_growth()
+
 		if not DebugSettings.debug_free_action:
 			TimeManager.advance_time(units_node, unit.get_total_speed())
 			notify_hud()
 			TimeManager.resolve_ai_turns(units_node)
+
+
+func apply_move_growth() -> void:
+	if unit == null:
+		return
+
+	if unit.stats != null:
+		unit.stats.gain_base_stat_growth("agility", 1)
+		unit.stats.gain_base_stat_growth("vitality", 1)
+
+	if unit.skills != null:
+		unit.skills.learn_skill("gathering")
+		unit.skills.gain_skill_growth("gathering", 1)
 
 
 func try_attack_action() -> bool:
@@ -259,27 +274,19 @@ func is_trade_ui_open() -> bool:
 	return false
 
 
+func is_dialog_open() -> bool:
+	var node: Node = unit
+	while node != null:
+		if node.has_method("is_dialog_open"):
+			return node.is_dialog_open()
+		node = node.get_parent()
+	return false
+
+
 func is_status_open() -> bool:
 	var node: Node = unit
 	while node != null:
 		if node.has_method("is_status_open"):
 			return node.is_status_open()
 		node = node.get_parent()
-	return false
-
-
-func is_dialog_open() -> bool:
-	if not has_node("/root/DialogueManager"):
-		return false
-
-	if DialogueManager == null:
-		return false
-
-	if DialogueManager.has_method("is_dialog_open"):
-		return DialogueManager.is_dialog_open()
-
-	if "dialogue_ui" in DialogueManager and DialogueManager.dialogue_ui != null:
-		if DialogueManager.dialogue_ui.has_method("is_dialog_visible"):
-			return DialogueManager.dialogue_ui.is_dialog_visible()
-
 	return false

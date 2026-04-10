@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AnimationProfile" format=3 uid="uid://bkpuxkhhqr1su"]
+
+[ext_resource type="Script" uid="uid://dh57busqtv542" path="res://scripts/data/AnimationProfile.gd" id="1_pd1fk"]
+[ext_resource type="Texture2D" uid="uid://dgbn16in8kao2" path="res://assets/Gnu materials/Mobchip/4方向(新)/1201_0a.png" id="2_hf23i"]
+
+[resource]
+script = ExtResource("1_pd1fk")
+sprite_sheet = ExtResource("2_hf23i")
+frame_columns = 3
+idle_right_indices = Array[int]([7])
+walk_right_indices = Array[int]([6, 7, 8])
+idle_left_indices = Array[int]([4])
+walk_left_indices = Array[int]([3, 4, 5])
+idle_down_indices = Array[int]([1])
+walk_down_indices = Array[int]([0, 1, 2])
+idle_up_indices = Array[int]([10])
+walk_up_indices = Array[int]([9, 10, 11])
+metadata/_custom_type_script = "uid://dh57busqtv542"

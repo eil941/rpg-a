@@ -38,16 +38,31 @@ class_name Stats
 
 # =========================
 # 基礎能力ステータス
-# RPG的な側面 + 身体能力
 # =========================
-@export var strength: int = 10       # 筋力
-@export var vitality: int = 10       # 体力
-@export var agility: int = 10        # 敏捷
-@export var dexterity: int = 10      # 器用さ
-@export var intelligence: int = 10   # 知力
-@export var spirit: int = 10         # 精神力
-@export var sense: int = 10          # 感覚
-@export var charm: int = 10          # 魅力
+@export var strength: int = 10
+@export var vitality: int = 10
+@export var agility: int = 10
+@export var dexterity: int = 10
+@export var intelligence: int = 10
+@export var spirit: int = 10
+@export var sense: int = 10
+@export var charm: int = 10
+
+# =========================
+# 基礎能力成長
+# =========================
+@export var base_stat_growth_threshold: int = 200
+
+var base_stat_growth_points: Dictionary = {
+	"strength": 0,
+	"vitality": 0,
+	"agility": 0,
+	"dexterity": 0,
+	"intelligence": 0,
+	"spirit": 0,
+	"sense": 0,
+	"charm": 0
+}
 
 # 現在状態
 var hp: int = 0
@@ -116,6 +131,108 @@ func get_element_rate(attacking_element: String) -> float:
 
 	return 1.0
 
+func gain_base_stat_growth(stat_name: String, amount: int = 1) -> void:
+	if amount <= 0:
+		return
+
+	if not base_stat_growth_points.has(stat_name):
+		push_warning("未知の基礎ステータスです: %s" % stat_name)
+		return
+
+	base_stat_growth_points[stat_name] += amount
+	apply_base_stat_growth(stat_name)
+
+func apply_base_stat_growth(stat_name: String) -> void:
+	if not base_stat_growth_points.has(stat_name):
+		push_warning("未知の基礎ステータスです: %s" % stat_name)
+		return
+
+	while base_stat_growth_points[stat_name] >= base_stat_growth_threshold:
+		base_stat_growth_points[stat_name] -= base_stat_growth_threshold
+		increase_base_stat(stat_name, 1)
+
+func increase_base_stat(stat_name: String, amount: int = 1) -> void:
+	if amount <= 0:
+		return
+
+	match stat_name:
+		"strength":
+			strength += amount
+		"vitality":
+			vitality += amount
+		"agility":
+			agility += amount
+		"dexterity":
+			dexterity += amount
+		"intelligence":
+			intelligence += amount
+		"spirit":
+			spirit += amount
+		"sense":
+			sense += amount
+		"charm":
+			charm += amount
+		_:
+			push_warning("increase_base_stat: 未知の基礎ステータスです: %s" % stat_name)
+			return
+
+	on_base_stat_increased(stat_name, amount)
+
+func on_base_stat_increased(stat_name: String, amount: int) -> void:
+	print(stat_name, " が ", amount, " 上がりました")
+
+func get_base_stat_value(stat_name: String) -> int:
+	match stat_name:
+		"strength":
+			return strength
+		"vitality":
+			return vitality
+		"agility":
+			return agility
+		"dexterity":
+			return dexterity
+		"intelligence":
+			return intelligence
+		"spirit":
+			return spirit
+		"sense":
+			return sense
+		"charm":
+			return charm
+		_:
+			push_warning("未知の基礎ステータスです: %s" % stat_name)
+			return 0
+
+func set_base_stat_value(stat_name: String, value: int) -> void:
+	value = max(value, 0)
+
+	match stat_name:
+		"strength":
+			strength = value
+		"vitality":
+			vitality = value
+		"agility":
+			agility = value
+		"dexterity":
+			dexterity = value
+		"intelligence":
+			intelligence = value
+		"spirit":
+			spirit = value
+		"sense":
+			sense = value
+		"charm":
+			charm = value
+		_:
+			push_warning("未知の基礎ステータスです: %s" % stat_name)
+
+func get_base_stat_growth_point(stat_name: String) -> int:
+	if base_stat_growth_points.has(stat_name):
+		return int(base_stat_growth_points[stat_name])
+
+	push_warning("未知の基礎ステータスです: %s" % stat_name)
+	return 0
+
 func get_stats_data() -> Dictionary:
 	return {
 		"hp": hp,
@@ -144,6 +261,8 @@ func get_stats_data() -> Dictionary:
 		"spirit": spirit,
 		"sense": sense,
 		"charm": charm,
+		"base_stat_growth_threshold": base_stat_growth_threshold,
+		"base_stat_growth_points": base_stat_growth_points.duplicate(true),
 		"action_progress_seconds": action_progress_seconds,
 		"pending_actions": pending_actions
 	}
@@ -201,6 +320,10 @@ func apply_stats_data(data: Dictionary) -> void:
 		sense = int(data["sense"])
 	if data.has("charm"):
 		charm = int(data["charm"])
+	if data.has("base_stat_growth_threshold"):
+		base_stat_growth_threshold = int(data["base_stat_growth_threshold"])
+	if data.has("base_stat_growth_points"):
+		base_stat_growth_points = data["base_stat_growth_points"].duplicate(true)
 	if data.has("action_progress_seconds"):
 		action_progress_seconds = float(data["action_progress_seconds"])
 	if data.has("pending_actions"):
