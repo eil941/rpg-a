@@ -10,11 +10,11 @@ extends Node2D
 @onready var chests_node: Node = get_node_or_null("Chests")
 
 @export var enemy_unit_scene: PackedScene
-@export var enemy_spawn_count: int = 5
+@export var enemy_spawn_count: int = 0
 @export var enemy_data_list: Array[EnemyData]
 
 @export var npc_unit_scene: PackedScene
-@export var npc_spawn_count: int = 3
+@export var npc_spawn_count: int = 10
 @export var npc_data_list: Array[NpcData]
 
 @export var item_pickup_scene: PackedScene
@@ -47,29 +47,44 @@ func _ready() -> void:
 
 	player.map_id = map_id
 
-	var generator_type := GlobalDetailMap.current_generator_type
+	var generator_type: String = get_effective_generator_type()
+	var use_generated_map: bool = is_valid_generator_type(generator_type)
 
-	if generator_type == "" and WorldState.field_detail_map_data.has(map_id):
-		generator_type = WorldState.field_detail_map_data[map_id].get("generator_type", "GRASS")
+	print("MAIN map_id = ", map_id)
+	print("MAIN generator_type = [", generator_type, "]")
+	print("MAIN use_generated_map = ", use_generated_map)
 
-	if generator_type == "":
-		generator_type = "GRASS"
+	# =========================
+	# マップ本体
+	# =========================
+	if use_generated_map:
+		map_generator = create_map_generator(generator_type)
 
-	map_generator = create_map_generator(generator_type)
-
-	if WorldState.map_tile_data.has(map_id):
-		load_map_tiles()
+		if WorldState.map_tile_data.has(map_id):
+			load_map_tiles()
+		else:
+			map_generator.generate_map(ground_layer, wall_layer, event_layer)
+			save_map_tiles()
 	else:
-		map_generator.generate_map(ground_layer, wall_layer, event_layer)
-		save_map_tiles()
+		map_generator = null
 
+		# Main.tscn に置いてある既存マップをそのまま使う
+		# 初回だけ現在の状態を保存
+		if not WorldState.map_tile_data.has(map_id):
+			save_map_tiles()
+
+	# =========================
+	# enemy / npc 生成設定
+	# =========================
 	var current_enemy_spawn_count: int = enemy_spawn_count
 	var current_npc_spawn_count: int = npc_spawn_count
 
 	var current_enemy_data_list: Array[EnemyData] = enemy_data_list
 	var current_npc_data_list: Array[NpcData] = npc_data_list
 
-	if WorldState.field_detail_map_data.has(map_id):
+	# 生成マップモードの時だけ detail_config で上書きする
+	# 既存マップモードでは inspector の値をそのまま使う
+	if use_generated_map and WorldState.field_detail_map_data.has(map_id):
 		var detail_config = WorldState.field_detail_map_data[map_id]
 
 		current_enemy_spawn_count = int(detail_config.get("enemy_spawn_count", enemy_spawn_count))
@@ -84,12 +99,21 @@ func _ready() -> void:
 		if npc_type_ids.size() > 0:
 			current_npc_data_list = filter_npc_data_by_ids(npc_type_ids)
 
+	print("inspector enemy_spawn_count = ", enemy_spawn_count)
+	print("inspector npc_spawn_count = ", npc_spawn_count)
 	print("current_enemy_spawn_count = ", current_enemy_spawn_count)
 	print("current_npc_spawn_count = ", current_npc_spawn_count)
 	print("current_enemy_data_list size = ", current_enemy_data_list.size())
 	print("current_npc_data_list size = ", current_npc_data_list.size())
 
-	var walkable_tiles: Array[Vector2i] = map_generator.get_walkable_tiles()
+	# =========================
+	# 歩行可能タイル
+	# =========================
+	var walkable_tiles: Array[Vector2i] = []
+	if use_generated_map and map_generator != null:
+		walkable_tiles = map_generator.get_walkable_tiles()
+	else:
+		walkable_tiles = collect_walkable_tiles_from_existing_map()
 
 	spawn_manager = UnitSpawnManager.new(
 		$Units,
@@ -98,27 +122,35 @@ func _ready() -> void:
 		walkable_tiles
 	)
 
+	# =========================
+	# enemy / npc 生成本体
+	# 保存済みがあれば読む / なければ初回生成
+	# =========================
 	if WorldState.map_enemy_spawns.has(map_id):
 		print("LOAD ENEMIES map_id=", map_id)
 		spawn_manager.spawn_saved_enemies(enemy_unit_scene, current_enemy_data_list)
-	else:
+	elif current_enemy_spawn_count > 0:
 		print("SPAWN RANDOM ENEMIES map_id=", map_id)
 		spawn_manager.spawn_random_enemies(
 			enemy_unit_scene,
 			current_enemy_data_list,
 			current_enemy_spawn_count
 		)
+	else:
+		print("SKIP ENEMY SPAWN map_id=", map_id)
 
 	if WorldState.map_npc_spawns.has(map_id):
 		print("LOAD NPCS map_id=", map_id)
 		spawn_manager.spawn_saved_npcs(npc_unit_scene, current_npc_data_list)
-	else:
+	elif current_npc_spawn_count > 0:
 		print("SPAWN RANDOM NPCS map_id=", map_id)
 		spawn_manager.spawn_random_npcs(
 			npc_unit_scene,
 			current_npc_data_list,
 			current_npc_spawn_count
 		)
+	else:
+		print("SKIP NPC SPAWN map_id=", map_id)
 
 	item_world_manager = ItemWorldManager.new(
 		self,
@@ -137,6 +169,42 @@ func _ready() -> void:
 
 	if player != null and player.has_method("reset_after_map_transition"):
 		player.reset_after_map_transition()
+
+
+func get_effective_generator_type() -> String:
+	var generator_type: String = String(GlobalDetailMap.current_generator_type).strip_edges().replace("\"", "").to_upper()
+
+	if generator_type == "" and WorldState.field_detail_map_data.has(map_id):
+		var detail_config: Dictionary = WorldState.field_detail_map_data[map_id]
+		generator_type = String(detail_config.get("generator_type", "")).strip_edges().replace("\"", "").to_upper()
+
+	return generator_type
+
+
+func is_valid_generator_type(generator_type: String) -> bool:
+	match generator_type:
+		"GRASS", "SAND", "FOREST", "BEACH", "SEA":
+			return true
+	return false
+
+
+func collect_walkable_tiles_from_existing_map() -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+	var used_cells: Array[Vector2i] = ground_layer.get_used_cells()
+
+	for cell in used_cells:
+		var ground_source_id: int = ground_layer.get_cell_source_id(cell)
+		if ground_source_id == -1:
+			continue
+
+		var wall_source_id: int = wall_layer.get_cell_source_id(cell)
+		if wall_source_id != -1:
+			continue
+
+		result.append(cell)
+
+	print("EXISTING MAP walkable_tiles size = ", result.size())
+	return result
 
 
 func save_all_units() -> void:
@@ -291,12 +359,5 @@ func create_map_generator(generator_type: String) -> BaseMapGenerator:
 				WALL_ATLAS_COORDS
 			)
 
-	print("UNKNOWN GENERATOR TYPE -> FALLBACK TO GRASS")
-	return GrasslandMapGenerator.new(
-		MAP_WIDTH,
-		MAP_HEIGHT,
-		FLOOR_SOURCE_ID,
-		WALL_SOURCE_ID,
-		FLOOR_ATLAS_COORDS,
-		WALL_ATLAS_COORDS
-	)
+	push_error("UNKNOWN GENERATOR TYPE: " + generator_type)
+	return null

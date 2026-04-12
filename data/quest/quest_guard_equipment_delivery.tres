@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="QuestData" format=3 uid="uid://34mfjbbtr8o2"]
+
+[ext_resource type="Script" uid="uid://bkvmp83auvgyc" path="res://scripts/data/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+quest_id = "quest_guard_equipment_delivery"
+title = "装備を補充したい"
+description = "見回り用の装備が必要です。"
+title_template = "{item_name}を{amount}個持ってきてほしい"
+description_template = "任務に使う装備が必要です。{item_name}を{amount}個持ってきてください。"
+candidate_categories = Array[String](["equipment"])
+time_limit_seconds = 172800.0
+reward_gold = 25
+reward_bonus_rate_min = 1.3
+reward_bonus_rate_max = 1.8
+allowed_unit_role_flags = 4
+weight = 80
+accept_text = "必要な装備だ。早めに頼む。"
+progress_text = "まだ受け取っていない。"
+ready_to_complete_text = "よし、それで十分だ。"
+completed_text = "任務に使わせてもらう。"
+failed_text = "もう必要な時期を過ぎた。"
+metadata/_custom_type_script = "uid://bkvmp83auvgyc"

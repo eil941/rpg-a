@@ -504,3 +504,59 @@ func use_item_at(index: int) -> Dictionary:
 		"item_id": item_id,
 		"message": "%sを使用した" % ItemDatabase.get_display_name(item_id)
 	}
+	
+
+func get_total_amount_ignore_instance(item_id: String) -> int:
+	var total: int = 0
+
+	for entry in items:
+		if String(entry.get("item_id", "")) == item_id:
+			total += int(entry.get("amount", 0))
+
+	return total
+
+
+func can_consume_total_amount_ignore_instance(item_id: String, amount: int) -> bool:
+	if item_id == "":
+		return false
+
+	if amount <= 0:
+		return true
+
+	return get_total_amount_ignore_instance(item_id) >= amount
+
+
+func consume_total_amount_ignore_instance(item_id: String, amount: int) -> bool:
+	if item_id == "":
+		return false
+
+	if amount <= 0:
+		return true
+
+	if not can_consume_total_amount_ignore_instance(item_id, amount):
+		return false
+
+	var remaining: int = amount
+
+	for i in range(items.size()):
+		if remaining <= 0:
+			break
+
+		var entry: Dictionary = items[i]
+		if String(entry.get("item_id", "")) != item_id:
+			continue
+
+		var current_amount: int = int(entry.get("amount", 0))
+		if current_amount <= 0:
+			continue
+
+		if current_amount <= remaining:
+			remaining -= current_amount
+			items[i] = _make_empty_slot()
+		else:
+			entry["amount"] = current_amount - remaining
+			items[i] = entry
+			remaining = 0
+			break
+
+	return remaining <= 0

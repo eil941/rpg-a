@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://dukdlvjr2ivir"]
+
+[ext_resource type="Script" uid="uid://d0rbqqjbdhl5t" path="res://scripts/object/questboard/quest_board.gd" id="1_60qj3"]
+[ext_resource type="Texture2D" uid="uid://wq3fbwj1mcv8" path="res://assets/rock1.png" id="2_dggcd"]
+
+[node name="QuestBoard" type="Node2D" unique_id=1138804263]
+script = ExtResource("1_60qj3")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1894807034]
+texture = ExtResource("2_dggcd")
+centered = false
+script = ExtResource("1_60qj3")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1699374227]
+position = Vector2(16, 16)
+disabled = true

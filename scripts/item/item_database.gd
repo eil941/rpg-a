@@ -106,6 +106,14 @@ static func get_item_ids_by_types(item_types: Array[String]) -> Array[String]:
 	return result
 
 
+static func get_item_ids_by_category(category: String) -> Array[String]:
+	return get_item_ids_by_type(category)
+
+
+static func get_item_ids_by_categories(categories: Array[String]) -> Array[String]:
+	return get_item_ids_by_types(categories)
+
+
 static func get_random_item_id_by_type(item_type: String, rng: RandomNumberGenerator) -> String:
 	var candidates: Array[String] = get_item_ids_by_type(item_type)
 
@@ -113,6 +121,26 @@ static func get_random_item_id_by_type(item_type: String, rng: RandomNumberGener
 		return ""
 
 	return candidates[rng.randi_range(0, candidates.size() - 1)]
+
+
+static func get_random_item_id_by_category(category: String, rng: RandomNumberGenerator) -> String:
+	return get_random_item_id_by_type(category, rng)
+
+
+static func get_category_display_name(category: String) -> String:
+	var normalized: String = ItemCategories.normalize(category)
+
+	match normalized:
+		String(ItemCategories.CONSUMABLE):
+			return "消耗品"
+		String(ItemCategories.MATERIAL):
+			return "素材"
+		String(ItemCategories.EQUIPMENT):
+			return "装備品"
+		String(ItemCategories.MISC):
+			return "その他"
+		_:
+			return normalized
 
 
 static func is_usable(item_id: String) -> bool:
@@ -219,8 +247,6 @@ static func get_entry_display_name(entry: Dictionary) -> String:
 			return base_name
 
 
-
-
 static func _debug_enchant_log(message: String) -> void:
 	if DebugSettings != null and DebugSettings.debug_enchant:
 		print(message)
@@ -296,3 +322,15 @@ static func build_equipment_entry(item_id: String) -> Dictionary:
 		"item_id": item_id,
 		"amount": 1
 	}
+
+
+static func get_sell_price(item_id: String) -> int:
+	var data = get_item_resource(item_id)
+	if data == null:
+		return 0
+
+	if not can_sell(item_id):
+		return 0
+
+	var base_price: int = get_base_price(item_id)
+	return max(0, int(base_price / 2))

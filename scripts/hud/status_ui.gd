@@ -1,16 +1,18 @@
 extends CanvasLayer
 class_name StatusUI
 
-const PAGE_COUNT: int = 3
+const PAGE_COUNT: int = 4
 
 @export var default_background: Texture2D
 @export var page_1_background: Texture2D
 @export var page_2_background: Texture2D
 @export var page_3_background: Texture2D
+@export var page_4_background: Texture2D
 
 @export var page_1_button_texture: Texture2D
 @export var page_2_button_texture: Texture2D
 @export var page_3_button_texture: Texture2D
+@export var page_4_button_texture: Texture2D
 @export var close_button_texture: Texture2D
 
 @export var selected_button_modulate: Color = Color(1.0, 1.0, 1.0, 1.0)
@@ -31,9 +33,11 @@ const PAGE_COUNT: int = 3
 @onready var page_1_scroll: ScrollContainer = $Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll
 @onready var page_2_scroll: ScrollContainer = $Root/MainMargin/MainVBox/ContentPanel/PageArea/Page2Scroll
 @onready var page_3_scroll: ScrollContainer = $Root/MainMargin/MainVBox/ContentPanel/PageArea/Page3Scroll
+@onready var page_4_scroll: ScrollContainer = $Root/MainMargin/MainVBox/ContentPanel/PageArea/Page4Scroll
 
 @onready var page_2_text: RichTextLabel = $Root/MainMargin/MainVBox/ContentPanel/PageArea/Page2Scroll/Page2Content/Page2Text
 @onready var page_3_text: RichTextLabel = $Root/MainMargin/MainVBox/ContentPanel/PageArea/Page3Scroll/Page3Content/Page3Text
+@onready var page_4_text: RichTextLabel = $Root/MainMargin/MainVBox/ContentPanel/PageArea/Page4Scroll/Page4Content/Page4Text
 
 @onready var portrait_texture: TextureRect = $Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/TopRow/PortraitPanel/PortraitTexture
 @onready var page1_name_label: Label = $Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/TopRow/RightVBox/HeaderInfo/NameLabel
@@ -51,6 +55,7 @@ var equipment_icon_nodes: Dictionary = {}
 @onready var page_1_button: Button = $Root/MainMargin/MainVBox/BottomTabBar/TabButtonsWrap/Page1Button
 @onready var page_2_button: Button = $Root/MainMargin/MainVBox/BottomTabBar/TabButtonsWrap/Page2Button
 @onready var page_3_button: Button = $Root/MainMargin/MainVBox/BottomTabBar/TabButtonsWrap/Page3Button
+@onready var page_4_button: Button = $Root/MainMargin/MainVBox/BottomTabBar/TabButtonsWrap/Page4Button
 
 var target_unit = null
 var current_page: int = 0
@@ -75,11 +80,13 @@ func _ready() -> void:
 	page_1_button.pressed.connect(_on_page_1_button_pressed)
 	page_2_button.pressed.connect(_on_page_2_button_pressed)
 	page_3_button.pressed.connect(_on_page_3_button_pressed)
+	page_4_button.pressed.connect(_on_page_4_button_pressed)
 
 	_build_fallback_styles()
 	_apply_base_button_settings(page_1_button)
 	_apply_base_button_settings(page_2_button)
 	_apply_base_button_settings(page_3_button)
+	_apply_base_button_settings(page_4_button)
 	_apply_close_button_style()
 	_apply_label_styles()
 	_build_page_1_equipment_icons()
@@ -159,6 +166,7 @@ func refresh_view() -> void:
 
 		page_2_text.text = ""
 		page_3_text.text = ""
+		page_4_text.text = ""
 		return
 
 	var stats = target_unit.stats
@@ -167,6 +175,7 @@ func refresh_view() -> void:
 	refresh_page_1_layout(target_unit, stats)
 	page_2_text.text = build_page_2_text(target_unit, skills)
 	page_3_text.text = build_page_3_text(stats)
+	page_4_text.text = build_page_4_quest_text(target_unit)
 
 	reset_all_scrolls()
 	update_text_min_heights()
@@ -326,6 +335,7 @@ func set_page(page_index: int) -> void:
 	page_1_scroll.visible = current_page == 0
 	page_2_scroll.visible = current_page == 1
 	page_3_scroll.visible = current_page == 2
+	page_4_scroll.visible = current_page == 3
 
 	page_label.text = ""
 
@@ -337,6 +347,7 @@ func update_tab_visuals() -> void:
 	_apply_tab_state(page_1_button, current_page == 0, page_1_button_texture)
 	_apply_tab_state(page_2_button, current_page == 1, page_2_button_texture)
 	_apply_tab_state(page_3_button, current_page == 2, page_3_button_texture)
+	_apply_tab_state(page_4_button, current_page == 3, page_4_button_texture)
 
 
 func update_background_for_page() -> void:
@@ -356,6 +367,8 @@ func update_background_for_page() -> void:
 			tex = page_2_background
 		2:
 			tex = page_3_background
+		3:
+			tex = page_4_background
 
 	page_background_texture.texture = tex
 	page_background_texture.visible = tex != null
@@ -369,6 +382,8 @@ func get_current_scroll_container() -> ScrollContainer:
 			return page_2_scroll
 		2:
 			return page_3_scroll
+		3:
+			return page_4_scroll
 	return page_1_scroll
 
 
@@ -412,6 +427,8 @@ func reset_all_scrolls() -> void:
 		page_2_scroll.scroll_vertical = 0
 	if page_3_scroll != null:
 		page_3_scroll.scroll_vertical = 0
+	if page_4_scroll != null:
+		page_4_scroll.scroll_vertical = 0
 
 
 func update_text_min_heights() -> void:
@@ -423,6 +440,7 @@ func update_text_min_heights() -> void:
 
 	_update_one_text_min_height(page_2_text, page_2_scroll)
 	_update_one_text_min_height(page_3_text, page_3_scroll)
+	_update_one_text_min_height(page_4_text, page_4_scroll)
 
 
 func _update_rich_text_min_height(text_label: RichTextLabel) -> void:
@@ -668,6 +686,104 @@ func build_page_3_text(stats) -> String:
 	return "\n".join(lines)
 
 
+func build_page_4_quest_text(unit_node) -> String:
+	var lines: PackedStringArray = []
+
+	lines.append("[現在受注中クエスト]")
+
+	if unit_node == null:
+		lines.append("対象なし")
+		return "\n".join(lines)
+
+	if not ("is_player_unit" in unit_node and bool(unit_node.is_player_unit)):
+		lines.append("プレイヤー以外は表示対象外です。")
+		return "\n".join(lines)
+
+	if QuestManager == null:
+		lines.append("QuestManager が見つかりません。")
+		return "\n".join(lines)
+
+	var active_quests: Dictionary = QuestManager.get_active_quests()
+	if active_quests.is_empty():
+		lines.append("受注中のクエストはありません。")
+		return "\n".join(lines)
+
+	var quest_ids: Array = active_quests.keys()
+	quest_ids.sort()
+
+	for quest_id in quest_ids:
+		var raw_value: Variant = active_quests.get(quest_id, {})
+		if typeof(raw_value) != TYPE_DICTIONARY:
+			continue
+
+		var data: Dictionary = raw_value
+		var title: String = String(data.get("title", "名称不明のクエスト"))
+		var description: String = String(data.get("description", ""))
+		var item_id: String = String(data.get("objective_item_id", ""))
+		var amount: int = int(data.get("objective_item_amount", 1))
+		var reward_gold: int = int(data.get("reward_gold", 0))
+
+		lines.append("")
+		lines.append("■ %s" % title)
+
+		if description != "":
+			lines.append("  %s" % description)
+
+		if item_id != "":
+			lines.append("  必要: %s x%d" % [get_item_display_name(item_id), amount])
+
+		var deadline_at: float = float(data.get("deadline_at", -1.0))
+		if deadline_at > 0.0:
+			var remain: float = maxf(0.0, deadline_at - TimeManager.world_time_seconds)
+			lines.append("  残り時間: %s" % QuestManager.format_seconds_to_limit_text(remain))
+		else:
+			lines.append("  残り時間: 無し")
+
+		lines.append("  報酬: %s" % format_active_quest_reward_text(data, reward_gold))
+
+	return "\n".join(lines)
+
+
+func format_active_quest_reward_text(data: Dictionary, reward_gold: int) -> String:
+	var parts: Array[String] = []
+
+	if reward_gold > 0:
+		if ItemDatabase.exists("gold"):
+			parts.append("gold x%d" % reward_gold)
+		else:
+			parts.append("%dG" % reward_gold)
+
+	var reward_item_ids: Array = data.get("reward_item_ids", [])
+	var reward_item_amounts: Array = data.get("reward_item_amounts", [])
+	var count: int = min(reward_item_ids.size(), reward_item_amounts.size())
+
+	for i in range(count):
+		var item_id: String = String(reward_item_ids[i])
+		var amount: int = int(reward_item_amounts[i])
+		if item_id == "" or amount <= 0:
+			continue
+		parts.append("%s x%d" % [get_item_display_name(item_id), amount])
+
+	if parts.is_empty():
+		return "なし"
+
+	return " / ".join(parts)
+
+
+func get_item_display_name(item_id: String) -> String:
+	if item_id == "":
+		return ""
+
+	if not ItemDatabase.exists(item_id):
+		return item_id
+
+	var display_name: String = ItemDatabase.get_display_name(item_id)
+	if display_name == "":
+		return item_id
+
+	return display_name
+
+
 func get_equipment_icon(equipment_resource) -> Texture2D:
 	if equipment_resource == null:
 		return null
@@ -703,5 +819,11 @@ func _on_page_2_button_pressed() -> void:
 
 func _on_page_3_button_pressed() -> void:
 	set_page(2)
+	if root != null:
+		root.grab_focus()
+
+
+func _on_page_4_button_pressed() -> void:
+	set_page(3)
 	if root != null:
 		root.grab_focus()

@@ -79,10 +79,18 @@ enum UnitRole {
 @export_flags("VILLAGER", "MERCHANT", "GUARD", "RECRUIT", "QUEST_GIVER", "ENEMY_BOSS")
 var unit_roles: int = 0
 @export var friendliness: int = 0
+
 @export var can_offer_request: bool = false
 @export var can_trade: bool = false
 @export var can_receive_order: bool = false
 @export var extra_interact_actions: Array[String] = []
+
+@export var offered_quests: Array[QuestData] = []
+@export var use_generated_quests: bool = true
+@export var quest_offer_count_min: int = 1
+@export var quest_offer_count_max: int = 2
+@export var quest_template_pool: Array[QuestData] = []
+
 @export_multiline var request_description: String = ""
 @export_multiline var request_accept_text: String = "ありがとうございます。"
 @export_multiline var request_decline_text: String = "また今度おねがいします。"
@@ -138,6 +146,9 @@ func _ready() -> void:
 	print("UNIT READY name=", name)
 	print("UNIT has Inventory =", has_node("Inventory"))
 	print("UNIT children = ", get_children().map(func(c): return c.name))
+
+	if not is_in_group("units"):
+		add_to_group("units")
 
 	resolve_map_references()
 
@@ -197,6 +208,9 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if is_player_unit and is_any_ui_locked():
+		return
+
 	if is_transitioning:
 		return
 
@@ -685,6 +699,73 @@ func get_unit_in_front():
 	return null
 
 
+func get_board_tile_coords(board) -> Vector2i:
+	var tile_value = board.get("tile_coords")
+	if typeof(tile_value) == TYPE_VECTOR2I:
+		return tile_value
+
+	if board is Node2D and ground_layer != null:
+		var board_node: Node2D = board as Node2D
+		return ground_layer.local_to_map(ground_layer.to_local(board_node.global_position))
+
+	return Vector2i(999999, 999999)
+
+
+func get_board_in_front():
+	var front_tile: Vector2i = get_front_tile_coords()
+	print("[BOARD] front_tile = ", front_tile)
+
+	var candidates: Array = []
+
+	if map_root != null:
+		var boards_node = map_root.get_node_or_null("QuestBoards")
+		if boards_node != null:
+			for child in boards_node.get_children():
+				candidates.append(child)
+
+	for node in get_tree().get_nodes_in_group("quest_boards"):
+		if not candidates.has(node):
+			candidates.append(node)
+
+	print("[BOARD] candidate count = ", candidates.size())
+
+	for board in candidates:
+		if board == null:
+			continue
+
+		if not board.has_method("can_open_board"):
+			print("[BOARD] skip no can_open_board: ", board.name)
+			continue
+
+		var board_tile: Vector2i = get_board_tile_coords(board)
+		print("[BOARD] check board=", board.name, " tile=", board_tile)
+
+		if board_tile == front_tile:
+			print("[BOARD] matched board = ", board.name)
+			return board
+
+	print("[BOARD] no board matched")
+	return null
+
+
+func try_open_quest_board() -> bool:
+	if not is_player_unit:
+		return false
+
+	var board = get_board_in_front()
+	if board == null:
+		print("[BOARD] try_open_quest_board: board is null")
+		return false
+
+	if not board.can_open_board():
+		print("[BOARD] try_open_quest_board: can_open_board false")
+		return false
+
+	print("[BOARD] opening board: ", board.name)
+	board.open_board(self)
+	return true
+
+
 func can_start_talk() -> bool:
 	return can_talk
 
@@ -733,8 +814,33 @@ func is_inventory_open_from_root() -> bool:
 	return root.is_inventory_open()
 
 
+func is_failed_quest_dialog_locked() -> bool:
+	if DialogueManager == null:
+		return false
+
+	if DialogueManager.has_method("is_input_locked_by_failed_quest_dialog"):
+		return DialogueManager.is_input_locked_by_failed_quest_dialog()
+
+	return false
+
+
+func is_any_ui_locked() -> bool:
+	if DialogueManager != null:
+		if DialogueManager.has_method("is_dialog_open") and DialogueManager.is_dialog_open():
+			return true
+
+	if QuestBoardManager != null:
+		if QuestBoardManager.has_method("is_board_open") and QuestBoardManager.is_board_open():
+			return true
+
+	return false
+
+
 func try_talk_to_front_unit() -> bool:
 	if not is_player_unit:
+		return false
+
+	if is_failed_quest_dialog_locked():
 		return false
 
 	if is_inventory_open_from_root():
@@ -942,6 +1048,9 @@ func apply_animation_frames(
 
 
 func try_move(dir: Vector2) -> bool:
+	if is_player_unit and is_any_ui_locked():
+		return false
+
 	var next_facing: int = facing_from_dir(dir)
 	if next_facing != facing:
 		update_facing_only(dir)
@@ -1693,22 +1802,33 @@ func notify_inventory_refresh() -> void:
 
 
 func try_interact_action() -> void:
-	if is_inventory_open_from_root():
+	print("[INTERACT] called")
+
+	if is_any_ui_locked():
+		print("[INTERACT] blocked by ui lock")
 		return
 
-	if DialogueManager != null and DialogueManager.has_method("is_dialog_open"):
-		if DialogueManager.is_dialog_open():
-			return
+	if is_inventory_open_from_root():
+		print("[INTERACT] blocked by inventory")
+		return
+
+	if try_open_quest_board():
+		print("[INTERACT] opened quest board")
+		return
 
 	if try_talk_to_front_unit():
+		print("[INTERACT] opened talk")
 		return
 
 	if try_pickup_items_on_current_tile():
+		print("[INTERACT] picked item")
 		return
 
 	if try_open_chest_on_current_tile():
+		print("[INTERACT] opened chest")
 		return
 
+	print("[INTERACT] fallback transition")
 	try_interact_transition()
 
 

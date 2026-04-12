@@ -5,9 +5,10 @@
 
 [resource]
 script = ExtResource("1_hpaic")
+item_id = "apple"
 display_name = "apple"
 icon = ExtResource("1_j163c")
-category = 0
+category = "consumable"
 usable = true
 effect_type = 1
 effect_value = 10

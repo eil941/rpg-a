@@ -78,6 +78,23 @@ func debug_unit_structure(unit: Node, label: String) -> void:
 	print(label, " children=", unit.get_children().map(func(c): return c.name))
 
 
+func debug_unit_identity(unit: Node, label: String) -> void:
+	if unit == null:
+		print(label, " unit is null")
+		return
+
+	var unit_id_text: String = ""
+	var map_id_text: String = ""
+
+	if "unit_id" in unit:
+		unit_id_text = String(unit.unit_id)
+
+	if "map_id" in unit:
+		map_id_text = String(unit.map_id)
+
+	print(label, " name=", unit.name, " unit_id=", unit_id_text, " map_id=", map_id_text)
+
+
 func ensure_inventory_node(unit: Node) -> void:
 	if unit == null:
 		return
@@ -300,20 +317,25 @@ func spawn_enemy_random(
 		var enemy = enemy_unit_scene.instantiate()
 		var unique_unit_id: String = make_enemy_unit_id(index)
 
+		print("SPAWN RANDOM ENEMY GENERATED ID=", unique_unit_id, " map_id=", map_id, " index=", index)
 		debug_unit_structure(enemy, "SPAWN RANDOM ENEMY BEFORE")
+		debug_unit_identity(enemy, "SPAWN RANDOM ENEMY BEFORE IDENTITY")
 
 		enemy.start_tile = tile
 		enemy.unit_id = unique_unit_id
 		enemy.map_id = map_id
 		enemy.enemy_data_to_apply = enemy_data
 
+		print("SPAWN RANDOM ENEMY ASSIGNED unit_id=", enemy.unit_id, " map_id=", enemy.map_id, " enemy_type=", enemy_data.enemy_type_id)
+
 		ensure_inventory_node(enemy)
 		debug_unit_structure(enemy, "SPAWN RANDOM ENEMY AFTER")
+		debug_unit_identity(enemy, "SPAWN RANDOM ENEMY AFTER IDENTITY")
 
 		units_node.add_child(enemy)
 		apply_generated_shop_inventory_if_needed(enemy, enemy_data)
 
-		print("RANDOM SPAWN unit_id=", enemy.unit_id, " type=", enemy_data.enemy_type_id)
+		print("RANDOM SPAWN FINAL unit_id=", enemy.unit_id, " type=", enemy_data.enemy_type_id, " tile=", tile)
 
 		used_tiles.append(tile)
 
@@ -324,6 +346,8 @@ func spawn_enemy_random(
 			"tile_y": tile.y,
 			"is_dead": false
 		}
+
+		print("SAVE ENEMY SPAWN DATA=", spawn_data)
 
 		if not WorldState.map_enemy_spawns.has(map_id):
 			WorldState.map_enemy_spawns[map_id] = []
@@ -347,7 +371,7 @@ func spawn_saved_enemies(enemy_unit_scene: PackedScene, enemy_data_list: Array[E
 	var saved_list = WorldState.map_enemy_spawns.get(map_id, [])
 
 	for spawn_data in saved_list:
-		print("LOAD SPAWN DATA unit_id=", spawn_data["unit_id"], " type=", spawn_data["enemy_type_id"])
+		print("LOAD SAVED ENEMY SPAWN DATA=", spawn_data)
 
 		if spawn_data.get("is_dead", false):
 			continue
@@ -362,18 +386,22 @@ func spawn_saved_enemies(enemy_unit_scene: PackedScene, enemy_data_list: Array[E
 		if enemy_data == null:
 			continue
 
-		print("FOUND ENEMY DATA type=", enemy_data.enemy_type_id)
+		print("FOUND ENEMY DATA type=", enemy_data.enemy_type_id, " for unit_id=", unit_id)
 
 		var enemy = enemy_unit_scene.instantiate()
 		debug_unit_structure(enemy, "SPAWN SAVED ENEMY BEFORE")
+		debug_unit_identity(enemy, "SPAWN SAVED ENEMY BEFORE IDENTITY")
 
 		enemy.start_tile = Vector2i(spawn_data["tile_x"], spawn_data["tile_y"])
 		enemy.unit_id = unit_id
 		enemy.map_id = map_id
 		enemy.enemy_data_to_apply = enemy_data
 
+		print("SPAWN SAVED ENEMY ASSIGNED unit_id=", enemy.unit_id, " map_id=", enemy.map_id, " enemy_type=", enemy_data.enemy_type_id)
+
 		ensure_inventory_node(enemy)
 		debug_unit_structure(enemy, "SPAWN SAVED ENEMY AFTER")
+		debug_unit_identity(enemy, "SPAWN SAVED ENEMY AFTER IDENTITY")
 
 		units_node.add_child(enemy)
 		apply_generated_shop_inventory_if_needed(enemy, enemy_data)
@@ -402,14 +430,19 @@ func spawn_npc_random(
 		var npc = npc_unit_scene.instantiate()
 		var unique_unit_id: String = make_npc_unit_id(index)
 
+		print("SPAWN RANDOM NPC GENERATED ID=", unique_unit_id, " map_id=", map_id, " index=", index)
 		debug_unit_structure(npc, "SPAWN RANDOM NPC BEFORE")
+		debug_unit_identity(npc, "SPAWN RANDOM NPC BEFORE IDENTITY")
 
 		npc.start_tile = tile
 		npc.unit_id = unique_unit_id
 		npc.map_id = map_id
 
+		print("SPAWN RANDOM NPC ASSIGNED unit_id=", npc.unit_id, " map_id=", npc.map_id, " npc_type=", npc_data.npc_type_id)
+
 		ensure_inventory_node(npc)
 		debug_unit_structure(npc, "SPAWN RANDOM NPC AFTER")
+		debug_unit_identity(npc, "SPAWN RANDOM NPC AFTER IDENTITY")
 
 		units_node.add_child(npc)
 		npc.apply_npc_data(npc_data)
@@ -424,6 +457,8 @@ func spawn_npc_random(
 			"tile_y": tile.y,
 			"is_dead": false
 		}
+
+		print("SAVE NPC SPAWN DATA=", spawn_data)
 
 		if not WorldState.map_npc_spawns.has(map_id):
 			WorldState.map_npc_spawns[map_id] = []
@@ -447,6 +482,8 @@ func spawn_saved_npcs(npc_unit_scene: PackedScene, npc_data_list: Array[NpcData]
 	var saved_list = WorldState.map_npc_spawns.get(map_id, [])
 
 	for spawn_data in saved_list:
+		print("LOAD SAVED NPC SPAWN DATA=", spawn_data)
+
 		if spawn_data.get("is_dead", false):
 			continue
 
@@ -460,15 +497,21 @@ func spawn_saved_npcs(npc_unit_scene: PackedScene, npc_data_list: Array[NpcData]
 		if npc_data == null:
 			continue
 
+		print("FOUND NPC DATA type=", npc_data.npc_type_id, " for unit_id=", unit_id)
+
 		var npc = npc_unit_scene.instantiate()
 		debug_unit_structure(npc, "SPAWN SAVED NPC BEFORE")
+		debug_unit_identity(npc, "SPAWN SAVED NPC BEFORE IDENTITY")
 
 		npc.start_tile = Vector2i(spawn_data["tile_x"], spawn_data["tile_y"])
 		npc.unit_id = unit_id
 		npc.map_id = map_id
 
+		print("SPAWN SAVED NPC ASSIGNED unit_id=", npc.unit_id, " map_id=", npc.map_id, " npc_type=", npc_data.npc_type_id)
+
 		ensure_inventory_node(npc)
 		debug_unit_structure(npc, "SPAWN SAVED NPC AFTER")
+		debug_unit_identity(npc, "SPAWN SAVED NPC AFTER IDENTITY")
 
 		units_node.add_child(npc)
 		npc.apply_npc_data(npc_data)

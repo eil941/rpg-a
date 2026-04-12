@@ -5,6 +5,7 @@
 [ext_resource type="Texture2D" uid="uid://c0wx1wa2y2u1e" path="res://assets/stats/no1.png" id="3_jjgbj"]
 [ext_resource type="Texture2D" uid="uid://gie6vr8rgo3v" path="res://assets/stats/no2.png" id="4_amine"]
 [ext_resource type="Texture2D" uid="uid://dc3kxwn5f5xle" path="res://assets/stats/no3.png" id="5_0dnql"]
+[ext_resource type="Texture2D" uid="uid://b2cbq34vcbsoc" path="res://assets/highrock1.png" id="6_jjgbj"]
 
 [node name="StatusUI" type="CanvasLayer" unique_id=1690818156]
 layer = 100
@@ -13,6 +14,7 @@ default_background = ExtResource("2_7ihem")
 page_1_background = ExtResource("3_jjgbj")
 page_2_background = ExtResource("4_amine")
 page_3_background = ExtResource("5_0dnql")
+page_4_background = ExtResource("6_jjgbj")
 
 [node name="Root" type="Control" parent="." unique_id=1829591157]
 layout_mode = 3
@@ -440,6 +442,30 @@ layout_mode = 2
 size_flags_horizontal = 3
 scroll_active = false
 
+[node name="Page4Scroll" type="ScrollContainer" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea" unique_id=83196944]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_scroll_mode = 0
+
+[node name="Page4Content" type="MarginContainer" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page4Scroll" unique_id=994772259]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="Page4Text" type="RichTextLabel" parent="Root/MainMargin/MainVBox/ContentPanel/PageArea/Page4Scroll/Page4Content" unique_id=1484006625]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+size_flags_horizontal = 3
+scroll_active = false
+
 [node name="BottomTabBar" type="MarginContainer" parent="Root/MainMargin/MainVBox" unique_id=1182562952]
 custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
@@ -469,3 +495,9 @@ custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "その他"
+
+[node name="Page4Button" type="Button" parent="Root/MainMargin/MainVBox/BottomTabBar/TabButtonsWrap" unique_id=1325665525]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "クエスト"

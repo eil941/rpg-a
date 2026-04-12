@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="QuestData" format=3 uid="uid://by8mb3ld03hca"]
+
+[ext_resource type="Script" uid="uid://bkvmp83auvgyc" path="res://scripts/data/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+quest_id = "quest_villager_food_delivery"
+title = "食べ物を持ってきてほしい"
+description = "何か食べられるものを持ってきてください。"
+title_template = "{item_name}を{amount}個持ってきてほしい"
+description_template = "食べ物が必要です。{item_name}を{amount}個持ってきてください。"
+candidate_categories = Array[String](["consumable"])
+reward_gold = 10
+reward_bonus_rate_min = 1.2
+reward_bonus_rate_max = 1.6
+allowed_unit_role_flags = 1
+accept_text = "助かります。お願いします。"
+progress_text = "まだ必要なものがそろっていないようですね。"
+ready_to_complete_text = "これで足ります。ありがとうございます。"
+completed_text = "本当に助かりました。"
+failed_text = "もう別の手を考えるしかなさそうです。"
+metadata/_custom_type_script = "uid://bkvmp83auvgyc"

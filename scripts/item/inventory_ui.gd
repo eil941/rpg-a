@@ -106,6 +106,16 @@ func _ready() -> void:
 	set_process(true)
 
 
+func is_failed_quest_dialog_locked() -> bool:
+	if DialogueManager == null:
+		return false
+
+	if DialogueManager.has_method("is_input_locked_by_failed_quest_dialog"):
+		return DialogueManager.is_input_locked_by_failed_quest_dialog()
+
+	return false
+
+
 func apply_ui_config() -> void:
 	if ui_config == null:
 		return
@@ -256,6 +266,11 @@ func _input(event: InputEvent) -> void:
 	if not visible:
 		return
 
+	if is_failed_quest_dialog_locked():
+		stop_hold_repeat()
+		hide_tooltip()
+		return
+
 	if event.is_action_pressed("ui_cancel"):
 		close_inventory()
 		get_viewport().set_input_as_handled()
@@ -322,6 +337,12 @@ func _input(event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
+	if is_failed_quest_dialog_locked():
+		stop_hold_repeat()
+		hide_tooltip()
+		held_item_preview.hide()
+		return
+
 	if visible:
 		refresh()
 
@@ -2007,6 +2028,9 @@ func restart_tooltip_timer() -> void:
 	if tooltip_timer == null:
 		return
 
+	if is_failed_quest_dialog_locked():
+		return
+
 	tooltip_timer.stop()
 
 	if not visible:
@@ -2029,6 +2053,10 @@ func restart_tooltip_timer() -> void:
 
 
 func show_tooltip_for_selected() -> void:
+	if is_failed_quest_dialog_locked():
+		hide_tooltip()
+		return
+
 	if not held_entry.is_empty():
 		hide_tooltip()
 		return
@@ -2134,6 +2162,12 @@ func update_held_item_preview() -> void:
 		return
 
 	var enchant_overlay: ColorRect = _get_or_create_held_enchant_overlay()
+
+	if is_failed_quest_dialog_locked():
+		if enchant_overlay != null:
+			enchant_overlay.visible = false
+		held_item_preview.hide()
+		return
 
 	if held_entry.is_empty():
 		if enchant_overlay != null:
@@ -2258,6 +2292,10 @@ func hide_tooltip() -> void:
 
 func _on_tooltip_timer_timeout() -> void:
 	if not visible:
+		return
+
+	if is_failed_quest_dialog_locked():
+		hide_tooltip()
 		return
 
 	await show_tooltip_for_selected()

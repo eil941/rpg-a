@@ -5,9 +5,10 @@
 
 [resource]
 script = ExtResource("1_0jtar")
+item_id = "potion"
 display_name = "potion"
 icon = ExtResource("1_wdku8")
-category = 0
+category = "consumable"
 usable = true
 effect_type = 1
 effect_value = 500

@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="QuestData" format=3 uid="uid://bdvevog7514nj"]
+
+[ext_resource type="Script" uid="uid://bkvmp83auvgyc" path="res://scripts/data/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+quest_id = "quest_merchant_consumable_delivery"
+title = "売り物を補充したい"
+description = "店に並べる品が足りません。"
+title_template = "{item_name}を{amount}個持ってきてほしい"
+description_template = "売り物として使います。{item_name}を{amount}個持ってきてください。"
+candidate_categories = Array[String](["consumable"])
+amount_max = 4
+time_limit_seconds = 86400.0
+reward_gold = 20
+reward_bonus_rate_min = 1.4
+reward_bonus_rate_max = 2.0
+allowed_unit_role_flags = 2
+weight = 120
+accept_text = "いい取引になりそうですね。"
+progress_text = "まだ必要数に届いていません。"
+ready_to_complete_text = "ちょうど欲しかった数です。"
+completed_text = "助かりました。また頼むかもしれません。"
+failed_text = "今回は商機を逃しました。"
+metadata/_custom_type_script = "uid://bkvmp83auvgyc"

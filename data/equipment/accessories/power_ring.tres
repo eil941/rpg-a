@@ -11,6 +11,7 @@ item_id = "power_ring"
 display_name = "Power Ring"
 description = "指輪"
 icon = ExtResource("1_33xg4")
+category = "equipment"
 max_stack = 1
 base_price = 15
 metadata/_custom_type_script = "uid://des0lbvolo0p1"

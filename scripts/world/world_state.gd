@@ -19,6 +19,16 @@ var field_special_places: Dictionary = {}
 var map_item_pickups: Dictionary = {}
 var map_chests: Dictionary = {}
 
+# =========================
+# Quest
+# =========================
+var quest_active_data: Dictionary = {}
+var quest_completed_data: Dictionary = {}
+var quest_failed_data: Dictionary = {}
+
+# unitごとの提示依頼キャッシュ
+# unit_id -> Array[Dictionary]
+var unit_generated_quests: Dictionary = {}
 
 
 

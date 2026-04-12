@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="QuestData" format=3 uid="uid://dy0uqtfiw6h88"]
+
+[ext_resource type="Script" uid="uid://bkvmp83auvgyc" path="res://scripts/data/quest_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+quest_id = "quest_fixed_apple_delivery"
+title = "りんごを持ってきてほしい"
+description = "りんごが必要です。"
+title_template = "{item_name}を{amount}個持ってきてほしい"
+description_template = "{item_name}を{amount}個必要としています。"
+objective_item_id = "apple"
+objective_item_amount = 3
+amount_max = 1
+reward_gold = 10
+reward_bonus_rate_min = 1.2
+reward_bonus_rate_max = 1.2
+allowed_unit_role_flags = 1
+weight = 50
+accept_text = "りんごをお願いできますか。"
+progress_text = "まだ必要な分がそろっていないようですね。"
+ready_to_complete_text = "必要な分そろっています。"
+completed_text = "ありがとうございます。"
+failed_text = "今回は間に合いませんでした。"
+metadata/_custom_type_script = "uid://bkvmp83auvgyc"

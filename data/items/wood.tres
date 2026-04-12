@@ -5,9 +5,10 @@
 
 [resource]
 script = ExtResource("1_pkq13")
+item_id = "wood"
 display_name = "wood"
 icon = ExtResource("1_qnvr4")
-category = 1
+category = "material"
 effect_type = 2
 base_price = 10
 metadata/_custom_type_script = "uid://cmkxp6ab4l88m"

@@ -2,9 +2,11 @@
 
 [ext_resource type="Script" uid="uid://bgt8humnn3jqj" path="res://scripts/data/npc_data.gd" id="1_gwhkx"]
 [ext_resource type="Texture2D" uid="uid://c5pfutrp3fa2a" path="res://icon.svg" id="2_bnd6u"]
+[ext_resource type="Script" uid="uid://0c32in4pchg3" path="res://scripts/data/loot_category_entry.gd" id="2_md51f"]
 
 [resource]
 script = ExtResource("1_gwhkx")
 npc_type_id = "npc_1"
 talk_portrait = ExtResource("2_bnd6u")
+unit_roles = 60
 metadata/_custom_type_script = "uid://bgt8humnn3jqj"

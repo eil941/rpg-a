@@ -4,7 +4,8 @@
 [ext_resource type="PackedScene" uid="uid://bji7srxp1ov88" path="res://scenes/game_hud.tscn" id="2_k43xj"]
 [ext_resource type="PackedScene" uid="uid://bcwisg05o4qoq" path="res://scenes/InventoryUI.tscn" id="3_k43xj"]
 [ext_resource type="PackedScene" uid="uid://bqg3cmcpdjxv6" path="res://scenes/DialogueUI.tscn" id="4_bfj8w"]
-[ext_resource type="PackedScene" uid="uid://daiuw0cjc8wc3" path="res://scenes/StatusUI.tscn" id="5_5msxm"]
+[ext_resource type="PackedScene" uid="uid://d0mm44m0q6we6" path="res://scenes/StatusUI.tscn" id="5_5msxm"]
+[ext_resource type="PackedScene" uid="uid://buxw2vvayykvc" path="res://scenes/QuestBoardUI.tscn" id="6_6b56o"]
 
 [node name="GameAndHud" type="Node2D" unique_id=777903396]
 script = ExtResource("1_xqwh5")
@@ -18,3 +19,5 @@ script = ExtResource("1_xqwh5")
 [node name="DialogueUI" parent="." unique_id=532800773 instance=ExtResource("4_bfj8w")]
 
 [node name="StatusUI" parent="." unique_id=820854849 instance=ExtResource("5_5msxm")]
+
+[node name="QuestBoardUI" parent="." unique_id=2109132747 instance=ExtResource("6_6b56o")]

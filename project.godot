@@ -29,10 +29,12 @@ GlobalDungeon="*uid://cwr50o7tfp2dm"
 DebugSettings="*uid://c83kw1x0ekokg"
 FactionManager="*uid://tnpaulqn0liv"
 DialogueManager="*uid://c81rxd3gqb7ju"
+QuestManager="*uid://bfxdhrrq2qmym"
+QuestBoardManager="*uid://da0bhir7lhkbh"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/plugin/plugin.cfg")
+enabled=PackedStringArray()
 
 [input]
 
