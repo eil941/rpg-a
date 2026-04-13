@@ -38,6 +38,7 @@ const PAGE_COUNT: int = 4
 @onready var page_2_text: RichTextLabel = $Root/MainMargin/MainVBox/ContentPanel/PageArea/Page2Scroll/Page2Content/Page2Text
 @onready var page_3_text: RichTextLabel = $Root/MainMargin/MainVBox/ContentPanel/PageArea/Page3Scroll/Page3Content/Page3Text
 @onready var page_4_text: RichTextLabel = $Root/MainMargin/MainVBox/ContentPanel/PageArea/Page4Scroll/Page4Content/Page4Text
+@onready var page_4_content: Control = $Root/MainMargin/MainVBox/ContentPanel/PageArea/Page4Scroll/Page4Content
 
 @onready var portrait_texture: TextureRect = $Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/TopRow/PortraitPanel/PortraitTexture
 @onready var page1_name_label: Label = $Root/MainMargin/MainVBox/ContentPanel/PageArea/Page1Scroll/Page1Content/MainVBox/TopRow/RightVBox/HeaderInfo/NameLabel
@@ -63,6 +64,8 @@ var current_page: int = 0
 var selected_tab_fallback_style: StyleBoxFlat
 var unselected_tab_fallback_style: StyleBoxFlat
 var close_button_fallback_style: StyleBoxFlat
+
+var page4_card_list: VBoxContainer = null
 
 
 func _ready() -> void:
@@ -90,6 +93,7 @@ func _ready() -> void:
 	_apply_close_button_style()
 	_apply_label_styles()
 	_build_page_1_equipment_icons()
+	_setup_page_4_quest_cards()
 
 	set_page(0)
 
@@ -167,6 +171,7 @@ func refresh_view() -> void:
 		page_2_text.text = ""
 		page_3_text.text = ""
 		page_4_text.text = ""
+		refresh_page_4_quest_cards()
 		return
 
 	var stats = target_unit.stats
@@ -175,7 +180,8 @@ func refresh_view() -> void:
 	refresh_page_1_layout(target_unit, stats)
 	page_2_text.text = build_page_2_text(target_unit, skills)
 	page_3_text.text = build_page_3_text(stats)
-	page_4_text.text = build_page_4_quest_text(target_unit)
+	page_4_text.text = ""
+	refresh_page_4_quest_cards()
 
 	reset_all_scrolls()
 	update_text_min_heights()
@@ -440,7 +446,9 @@ func update_text_min_heights() -> void:
 
 	_update_one_text_min_height(page_2_text, page_2_scroll)
 	_update_one_text_min_height(page_3_text, page_3_scroll)
-	_update_one_text_min_height(page_4_text, page_4_scroll)
+
+	if page4_card_list != null:
+		page4_card_list.custom_minimum_size = Vector2(0, max(page4_card_list.size.y, page_4_scroll.size.y))
 
 
 func _update_rich_text_min_height(text_label: RichTextLabel) -> void:
@@ -470,10 +478,6 @@ func _build_fallback_styles() -> void:
 	selected_tab_fallback_style.border_width_top = 2
 	selected_tab_fallback_style.border_width_right = 2
 	selected_tab_fallback_style.border_width_bottom = 2
-	selected_tab_fallback_style.corner_radius_top_left = 0
-	selected_tab_fallback_style.corner_radius_top_right = 0
-	selected_tab_fallback_style.corner_radius_bottom_left = 0
-	selected_tab_fallback_style.corner_radius_bottom_right = 0
 
 	unselected_tab_fallback_style = StyleBoxFlat.new()
 	unselected_tab_fallback_style.bg_color = Color(0.72, 0.72, 0.76, 1.0)
@@ -482,10 +486,6 @@ func _build_fallback_styles() -> void:
 	unselected_tab_fallback_style.border_width_top = 2
 	unselected_tab_fallback_style.border_width_right = 2
 	unselected_tab_fallback_style.border_width_bottom = 2
-	unselected_tab_fallback_style.corner_radius_top_left = 0
-	unselected_tab_fallback_style.corner_radius_top_right = 0
-	unselected_tab_fallback_style.corner_radius_bottom_left = 0
-	unselected_tab_fallback_style.corner_radius_bottom_right = 0
 
 	close_button_fallback_style = StyleBoxFlat.new()
 	close_button_fallback_style.bg_color = Color(0.87, 0.87, 0.90, 1.0)
@@ -494,10 +494,6 @@ func _build_fallback_styles() -> void:
 	close_button_fallback_style.border_width_top = 2
 	close_button_fallback_style.border_width_right = 2
 	close_button_fallback_style.border_width_bottom = 2
-	close_button_fallback_style.corner_radius_top_left = 0
-	close_button_fallback_style.corner_radius_top_right = 0
-	close_button_fallback_style.corner_radius_bottom_left = 0
-	close_button_fallback_style.corner_radius_bottom_right = 0
 
 
 func _apply_base_button_settings(button: Button) -> void:
@@ -565,6 +561,222 @@ func _make_button_style(texture: Texture2D, fallback_style: StyleBoxFlat) -> Sty
 
 func _apply_label_styles() -> void:
 	page_label.add_theme_color_override("font_color", Color(0.96, 0.96, 0.98, 1.0))
+
+
+func _setup_page_4_quest_cards() -> void:
+	if page_4_text != null:
+		page_4_text.visible = false
+
+	if page_4_content == null:
+		return
+
+	if page4_card_list != null and is_instance_valid(page4_card_list):
+		return
+
+	page4_card_list = VBoxContainer.new()
+	page4_card_list.name = "Page4QuestCardList"
+	page4_card_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page4_card_list.add_theme_constant_override("separation", 12)
+	page4_card_list.position = Vector2.ZERO
+	page4_card_list.custom_minimum_size = Vector2(0, 0)
+	page_4_content.add_child(page4_card_list)
+
+
+func refresh_page_4_quest_cards() -> void:
+	_setup_page_4_quest_cards()
+
+	if page4_card_list == null:
+		return
+
+	for child in page4_card_list.get_children():
+		page4_card_list.remove_child(child)
+		child.queue_free()
+
+	if target_unit == null:
+		var label := Label.new()
+		label.text = "対象なし"
+		page4_card_list.add_child(label)
+		return
+
+	if not ("is_player_unit" in target_unit and bool(target_unit.is_player_unit)):
+		var label := Label.new()
+		label.text = "プレイヤー以外は表示対象外です。"
+		page4_card_list.add_child(label)
+		return
+
+	if QuestManager == null:
+		var label := Label.new()
+		label.text = "QuestManager が見つかりません。"
+		page4_card_list.add_child(label)
+		return
+
+	var active_quests: Array = QuestManager.get_active_quest_list()
+	if active_quests.is_empty():
+		var label := Label.new()
+		label.text = "受注中のクエストはありません。"
+		label.custom_minimum_size = Vector2(0, 80)
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		page4_card_list.add_child(label)
+		return
+
+	for raw_data in active_quests:
+		if typeof(raw_data) != TYPE_DICTIONARY:
+			continue
+		var card: Control = _create_active_quest_card(raw_data)
+		page4_card_list.add_child(card)
+
+
+func _create_active_quest_card(data: Dictionary) -> Control:
+	var card := PanelContainer.new()
+	card.custom_minimum_size = Vector2(0, 180)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var card_style := StyleBoxFlat.new()
+	card_style.bg_color = Color(0.16, 0.13, 0.10, 0.95)
+	card_style.corner_radius_top_left = 10
+	card_style.corner_radius_top_right = 10
+	card_style.corner_radius_bottom_left = 10
+	card_style.corner_radius_bottom_right = 10
+	card.add_theme_stylebox_override("panel", card_style)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 12)
+	margin.add_theme_constant_override("margin_top", 12)
+	margin.add_theme_constant_override("margin_right", 12)
+	margin.add_theme_constant_override("margin_bottom", 12)
+	card.add_child(margin)
+
+	var root_vbox := VBoxContainer.new()
+	root_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root_vbox.add_theme_constant_override("separation", 8)
+	margin.add_child(root_vbox)
+
+	var top_row := HBoxContainer.new()
+	top_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_row.add_theme_constant_override("separation", 12)
+	root_vbox.add_child(top_row)
+
+	var portrait := TextureRect.new()
+	portrait.custom_minimum_size = Vector2(96, 96)
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portrait.texture = data.get("giver_portrait", null)
+	top_row.add_child(portrait)
+
+	var text_area := VBoxContainer.new()
+	text_area.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text_area.add_theme_constant_override("separation", 6)
+	top_row.add_child(text_area)
+
+	var title_row := HBoxContainer.new()
+	title_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_row.add_theme_constant_override("separation", 12)
+	text_area.add_child(title_row)
+
+	var title_label := Label.new()
+	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_label.add_theme_font_size_override("font_size", 24)
+	title_label.text = String(data.get("title", "名称不明のクエスト"))
+	title_row.add_child(title_label)
+
+	var time_label := Label.new()
+	time_label.custom_minimum_size = Vector2(240, 0)
+	time_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	time_label.add_theme_font_size_override("font_size", 20)
+	time_label.text = _build_active_quest_time_text(data)
+	title_row.add_child(time_label)
+
+	var abandon_button := Button.new()
+	abandon_button.text = "×"
+	abandon_button.custom_minimum_size = Vector2(40, 40)
+	abandon_button.focus_mode = Control.FOCUS_NONE
+	var abandon_style := StyleBoxFlat.new()
+	abandon_style.bg_color = Color(0.38, 0.18, 0.18, 0.95)
+	abandon_style.corner_radius_top_left = 8
+	abandon_style.corner_radius_top_right = 8
+	abandon_style.corner_radius_bottom_left = 8
+	abandon_style.corner_radius_bottom_right = 8
+	abandon_button.add_theme_stylebox_override("normal", abandon_style)
+	abandon_button.add_theme_stylebox_override("hover", abandon_style)
+	abandon_button.add_theme_stylebox_override("pressed", abandon_style)
+	abandon_button.add_theme_stylebox_override("focus", abandon_style)
+	abandon_button.pressed.connect(func() -> void:
+		var quest_id: String = String(data.get("quest_id", ""))
+		var result: Dictionary = QuestManager.abandon_quest(quest_id)
+		if bool(result.get("success", false)):
+			refresh_page_4_quest_cards()
+	)
+	title_row.add_child(abandon_button)
+
+	var desc_label := Label.new()
+	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc_label.add_theme_font_size_override("font_size", 20)
+	desc_label.text = String(data.get("description", ""))
+	text_area.add_child(desc_label)
+
+	var progress_label := Label.new()
+	progress_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	progress_label.add_theme_font_size_override("font_size", 18)
+	progress_label.text = _build_active_quest_progress_text(data)
+	text_area.add_child(progress_label)
+
+	var bottom_row := HBoxContainer.new()
+	bottom_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bottom_row.add_theme_constant_override("separation", 12)
+	text_area.add_child(bottom_row)
+
+	var reward_label := Label.new()
+	reward_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	reward_label.add_theme_font_size_override("font_size", 18)
+	reward_label.text = _build_active_quest_reward_text(data)
+	bottom_row.add_child(reward_label)
+
+	var state_label := Label.new()
+	state_label.custom_minimum_size = Vector2(200, 0)
+	state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	state_label.add_theme_font_size_override("font_size", 18)
+	state_label.text = "進行中"
+	bottom_row.add_child(state_label)
+
+	return card
+
+
+func _build_active_quest_progress_text(data: Dictionary) -> String:
+	var objective_type: int = int(data.get("objective_type", 0))
+
+	match objective_type:
+		QuestData.ObjectiveType.DELIVER_ITEM:
+			var item_id: String = String(data.get("objective_item_id", ""))
+			var need_amount: int = int(data.get("objective_item_amount", 1))
+			var current_amount: int = 0
+
+			if target_unit != null and target_unit.has_node("Inventory"):
+				var inv = target_unit.get_node("Inventory")
+				if inv != null and inv.has_method("get_total_amount_ignore_instance"):
+					current_amount = int(inv.get_total_amount_ignore_instance(item_id))
+
+			return "必要: %s x%d    所持: %d / %d" % [
+				get_item_display_name(item_id),
+				need_amount,
+				current_amount,
+				need_amount
+			]
+
+	return ""
+
+
+func _build_active_quest_time_text(data: Dictionary) -> String:
+	var deadline_at: float = float(data.get("deadline_at", -1.0))
+	if deadline_at <= 0.0:
+		return "制限時間: なし"
+
+	var remain: float = maxf(0.0, deadline_at - TimeManager.world_time_seconds)
+	return "制限時間: %s" % QuestManager.format_seconds_to_limit_text(remain)
+
+
+func _build_active_quest_reward_text(data: Dictionary) -> String:
+	var reward_gold: int = int(data.get("reward_gold", 0))
+	return "報酬: %s" % format_active_quest_reward_text(data, reward_gold)
 
 
 func build_page_1_basic_text(stats) -> String:
@@ -687,61 +899,7 @@ func build_page_3_text(stats) -> String:
 
 
 func build_page_4_quest_text(unit_node) -> String:
-	var lines: PackedStringArray = []
-
-	lines.append("[現在受注中クエスト]")
-
-	if unit_node == null:
-		lines.append("対象なし")
-		return "\n".join(lines)
-
-	if not ("is_player_unit" in unit_node and bool(unit_node.is_player_unit)):
-		lines.append("プレイヤー以外は表示対象外です。")
-		return "\n".join(lines)
-
-	if QuestManager == null:
-		lines.append("QuestManager が見つかりません。")
-		return "\n".join(lines)
-
-	var active_quests: Dictionary = QuestManager.get_active_quests()
-	if active_quests.is_empty():
-		lines.append("受注中のクエストはありません。")
-		return "\n".join(lines)
-
-	var quest_ids: Array = active_quests.keys()
-	quest_ids.sort()
-
-	for quest_id in quest_ids:
-		var raw_value: Variant = active_quests.get(quest_id, {})
-		if typeof(raw_value) != TYPE_DICTIONARY:
-			continue
-
-		var data: Dictionary = raw_value
-		var title: String = String(data.get("title", "名称不明のクエスト"))
-		var description: String = String(data.get("description", ""))
-		var item_id: String = String(data.get("objective_item_id", ""))
-		var amount: int = int(data.get("objective_item_amount", 1))
-		var reward_gold: int = int(data.get("reward_gold", 0))
-
-		lines.append("")
-		lines.append("■ %s" % title)
-
-		if description != "":
-			lines.append("  %s" % description)
-
-		if item_id != "":
-			lines.append("  必要: %s x%d" % [get_item_display_name(item_id), amount])
-
-		var deadline_at: float = float(data.get("deadline_at", -1.0))
-		if deadline_at > 0.0:
-			var remain: float = maxf(0.0, deadline_at - TimeManager.world_time_seconds)
-			lines.append("  残り時間: %s" % QuestManager.format_seconds_to_limit_text(remain))
-		else:
-			lines.append("  残り時間: 無し")
-
-		lines.append("  報酬: %s" % format_active_quest_reward_text(data, reward_gold))
-
-	return "\n".join(lines)
+	return ""
 
 
 func format_active_quest_reward_text(data: Dictionary, reward_gold: int) -> String:
@@ -825,5 +983,6 @@ func _on_page_3_button_pressed() -> void:
 
 func _on_page_4_button_pressed() -> void:
 	set_page(3)
+	refresh_page_4_quest_cards()
 	if root != null:
 		root.grab_focus()

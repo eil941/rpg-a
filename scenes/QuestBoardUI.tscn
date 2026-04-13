@@ -103,6 +103,8 @@ offset_left = 220.0
 offset_top = 90.0
 offset_right = -24.0
 offset_bottom = -140.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 theme_override_font_sizes/normal_font_size = 22
 text = "依頼内容"
@@ -118,6 +120,7 @@ offset_top = -130.0
 offset_right = -24.0
 offset_bottom = -20.0
 grow_horizontal = 2
+grow_vertical = 0
 theme_override_constants/separation = 12
 
 [node name="ActionButton" type="Button" parent="Root/MainPanel/DetailPanel/ButtonArea" unique_id=1874745951]

@@ -3,6 +3,7 @@ extends Node
 const STATUS_ACTIVE: String = "active"
 const STATUS_COMPLETED: String = "completed"
 const STATUS_FAILED: String = "failed"
+const MAX_ACTIVE_QUESTS: int = 5
 
 
 func _ensure_state_containers() -> void:
@@ -32,6 +33,29 @@ func get_completed_quests() -> Dictionary:
 func get_failed_quests() -> Dictionary:
 	_ensure_state_containers()
 	return WorldState.quest_failed_data
+
+
+func get_active_quest_count() -> int:
+	_ensure_state_containers()
+	return WorldState.quest_active_data.size()
+
+
+func can_accept_more_quests() -> bool:
+	return get_active_quest_count() < MAX_ACTIVE_QUESTS
+
+
+func get_active_quest_list() -> Array:
+	_ensure_state_containers()
+
+	var result: Array = []
+
+	for quest_id in WorldState.quest_active_data.keys():
+		var data: Dictionary = get_active_quest_data(String(quest_id))
+		if data.is_empty():
+			continue
+		result.append(data)
+
+	return result
 
 
 func has_active_quest(quest_id: String) -> bool:
@@ -419,11 +443,31 @@ func can_accept_quest(quest: QuestData, giver_unit) -> bool:
 		return false
 	if is_failed(quest.quest_id):
 		return false
+	if not can_accept_more_quests():
+		return false
+	return true
+
+
+func can_show_board_quest(quest: QuestData, giver_unit) -> bool:
+	if quest == null:
+		return false
+	if quest.quest_id == "":
+		return false
+	if is_completed(quest.quest_id):
+		return false
+	if is_failed(quest.quest_id):
+		return false
 	return true
 
 
 func accept_quest(quest: QuestData, giver_unit) -> Dictionary:
 	_ensure_state_containers()
+
+	if not can_accept_more_quests():
+		return {
+			"success": false,
+			"message": "受注中の依頼が上限です。"
+		}
 
 	if not can_accept_quest(quest, giver_unit):
 		return {
@@ -484,6 +528,34 @@ func accept_quest(quest: QuestData, giver_unit) -> Dictionary:
 func accept_quest_from_board(quest: QuestData, giver_unit, player_unit) -> bool:
 	var result: Dictionary = accept_quest(quest, giver_unit)
 	return bool(result.get("success", false))
+
+
+func abandon_quest(quest_id: String) -> Dictionary:
+	_ensure_state_containers()
+
+	if quest_id == "":
+		return {
+			"success": false,
+			"message": "依頼IDが不正です。"
+		}
+
+	if not WorldState.quest_active_data.has(quest_id):
+		return {
+			"success": false,
+			"message": "その依頼は進行中ではありません。"
+		}
+
+	var data: Dictionary = get_active_quest_data(quest_id)
+	data["failed_reason"] = "abandoned"
+	data["failed_at"] = float(TimeManager.world_time_seconds)
+
+	WorldState.quest_active_data.erase(quest_id)
+	WorldState.quest_failed_data[quest_id] = data
+
+	return {
+		"success": true,
+		"message": "依頼を辞退しました。"
+	}
 
 
 func _roll_objective_data(quest: QuestData) -> Dictionary:
@@ -881,13 +953,15 @@ func get_board_quests(linked_unit_ids: Array[String], player_unit) -> Array:
 			continue
 
 		var quests: Array = get_unit_offer_quests(giver_unit)
-
 		if quests.is_empty():
 			continue
 
 		for raw_quest in quests:
 			var quest: QuestData = raw_quest as QuestData
 			if quest == null:
+				continue
+
+			if not can_show_board_quest(quest, giver_unit):
 				continue
 
 			var state: String = get_quest_state(quest.quest_id)
@@ -898,8 +972,6 @@ func get_board_quests(linked_unit_ids: Array[String], player_unit) -> Array:
 				can_complete_flag = can_complete_quest(quest.quest_id, player_unit)
 
 			var state_text: String = _build_board_state_text(quest.quest_id, giver_unit, player_unit)
-			if state_text == "" and not can_accept_flag and not can_complete_flag:
-				continue
 
 			result.append({
 				"giver_unit": giver_unit,
@@ -1035,7 +1107,11 @@ func _build_board_state_text(quest_id: String, giver_unit, player_unit) -> Strin
 			quest = q
 			break
 
-	if quest != null and can_accept_quest(quest, giver_unit):
-		return "未受注"
+	if quest != null:
+		if not can_accept_more_quests():
+			return "未受注（上限）"
+
+		if can_accept_quest(quest, giver_unit):
+			return "未受注"
 
 	return ""
