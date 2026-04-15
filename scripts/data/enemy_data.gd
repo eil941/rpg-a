@@ -22,6 +22,15 @@ enum AIMoveStyle {
 @export var enemy_type_id: String = "Enemy"
 @export var enemy_name: String = "no_id"
 
+@export var base_difficulty: int = 1
+@export var spawn_generator_tags: Array[String] = []
+@export var habitat_tags: Array[String] = []
+@export var rarity: int = 1
+@export var can_be_quest_target: bool = true
+@export var quest_rank: int = 1
+@export var is_nocturnal: bool = false
+
+
 @export_enum("PLAYER", "NPC", "ENEMY")
 var faction: String = "ENEMY"
 

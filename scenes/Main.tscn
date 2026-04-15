@@ -3,14 +3,7 @@
 [ext_resource type="Script" uid="uid://ca4ywj6xcxnbk" path="res://scripts/map/map_scene_scripts/main.gd" id="1_rarhs"]
 [ext_resource type="PackedScene" uid="uid://c0jrt3uvmhd2g" path="res://scenes/npc1.tscn" id="2_ft6cd"]
 [ext_resource type="PackedScene" uid="uid://cmvysxaa458bi" path="res://scenes/Enemyunit_1.tscn" id="2_mwfav"]
-[ext_resource type="Script" uid="uid://dnv8aysj2gsac" path="res://scripts/data/enemy_data.gd" id="3_3p2gp"]
-[ext_resource type="Resource" uid="uid://sq1on05oxw1q" path="res://data/test/slime_data.tres" id="4_cvmbd"]
-[ext_resource type="Resource" uid="uid://dws5qrsx22iah" path="res://data/test/orc_data.tres" id="5_ft6cd"]
-[ext_resource type="Resource" uid="uid://bx0ysoc4wt0rf" path="res://data/test/bat_data.tres" id="6_bb450"]
-[ext_resource type="Resource" uid="uid://sponxcnnn0fd" path="res://data/test/NPC/new_sabo.tres" id="10_ebg2g"]
-[ext_resource type="Resource" uid="uid://be6340dxmccnl" path="res://data/test/NPC/npc_1.tres" id="11_2ofn6"]
 [ext_resource type="PackedScene" uid="uid://cjntf4kbtxh73" path="res://scenes/unit.tscn" id="11_bjd11"]
-[ext_resource type="Script" uid="uid://bgt8humnn3jqj" path="res://scripts/data/npc_data.gd" id="12_ebg2g"]
 [ext_resource type="Script" uid="uid://dqg3ncbyajhwu" path="res://scripts/data/chest_data.gd" id="13_nfivy"]
 [ext_resource type="Resource" uid="uid://d4blqh8jq64lj" path="res://scripts/item/chest/sample_chest.tres" id="14_1nqs0"]
 [ext_resource type="Resource" uid="uid://bolqbdkeyldr1" path="res://scripts/item/chest/sample_chest2.tres" id="15_1iba3"]
@@ -24,9 +17,7 @@
 [node name="Main" type="Node2D" unique_id=1202522057]
 script = ExtResource("1_rarhs")
 enemy_unit_scene = ExtResource("2_mwfav")
-enemy_data_list = Array[ExtResource("3_3p2gp")]([ExtResource("6_bb450"), ExtResource("5_ft6cd"), ExtResource("4_cvmbd")])
 npc_unit_scene = ExtResource("2_ft6cd")
-npc_data_list = Array[ExtResource("12_ebg2g")]([ExtResource("10_ebg2g"), ExtResource("11_2ofn6")])
 item_pickup_scene = ExtResource("15_ft6cd")
 chest_scene = ExtResource("16_nfivy")
 chest_data_list = Array[ExtResource("13_nfivy")]([ExtResource("15_1iba3"), ExtResource("14_1nqs0")])

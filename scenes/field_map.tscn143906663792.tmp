@@ -1,0 +1,64 @@
+[gd_scene format=3 uid="uid://763h4n8mfcrw"]
+
+[ext_resource type="Script" uid="uid://dvk2f4dxietfj" path="res://scripts/map/map_scene_scripts/FiledMap.gd" id="1_bf576"]
+[ext_resource type="TileSet" uid="uid://cg36ceoxkfmsq" path="res://data/nekura.tres" id="2_4fq26"]
+[ext_resource type="PackedScene" uid="uid://cjntf4kbtxh73" path="res://scenes/unit.tscn" id="11_qok4n"]
+
+[node name="FieldMap" type="Node2D" unique_id=1202522057]
+script = ExtResource("1_bf576")
+map_id = "FieldMap"
+
+[node name="GroundLayer" type="TileMapLayer" parent="." unique_id=808028674]
+tile_set = ExtResource("2_4fq26")
+
+[node name="WallLayer" type="TileMapLayer" parent="." unique_id=1210940059]
+tile_set = ExtResource("2_4fq26")
+
+[node name="EventLayer" type="TileMapLayer" parent="." unique_id=1337611593]
+tile_set = ExtResource("2_4fq26")
+
+[node name="ItemPickups" type="Node" parent="." unique_id=915461164]
+
+[node name="Chests" type="Node" parent="." unique_id=507468750]
+
+[node name="Units" type="Node" parent="." unique_id=332583731]
+
+[node name="Unit" parent="Units" unique_id=40692456 instance=ExtResource("11_qok4n")]
+tile_size = null
+move_speed = null
+repeat_delay = null
+start_tile = null
+is_enemy = null
+map_id = null
+faction = null
+equipment_slot_order = null
+override_combat_style = null
+combat_style = null
+override_move_style = null
+move_style = null
+sprite_offset_adjust = null
+can_talk = null
+talk_greeting_text = null
+unit_roles = null
+friendliness = null
+can_offer_request = null
+can_trade = null
+can_receive_order = null
+extra_interact_actions = null
+offered_quests = null
+use_generated_quests = null
+quest_offer_count_min = null
+quest_offer_count_max = null
+quest_template_pool = null
+request_description = null
+request_accept_text = null
+request_decline_text = null
+random_talk_texts = null
+idle_right_frames = null
+walk_right_frames = null
+idle_left_frames = null
+walk_left_frames = null
+idle_down_frames = null
+walk_down_frames = null
+idle_up_frames = null
+walk_up_frames = null

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SpawnRuleData" format=3 uid="uid://b8og3mnknwcjg"]
+
+[ext_resource type="Script" uid="uid://b7ysbp1aifykm" path="res://scripts/data/spawnrule_data.gd" id="1_r8ome"]
+
+[resource]
+script = ExtResource("1_r8ome")
+rule_id = "grass_hard_enemy"
+allowed_generator_types = Array[String](["GRASS"])
+min_area_difficulty = 3
+max_area_difficulty = 5
+min_enemy_difficulty = 3
+max_enemy_difficulty = 5
+max_spawn_count = 6
+weight = 5
+metadata/_custom_type_script = "uid://b7ysbp1aifykm"

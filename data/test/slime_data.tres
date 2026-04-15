@@ -4,6 +4,7 @@
 [ext_resource type="Texture2D" uid="uid://dkvllwbkdf2tx" path="res://assets/slime.png" id="2_majvy"]
 [ext_resource type="Script" uid="uid://dnv8aysj2gsac" path="res://scripts/data/enemy_data.gd" id="3_prihv"]
 [ext_resource type="Texture2D" uid="uid://bpqm8jdgcdw81" path="res://assets/slime_back_1.png" id="4_12df5"]
+[ext_resource type="Script" uid="uid://0c32in4pchg3" path="res://scripts/data/loot_category_entry.gd" id="4_majvy"]
 [ext_resource type="Texture2D" uid="uid://bj4jp4lwoc1y" path="res://assets/slime_back_2.png" id="5_43wv8"]
 [ext_resource type="Texture2D" uid="uid://bj1gtr2kqtvcj" path="res://assets/slime_left_1.png" id="6_wyuac"]
 [ext_resource type="Texture2D" uid="uid://ytc6wwuh6evv" path="res://assets/slime_left_2.png" id="7_76v00"]

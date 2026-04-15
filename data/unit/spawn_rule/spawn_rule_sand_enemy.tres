@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SpawnRuleData" format=3 uid="uid://dg8sjpyxx8c73"]
+
+[ext_resource type="Script" uid="uid://b7ysbp1aifykm" path="res://scripts/data/spawnrule_data.gd" id="1_tcop4"]
+
+[resource]
+script = ExtResource("1_tcop4")
+rule_id = "sand_enemy"
+allowed_generator_types = Array[String](["SAND", "BEACH"])
+min_area_difficulty = 1
+max_area_difficulty = 5
+max_enemy_difficulty = 5
+max_spawn_count = 3
+weight = 4
+metadata/_custom_type_script = "uid://b7ysbp1aifykm"

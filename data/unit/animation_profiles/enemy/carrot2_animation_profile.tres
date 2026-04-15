@@ -1,11 +1,11 @@
 [gd_resource type="Resource" script_class="AnimationProfile" format=3 uid="uid://clonudv7fchjs"]
 
 [ext_resource type="Script" uid="uid://dh57busqtv542" path="res://scripts/data/AnimationProfile.gd" id="1_pd1fk"]
-[ext_resource type="Texture2D" uid="uid://dgbn16in8kao2" path="res://assets/Gnu materials/Mobchip/4方向(新)/1201_0a.png" id="2_hf23i"]
+[ext_resource type="Texture2D" uid="uid://bq60d7wh8n3kq" path="res://assets/Gnu materials/Mobchip/4方向(新)/1206_0a.png" id="2_7n5bj"]
 
 [resource]
 script = ExtResource("1_pd1fk")
-sprite_sheet = ExtResource("2_hf23i")
+sprite_sheet = ExtResource("2_7n5bj")
 frame_columns = 3
 idle_right_indices = Array[int]([7])
 walk_right_indices = Array[int]([6, 7, 8])

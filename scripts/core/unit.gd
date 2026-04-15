@@ -1279,18 +1279,22 @@ func try_interact_transition() -> void:
 		spawn_x = GlobalDetailMap.from_field_tile.x
 		spawn_y = GlobalDetailMap.from_field_tile.y
 	else:
+		var detail_config: Dictionary = {}
+
+		if not WorldState.field_detail_map_data.has(detail_map_key):
+			detail_config = create_detail_map_config(String(generator_type), field_tile)
+			WorldState.field_detail_map_data[detail_map_key] = detail_config
+		else:
+			detail_config = WorldState.field_detail_map_data[detail_map_key]
+
 		GlobalDetailMap.current_detail_map_key = detail_map_key
 		GlobalDetailMap.current_generator_type = String(generator_type)
 		GlobalDetailMap.from_field_tile = field_tile
-
-		if not WorldState.field_detail_map_data.has(detail_map_key):
-			WorldState.field_detail_map_data[detail_map_key] = create_detail_map_config(
-				String(generator_type),
-				field_tile
-			)
+		GlobalDetailMap.current_area_difficulty = int(detail_config.get("area_difficulty", 0))
 
 		print("DETAIL MAP KEY =", detail_map_key)
 		print("DETAIL GENERATOR =", generator_type)
+		print("DETAIL AREA DIFFICULTY =", GlobalDetailMap.current_area_difficulty)
 
 	if is_player_unit:
 		PlayerData.last_map_id = map_id
@@ -1614,6 +1618,10 @@ func sync_map_id_from_scene() -> void:
 		map_id = GlobalDetailMap.current_detail_map_key
 
 
+func calculate_field_area_difficulty(field_tile: Vector2i) -> int:
+	return randi_range(1, 5)
+
+
 func create_detail_map_config(generator_type: String, field_tile: Vector2i) -> Dictionary:
 	generator_type = generator_type.strip_edges().replace("\"", "").to_upper()
 
@@ -1623,6 +1631,7 @@ func create_detail_map_config(generator_type: String, field_tile: Vector2i) -> D
 		"generator_type": String(generator_type),
 		"field_x": field_tile.x,
 		"field_y": field_tile.y,
+		"area_difficulty": calculate_field_area_difficulty(field_tile),
 		"enemy_spawn_count": 5,
 		"npc_spawn_count": 3,
 		"enemy_type_ids": ["bat", "slime"],

@@ -12,6 +12,9 @@ extends Node2D
 @export var map_id: String = ""
 @export var world_seed: int = 123456
 
+@export var min_area_difficulty: int = 1
+@export var max_area_difficulty: int = 5
+
 const FLOOR_SOURCE_ID: int = 1
 const WALL_SOURCE_ID: int = 0
 const HIGHROCK_SOURCE_ID: int = 5
@@ -50,6 +53,7 @@ const SPECIAL_PLACE_TILE_MAP: Dictionary = {
 var map_generator: PlainMapGenerator
 var dungeon_entrance_generator: FieldDungeonEntranceGenerator
 var special_place_generator: FieldSpecialPlaceGenerator
+
 
 func _ready() -> void:
 	print("FIELDMAP READY START")
@@ -99,16 +103,80 @@ func _ready() -> void:
 		)
 
 		var special_places: Array = special_place_generator.generate_all_places()
+		special_places = assign_difficulty_to_special_places(special_places)
 		WorldState.field_special_places[map_id] = special_places
+
+		print("[DEBUG][FiledMap] generated special_places = ", special_places)
 
 		apply_special_places_to_event_layer(special_places)
 
 		save_map_tiles()
 
+	_ensure_special_place_difficulties()
+
 	if WorldState.field_special_places.has(map_id):
+		print("[DEBUG][FiledMap] final field_special_places[map_id] = ", WorldState.field_special_places[map_id])
 		apply_special_places_to_event_layer(WorldState.field_special_places[map_id])
 
 	print("FIELDMAP READY END")
+
+
+func _roll_area_difficulty() -> int:
+	if max_area_difficulty < min_area_difficulty:
+		return min_area_difficulty
+	return randi_range(min_area_difficulty, max_area_difficulty)
+
+
+func _is_safe_special_place(place_id: String) -> bool:
+	return place_id.begins_with("start_") \
+		or place_id.begins_with("town_") \
+		or place_id.begins_with("village_") \
+		or place_id.begins_with("castle_")
+
+
+func assign_difficulty_to_special_places(places: Array) -> Array:
+	var result: Array = []
+
+	for place in places:
+		var entry: Dictionary = place.duplicate(true)
+		var place_id: String = str(entry.get("place_id", ""))
+
+		if not entry.has("difficulty"):
+			if _is_safe_special_place(place_id):
+				entry["difficulty"] = 0
+			else:
+				entry["difficulty"] = _roll_area_difficulty()
+
+		print("[DEBUG][FiledMap] assign difficulty place_id=", place_id, " difficulty=", entry.get("difficulty", -999))
+
+		result.append(entry)
+
+	return result
+
+
+func _ensure_special_place_difficulties() -> void:
+	if not WorldState.field_special_places.has(map_id):
+		print("[DEBUG][FiledMap] no field_special_places for map_id=", map_id)
+		return
+
+	var original_places: Array = WorldState.field_special_places[map_id]
+	print("[DEBUG][FiledMap] original field_special_places before ensure = ", original_places)
+
+	var updated_places: Array = assign_difficulty_to_special_places(original_places)
+	WorldState.field_special_places[map_id] = updated_places
+
+	print("[DEBUG][FiledMap] updated field_special_places after ensure = ", WorldState.field_special_places[map_id])
+
+
+func _build_detail_map_key(cell: Vector2i) -> String:
+	return "field_%d_%d" % [cell.x, cell.y]
+
+
+func _get_special_place_generator_type(place: Dictionary) -> String:
+	var generator_type: String = str(place.get("detail_generator", ""))
+	if generator_type == "":
+		generator_type = str(place.get("generator_type", ""))
+	return generator_type.strip_edges().replace("\"", "").to_upper()
 
 
 func generate_map() -> void:
@@ -133,13 +201,31 @@ func get_dungeon_id_at_cell(cell: Vector2i) -> String:
 
 func get_special_place_at_cell(cell: Vector2i) -> Dictionary:
 	if not WorldState.field_special_places.has(map_id):
+		print("[DEBUG][FiledMap] get_special_place_at_cell: no field_special_places for map_id=", map_id)
 		return {}
 
 	for place in WorldState.field_special_places[map_id]:
 		if place["x"] == cell.x and place["y"] == cell.y:
+			print("[DEBUG][FiledMap] get_special_place_at_cell hit: ", place)
 			return place
 
+	print("[DEBUG][FiledMap] get_special_place_at_cell miss at cell=", cell)
 	return {}
+
+
+func get_special_place_difficulty_at_cell(cell: Vector2i) -> int:
+	if not WorldState.field_special_places.has(map_id):
+		print("[DEBUG][FiledMap] get_special_place_difficulty_at_cell: no field_special_places for map_id=", map_id)
+		return 0
+
+	for place in WorldState.field_special_places[map_id]:
+		if place["x"] == cell.x and place["y"] == cell.y:
+			var difficulty: int = int(place.get("difficulty", 0))
+			print("[DEBUG][FiledMap] get_special_place_difficulty_at_cell hit cell=", cell, " difficulty=", difficulty, " place=", place)
+			return difficulty
+
+	print("[DEBUG][FiledMap] get_special_place_difficulty_at_cell miss at cell=", cell)
+	return 0
 
 
 func try_enter_dungeon_from_player_position() -> bool:
@@ -150,6 +236,8 @@ func try_enter_dungeon_from_player_position() -> bool:
 	var dungeon_id: String = get_dungeon_id_at_cell(current_cell)
 	if dungeon_id == "":
 		return false
+
+	print("[DEBUG][FiledMap] enter dungeon current_cell=", current_cell, " dungeon_id=", dungeon_id)
 
 	GlobalDungeon.current_dungeon_id = dungeon_id
 	GlobalDungeon.current_floor = 1
@@ -162,20 +250,49 @@ func try_enter_dungeon_from_player_position() -> bool:
 
 
 func try_enter_special_place_from_player_position() -> bool:
+	print("[DEBUG][FiledMap] try_enter_special_place_from_player_position called")
+
 	var current_cell: Vector2i = ground_layer.local_to_map(
 		ground_layer.to_local(player.global_position)
 	)
 
+	print("[DEBUG][FiledMap] current_cell = ", current_cell)
+
 	var place: Dictionary = get_special_place_at_cell(current_cell)
+	print("[DEBUG][FiledMap] place = ", place)
+
 	if place.is_empty():
+		print("[DEBUG][FiledMap] place is empty -> return false")
 		return false
 
 	if not place.has("enter_scene"):
+		print("[DEBUG][FiledMap] place has no enter_scene -> return false")
 		return false
 
-	var enter_scene: String = place["enter_scene"]
+	var enter_scene: String = str(place.get("enter_scene", ""))
+	print("[DEBUG][FiledMap] enter_scene = ", enter_scene)
+
 	if enter_scene == "":
+		print("[DEBUG][FiledMap] enter_scene is empty -> return false")
 		return false
+
+	var place_difficulty: int = get_special_place_difficulty_at_cell(current_cell)
+	var generator_type: String = _get_special_place_generator_type(place)
+	var detail_map_key: String = _build_detail_map_key(current_cell)
+
+	print("[DEBUG][FiledMap] detail_map_key = ", detail_map_key)
+	print("[DEBUG][FiledMap] generator_type = ", generator_type)
+	print("[DEBUG][FiledMap] place_difficulty = ", place_difficulty)
+
+	GlobalDetailMap.current_detail_map_key = detail_map_key
+	GlobalDetailMap.current_generator_type = generator_type
+	GlobalDetailMap.from_field_tile = current_cell
+	GlobalDetailMap.current_area_difficulty = place_difficulty
+
+	print("[DEBUG][FiledMap] GlobalDetailMap.current_detail_map_key = ", GlobalDetailMap.current_detail_map_key)
+	print("[DEBUG][FiledMap] GlobalDetailMap.current_generator_type = ", GlobalDetailMap.current_generator_type)
+	print("[DEBUG][FiledMap] GlobalDetailMap.from_field_tile = ", GlobalDetailMap.from_field_tile)
+	print("[DEBUG][FiledMap] GlobalDetailMap.current_area_difficulty = ", GlobalDetailMap.current_area_difficulty)
 
 	get_tree().change_scene_to_file(enter_scene)
 	return true

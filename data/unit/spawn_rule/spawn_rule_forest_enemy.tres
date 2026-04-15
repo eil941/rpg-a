@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SpawnRuleData" format=3 uid="uid://br04vgqx4k35b"]
+
+[ext_resource type="Script" uid="uid://b7ysbp1aifykm" path="res://scripts/data/spawnrule_data.gd" id="1_cmq16"]
+
+[resource]
+script = ExtResource("1_cmq16")
+rule_id = "forest_enemy"
+allowed_generator_types = Array[String](["FOREST"])
+min_area_difficulty = 1
+max_area_difficulty = 5
+max_spawn_count = 5
+weight = 5
+metadata/_custom_type_script = "uid://b7ysbp1aifykm"

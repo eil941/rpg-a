@@ -5,6 +5,7 @@
 [ext_resource type="Texture2D" uid="uid://beq3x3etje1lv" path="res://assets/bat.png" id="2_rlxby"]
 [ext_resource type="Script" uid="uid://dnv8aysj2gsac" path="res://scripts/data/enemy_data.gd" id="3_kdhrl"]
 [ext_resource type="Texture2D" uid="uid://bhcrrex7womxr" path="res://assets/bat_back_1.png" id="4_lrolu"]
+[ext_resource type="Script" uid="uid://0c32in4pchg3" path="res://scripts/data/loot_category_entry.gd" id="5_kdhrl"]
 [ext_resource type="Texture2D" uid="uid://fn6twn6i2gx5" path="res://assets/bat_back_2.png" id="5_ra4o2"]
 [ext_resource type="Texture2D" uid="uid://h113kmtxmot" path="res://assets/bat_left_1.png" id="6_b0fuw"]
 [ext_resource type="Texture2D" uid="uid://vepgycco3ko1" path="res://assets/bat_left_2.png" id="7_d3ibj"]
@@ -15,6 +16,7 @@
 script = ExtResource("3_kdhrl")
 enemy_type_id = "bat"
 enemy_name = "bat"
+base_difficulty = 2
 max_hp = 8
 attack = 2
 speed = 180.0
