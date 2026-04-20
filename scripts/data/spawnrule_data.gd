@@ -8,8 +8,8 @@ class_name SpawnRuleData
 @export var min_area_difficulty: int = -1
 @export var max_area_difficulty: int = -1
 
-@export var min_enemy_difficulty: int = 1
-@export var max_enemy_difficulty: int = 1
+@export var min_enemy_difficulty: int = -1
+@export var max_enemy_difficulty: int = -1
 
 @export var use_hour_range: bool = false
 @export_range(0, 23) var start_hour: int = 0

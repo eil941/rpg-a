@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="AnimationProfile" format=3 uid="uid://batmj5qr05qrk"]
+
+[ext_resource type="Script" uid="uid://dh57busqtv542" path="res://scripts/data/AnimationProfile.gd" id="1_cbvco"]
+[ext_resource type="Texture2D" uid="uid://dwi5ci3inhm12" path="res://assets/sample/goblin.png" id="2_5b0nl"]
+
+[resource]
+script = ExtResource("1_cbvco")
+sprite_sheet = ExtResource("2_5b0nl")
+frame_columns = 3
+metadata/_custom_type_script = "uid://dh57busqtv542"

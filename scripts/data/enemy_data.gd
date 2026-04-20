@@ -128,6 +128,9 @@ var unit_roles: int = 0
 
 @export var animation_profile: AnimationProfile
 
+# 表示倍率。未変更なら等倍(1, 1)で元の大きさ。
+@export var sprite_scale: Vector2 = Vector2.ONE
+
 @export var idle_right_frames: Array[Texture2D] = []
 @export var walk_right_frames: Array[Texture2D] = []
 

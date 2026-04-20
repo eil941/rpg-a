@@ -17,9 +17,12 @@
 script = ExtResource("3_prihv")
 enemy_type_id = "slime"
 enemy_name = "slime"
+base_difficulty = 5
+spawn_generator_tags = Array[String](["SEA"])
 speed = 100.0
 combat_style = 1
 move_style = 1
+talk_display_name = "難易度5"
 talk_portrait = ExtResource("2_majvy")
 animation_profile = ExtResource("1_ex81s")
 idle_right_frames = Array[Texture2D]([ExtResource("2_majvy")])

@@ -3,10 +3,10 @@ class_name SpawnRuleDatabase
 
 static func get_all_rules() -> Array[SpawnRuleData]:
 	return [
-		preload("res://data/unit/spawn_rule/spawn_rule_grass_easy.tres"),
-		preload("res://data/unit/spawn_rule/spawn_rule_grass_hard.tres"),
-		preload("res://data/unit/spawn_rule/spawn_rule_sand_enemy.tres"),
-		preload("res://data/unit/spawn_rule/spawn_rule_forest_enemy.tres")
+		#preload("res://data/unit/spawn_rule/spawn_rule_grass_easy.tres"),
+		#preload("res://data/unit/spawn_rule/spawn_rule_grass_hard.tres"),
+		#preload("res://data/unit/spawn_rule/spawn_rule_sand_enemy.tres"),
+		#preload("res://data/unit/spawn_rule/spawn_rule_forest_enemy.tres")
 	]
 
 

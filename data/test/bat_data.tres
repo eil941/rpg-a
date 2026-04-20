@@ -16,14 +16,14 @@
 script = ExtResource("3_kdhrl")
 enemy_type_id = "bat"
 enemy_name = "bat"
-base_difficulty = 2
+spawn_generator_tags = Array[String](["SEA"])
 max_hp = 8
 attack = 2
 speed = 180.0
 equipped_weapon = ExtResource("2_kdhrl")
 combat_style = 1
 move_style = 1
-talk_display_name = "bat"
+talk_display_name = "bat 難易度1"
 talk_portrait = ExtResource("2_rlxby")
 unit_roles = 1
 animation_profile = ExtResource("1_4gq8q")

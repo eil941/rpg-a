@@ -1498,6 +1498,9 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 	request_decline_text = enemy_data.request_decline_text
 	random_talk_texts = enemy_data.random_talk_texts.duplicate()
 
+	if sprite != null:
+		sprite.scale = enemy_data.sprite_scale
+
 	if enemy_data.animation_profile != null:
 		apply_animation_profile(enemy_data.animation_profile)
 	else:

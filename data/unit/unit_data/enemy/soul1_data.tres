@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://cfiro5mwpxjah"]
+
+[ext_resource type="Resource" uid="uid://nhawi8hlbn6y" path="res://data/unit/animation_profiles/enemy/soul1_animation_profile.tres" id="1_ufy0w"]
+[ext_resource type="Texture2D" uid="uid://beq3x3etje1lv" path="res://assets/bat.png" id="2_ofa4y"]
+[ext_resource type="Script" uid="uid://dnv8aysj2gsac" path="res://scripts/data/enemy_data.gd" id="3_jpwv5"]
+[ext_resource type="Script" uid="uid://0c32in4pchg3" path="res://scripts/data/loot_category_entry.gd" id="4_lv5bm"]
+[ext_resource type="Texture2D" uid="uid://bhcrrex7womxr" path="res://assets/bat_back_1.png" id="6_i2yvp"]
+[ext_resource type="Texture2D" uid="uid://fn6twn6i2gx5" path="res://assets/bat_back_2.png" id="7_njllh"]
+[ext_resource type="Texture2D" uid="uid://h113kmtxmot" path="res://assets/bat_left_1.png" id="8_5vbfg"]
+[ext_resource type="Texture2D" uid="uid://vepgycco3ko1" path="res://assets/bat_left_2.png" id="9_72nly"]
+[ext_resource type="Texture2D" uid="uid://bs84lnwdcy3jx" path="res://assets/bat_right_1.png" id="10_jtoa3"]
+[ext_resource type="Texture2D" uid="uid://bxlcg5n2ul0qa" path="res://assets/bat_right_2.png" id="11_7285m"]
+
+[resource]
+script = ExtResource("3_jpwv5")
+enemy_type_id = "soul_1"
+enemy_name = "soul_1"
+base_difficulty = 4
+spawn_generator_tags = Array[String](["GRASS", "NATURAL"])
+max_hp = 8
+attack = 2
+speed = 130.0
+combat_style = 1
+move_style = 1
+talk_display_name = "soul_1 難易度4"
+animation_profile = ExtResource("1_ufy0w")
+idle_right_frames = Array[Texture2D]([ExtResource("2_ofa4y")])
+walk_right_frames = Array[Texture2D]([ExtResource("10_jtoa3"), ExtResource("11_7285m")])
+idle_left_frames = Array[Texture2D]([ExtResource("2_ofa4y")])
+walk_left_frames = Array[Texture2D]([ExtResource("8_5vbfg"), ExtResource("9_72nly")])
+idle_down_frames = Array[Texture2D]([ExtResource("2_ofa4y")])
+walk_down_frames = Array[Texture2D]([ExtResource("6_i2yvp"), ExtResource("7_njllh")])
+idle_up_frames = Array[Texture2D]([ExtResource("2_ofa4y")])
+walk_up_frames = Array[Texture2D]([ExtResource("2_ofa4y"), ExtResource("2_ofa4y")])
+metadata/_custom_type_script = "uid://dnv8aysj2gsac"

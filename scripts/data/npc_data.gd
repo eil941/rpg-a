@@ -25,6 +25,11 @@ enum AIMoveStyle {
 @export_enum("PLAYER", "NPC", "ENEMY")
 var faction: String = "NPC"
 
+@export var base_difficulty: int = 1
+@export var spawn_generator_tags: Array[String] = []
+@export var rarity: int = 1
+@export var is_nocturnal: bool = false
+
 @export var max_hp: int = 20
 @export var attack: int = 5
 @export var defense: int = 2
@@ -118,6 +123,9 @@ var unit_roles: int = 0
 ]
 
 @export var animation_profile: AnimationProfile
+
+# 表示倍率。未変更なら等倍(1, 1)で元の大きさ。
+@export var sprite_scale: Vector2 = Vector2.ONE
 
 @export var idle_right_frames: Array[Texture2D] = []
 @export var walk_right_frames: Array[Texture2D] = []

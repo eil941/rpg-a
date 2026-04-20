@@ -21,6 +21,8 @@ npc_unit_scene = ExtResource("2_ft6cd")
 item_pickup_scene = ExtResource("15_ft6cd")
 chest_scene = ExtResource("16_nfivy")
 chest_data_list = Array[ExtResource("13_nfivy")]([ExtResource("15_1iba3"), ExtResource("14_1nqs0")])
+normal_enemy_spawn_min = 7
+normal_enemy_spawn_max = 11
 map_id = "test"
 
 [node name="GroundLayer" type="TileMapLayer" parent="." unique_id=808028674]

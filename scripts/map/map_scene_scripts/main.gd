@@ -9,7 +9,9 @@ extends Node2D
 @onready var chests_node: Node = get_node_or_null("Chests")
 
 @export var enemy_unit_scene: PackedScene
+
 @export var npc_unit_scene: PackedScene
+@export var npc_data_list: Array[NpcData]
 
 @export var item_pickup_scene: PackedScene
 @export var chest_scene: PackedScene
@@ -17,6 +19,9 @@ extends Node2D
 
 @export var fallback_enemy_spawn_count: int = 0
 @export var fallback_npc_spawn_count: int = 0
+
+@export var normal_enemy_spawn_min: int = 10
+@export var normal_enemy_spawn_max: int = 13
 
 @export var map_id: String = ""
 
@@ -83,19 +88,18 @@ func _ready() -> void:
 	var spawn_context: Dictionary = _build_spawn_context(generator_type)
 
 	var all_enemy_data: Array[EnemyData] = EnemyDatabase.get_all_enemy_data()
-	var all_npc_data: Array[NpcData] = NpcDatabase.get_all_npc_data()
 
 	var current_enemy_spawn_count: int = fallback_enemy_spawn_count
 	var current_npc_spawn_count: int = fallback_npc_spawn_count
 	var current_enemy_data_list: Array[EnemyData] = all_enemy_data
-	var current_npc_data_list: Array[NpcData] = all_npc_data
+	var current_npc_data_list: Array[NpcData] = npc_data_list
 
 	var enemy_pool_info: Dictionary = _build_enemy_spawn_pool(spawn_context, all_enemy_data)
 	if enemy_pool_info.get("count", 0) > 0 and enemy_pool_info.get("pool", []).size() > 0:
 		current_enemy_spawn_count = int(enemy_pool_info.get("count", 0))
 		current_enemy_data_list = enemy_pool_info.get("pool", [])
 
-	var npc_pool_info: Dictionary = _build_npc_spawn_pool(spawn_context, all_npc_data)
+	var npc_pool_info: Dictionary = _build_npc_spawn_pool(spawn_context)
 	if npc_pool_info.get("count", 0) > 0 and npc_pool_info.get("pool", []).size() > 0:
 		current_npc_spawn_count = int(npc_pool_info.get("count", 0))
 		current_npc_data_list = npc_pool_info.get("pool", [])
@@ -222,19 +226,22 @@ func _build_spawn_context(generator_type: String) -> Dictionary:
 
 func _build_enemy_spawn_pool(context: Dictionary, all_enemy_data: Array[EnemyData]) -> Dictionary:
 	var selected_rule: SpawnRuleData = _get_best_matching_spawn_rule("ENEMY", context)
+
+	if selected_rule != null:
+		print("enemy special rule selected = ", selected_rule.rule_id)
+		return _build_enemy_spawn_pool_from_rule(context, all_enemy_data, selected_rule)
+
+	print("enemy special rule selected = null -> use normal spawn")
+	return _build_normal_enemy_spawn_pool(context, all_enemy_data)
+
+
+func _build_enemy_spawn_pool_from_rule(
+	context: Dictionary,
+	all_enemy_data: Array[EnemyData],
+	selected_rule: SpawnRuleData
+) -> Dictionary:
 	var pool: Array[EnemyData] = []
-	var total_spawn_count: int = 0
-
-	if selected_rule == null:
-		print("enemy selected rule = null")
-		return {
-			"count": 0,
-			"pool": pool
-		}
-
-	print("enemy selected rule = ", selected_rule.rule_id, " max_spawn_count=", selected_rule.max_spawn_count, " weight=", selected_rule.weight)
-
-	total_spawn_count = max(0, selected_rule.max_spawn_count)
+	var total_spawn_count: int = max(0, selected_rule.max_spawn_count)
 
 	for data in all_enemy_data:
 		if data == null:
@@ -243,6 +250,8 @@ func _build_enemy_spawn_pool(context: Dictionary, all_enemy_data: Array[EnemyDat
 			continue
 
 		var entry_weight: int = _calculate_enemy_entry_weight(data, selected_rule, context)
+		if entry_weight <= 0:
+			continue
 		_append_weighted_enemy(pool, data, entry_weight)
 
 	return {
@@ -251,7 +260,83 @@ func _build_enemy_spawn_pool(context: Dictionary, all_enemy_data: Array[EnemyDat
 	}
 
 
-func _build_npc_spawn_pool(context: Dictionary, all_npc_data: Array[NpcData]) -> Dictionary:
+func _build_normal_enemy_spawn_pool(context: Dictionary, all_enemy_data: Array[EnemyData]) -> Dictionary:
+	var pool: Array[EnemyData] = []
+	var spawn_count: int = _get_default_enemy_spawn_count(context)
+
+	for data in all_enemy_data:
+		if data == null:
+			continue
+		if not _is_enemy_allowed_for_normal_spawn(data, context):
+			continue
+
+		var entry_weight: int = _calculate_normal_enemy_entry_weight(data, context)
+		if entry_weight <= 0:
+			continue
+		_append_weighted_enemy(pool, data, entry_weight)
+
+	return {
+		"count": spawn_count,
+		"pool": pool
+	}
+
+
+func _get_default_enemy_spawn_count(_context: Dictionary) -> int:
+	if fallback_enemy_spawn_count > 0:
+		return fallback_enemy_spawn_count
+
+	var min_count: int = mini(normal_enemy_spawn_min, normal_enemy_spawn_max)
+	var max_count: int = maxi(normal_enemy_spawn_min, normal_enemy_spawn_max)
+	return randi_range(min_count, max_count)
+
+
+func _is_enemy_allowed_for_normal_spawn(data: EnemyData, context: Dictionary) -> bool:
+	var generator_type: String = String(context.get("generator_type", ""))
+	var area_difficulty: int = int(context.get("area_difficulty", 1))
+
+	var spawn_generator_tags: Array = _get_array_property(data, "spawn_generator_tags")
+	if spawn_generator_tags.size() > 0 and not spawn_generator_tags.has(generator_type):
+		return false
+
+	var base_difficulty: int = int(_get_property_or_default(data, "base_difficulty", 1))
+	var diff_gap: int = absi(base_difficulty - area_difficulty)
+
+	if diff_gap >= 5:
+		return false
+
+	return true
+
+
+func _calculate_normal_enemy_entry_weight(data: EnemyData, context: Dictionary) -> int:
+	var area_difficulty: int = int(context.get("area_difficulty", 1))
+	var hour: int = int(context.get("hour", 12))
+	var base_difficulty: int = int(_get_property_or_default(data, "base_difficulty", 1))
+	var rarity: int = int(_get_property_or_default(data, "rarity", 1))
+	var is_nocturnal: bool = bool(_get_property_or_default(data, "is_nocturnal", false))
+
+	var diff_gap: int = absi(base_difficulty - area_difficulty)
+	var result: int = 0
+
+	if diff_gap == 0:
+		result = 85
+	elif diff_gap <= 2:
+		result = 12
+	elif diff_gap <= 4:
+		result = 3
+	else:
+		result = 0
+
+	if result <= 0:
+		return 0
+
+	if is_nocturnal and (hour >= 18 or hour <= 5):
+		result += 5
+
+	result *= max(1, 6 - rarity)
+	return clampi(result, 1, 200)
+
+
+func _build_npc_spawn_pool(context: Dictionary) -> Dictionary:
 	var selected_rule: SpawnRuleData = _get_best_matching_spawn_rule("NPC", context)
 	var pool: Array[NpcData] = []
 	var total_spawn_count: int = 0
@@ -267,7 +352,7 @@ func _build_npc_spawn_pool(context: Dictionary, all_npc_data: Array[NpcData]) ->
 
 	total_spawn_count = max(0, selected_rule.max_spawn_count)
 
-	for data in all_npc_data:
+	for data in npc_data_list:
 		if data == null:
 			continue
 		if not _is_npc_allowed_by_rule_and_context(data, selected_rule, context):
@@ -356,7 +441,7 @@ func _is_enemy_allowed_by_rule_and_context(data: EnemyData, rule: SpawnRuleData,
 	if spawn_generator_tags.size() > 0 and not spawn_generator_tags.has(generator_type):
 		return false
 
-	var base_difficulty: int = int(_get_property_or_default(data, "base_difficulty", 0))
+	var base_difficulty: int = int(_get_property_or_default(data, "base_difficulty", 1))
 
 	if rule.min_enemy_difficulty >= 0 and base_difficulty < rule.min_enemy_difficulty:
 		return false
@@ -378,16 +463,34 @@ func _is_npc_allowed_by_rule_and_context(data: NpcData, rule: SpawnRuleData, con
 
 
 func _calculate_enemy_entry_weight(data: EnemyData, rule: SpawnRuleData, context: Dictionary) -> int:
-	var result: int = max(1, rule.weight)
+	var area_difficulty: int = int(context.get("area_difficulty", 1))
 	var hour: int = int(context.get("hour", 12))
-	var is_nocturnal: bool = bool(_get_property_or_default(data, "is_nocturnal", false))
+	var base_difficulty: int = int(_get_property_or_default(data, "base_difficulty", 1))
 	var rarity: int = int(_get_property_or_default(data, "rarity", 1))
+	var is_nocturnal: bool = bool(_get_property_or_default(data, "is_nocturnal", false))
+
+	var diff_gap: int = absi(base_difficulty - area_difficulty)
+	var result: int = 0
+
+	if diff_gap == 0:
+		result = 70
+	elif diff_gap <= 2:
+		result = 20
+	elif diff_gap <= 4:
+		result = 10
+	else:
+		result = 0
+
+	if result <= 0:
+		return 0
+
+	result += max(0, rule.weight - 1) * 10
 
 	if is_nocturnal and (hour >= 18 or hour <= 5):
-		result += 2
+		result += 5
 
 	result *= max(1, 6 - rarity)
-	return clampi(result, 1, 20)
+	return clampi(result, 1, 200)
 
 
 func _calculate_npc_entry_weight(data: NpcData, rule: SpawnRuleData, context: Dictionary) -> int:
@@ -399,7 +502,7 @@ func _calculate_npc_entry_weight(data: NpcData, rule: SpawnRuleData, context: Di
 
 
 func _append_weighted_enemy(pool: Array[EnemyData], data: EnemyData, weight: int) -> void:
-	var safe_weight: int = clampi(weight, 1, 20)
+	var safe_weight: int = clampi(weight, 1, 200)
 	for i in range(safe_weight):
 		pool.append(data)
 
