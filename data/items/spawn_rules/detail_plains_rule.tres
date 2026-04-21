@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ItemSpawnRuleData" format=3 uid="uid://bakij2jjmdrc4"]
+
+[ext_resource type="Script" uid="uid://bshugmx2jnw0d" path="res://scripts/data/item_spawn_rule_data.gd" id="1_rule"]
+
+[resource]
+script = ExtResource("1_rule")
+rule_id = "detail_plains_rule"
+map_kind = "detail"
+detail_generator = "PLAINS"
+base_item_count_max = 4
+difficulty_item_count_scale = 0.01
+base_rarity_target = 1.4
+difficulty_rarity_scale = 0.015
+rarity_step_penalty = 0.58
+blocked_categories = Array[String](["special"])
+blocked_item_ids = Array[String](["teleport_stone"])
+category_multipliers = {
+"consumable": 1.05,
+"equipment": 0.75,
+"food": 1.25,
+"material": 1.1,
+"special": 0.0,
+"valuable": 0.45
+}

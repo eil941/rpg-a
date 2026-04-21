@@ -45,5 +45,12 @@ var debug_player_start_items: Array[Dictionary] = [
 	{"item_id": "bow", "amount": 1},
 	{"item_id": "cloth_armor", "amount": 1},
 	{"item_id": "power_ring", "amount": 1},
-	{"item_id": "potion", "amount": 90}
+	{"item_id": "potion", "amount": 90},
+	{"item_id": "healing_potion","amount":10 },
+	{"item_id": "mushroom_bad","amount":10 },
+	{"item_id": "paralysis_cure_potion","amount":10 },
+	{"item_id": "potion_of_strength","amount":10 },
+	{"item_id": "teleport_stone","amount":10 },
 ]
+
+var debug_item_spawn: bool = true

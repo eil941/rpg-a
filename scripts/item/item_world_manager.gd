@@ -15,10 +15,10 @@ var chest_data_list: Array[ChestData]
 
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
+
 func _debug_enchant_log(message: String) -> void:
 	if DebugSettings != null and DebugSettings.debug_enchant:
 		print(message)
-
 
 
 func _init(
@@ -47,9 +47,14 @@ func _init(
 	rng.randomize()
 
 
-func setup_detail_map_random_spawn_with_save() -> void:
+func setup_detail_map_random_spawn_with_save(
+	detail_difficulty: int = 1,
+	detail_generator: String = ""
+) -> void:
+	var spawn_context: Dictionary = _build_detail_spawn_context(detail_difficulty, detail_generator)
+
 	if not WorldState.map_item_pickups.has(map_id):
-		WorldState.map_item_pickups[map_id] = generate_detail_map_item_data()
+		WorldState.map_item_pickups[map_id] = generate_detail_map_item_data(spawn_context)
 
 	if not WorldState.map_chests.has(map_id):
 		WorldState.map_chests[map_id] = generate_detail_map_chest_data()
@@ -58,9 +63,21 @@ func setup_detail_map_random_spawn_with_save() -> void:
 	load_chests_from_world_state()
 
 
-func setup_dungeon_floor_random_spawn_with_save(is_final_floor: bool) -> void:
+func setup_dungeon_floor_random_spawn_with_save(
+	dungeon_difficulty: int = 1,
+	floor_number: int = 1,
+	is_final_floor: bool = false,
+	generator_theme: String = ""
+) -> void:
+	var spawn_context: Dictionary = _build_dungeon_spawn_context(
+		dungeon_difficulty,
+		floor_number,
+		is_final_floor,
+		generator_theme
+	)
+
 	if not WorldState.map_item_pickups.has(map_id):
-		WorldState.map_item_pickups[map_id] = generate_dungeon_floor_item_data()
+		WorldState.map_item_pickups[map_id] = generate_dungeon_floor_item_data(spawn_context)
 
 	if not WorldState.map_chests.has(map_id):
 		WorldState.map_chests[map_id] = generate_dungeon_floor_chest_data(is_final_floor)
@@ -69,16 +86,16 @@ func setup_dungeon_floor_random_spawn_with_save(is_final_floor: bool) -> void:
 	load_chests_from_world_state()
 
 
-func generate_detail_map_item_data() -> Array:
+func generate_detail_map_item_data(spawn_context: Dictionary) -> Array:
 	var result: Array = []
-	var count: int = rng.randi_range(0, 5)
+	var count: int = ItemSpawnRuleDatabase.get_spawn_count(spawn_context, rng)
 
 	var tiles: Array[Vector2i] = get_available_tiles()
 	tiles.shuffle()
 
 	for i in range(min(count, tiles.size())):
 		var tile: Vector2i = tiles[i]
-		var item_entry: Dictionary = choose_random_item_entry()
+		var item_entry: Dictionary = ItemSpawnRuleDatabase.roll_item_entry(spawn_context, rng)
 		var save_entry: Dictionary = _build_world_item_save_data(item_entry, tile)
 
 		if not save_entry.is_empty():
@@ -113,16 +130,16 @@ func generate_detail_map_chest_data() -> Array:
 	return result
 
 
-func generate_dungeon_floor_item_data() -> Array:
+func generate_dungeon_floor_item_data(spawn_context: Dictionary) -> Array:
 	var result: Array = []
-	var count: int = rng.randi_range(5, 15)
+	var count: int = ItemSpawnRuleDatabase.get_spawn_count(spawn_context, rng)
 
 	var tiles: Array[Vector2i] = get_available_tiles()
 	tiles.shuffle()
 
 	for i in range(min(count, tiles.size())):
 		var tile: Vector2i = tiles[i]
-		var item_entry: Dictionary = choose_random_item_entry()
+		var item_entry: Dictionary = ItemSpawnRuleDatabase.roll_item_entry(spawn_context, rng)
 		var save_entry: Dictionary = _build_world_item_save_data(item_entry, tile)
 
 		if not save_entry.is_empty():
@@ -237,28 +254,33 @@ func choose_weighted_loot_category(chest_data: ChestData) -> LootCategoryEntry:
 	return null
 
 
-func choose_random_item_entry() -> Dictionary:
-	var roll: int = rng.randi_range(0, 99)
-	_debug_enchant_log("[ENCHANT][ItemWorldManager] floor roll=%d" % roll)
+func _build_detail_spawn_context(detail_difficulty: int, detail_generator: String) -> Dictionary:
+	return {
+		"map_kind": "detail",
+		"map_id": map_id,
+		"generator_theme": "",
+		"detail_generator": String(detail_generator).strip_edges().to_upper(),
+		"difficulty": max(0, detail_difficulty),
+		"floor": 0,
+		"is_final_floor": false
+	}
 
-	var result_entry: Dictionary = {}
-	if roll < 28:
-		result_entry = {"item_id": "potion", "amount": 1}
-	elif roll < 48:
-		result_entry = {"item_id": "apple", "amount": 1}
-	elif roll < 63:
-		result_entry = {"item_id": "wood", "amount": 1}
-	elif roll < 78:
-		result_entry = _build_inventory_entry("knife", 1)
-	elif roll < 88:
-		result_entry = _build_inventory_entry("cloth_armor", 1)
-	elif roll < 96:
-		result_entry = _build_inventory_entry("power_ring", 1)
-	else:
-		result_entry = _build_inventory_entry("bow", 1)
 
-	_debug_enchant_log("[ENCHANT][ItemWorldManager] floor entry=%s" % str(result_entry))
-	return result_entry
+func _build_dungeon_spawn_context(
+	dungeon_difficulty: int,
+	floor_number: int,
+	is_final_floor: bool,
+	generator_theme: String
+) -> Dictionary:
+	return {
+		"map_kind": "dungeon",
+		"map_id": map_id,
+		"generator_theme": String(generator_theme).strip_edges().to_upper(),
+		"detail_generator": "",
+		"difficulty": max(0, dungeon_difficulty),
+		"floor": max(1, floor_number),
+		"is_final_floor": is_final_floor
+	}
 
 
 func _build_inventory_entry(item_id: String, amount: int = 1) -> Dictionary:

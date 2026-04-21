@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://yk6yx4ewaphc"]
+
+[ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_item"]
+[ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_effect"]
+[ext_resource type="Texture2D" uid="uid://dxp2r6xq4klxt" path="res://assets/items/healing_potion.png" id="2_ijg6u"]
+
+[sub_resource type="Resource" id="Effect_RestoreHP"]
+script = ExtResource("2_effect")
+effect_type = 1
+power_min = 30
+power_max = 30
+
+[resource]
+script = ExtResource("1_item")
+item_id = "healing_potion"
+display_name = "回復ポーション"
+description = "HPを30回復する。自分で飲むことも、敵味方問わず投げて使うこともできる。"
+icon = ExtResource("2_ijg6u")
+category = "consumable"
+max_stack = 20
+usable = true
+base_price = 120
+rarity = 2
+use_flags = 5
+target_flags = 15
+effects = Array[ExtResource("2_effect")]([SubResource("Effect_RestoreHP")])

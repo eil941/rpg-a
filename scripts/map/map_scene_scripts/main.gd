@@ -148,7 +148,14 @@ func _ready() -> void:
 		chest_scene,
 		chest_data_list
 	)
-	item_world_manager.setup_detail_map_random_spawn_with_save()
+
+	var detail_difficulty: int = int(GlobalDetailMap.current_area_difficulty)
+	if WorldState.field_detail_map_data.has(map_id):
+		var saved_area_difficulty: int = int(WorldState.field_detail_map_data[map_id].get("area_difficulty", detail_difficulty))
+		if saved_area_difficulty > 0:
+			detail_difficulty = saved_area_difficulty
+
+	item_world_manager.setup_detail_map_random_spawn_with_save(detail_difficulty)
 
 	if player != null and player.has_method("reset_after_map_transition"):
 		player.reset_after_map_transition()

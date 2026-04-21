@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemSpawnRuleData" format=3 uid="uid://buiyeet1i4vl7"]
+
+[ext_resource type="Script" uid="uid://bshugmx2jnw0d" path="res://scripts/data/item_spawn_rule_data.gd" id="1_rule"]
+
+[resource]
+script = ExtResource("1_rule")
+rule_id = "dungeon_default_rule"
+map_kind = "dungeon"
+base_item_count_min = 10
+base_item_count_max = 15
+difficulty_item_count_scale = 0.03
+base_rarity_target = 2.0
+final_floor_rarity_bonus = 1.0
+rarity_step_penalty = 0.4
+category_multipliers = {
+"consumable": 1.1,
+"equipment": 0.95,
+"food": 0.9,
+"material": 1.0,
+"special": 0.5,
+"valuable": 0.8
+}

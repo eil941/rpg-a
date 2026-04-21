@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://yfnf1d6glq2g"]
+
+[ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_item"]
+[ext_resource type="Texture2D" uid="uid://ckexfog112hi2" path="res://assets/items/strength_potion.png" id="2_cajgh"]
+[ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_effect"]
+
+[sub_resource type="Resource" id="Effect_AttackBuff"]
+script = ExtResource("2_effect")
+effect_type = 4
+duration_seconds = 7200.0
+stat_name = &"attack"
+stat_percent = 0.2
+
+[resource]
+script = ExtResource("1_item")
+item_id = "potion_of_strength"
+display_name = "力のポーション"
+description = "2時間のあいだ攻撃力を20%上昇させる。自分で飲むことも、敵味方問わず投げて使うこともできる。"
+icon = ExtResource("2_cajgh")
+category = "consumable"
+max_stack = 20
+usable = true
+base_price = 220
+rarity = 5
+use_flags = 5
+target_flags = 15
+effects = Array[ExtResource("2_effect")]([SubResource("Effect_AttackBuff")])

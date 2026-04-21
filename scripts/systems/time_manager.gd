@@ -25,6 +25,9 @@ func advance_time(units_node: Node, player_speed: float) -> void:
 		if unit.has_method("on_time_advanced"):
 			unit.on_time_advanced(elapsed_seconds)
 
+		# 持続効果は内部的には time 基準で処理する
+		UnitEffectRuntime.tick_effects(unit, elapsed_seconds)
+
 	if QuestManager != null and QuestManager.has_method("check_time_limit_failures"):
 		QuestManager.check_time_limit_failures()
 

@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://qkeocxsl5fqh"]
 
+[ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="1_0bv3h"]
 [ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_0jtar"]
 [ext_resource type="Texture2D" uid="uid://snxa032qnsjt" path="res://assets/items/potion.png" id="1_wdku8"]
 
@@ -10,7 +11,11 @@ display_name = "potion"
 icon = ExtResource("1_wdku8")
 category = "consumable"
 usable = true
+base_price = 100
+rarity = 10
+use_flags = 5
+target_flags = 15
+effects = Array[ExtResource("1_0bv3h")]([null])
 effect_type = 1
 effect_value = 500
-base_price = 100
 metadata/_custom_type_script = "uid://cmkxp6ab4l88m"

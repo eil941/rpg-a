@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="ItemSpawnRuleData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/item_spawn_rule_data.gd" id="1_rule"]
+
+[resource]
+script = ExtResource("1_rule")
+rule_id = "detail_ruins_rule"
+is_base_rule = true
+priority = 0
+map_kind = "detail"
+generator_theme = ""
+detail_generator = "RUINS"
+difficulty_min = 0
+difficulty_max = 9999
+floor_min = 0
+floor_max = 9999
+final_floor_only = false
+base_item_count_min = 0
+base_item_count_max = 3
+difficulty_item_count_scale = 0.01
+base_rarity_target = 2.2
+difficulty_rarity_scale = 0.02
+final_floor_rarity_bonus = 0.0
+rarity_step_penalty = 0.48
+blocked_categories = []
+blocked_item_ids = []
+category_multipliers = {
+"consumable": 0.9,
+"material": 0.8,
+"equipment": 0.95,
+"valuable": 1.2,
+"special": 0.35,
+"food": 0.7
+}
+item_weight_overrides = {}
+metadata/_custom_type_script = "res://scripts/data/item_spawn_rule_data.gd"

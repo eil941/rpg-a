@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://y082rix32mlg"]
 
+[ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="1_6crmk"]
 [ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_pkq13"]
 [ext_resource type="Texture2D" uid="uid://kqryfdfyqjeu" path="res://assets/items/wood.png" id="1_qnvr4"]
 
@@ -9,6 +10,7 @@ item_id = "wood"
 display_name = "wood"
 icon = ExtResource("1_qnvr4")
 category = "material"
-effect_type = 2
 base_price = 10
+rarity = 9
+effect_type = 2
 metadata/_custom_type_script = "uid://cmkxp6ab4l88m"

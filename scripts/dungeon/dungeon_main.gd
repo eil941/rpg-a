@@ -141,7 +141,14 @@ func _ready() -> void:
 		chest_data_list
 	)
 
-	item_world_manager.setup_dungeon_floor_random_spawn_with_save(is_bottom_floor)
+	var item_spawn_dungeon_kind: String = _get_item_spawn_dungeon_kind(layout_generator_type)
+
+	item_world_manager.setup_dungeon_floor_random_spawn_with_save(
+		effective_difficulty,
+		GlobalDungeon.current_floor,
+		is_bottom_floor,
+		item_spawn_dungeon_kind
+	)
 
 	place_player_on_pending_stair()
 
@@ -183,7 +190,7 @@ func _ensure_floor_data_exists(floor_map_id: String) -> void:
 		"map_height": map_height,
 		"enemy_spawn_count": enemy_config["enemy_spawn_count"],
 		"enemy_type_ids": enemy_config["enemy_type_ids"],
-		"selected_enemy_rule_id": String(enemy_config.get("selected_rule_id", "")),
+		"selected_rule_id": String(enemy_config.get("selected_rule_id", "")),
 		"npc_spawn_count": 0,
 		"npc_type_ids": []
 	}
@@ -220,6 +227,30 @@ func get_layout_candidates_for_theme(generator_theme: String) -> Array[String]:
 			return ["LINEAR", "RINGS", "MAZE", "CAVE"]
 
 	return ["ROOM", "CAVE", "RUINS"]
+
+
+func _get_item_spawn_dungeon_kind(layout_generator_type: String) -> String:
+	var kind_text: String = String(layout_generator_type).strip_edges().replace("\"", "").to_lower()
+
+	match kind_text:
+		"cave":
+			return "cave"
+		"ruins":
+			return "ruins"
+		"maze":
+			return "maze"
+		"room":
+			return "maze"
+		"cross":
+			return "maze"
+		"arena":
+			return "ruins"
+		"linear":
+			return "maze"
+		"rings":
+			return "maze"
+		_:
+			return "cave"
 
 
 func choose_enemy_config_for_floor(

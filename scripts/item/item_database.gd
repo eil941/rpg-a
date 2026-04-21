@@ -9,6 +9,12 @@ static var ITEM_RESOURCES = {
 	"potion": preload("res://data/items/potion.tres"),
 	"wood": preload("res://data/items/wood.tres"),
 	"apple": preload("res://data/items/apple.tres"),
+	
+	"healing_potion": preload("res://data/items/healing_potion.tres"),
+	"mushroom_bad": preload("res://data/items/mushroom_bad.tres"),
+	"paralysis_cure_potion": preload("res://data/items/paralysis_cure_potion.tres"),
+	"potion_of_strength": preload("res://data/items/potion_of_strength.tres"),
+	"teleport_stone": preload("res://data/items/teleport_stone.tres"),
 
 	# equipment
 	"knife": preload("res://data/equipment/weapons/knife.tres"),
@@ -334,3 +340,57 @@ static func get_sell_price(item_id: String) -> int:
 
 	var base_price: int = get_base_price(item_id)
 	return max(0, int(base_price / 2))
+
+	
+static func get_all_item_ids() -> Array[String]:
+	var result: Array[String] = []
+
+	for item_id in ITEM_RESOURCES.keys():
+		result.append(String(item_id))
+
+	return result
+
+
+static func get_spawnable_item_ids() -> Array[String]:
+	var result: Array[String] = []
+
+	for item_id in ITEM_RESOURCES.keys():
+		var id_text: String = String(item_id)
+		var data = get_item_resource(id_text)
+		if data == null:
+			continue
+
+		if data is ItemData or data is EquipmentData:
+			result.append(id_text)
+
+	return result
+
+
+static func get_rarity(item_id: String) -> int:
+	var data = get_item_resource(item_id)
+	if data == null:
+		return 1
+
+	if data is ItemData:
+		return data.get_rarity_value()
+
+	if data is EquipmentData:
+		if "rarity" in data:
+			return clampi(int(data.rarity), 1, 10)
+
+	return 1
+
+
+static func get_spawn_weight(item_id: String) -> int:
+	var data = get_item_resource(item_id)
+	if data == null:
+		return 0
+
+	if data is ItemData:
+		return data.get_spawn_weight_value()
+
+	if data is EquipmentData:
+		if "spawn_weight" in data:
+			return max(0, int(data.spawn_weight))
+
+	return 100
