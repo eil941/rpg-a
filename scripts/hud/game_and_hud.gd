@@ -8,6 +8,9 @@ extends Node
 var current_map: Node = null
 var trade_return_context: Dictionary = {}
 
+var hud_refresh_interval: float = 0.2
+var hud_refresh_timer: float = 0.0
+
 
 func _ready() -> void:
 	load_map_by_path("res://scenes/field_map.tscn")
@@ -18,6 +21,17 @@ func _ready() -> void:
 			status_ui.close_ui()
 		else:
 			status_ui.visible = false
+
+
+func _process(delta: float) -> void:
+	hud_refresh_timer += delta
+	if hud_refresh_timer < hud_refresh_interval:
+		return
+
+	hud_refresh_timer = 0.0
+	update_hud_time()
+	update_hud_player_status()
+	update_hud_effects()
 
 
 func load_map_by_path(scene_path: String) -> void:
@@ -124,12 +138,18 @@ func _build_player_effect_entries(player) -> Array[Dictionary]:
 	if not ("active_effect_runtimes" in player):
 		return result
 
+	var player_speed: float = 1.0
+	if player.has_method("get_total_speed"):
+		player_speed = max(1.0, float(player.get_total_speed()))
+	elif player.stats != null:
+		player_speed = max(1.0, float(player.stats.speed))
+
 	var runtimes: Array = player.active_effect_runtimes
 	for runtime_value in runtimes:
 		if runtime_value == null:
 			continue
 
-		var entry: Dictionary = _build_effect_entry(runtime_value)
+		var entry: Dictionary = _build_effect_entry(runtime_value, player_speed)
 		if entry.is_empty():
 			continue
 
@@ -138,81 +158,119 @@ func _build_player_effect_entries(player) -> Array[Dictionary]:
 	return result
 
 
-func _build_effect_entry(runtime) -> Dictionary:
+func _build_effect_entry(runtime, player_speed: float) -> Dictionary:
 	if runtime == null:
 		return {}
 
 	var entry: Dictionary = {
 		"name": "効果",
-		"short_name": "効果",
+		"icon_text": "？",
 		"description": "",
-		"remaining_text": _format_runtime_remaining(runtime),
-		"kind": "status"
+		"remaining_time_text": "",
+		"remaining_turn_text": "",
+		"type_text": "",
+		"kind": "status",
+		"hover_key": ""
 	}
 
+	var remaining_seconds: float = max(0.0, float(runtime.remaining_duration))
+	entry["remaining_time_text"] = _format_remaining_time_text(remaining_seconds)
+	entry["remaining_turn_text"] = _format_remaining_turn_text(remaining_seconds, player_speed)
+
 	if runtime.effect_type == ItemEffectData.EffectType.APPLY_STATUS:
-		var status_name: String = _get_status_display_name(String(runtime.status_id))
-		entry["name"] = status_name
-		entry["short_name"] = status_name
-		entry["description"] = _get_status_description(String(runtime.status_id))
+		var status_id: String = String(runtime.status_id)
+		entry["name"] = _get_status_display_name(status_id)
+		entry["icon_text"] = _get_status_icon_text(status_id)
+		entry["description"] = _get_status_description(status_id, int(runtime.status_power))
+		entry["type_text"] = "状態異常"
 		entry["kind"] = "status"
+		entry["hover_key"] = "status:%s" % status_id
 		return entry
 
 	if runtime.effect_type == ItemEffectData.EffectType.APPLY_MODIFIER:
-		var stat_name: String = _get_stat_display_name(String(runtime.stat_name))
+		var stat_name: String = String(runtime.stat_name)
 		var is_debuff: bool = runtime.modifier_kind == ItemEffectData.ModifierKind.DEBUFF
-		var prefix: String = "↑"
 		var kind: String = "buff"
-		if is_debuff:
-			prefix = "↓"
-			kind = "debuff"
+		var type_text: String = "バフ"
+		var debuff_flag: String = "0"
 
-		entry["name"] = stat_name + ("低下" if is_debuff else "上昇")
-		entry["short_name"] = prefix + stat_name
+		if is_debuff:
+			kind = "debuff"
+			type_text = "デバフ"
+			debuff_flag = "1"
+
+		entry["name"] = _get_modifier_display_name(stat_name, is_debuff)
+		entry["icon_text"] = _get_modifier_icon_text(stat_name, is_debuff)
 		entry["description"] = _build_modifier_description(runtime, stat_name, is_debuff)
+		entry["type_text"] = type_text
 		entry["kind"] = kind
+		entry["hover_key"] = "modifier:%s:%s" % [stat_name, debuff_flag]
 		return entry
 
 	return {}
 
-
 func _build_modifier_description(runtime, stat_name: String, is_debuff: bool) -> String:
-	var value_text: String = ""
+	var stat_text: String = _get_stat_display_name(stat_name)
+	var parts: Array[String] = []
 
-	if float(runtime.stat_percent) != 0.0:
-		value_text = str(int(round(abs(float(runtime.stat_percent)) * 100.0))) + "%"
-	elif int(runtime.stat_flat) != 0:
-		value_text = str(abs(int(runtime.stat_flat)))
-	else:
-		value_text = "0"
+	if int(runtime.stat_flat) != 0:
+		if is_debuff:
+			parts.append("%s %d" % [stat_text, -abs(int(runtime.stat_flat))])
+		else:
+			parts.append("%s +%d" % [stat_text, abs(int(runtime.stat_flat))])
 
-	return stat_name + ("低下 " if is_debuff else "上昇 ") + value_text
+	if absf(float(runtime.stat_percent)) > 0.0001:
+		var percent_text: String = str(int(round(absf(float(runtime.stat_percent)) * 100.0))) + "%"
+		if is_debuff:
+			parts.append("%s -%s" % [stat_text, percent_text])
+		else:
+			parts.append("%s +%s" % [stat_text, percent_text])
+
+	if parts.is_empty():
+		if is_debuff:
+			return stat_text + "を一時的に低下させる"
+		return stat_text + "を一時的に上昇させる"
+
+	return " / ".join(parts)
 
 
-func _format_runtime_remaining(runtime) -> String:
-	var duration_type: int = int(runtime.duration_type)
-	var remaining_value: float = float(runtime.remaining_duration)
+func _format_remaining_time_text(seconds: float) -> String:
+	if seconds <= 0.0:
+		return "0秒"
 
-	match duration_type:
-		ItemEffectData.DurationType.TIME:
-			var total_seconds: int = max(0, int(ceil(remaining_value)))
-			if total_seconds >= 3600:
-				var hours: int = total_seconds / 3600
-				var minutes: int = (total_seconds % 3600) / 60
-				return "%dh%02dm" % [hours, minutes]
-			if total_seconds >= 60:
-				var mins: int = total_seconds / 60
-				var secs: int = total_seconds % 60
-				return "%dm%02ds" % [mins, secs]
-			return "%ds" % total_seconds
+	var total_seconds: int = int(ceil(seconds))
 
-		ItemEffectData.DurationType.TURN:
-			return "%dT" % max(0, int(ceil(remaining_value)))
+	if total_seconds < 60:
+		return "%d秒" % total_seconds
 
-		ItemEffectData.DurationType.ACTION:
-			return "%dA" % max(0, int(ceil(remaining_value)))
+	if total_seconds < 3600:
+		var minutes: int = total_seconds / 60
+		var remain_seconds: int = total_seconds % 60
+		return "%d分%d秒" % [minutes, remain_seconds]
 
-	return ""
+	if total_seconds < 86400:
+		var hours: int = total_seconds / 3600
+		var minutes2: int = (total_seconds % 3600) / 60
+		return "%d時間%d分" % [hours, minutes2]
+
+	var days: int = total_seconds / 86400
+	var hours2: int = (total_seconds % 86400) / 3600
+	return "%d日%d時間" % [days, hours2]
+
+
+func _format_remaining_turn_text(seconds: float, player_speed: float) -> String:
+	if seconds <= 0.0:
+		return "約0ターン"
+
+	if player_speed <= 0.0:
+		return ""
+
+	var seconds_per_turn: float = 86400.0 / player_speed
+	if seconds_per_turn <= 0.0:
+		return ""
+
+	var estimated_turns: int = int(ceil(seconds / seconds_per_turn))
+	return "約%dターン" % estimated_turns
 
 
 func _get_status_display_name(status_id: String) -> String:
@@ -223,9 +281,9 @@ func _get_status_display_name(status_id: String) -> String:
 			return "麻痺"
 		"sleep":
 			return "睡眠"
-		"burning":
+		"burning", "burn":
 			return "炎上"
-		"frostbite":
+		"frostbite", "freeze":
 			return "凍傷"
 		"confusion":
 			return "混乱"
@@ -239,18 +297,42 @@ func _get_status_display_name(status_id: String) -> String:
 			return status_id
 
 
-func _get_status_description(status_id: String) -> String:
+func _get_status_icon_text(status_id: String) -> String:
 	match status_id:
 		"poison":
-			return "継続ダメージを受ける"
+			return "毒"
+		"paralysis":
+			return "麻"
+		"sleep":
+			return "眠"
+		"burning", "burn":
+			return "炎"
+		"frostbite", "freeze":
+			return "凍"
+		"confusion":
+			return "乱"
+		"blind":
+			return "盲"
+		"hallucination":
+			return "幻"
+		"curse":
+			return "呪"
+		_:
+			return "異"
+
+
+func _get_status_description(status_id: String, status_power: int) -> String:
+	match status_id:
+		"poison":
+			return "継続ダメージを受ける。威力: %d" % max(1, status_power)
 		"paralysis":
 			return "行動できない"
 		"sleep":
-			return "眠っている"
-		"burning":
-			return "燃焼ダメージを受ける"
-		"frostbite":
-			return "凍傷ダメージを受ける"
+			return "眠って行動できない"
+		"burning", "burn":
+			return "燃焼ダメージを受ける。威力: %d" % max(1, status_power)
+		"frostbite", "freeze":
+			return "凍傷ダメージを受ける。威力: %d" % max(1, status_power)
 		"confusion":
 			return "移動が乱れる"
 		"blind":
@@ -261,6 +343,35 @@ func _get_status_description(status_id: String) -> String:
 			return "不吉な影響を受けている"
 		_:
 			return ""
+
+
+func _get_modifier_display_name(stat_name: String, is_debuff: bool) -> String:
+	var stat_text: String = _get_stat_display_name(stat_name)
+	if is_debuff:
+		return stat_text + "低下"
+	return stat_text + "上昇"
+
+
+func _get_modifier_icon_text(stat_name: String, is_debuff: bool) -> String:
+	var arrow: String = "↑"
+	if is_debuff:
+		arrow = "↓"
+
+	match stat_name:
+		"attack":
+			return "攻" + arrow
+		"defense":
+			return "防" + arrow
+		"speed":
+			return "速" + arrow
+		"accuracy":
+			return "命" + arrow
+		"evasion":
+			return "避" + arrow
+		"crit_rate":
+			return "会" + arrow
+		_:
+			return "強" + arrow
 
 
 func _get_stat_display_name(stat_name: String) -> String:

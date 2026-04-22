@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://bji7srxp1ov88"]
 
 [ext_resource type="Script" uid="uid://cqgayefbsqgyp" path="res://scripts/hud/game_hud.gd" id="1_jna2d"]
+[ext_resource type="Texture2D" uid="uid://brjyt064jvdma" path="res://assets/items/mushroom_bad.png" id="2_n64bn"]
 
 [node name="GameHUD" type="Control" unique_id=275878376]
 layout_mode = 3
@@ -10,6 +11,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_jna2d")
+icon_poison = ExtResource("2_n64bn")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=813876046]
 
