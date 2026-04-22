@@ -15,6 +15,7 @@ static var ITEM_RESOURCES = {
 	"paralysis_cure_potion": preload("res://data/items/paralysis_cure_potion.tres"),
 	"potion_of_strength": preload("res://data/items/potion_of_strength.tres"),
 	"teleport_stone": preload("res://data/items/teleport_stone.tres"),
+	"poison_cure_potion":preload("res://data/items/poison_cure_potion.tres"),
 
 	# equipment
 	"knife": preload("res://data/equipment/weapons/knife.tres"),
@@ -184,8 +185,10 @@ static func get_effect_type(item_id: String) -> String:
 	if data == null:
 		return "none"
 
-	if data.has_method("get_effect_type_name"):
-		return data.get_effect_type_name()
+	if "effects" in data and data.effects is Array and data.effects.size() > 0:
+		var effect: ItemEffectData = data.effects[0]
+		if effect != null:
+			return effect.get_effect_type_name()
 
 	return "none"
 
@@ -194,7 +197,227 @@ static func get_effect_value(item_id: String) -> int:
 	var data = get_item_resource(item_id)
 	if data == null:
 		return 0
-	return int(data.effect_value)
+
+	if "effects" in data and data.effects is Array and data.effects.size() > 0:
+		var effect: ItemEffectData = data.effects[0]
+		if effect == null:
+			return 0
+
+		if effect.value_mode == ItemEffectData.ValueMode.PERCENT:
+			return int(round(effect.percent_value * 100.0))
+
+		if effect.power_min == effect.power_max:
+			return int(effect.power_min)
+
+		return int(effect.power_min)
+
+	return 0
+
+
+static func get_effect_summary_lines(item_id: String) -> Array[String]:
+	var data = get_item_resource(item_id)
+	var result: Array[String] = []
+
+	if data == null:
+		return result
+
+	if not ("effects" in data):
+		return result
+
+	var effects = data.effects
+	if effects == null:
+		return result
+
+	for effect in effects:
+		if effect == null:
+			continue
+
+		match effect.effect_type:
+			ItemEffectData.EffectType.RESTORE_RESOURCE:
+				result.append(_build_restore_resource_text(effect))
+
+			ItemEffectData.EffectType.CURE_STATUS:
+				if effect.status_id != &"":
+					result.append("状態異常回復: " + _get_status_display_name(effect.status_id))
+
+			ItemEffectData.EffectType.APPLY_STATUS:
+				if effect.status_id != &"":
+					result.append("状態異常付与: " + _get_status_display_name(effect.status_id))
+
+			ItemEffectData.EffectType.APPLY_MODIFIER:
+				result.append(_build_modifier_text(effect))
+
+			ItemEffectData.EffectType.DEAL_DAMAGE:
+				result.append(_build_damage_text(effect))
+
+			ItemEffectData.EffectType.TELEPORT:
+				result.append(_build_teleport_text(effect))
+
+			ItemEffectData.EffectType.PERMANENT_STAT_GROWTH:
+				if effect.stat_name != &"":
+					result.append("永久成長: " + _get_stat_display_name(effect.stat_name))
+
+			ItemEffectData.EffectType.LEARN_SKILL:
+				result.append("スキル習得")
+
+			ItemEffectData.EffectType.UNLOCK_RECIPE:
+				result.append("レシピ解放")
+
+			ItemEffectData.EffectType.IDENTIFY_ITEM:
+				result.append("鑑定")
+
+			ItemEffectData.EffectType.READ_DOCUMENT:
+				result.append("読む")
+
+			ItemEffectData.EffectType.SPAWN_OBJECT:
+				result.append("設置")
+
+	return result
+
+
+static func get_effect_summary_text(item_id: String) -> String:
+	var lines: Array[String] = get_effect_summary_lines(item_id)
+	if lines.is_empty():
+		return ""
+	return "\n".join(lines)
+
+
+static func _build_restore_resource_text(effect: ItemEffectData) -> String:
+	var resource_name: String = _get_resource_display_name(effect.resource_type)
+
+	match effect.value_mode:
+		ItemEffectData.ValueMode.FULL:
+			return resource_name + "全回復"
+
+		ItemEffectData.ValueMode.PERCENT:
+			return resource_name + "回復 " + str(int(round(effect.percent_value * 100.0))) + "%"
+
+		_:
+			if effect.power_min == effect.power_max:
+				return resource_name + "回復 " + str(effect.power_min)
+			return resource_name + "回復 " + str(effect.power_min) + "〜" + str(effect.power_max)
+
+
+static func _build_modifier_text(effect: ItemEffectData) -> String:
+	var stat_name: String = _get_stat_display_name(effect.stat_name)
+	var kind_name: String = "上昇"
+
+	if effect.modifier_kind == ItemEffectData.ModifierKind.DEBUFF:
+		kind_name = "低下"
+
+	var value_text: String = ""
+	if effect.stat_percent != 0.0:
+		value_text = str(int(round(abs(effect.stat_percent) * 100.0))) + "%"
+	elif effect.stat_flat != 0:
+		value_text = str(abs(effect.stat_flat))
+	else:
+		value_text = "0"
+
+	var duration_text: String = ""
+	match effect.duration_type:
+		ItemEffectData.DurationType.TIME:
+			duration_text = " / " + str(int(round(effect.duration_value))) + "秒"
+		ItemEffectData.DurationType.TURN:
+			duration_text = " / " + str(int(round(effect.duration_value))) + "ターン"
+		ItemEffectData.DurationType.ACTION:
+			duration_text = " / " + str(int(round(effect.duration_value))) + "行動"
+
+	return stat_name + kind_name + " " + value_text + duration_text
+
+
+static func _build_damage_text(effect: ItemEffectData) -> String:
+	if effect.power_min == effect.power_max:
+		return "ダメージ " + str(effect.power_min)
+	return "ダメージ " + str(effect.power_min) + "〜" + str(effect.power_max)
+
+
+static func _build_teleport_text(effect: ItemEffectData) -> String:
+	match effect.teleport_mode:
+		ItemEffectData.TeleportMode.RANDOM:
+			return "ランダムテレポート"
+		ItemEffectData.TeleportMode.POINT:
+			return "指定地点へ転移"
+		ItemEffectData.TeleportMode.HOME:
+			return "拠点へ帰還"
+		ItemEffectData.TeleportMode.DUNGEON_EXIT:
+			return "ダンジョン脱出"
+
+	return "テレポート"
+
+
+static func _get_resource_display_name(resource_type: int) -> String:
+	match resource_type:
+		ItemEffectData.ResourceType.HP:
+			return "HP"
+		ItemEffectData.ResourceType.MP:
+			return "MP"
+		ItemEffectData.ResourceType.STAMINA:
+			return "スタミナ"
+		ItemEffectData.ResourceType.HUNGER:
+			return "空腹度"
+	return "リソース"
+
+
+static func _get_status_display_name(status_id: StringName) -> String:
+	match String(status_id):
+		"poison":
+			return "毒"
+		"paralysis":
+			return "麻痺"
+		"burning":
+			return "炎上"
+		"frostbite":
+			return "凍傷"
+		"sleep":
+			return "眠り"
+		"confusion":
+			return "混乱"
+		"blind":
+			return "盲目"
+		"hallucination":
+			return "幻覚"
+		"curse":
+			return "呪い"
+	return String(status_id)
+
+
+static func _get_stat_display_name(stat_name: StringName) -> String:
+	match String(stat_name):
+		"max_hp":
+			return "最大HP"
+		"attack":
+			return "攻撃力"
+		"defense":
+			return "防御力"
+		"speed":
+			return "速度"
+		"accuracy":
+			return "命中"
+		"evasion":
+			return "回避"
+		"crit_rate":
+			return "会心率"
+		"crit_damage":
+			return "会心ダメージ"
+		"luck":
+			return "運"
+		"strength":
+			return "筋力"
+		"vitality":
+			return "体力"
+		"agility":
+			return "敏捷"
+		"dexterity":
+			return "器用"
+		"intelligence":
+			return "知力"
+		"spirit":
+			return "精神"
+		"sense":
+			return "感覚"
+		"charm":
+			return "魅力"
+	return String(stat_name)
 
 
 static func get_base_price(item_id: String) -> int:

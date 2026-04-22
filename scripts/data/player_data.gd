@@ -4,7 +4,7 @@ extends Node
 var max_hp: int = 2000
 #現在のHP
 var hp: int = 2000
-var attack: int = 0
+var attack: int = 10
 var defense: int = 200
 var speed: float = 120.0
 
@@ -34,5 +34,8 @@ var equipment_data: Dictionary = {
 	"accessory_3": {},
 	"accessory_4": {}
 }
+
+var effect_runtimes_data: Array = []
+var last_effect_update_time: float = 0.0
 
 var debug_start_items_applied: bool = false

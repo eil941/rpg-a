@@ -6,7 +6,7 @@
 
 [sub_resource type="Resource" id="Effect_Teleport"]
 script = ExtResource("2_effect")
-effect_type = 5
+effect_type = 8
 teleport_min_range = 3
 
 [resource]
@@ -15,7 +15,7 @@ item_id = "teleport_stone"
 display_name = "テレポートの石"
 description = "使用するとランダムな位置へ転移する不思議な石。"
 icon = ExtResource("2_aglkj")
-category = "special"
+category = "consumable"
 max_stack = 10
 usable = true
 base_price = 300

@@ -205,7 +205,7 @@ func refresh_page_1_layout(unit_node, stats) -> void:
 		portrait_texture.texture = null
 
 	page1_combat_text.text = build_page_1_combat_text(unit_node, stats)
-	page1_basic_text.text = build_page_1_basic_text(stats)
+	page1_basic_text.text = build_page_1_basic_text(unit_node, stats)
 	refresh_page_1_equipment(unit_node)
 	page1_notes_text.text = build_page_1_notes_text(unit_node)
 
@@ -779,18 +779,18 @@ func _build_active_quest_reward_text(data: Dictionary) -> String:
 	return "報酬: %s" % format_active_quest_reward_text(data, reward_gold)
 
 
-func build_page_1_basic_text(stats) -> String:
+func build_page_1_basic_text(unit_node, stats) -> String:
 	var lines: PackedStringArray = []
 
-	lines.append("筋力: %d" % int(stats.strength))
-	lines.append("体力: %d" % int(stats.vitality))
-	lines.append("敏捷: %d" % int(stats.agility))
-	lines.append("器用さ: %d" % int(stats.dexterity))
-	lines.append("知力: %d" % int(stats.intelligence))
-	lines.append("精神力: %d" % int(stats.spirit))
-	lines.append("感覚: %d" % int(stats.sense))
-	lines.append("魅力: %d" % int(stats.charm))
-	lines.append("運: %d" % int(stats.luck))
+	lines.append("筋力: %d" % _get_unit_total_stat(unit_node, &"strength", int(stats.strength)))
+	lines.append("体力: %d" % _get_unit_total_stat(unit_node, &"vitality", int(stats.vitality)))
+	lines.append("敏捷: %d" % _get_unit_total_stat(unit_node, &"agility", int(stats.agility)))
+	lines.append("器用さ: %d" % _get_unit_total_stat(unit_node, &"dexterity", int(stats.dexterity)))
+	lines.append("知力: %d" % _get_unit_total_stat(unit_node, &"intelligence", int(stats.intelligence)))
+	lines.append("精神力: %d" % _get_unit_total_stat(unit_node, &"spirit", int(stats.spirit)))
+	lines.append("感覚: %d" % _get_unit_total_stat(unit_node, &"sense", int(stats.sense)))
+	lines.append("魅力: %d" % _get_unit_total_stat(unit_node, &"charm", int(stats.charm)))
+	lines.append("運: %d" % _get_unit_total_stat(unit_node, &"luck", int(stats.luck)))
 
 	return "\n".join(lines)
 
@@ -817,10 +817,26 @@ func build_page_1_combat_text(unit_node, stats) -> String:
 	lines.append("攻撃力: %d" % total_attack)
 	lines.append("防御力: %d" % total_defense)
 	lines.append("速度: %.2f" % total_speed)
-	lines.append("命中率: %d%%" % int(round(float(stats.get_effective_accuracy()) * 100.0)))
-	lines.append("回避率: %d%%" % int(round(float(stats.get_effective_evasion()) * 100.0)))
-	lines.append("クリティカル率: %d%%" % int(round(float(stats.get_effective_crit_rate()) * 100.0)))
-	lines.append("クリティカルダメージ: %.2f" % float(stats.crit_damage))
+
+	var total_accuracy: float = float(stats.get_effective_accuracy())
+	var total_evasion: float = float(stats.get_effective_evasion())
+	var total_crit_rate: float = float(stats.get_effective_crit_rate())
+	var total_crit_damage: float = float(stats.crit_damage)
+
+	if unit_node != null:
+		if unit_node.has_method("get_total_accuracy"):
+			total_accuracy = float(unit_node.get_total_accuracy())
+		if unit_node.has_method("get_total_evasion"):
+			total_evasion = float(unit_node.get_total_evasion())
+		if unit_node.has_method("get_total_crit_rate"):
+			total_crit_rate = float(unit_node.get_total_crit_rate())
+		if unit_node.has_method("get_total_crit_damage"):
+			total_crit_damage = float(unit_node.get_total_crit_damage())
+
+	lines.append("命中率: %d%%" % int(round(total_accuracy * 100.0)))
+	lines.append("回避率: %d%%" % int(round(total_evasion * 100.0)))
+	lines.append("クリティカル率: %d%%" % int(round(total_crit_rate * 100.0)))
+	lines.append("クリティカルダメージ: %.2f" % total_crit_damage)
 	lines.append("属性: %s" % String(stats.element))
 
 	return "\n".join(lines)
@@ -926,6 +942,27 @@ func format_active_quest_reward_text(data: Dictionary, reward_gold: int) -> Stri
 		return "なし"
 
 	return " / ".join(parts)
+
+
+func _get_unit_total_stat(unit_node, stat_name: StringName, base_value: int) -> int:
+	if unit_node == null:
+		return base_value
+
+	if unit_node.has_method("get_total_stat_value"):
+		return int(unit_node.get_total_stat_value(stat_name, base_value))
+
+	if unit_node.has_method("get_modified_stat_value"):
+		return int(unit_node.get_modified_stat_value(stat_name, base_value))
+
+	match String(stat_name):
+		"luck":
+			if unit_node.has_method("get_total_luck"):
+				return int(unit_node.get_total_luck())
+		"max_hp":
+			if unit_node.has_method("get_total_max_hp"):
+				return int(unit_node.get_total_max_hp())
+
+	return base_value
 
 
 func get_item_display_name(item_id: String) -> String:

@@ -1,13 +1,6 @@
 extends Resource
 class_name ItemData
 
-# 旧方式の互換用
-enum ItemEffectType {
-	NONE,
-	HEAL_HP,
-	LOG_ONLY
-}
-
 # 使用方法
 enum ItemUseFlag {
 	USE_SELF = 1,
@@ -34,39 +27,22 @@ enum ItemTargetFlag {
 @export var base_price: int = 0
 @export var can_sell: bool = true
 
-# 出現用の基本情報
+# 出現用
 @export_range(1, 10, 1) var rarity: int = 1
 @export var spawn_weight: int = 100
 
-# 新方式
+# 使用方法
 @export_flags("Self", "UnitTarget", "ThrowTarget", "Special")
 var use_flags: int = 0
 
 @export_flags("Self", "Ally", "Enemy", "Neutral")
 var target_flags: int = 0
 
+# 新方式
 @export var effects: Array[ItemEffectData] = []
-
-# 旧方式（既存 .tres 互換用）
-@export var effect_type: ItemEffectType = ItemEffectType.NONE
-@export var effect_value: int = 0
 
 func get_item_type_name() -> String:
 	return ItemCategories.normalize(category)
-
-func get_effect_type_name() -> String:
-	if not effects.is_empty():
-		return "effects"
-
-	match effect_type:
-		ItemEffectType.NONE:
-			return "none"
-		ItemEffectType.HEAL_HP:
-			return "heal_hp"
-		ItemEffectType.LOG_ONLY:
-			return "log_only"
-		_:
-			return "none"
 
 func has_use_flag(flag: int) -> bool:
 	return (use_flags & flag) != 0

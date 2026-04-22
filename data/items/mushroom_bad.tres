@@ -8,8 +8,9 @@
 script = ExtResource("2_effect")
 effect_type = 3
 status_id = &"poison"
-duration_seconds = 3600.0
 status_power = 1
+duration_type = 1
+duration_value = 3600.0
 
 [resource]
 script = ExtResource("1_item")

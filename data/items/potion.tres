@@ -4,6 +4,12 @@
 [ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_0jtar"]
 [ext_resource type="Texture2D" uid="uid://snxa032qnsjt" path="res://assets/items/potion.png" id="1_wdku8"]
 
+[sub_resource type="Resource" id="Effect_RestoreHP"]
+script = ExtResource("1_0bv3h")
+effect_type = 1
+power_min = 500
+power_max = 500
+
 [resource]
 script = ExtResource("1_0jtar")
 item_id = "potion"
@@ -15,7 +21,5 @@ base_price = 100
 rarity = 10
 use_flags = 5
 target_flags = 15
-effects = Array[ExtResource("1_0bv3h")]([null])
-effect_type = 1
-effect_value = 500
+effects = Array[ExtResource("1_0bv3h")]([SubResource("Effect_RestoreHP")])
 metadata/_custom_type_script = "uid://cmkxp6ab4l88m"

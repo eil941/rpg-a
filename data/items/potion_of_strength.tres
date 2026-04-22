@@ -7,9 +7,10 @@
 [sub_resource type="Resource" id="Effect_AttackBuff"]
 script = ExtResource("2_effect")
 effect_type = 4
-duration_seconds = 7200.0
 stat_name = &"attack"
 stat_percent = 0.2
+duration_type = 1
+duration_value = 7200.0
 
 [resource]
 script = ExtResource("1_item")

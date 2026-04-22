@@ -39,8 +39,8 @@ func calculate_damage(attacker, target, attack_data: Dictionary = {}) -> Diction
 	var ignore_defense_rate = clamp(float(attack_data.get("ignore_defense_rate", 0.0)), 0.0, 1.0)
 	var fixed_damage_bonus = float(attack_data.get("fixed_damage_bonus", 0.0))
 
-	var attacker_luck = _get_luck(attacker_stats)
-	var target_luck = _get_luck(target_stats)
+	var attacker_luck = _get_attacker_luck(attacker, attacker_stats)
+	var target_luck = _get_target_luck(target, target_stats)
 
 	var attacker_luck_rate = _compress_luck(attacker_luck)
 	var target_luck_rate = _compress_luck(target_luck)
@@ -72,14 +72,14 @@ func calculate_damage(attacker, target, attack_data: Dictionary = {}) -> Diction
 
 	# 4. クリティカル判定
 	# 運は少しだけクリ率に影響
-	var crit_rate = _get_effective_crit_rate(attacker_stats) + bonus_crit_rate
+	var crit_rate = _get_attacker_crit_rate(attacker, attacker_stats) + bonus_crit_rate
 	crit_rate += attacker_luck_rate * 0.05
 	crit_rate -= target_luck_rate * 0.03
 	crit_rate = clamp(crit_rate, 0.0, 1.0)
 
 	var is_critical = randf() < crit_rate
 
-	var crit_damage_rate = _get_crit_damage(attacker_stats)
+	var crit_damage_rate = _get_attacker_crit_damage(attacker, attacker_stats)
 	if not is_critical:
 		crit_damage_rate = 1.0
 
@@ -114,8 +114,8 @@ func calculate_damage(attacker, target, attack_data: Dictionary = {}) -> Diction
 	var underflow_evasion_bonus = underflow * UNDERFLOW_TO_HIT_PENALTY
 
 	# 9. 命中判定
-	var accuracy_value = _get_effective_accuracy(attacker_stats) + bonus_accuracy
-	var evasion_value = _get_effective_evasion(target_stats)
+	var accuracy_value = _get_attacker_accuracy(attacker, attacker_stats) + bonus_accuracy
+	var evasion_value = _get_target_evasion(target, target_stats)
 
 	accuracy_value -= underflow_accuracy_penalty
 	evasion_value += underflow_evasion_bonus
@@ -279,6 +279,42 @@ func _get_effective_defense(stats) -> float:
 		return float(stats.defense)
 
 	return 0.0
+
+
+func _get_attacker_accuracy(attacker, attacker_stats) -> float:
+	if attacker != null and attacker.has_method("get_total_accuracy"):
+		return float(attacker.get_total_accuracy())
+	return _get_effective_accuracy(attacker_stats)
+
+
+func _get_target_evasion(target, target_stats) -> float:
+	if target != null and target.has_method("get_total_evasion"):
+		return float(target.get_total_evasion())
+	return _get_effective_evasion(target_stats)
+
+
+func _get_attacker_crit_rate(attacker, attacker_stats) -> float:
+	if attacker != null and attacker.has_method("get_total_crit_rate"):
+		return float(attacker.get_total_crit_rate())
+	return _get_effective_crit_rate(attacker_stats)
+
+
+func _get_attacker_crit_damage(attacker, attacker_stats) -> float:
+	if attacker != null and attacker.has_method("get_total_crit_damage"):
+		return float(attacker.get_total_crit_damage())
+	return _get_crit_damage(attacker_stats)
+
+
+func _get_attacker_luck(attacker, attacker_stats) -> int:
+	if attacker != null and attacker.has_method("get_total_luck"):
+		return int(attacker.get_total_luck())
+	return _get_luck(attacker_stats)
+
+
+func _get_target_luck(target, target_stats) -> int:
+	if target != null and target.has_method("get_total_luck"):
+		return int(target.get_total_luck())
+	return _get_luck(target_stats)
 
 
 func _get_effective_accuracy(stats) -> float:

@@ -12,5 +12,4 @@ icon = ExtResource("1_qnvr4")
 category = "material"
 base_price = 10
 rarity = 9
-effect_type = 2
 metadata/_custom_type_script = "uid://cmkxp6ab4l88m"

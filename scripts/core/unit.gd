@@ -141,6 +141,24 @@ enum Facing {
 var facing: int = Facing.DOWN
 var walk_frame_index: int = -1
 
+var active_effect_runtimes: Array[UnitEffectRuntime] = []
+var last_effect_update_time: float = 0.0
+
+var runtime_attack_multiplier: float = 1.0
+var runtime_defense_multiplier: float = 1.0
+var runtime_speed_multiplier: float = 1.0
+var runtime_accuracy_multiplier: float = 1.0
+var runtime_evasion_multiplier: float = 1.0
+var runtime_crit_rate_multiplier: float = 1.0
+
+var runtime_attack_flat: int = 0
+var runtime_defense_flat: int = 0
+var runtime_speed_flat: int = 0
+var runtime_accuracy_flat: int = 0
+var runtime_evasion_flat: int = 0
+var runtime_crit_rate_flat: int = 0
+
+
 
 func _ready() -> void:
 	print("UNIT READY name=", name)
@@ -242,13 +260,16 @@ func _physics_process(delta: float) -> void:
 		return
 
 
+
 func on_time_advanced(elapsed_seconds: float) -> void:
+	advance_effect_runtimes(elapsed_seconds)
+
 	if not receives_time_turns:
 		return
 
 	stats.action_progress_seconds += elapsed_seconds
 
-	var effective_speed: float = stats.get_effective_speed()
+	var effective_speed: float = get_total_speed()
 	if effective_speed <= 0.0:
 		return
 
@@ -257,8 +278,7 @@ func on_time_advanced(elapsed_seconds: float) -> void:
 	while stats.action_progress_seconds >= action_cost_seconds:
 		stats.action_progress_seconds -= action_cost_seconds
 		stats.pending_actions += 1
-
-
+		consume_effect_turns(1)
 func get_tile_data_at_coords(coords: Vector2i):
 	return event_layer.get_cell_tile_data(coords)
 
@@ -402,7 +422,7 @@ func get_total_attack() -> int:
 		total += equipment.attack_bonus
 
 	total += _get_total_enchantment_bonus("attack")
-	return max(total, 0)
+	return get_modified_stat_value(&"attack", max(total, 0))
 
 
 func get_total_defense() -> int:
@@ -412,17 +432,50 @@ func get_total_defense() -> int:
 		total += equipment.defense_bonus
 
 	total += _get_total_enchantment_bonus("defense")
-	return max(total, 0)
+	return get_modified_stat_value(&"defense", max(total, 0))
 
 
 func get_total_speed() -> float:
-	var total: float = stats.get_effective_speed()
+	var total: int = int(round(stats.get_effective_speed()))
 
 	for equipment in get_all_equipped_resources():
 		total += equipment.speed_bonus
 
-	total += float(_get_total_enchantment_bonus("speed"))
-	return max(total, 1.0)
+	total += _get_total_enchantment_bonus("speed")
+	return float(get_modified_stat_value(&"speed", max(total, 1)))
+
+
+func get_total_accuracy() -> float:
+	var base_accuracy: float = stats.get_effective_accuracy()
+	var scaled_accuracy: int = int(round(base_accuracy * 1000.0))
+	var modified_accuracy: int = get_modified_stat_value(&"accuracy", scaled_accuracy)
+	return clamp(float(modified_accuracy) / 1000.0, 0.0, 1.0)
+
+
+func get_total_evasion() -> float:
+	var base_evasion: float = stats.get_effective_evasion()
+	var scaled_evasion: int = int(round(base_evasion * 1000.0))
+	var modified_evasion: int = get_modified_stat_value(&"evasion", scaled_evasion)
+	return clamp(float(modified_evasion) / 1000.0, 0.0, 1.0)
+
+
+func get_total_crit_rate() -> float:
+	var base_crit_rate: float = stats.get_effective_crit_rate()
+	var scaled_crit_rate: int = int(round(base_crit_rate * 1000.0))
+	var modified_crit_rate: int = get_modified_stat_value(&"crit_rate", scaled_crit_rate)
+	return clamp(float(modified_crit_rate) / 1000.0, 0.0, 1.0)
+
+
+func get_total_crit_damage() -> float:
+	if stats == null:
+		return 1.5
+	return max(1.0, float(stats.crit_damage))
+
+
+func get_total_luck() -> int:
+	if stats == null:
+		return 0
+	return int(stats.luck)
 
 
 func get_attack_type_id() -> String:
@@ -1325,18 +1378,24 @@ func get_hp_status_text() -> String:
 	return "%s HP: %d/%d" % [name, stats.hp, get_total_max_hp()]
 
 
+
 func get_stats_data() -> Dictionary:
 	var data: Dictionary = stats.get_stats_data()
 	data["tile_x"] = get_current_tile_coords().x
 	data["tile_y"] = get_current_tile_coords().y
 	data["inventory"] = inventory.save_inventory_data() if inventory != null else []
 	data["equipment"] = get_equipment_save_data()
+	data["effect_runtimes"] = get_effect_runtimes_save_data()
+
+	if TimeManager != null:
+		data["last_effect_update_time"] = float(TimeManager.world_time_seconds)
+	else:
+		data["last_effect_update_time"] = last_effect_update_time
 
 	if skills != null:
 		data["skills"] = skills.get_skills_data()
 
 	return data
-
 
 func apply_stats_data(data: Dictionary) -> void:
 	if stats != null:
@@ -1356,6 +1415,22 @@ func apply_stats_data(data: Dictionary) -> void:
 	if data.has("skills") and skills != null:
 		skills.apply_skills_data(data["skills"])
 
+	if data.has("effect_runtimes"):
+		load_effect_runtimes_save_data(data["effect_runtimes"])
+	else:
+		active_effect_runtimes.clear()
+		recompute_runtime_modifiers()
+
+	var saved_update_time: float = float(data.get("last_effect_update_time", 0.0))
+	var current_world_time: float = 0.0
+	if TimeManager != null:
+		current_world_time = float(TimeManager.world_time_seconds)
+
+	var elapsed: float = max(0.0, current_world_time - saved_update_time)
+	if elapsed > 0.0:
+		apply_offscreen_effect_elapsed(elapsed)
+	else:
+		last_effect_update_time = current_world_time
 
 func save_persistent_stats() -> void:
 	print("SAVE unit_id=", unit_id, " hp=", stats.hp)
@@ -1367,6 +1442,12 @@ func save_persistent_stats() -> void:
 		PlayerData.defense = stats.defense
 		PlayerData.speed = stats.speed
 		PlayerData.extended_stats_data = stats.get_stats_data()
+		PlayerData.effect_runtimes_data = get_effect_runtimes_save_data()
+
+		if TimeManager != null:
+			PlayerData.last_effect_update_time = float(TimeManager.world_time_seconds)
+		else:
+			PlayerData.last_effect_update_time = last_effect_update_time
 
 		if skills != null:
 			PlayerData.skills_data = skills.get_skills_data()
@@ -1396,7 +1477,6 @@ func save_persistent_stats() -> void:
 		WorldState.unit_states[unit_id] = data
 		print("SAVE unit_id=", unit_id, " hp=", stats.hp)
 
-
 func load_persistent_stats() -> void:
 	if is_player_unit:
 		print("PLAYER LOAD map_id=", map_id)
@@ -1419,6 +1499,24 @@ func load_persistent_stats() -> void:
 
 		apply_equipment_save_data(PlayerData.equipment_data)
 
+		if PlayerData.effect_runtimes_data.size() > 0:
+			load_effect_runtimes_save_data(PlayerData.effect_runtimes_data)
+
+			var current_world_time: float = 0.0
+			if TimeManager != null:
+				current_world_time = float(TimeManager.world_time_seconds)
+
+			var elapsed: float = max(0.0, current_world_time - float(PlayerData.last_effect_update_time))
+			if elapsed > 0.0:
+				apply_offscreen_effect_elapsed(elapsed)
+			else:
+				last_effect_update_time = current_world_time
+		else:
+			active_effect_runtimes.clear()
+			recompute_runtime_modifiers()
+			if TimeManager != null:
+				last_effect_update_time = float(TimeManager.world_time_seconds)
+
 		if map_id != "" and PlayerData.map_positions.has(map_id):
 			var saved_tile: Vector2i = PlayerData.map_positions[map_id]
 			print("PLAYER RESTORE tile=", saved_tile)
@@ -1430,8 +1528,6 @@ func load_persistent_stats() -> void:
 	if unit_id != "" and WorldState.unit_states.has(unit_id):
 		print("LOAD unit_id=", unit_id, " hp=", WorldState.unit_states[unit_id]["hp"])
 		apply_stats_data(WorldState.unit_states[unit_id])
-
-
 func apply_enemy_data(enemy_data: EnemyData) -> void:
 	if enemy_data == null:
 		return
@@ -1866,5 +1962,385 @@ func try_open_chest_on_current_tile() -> bool:
 
 		chest.open_chest(self)
 		return true
+
+	return false
+func get_stats_node():
+	return get_node_or_null("Stats")
+
+
+func add_status_effect_runtime(runtime: UnitEffectRuntime) -> void:
+	if runtime == null:
+		return
+
+	if runtime.is_status_effect() and runtime.status_id != &"":
+		remove_status_effect(runtime.status_id)
+
+	if runtime.status_id == &"poison" or runtime.status_id == &"burning" or runtime.status_id == &"frostbite":
+		runtime.tick_interval_seconds = 1.0
+
+	print("[STATUS ADD] unit=", name, " status=", String(runtime.status_id), " effect_type=", runtime.effect_type, " duration=", runtime.remaining_duration)
+
+	active_effect_runtimes.append(runtime)
+	recompute_runtime_modifiers()
+
+
+func remove_status_effect(status_id: StringName) -> void:
+	if status_id == &"":
+		return
+
+	var remained: Array[UnitEffectRuntime] = []
+
+	for runtime in active_effect_runtimes:
+		if runtime == null:
+			continue
+
+		if runtime.is_status_effect() and runtime.status_id == status_id:
+			continue
+
+		remained.append(runtime)
+
+	var removed_count: int = active_effect_runtimes.size() - remained.size()
+	active_effect_runtimes = remained
+	if removed_count > 0:
+		print("[STATUS EXPIRE] unit=", name, " removed=", removed_count)
+	print("[STATUS REMOVE] unit=", name, " status=", String(status_id), " remaining=", active_effect_runtimes.size())
+	recompute_runtime_modifiers()
+
+
+func has_status_effect(status_id: StringName) -> bool:
+	if status_id == &"":
+		return false
+
+	for runtime in active_effect_runtimes:
+		if runtime == null:
+			continue
+		if runtime.is_status_effect() and runtime.status_id == status_id:
+			return true
+
+	return false
+
+
+
+func advance_effect_runtimes(elapsed_seconds: float) -> void:
+	if elapsed_seconds <= 0.0:
+		return
+
+	var had_runtime: bool = not active_effect_runtimes.is_empty()
+
+	for runtime in active_effect_runtimes:
+		if runtime == null:
+			continue
+		runtime.advance_time(elapsed_seconds)
+
+	process_effect_ticks()
+
+	var removed_count: int = remove_expired_effect_runtimes()
+	if had_runtime or removed_count > 0:
+		recompute_runtime_modifiers()
+
+	if TimeManager != null:
+		last_effect_update_time = float(TimeManager.world_time_seconds)
+	else:
+		last_effect_update_time += elapsed_seconds
+
+func consume_effect_turns(turn_count: int = 1) -> void:
+	if turn_count <= 0:
+		return
+
+	var had_runtime: bool = not active_effect_runtimes.is_empty()
+
+	for runtime in active_effect_runtimes:
+		if runtime == null:
+			continue
+		runtime.consume_turn(turn_count)
+
+	var removed_count: int = remove_expired_effect_runtimes()
+	if had_runtime or removed_count > 0:
+		recompute_runtime_modifiers()
+
+func consume_effect_actions(action_count: int = 1) -> void:
+	if action_count <= 0:
+		return
+
+	var had_runtime: bool = not active_effect_runtimes.is_empty()
+
+	for runtime in active_effect_runtimes:
+		if runtime == null:
+			continue
+		runtime.consume_action(action_count)
+
+	var removed_count: int = remove_expired_effect_runtimes()
+	if had_runtime or removed_count > 0:
+		recompute_runtime_modifiers()
+func process_effect_ticks() -> void:
+	var stats_node = get_stats_node()
+	if stats_node == null:
+		return
+
+	for runtime in active_effect_runtimes:
+		if runtime == null:
+			continue
+
+		while runtime.can_consume_tick():
+			runtime.consume_one_tick()
+			_apply_runtime_tick(runtime, stats_node)
+
+
+func _apply_runtime_tick(runtime: UnitEffectRuntime, stats_node) -> void:
+	if runtime == null:
+		return
+	if stats_node == null:
+		return
+
+	if runtime.status_id == &"poison":
+		if _stats_has_property(stats_node, "hp"):
+			var damage_value: int = max(1, runtime.status_power)
+			stats_node.hp = max(0, int(stats_node.hp) - damage_value)
+			print("[STATUS TICK] unit=", name, " status=poison damage=", damage_value, " hp=", stats_node.hp)
+		return
+
+	if runtime.status_id == &"burning":
+		if _stats_has_property(stats_node, "hp"):
+			var damage_value: int = max(1, runtime.status_power)
+			stats_node.hp = max(0, int(stats_node.hp) - damage_value)
+			print("[STATUS TICK] unit=", name, " status=burning damage=", damage_value, " hp=", stats_node.hp)
+		return
+
+	if runtime.status_id == &"frostbite":
+		if _stats_has_property(stats_node, "hp"):
+			var damage_value: int = max(1, runtime.status_power)
+			stats_node.hp = max(0, int(stats_node.hp) - damage_value)
+			print("[STATUS TICK] unit=", name, " status=frostbite damage=", damage_value, " hp=", stats_node.hp)
+		return
+
+
+
+func remove_expired_effect_runtimes() -> int:
+	var remained: Array[UnitEffectRuntime] = []
+	var removed_count: int = 0
+
+	for runtime in active_effect_runtimes:
+		if runtime == null:
+			continue
+		if runtime.is_expired():
+			removed_count += 1
+			continue
+		remained.append(runtime)
+
+	active_effect_runtimes = remained
+	return removed_count
+func recompute_runtime_modifiers() -> void:
+	runtime_attack_multiplier = 1.0
+	runtime_defense_multiplier = 1.0
+	runtime_speed_multiplier = 1.0
+	runtime_accuracy_multiplier = 1.0
+	runtime_evasion_multiplier = 1.0
+	runtime_crit_rate_multiplier = 1.0
+
+	runtime_attack_flat = 0
+	runtime_defense_flat = 0
+	runtime_speed_flat = 0
+	runtime_accuracy_flat = 0
+	runtime_evasion_flat = 0
+	runtime_crit_rate_flat = 0
+
+	for runtime in active_effect_runtimes:
+		if runtime == null:
+			continue
+		if not runtime.is_modifier_effect():
+			continue
+
+		var sign: float = 1.0
+		if runtime.modifier_kind == ItemEffectData.ModifierKind.DEBUFF:
+			sign = -1.0
+
+		match String(runtime.stat_name):
+			"attack":
+				runtime_attack_flat += int(sign * float(runtime.stat_flat))
+				runtime_attack_multiplier += sign * runtime.stat_percent
+
+			"defense":
+				runtime_defense_flat += int(sign * float(runtime.stat_flat))
+				runtime_defense_multiplier += sign * runtime.stat_percent
+
+			"speed":
+				runtime_speed_flat += int(sign * float(runtime.stat_flat))
+				runtime_speed_multiplier += sign * runtime.stat_percent
+
+			"accuracy":
+				runtime_accuracy_flat += int(sign * float(runtime.stat_flat))
+				runtime_accuracy_multiplier += sign * runtime.stat_percent
+
+			"evasion":
+				runtime_evasion_flat += int(sign * float(runtime.stat_flat))
+				runtime_evasion_multiplier += sign * runtime.stat_percent
+
+			"crit_rate":
+				runtime_crit_rate_flat += int(sign * float(runtime.stat_flat))
+				runtime_crit_rate_multiplier += sign * runtime.stat_percent
+
+	runtime_attack_multiplier = max(0.0, runtime_attack_multiplier)
+	runtime_defense_multiplier = max(0.0, runtime_defense_multiplier)
+	runtime_speed_multiplier = max(0.0, runtime_speed_multiplier)
+	runtime_accuracy_multiplier = max(0.0, runtime_accuracy_multiplier)
+	runtime_evasion_multiplier = max(0.0, runtime_evasion_multiplier)
+	runtime_crit_rate_multiplier = max(0.0, runtime_crit_rate_multiplier)
+
+	print("[MODIFIER] unit=", name, " atk=", runtime_attack_multiplier, " def=", runtime_defense_multiplier, " spd=", runtime_speed_multiplier, " acc=", runtime_accuracy_multiplier, " eva=", runtime_evasion_multiplier, " crit=", runtime_crit_rate_multiplier)
+
+
+func get_modified_stat_value(stat_name: StringName, base_value: int) -> int:
+	match String(stat_name):
+		"attack":
+			return max(0, int(round((float(base_value) + float(runtime_attack_flat)) * runtime_attack_multiplier)))
+
+		"defense":
+			return max(0, int(round((float(base_value) + float(runtime_defense_flat)) * runtime_defense_multiplier)))
+
+		"speed":
+			return max(1, int(round((float(base_value) + float(runtime_speed_flat)) * runtime_speed_multiplier)))
+
+		"accuracy":
+			return max(0, int(round((float(base_value) + float(runtime_accuracy_flat)) * runtime_accuracy_multiplier)))
+
+		"evasion":
+			return max(0, int(round((float(base_value) + float(runtime_evasion_flat)) * runtime_evasion_multiplier)))
+
+		"crit_rate":
+			return max(0, int(round((float(base_value) + float(runtime_crit_rate_flat)) * runtime_crit_rate_multiplier)))
+
+	return base_value
+
+
+func is_action_blocked_by_status() -> bool:
+	if has_status_effect(&"paralysis"):
+		return true
+	if has_status_effect(&"sleep"):
+		return true
+	return false
+
+
+func apply_item_teleport_effect(effect: ItemEffectData) -> void:
+	print("[ITEM EFFECT] teleport requested mode=", effect.get_teleport_mode_name())
+
+
+
+func get_effect_runtimes_save_data() -> Array:
+	var result: Array = []
+
+	for runtime in active_effect_runtimes:
+		if runtime == null:
+			continue
+
+		result.append({
+			"source_item_id": runtime.source_item_id,
+			"source_unit_id": runtime.source_unit_id,
+			"effect_type": runtime.effect_type,
+			"status_id": String(runtime.status_id),
+			"status_power": runtime.status_power,
+			"modifier_kind": runtime.modifier_kind,
+			"stat_name": String(runtime.stat_name),
+			"stat_flat": runtime.stat_flat,
+			"stat_percent": runtime.stat_percent,
+			"duration_type": runtime.duration_type,
+			"remaining_duration": runtime.remaining_duration,
+			"tick_interval_seconds": runtime.tick_interval_seconds,
+			"tick_accumulator_seconds": runtime.tick_accumulator_seconds,
+			"extra_data": runtime.extra_data.duplicate(true)
+		})
+
+	return result
+
+
+func load_effect_runtimes_save_data(data_list: Array) -> void:
+	active_effect_runtimes.clear()
+
+	for entry in data_list:
+		if typeof(entry) != TYPE_DICTIONARY:
+			continue
+
+		var runtime := UnitEffectRuntime.new()
+		runtime.source_item_id = String(entry.get("source_item_id", ""))
+		runtime.source_unit_id = String(entry.get("source_unit_id", ""))
+		runtime.effect_type = int(entry.get("effect_type", ItemEffectData.EffectType.NONE))
+		runtime.status_id = StringName(String(entry.get("status_id", "")))
+		runtime.status_power = int(entry.get("status_power", 0))
+		runtime.modifier_kind = int(entry.get("modifier_kind", ItemEffectData.ModifierKind.BUFF))
+		runtime.stat_name = StringName(String(entry.get("stat_name", "")))
+		runtime.stat_flat = int(entry.get("stat_flat", 0))
+		runtime.stat_percent = float(entry.get("stat_percent", 0.0))
+		runtime.duration_type = int(entry.get("duration_type", ItemEffectData.DurationType.NONE))
+		runtime.remaining_duration = float(entry.get("remaining_duration", 0.0))
+		runtime.tick_interval_seconds = float(entry.get("tick_interval_seconds", 0.0))
+		runtime.tick_accumulator_seconds = float(entry.get("tick_accumulator_seconds", 0.0))
+
+		var extra_value: Variant = entry.get("extra_data", {})
+		if typeof(extra_value) == TYPE_DICTIONARY:
+			runtime.extra_data = (extra_value as Dictionary).duplicate(true)
+		else:
+			runtime.extra_data = {}
+
+		if runtime.is_expired():
+			continue
+
+		active_effect_runtimes.append(runtime)
+
+	recompute_runtime_modifiers()
+
+
+func apply_offscreen_effect_elapsed(elapsed_seconds: float) -> void:
+	if elapsed_seconds <= 0.0:
+		return
+
+	if active_effect_runtimes.is_empty():
+		if TimeManager != null:
+			last_effect_update_time = float(TimeManager.world_time_seconds)
+		else:
+			last_effect_update_time += elapsed_seconds
+		return
+
+	var stats_node = get_stats_node()
+
+	for runtime in active_effect_runtimes:
+		if runtime == null:
+			continue
+
+		if runtime.duration_type == ItemEffectData.DurationType.TIME:
+			runtime.remaining_duration -= elapsed_seconds
+
+		if stats_node == null:
+			continue
+		if runtime.tick_interval_seconds <= 0.0:
+			continue
+
+		var total_accumulated: float = runtime.tick_accumulator_seconds + elapsed_seconds
+		var tick_count: int = int(floor(total_accumulated / runtime.tick_interval_seconds))
+		runtime.tick_accumulator_seconds = fmod(total_accumulated, runtime.tick_interval_seconds)
+
+		if tick_count <= 0:
+			continue
+
+		if runtime.status_id == &"poison" or runtime.status_id == &"burning" or runtime.status_id == &"frostbite":
+			if _stats_has_property(stats_node, "hp"):
+				var damage_per_tick: int = max(1, runtime.status_power)
+				var total_damage: int = damage_per_tick * tick_count
+				stats_node.hp = max(0, int(stats_node.hp) - total_damage)
+
+	var removed_count: int = remove_expired_effect_runtimes()
+	if not active_effect_runtimes.is_empty() or removed_count > 0:
+		recompute_runtime_modifiers()
+
+	if TimeManager != null:
+		last_effect_update_time = float(TimeManager.world_time_seconds)
+	else:
+		last_effect_update_time += elapsed_seconds
+
+func _stats_has_property(stats_node, property_name: String) -> bool:
+	if stats_node == null:
+		return false
+
+	for info in stats_node.get_property_list():
+		if String(info.get("name", "")) == property_name:
+			return true
 
 	return false

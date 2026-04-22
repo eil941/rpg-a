@@ -2,258 +2,431 @@ extends Node
 class_name ItemEffectManager
 
 
-static func apply_item_effect(owner_unit, item_id: String, target_unit = null, use_flag_override: int = -1) -> bool:
-	var data = ItemDatabase.get_item_data(item_id)
-
-	if data == null:
-		if owner_unit != null and owner_unit.has_method("notify_hud_log"):
-			owner_unit.notify_hud_log("%sを使用した" % item_id)
-		return true
-
-	if not bool(data.usable):
-		if owner_unit != null and owner_unit.has_method("notify_hud_log"):
-			owner_unit.notify_hud_log("%sは使用できない" % ItemDatabase.get_display_name(item_id))
+static func apply_item_effects(user, target, item_data: ItemData, use_flag_override: int = -1) -> bool:
+	if item_data == null:
 		return false
 
-	var item_name: String = String(data.display_name)
-	var actual_target = target_unit
-	if actual_target == null:
-		actual_target = owner_unit
+	if item_data.effects.is_empty():
+		return false
 
-	# 新方式を優先
-	if "effects" in data and data.effects is Array and not data.effects.is_empty():
-		var success: bool = _apply_effect_list(owner_unit, actual_target, data, use_flag_override)
-
-		if success:
-			if owner_unit != null and owner_unit.has_method("notify_hud_log"):
-				owner_unit.notify_hud_log("%sを使用した" % item_name)
-
-			if owner_unit != null and owner_unit.has_method("notify_hud_player_status_refresh"):
-				owner_unit.notify_hud_player_status_refresh()
-
-			if actual_target != null and actual_target != owner_unit and actual_target.has_method("notify_hud_player_status_refresh"):
-				actual_target.notify_hud_player_status_refresh()
-
-		return success
-
-	# 旧方式フォールバック
-	var effect_type: int = int(data.effect_type)
-	var effect_value: int = int(data.effect_value)
-
-	match effect_type:
-		ItemData.ItemEffectType.HEAL_HP:
-			if actual_target != null:
-				var target_stats = actual_target.get("stats")
-				if target_stats != null:
-					var max_hp: int = int(target_stats.max_hp)
-					if actual_target.has_method("get_total_max_hp"):
-						max_hp = int(actual_target.get_total_max_hp())
-
-					target_stats.hp = min(max_hp, int(target_stats.hp) + effect_value)
-
-					if owner_unit != null and owner_unit.has_method("notify_hud_log"):
-						owner_unit.notify_hud_log("%sを使用した" % item_name)
-
-					if owner_unit != null and owner_unit.has_method("notify_hud_player_status_refresh"):
-						owner_unit.notify_hud_player_status_refresh()
-
-					if actual_target != null and actual_target != owner_unit and actual_target.has_method("notify_hud_player_status_refresh"):
-						actual_target.notify_hud_player_status_refresh()
-
-					return true
-
-			return false
-
-		ItemData.ItemEffectType.LOG_ONLY:
-			if owner_unit != null and owner_unit.has_method("notify_hud_log"):
-				owner_unit.notify_hud_log("%sを使用した" % item_name)
-			return true
-
-		ItemData.ItemEffectType.NONE:
-			if owner_unit != null and owner_unit.has_method("notify_hud_log"):
-				owner_unit.notify_hud_log("%sを使用した" % item_name)
-			return true
-
-		_:
-			if owner_unit != null and owner_unit.has_method("notify_hud_log"):
-				owner_unit.notify_hud_log("%sを使用した" % item_name)
-			return true
-
-
-static func _apply_effect_list(owner_unit, target_unit, item_data, use_flag_override: int) -> bool:
 	var applied_any: bool = false
+
+	print("[ITEM EFFECT] apply_item_effects item_id=", item_data.item_id, " effect_count=", item_data.effects.size())
 
 	for effect in item_data.effects:
 		if effect == null:
 			continue
 
-		var single_result: bool = _apply_single_effect(owner_unit, target_unit, item_data, effect, use_flag_override)
-		applied_any = applied_any or single_result
+		print("[ITEM EFFECT] try effect_type=", effect.get_effect_type_name())
+		if apply_single_effect(user, target, item_data, effect, use_flag_override):
+			applied_any = true
+			print("[ITEM EFFECT] success effect_type=", effect.get_effect_type_name())
+		else:
+			print("[ITEM EFFECT] failed effect_type=", effect.get_effect_type_name())
 
 	return applied_any
 
 
-static func _apply_single_effect(owner_unit, target_unit, item_data, effect: ItemEffectData, use_flag_override: int) -> bool:
-	match effect.effect_type:
-		ItemEffectData.EffectType.RESTORE_HP:
-			return _apply_restore_hp(target_unit, effect)
+# 互換用:
+# 旧式  apply_item_effect(target, item_data)
+# 新式  apply_item_effect(user, target, item_data)
+static func apply_item_effect(arg1, arg2, arg3 = null, arg4: int = -1) -> bool:
+	var user = null
+	var target = null
+	var item_data: ItemData = null
+	var use_flag_override: int = arg4
 
-		ItemEffectData.EffectType.CURE_STATUS:
-			return _apply_cure_status(target_unit, effect)
+	# 旧式1:
+	# apply_item_effect(owner_unit, item_id: String, target_unit = null, use_flag_override = -1)
+	if arg2 is String:
+		user = arg1
+		target = arg3
+		if target == null:
+			target = user
 
-		ItemEffectData.EffectType.APPLY_STATUS:
-			return _apply_status(target_unit, effect)
-
-		ItemEffectData.EffectType.APPLY_BUFF:
-			return _apply_buff(target_unit, effect)
-
-		ItemEffectData.EffectType.TELEPORT_RANDOM:
-			return _apply_teleport_random(target_unit, effect)
-
-		ItemEffectData.EffectType.NONE:
-			return true
-
-		_:
+		item_data = ItemDatabase.get_item_data(String(arg2))
+		if item_data == null:
+			print("[ITEM EFFECT] item_data not found item_id=", String(arg2))
 			return false
 
+		if not bool(item_data.usable):
+			print("[ITEM EFFECT] item is not usable item_id=", String(arg2))
+			return false
 
-static func _apply_restore_hp(target_unit, effect: ItemEffectData) -> bool:
-	if target_unit == null:
+		print("[ITEM EFFECT] old call item_id=", item_data.item_id, " target=", target.name if target != null and "name" in target else "null")
+		return apply_item_effects(user, target, item_data, use_flag_override)
+
+	# 旧式2:
+	# apply_item_effect(target, item_data)
+	if arg3 == null and arg2 is ItemData:
+		target = arg1
+		user = arg1
+		item_data = arg2
+	else:
+		# 新式:
+		# apply_item_effect(user, target, item_data)
+		user = arg1
+		target = arg2
+		item_data = arg3
+
+	if item_data == null:
+		print("[ITEM EFFECT] item_data is null")
 		return false
 
-	var stats = target_unit.get("stats")
+	print("[ITEM EFFECT] new call item_id=", item_data.item_id, " target=", target.name if target != null and "name" in target else "null")
+	return apply_item_effects(user, target, item_data, use_flag_override)
+
+
+static func apply_single_effect(user, target, item_data: ItemData, effect: ItemEffectData, use_flag_override: int = -1) -> bool:
+	if effect == null:
+		return false
+
+	match effect.effect_type:
+		ItemEffectData.EffectType.NONE:
+			return false
+
+		ItemEffectData.EffectType.RESTORE_RESOURCE:
+			return _apply_restore_resource(user, target, effect)
+
+		ItemEffectData.EffectType.CURE_STATUS:
+			return _apply_cure_status(user, target, effect)
+
+		ItemEffectData.EffectType.APPLY_STATUS:
+			return _apply_status(user, target, item_data, effect)
+
+		ItemEffectData.EffectType.APPLY_MODIFIER:
+			return _apply_modifier(user, target, item_data, effect)
+
+		ItemEffectData.EffectType.DEAL_DAMAGE:
+			return _apply_deal_damage(user, target, effect)
+
+		ItemEffectData.EffectType.GRANT_ITEM:
+			return _apply_grant_item(user, target, effect)
+
+		ItemEffectData.EffectType.GRANT_CURRENCY:
+			return _apply_grant_currency(user, target, effect)
+
+		ItemEffectData.EffectType.TELEPORT:
+			return _apply_teleport(user, target, effect)
+
+		ItemEffectData.EffectType.PERMANENT_STAT_GROWTH:
+			return _apply_permanent_stat_growth(user, target, effect)
+
+		ItemEffectData.EffectType.LEARN_SKILL:
+			return _apply_learn_skill(user, target, effect)
+
+		ItemEffectData.EffectType.UNLOCK_RECIPE:
+			return _apply_unlock_recipe(user, target, effect)
+
+		ItemEffectData.EffectType.IDENTIFY_ITEM:
+			return _apply_identify_item(user, target, effect)
+
+		ItemEffectData.EffectType.READ_DOCUMENT:
+			return _apply_read_document(user, target, effect)
+
+		ItemEffectData.EffectType.SPAWN_OBJECT:
+			return _apply_spawn_object(user, target, effect)
+
+	return false
+
+
+static func _apply_restore_resource(user, target, effect: ItemEffectData) -> bool:
+	if target == null:
+		return false
+
+	var stats = _get_stats_node(target)
 	if stats == null:
 		return false
 
-	var max_hp: int = int(stats.max_hp)
-	if target_unit.has_method("get_total_max_hp"):
-		max_hp = int(target_unit.get_total_max_hp())
+	var amount: int = effect.get_rolled_power()
 
-	match effect.value_mode:
-		ItemEffectData.ValueMode.FLAT:
-			var heal_amount: int = effect.power_min
-			if effect.power_max > effect.power_min:
-				heal_amount = randi_range(effect.power_min, effect.power_max)
+	match effect.resource_type:
+		ItemEffectData.ResourceType.HP:
+			if not _has_property(stats, "hp") or not _has_property(stats, "max_hp"):
+				return false
 
-			stats.hp = min(max_hp, int(stats.hp) + heal_amount)
+			if effect.value_mode == ItemEffectData.ValueMode.FULL:
+				stats.hp = stats.max_hp
+			elif effect.value_mode == ItemEffectData.ValueMode.PERCENT:
+				var restore_hp: int = int(round(float(stats.max_hp) * effect.percent_value))
+				stats.hp = min(stats.max_hp, stats.hp + restore_hp)
+			else:
+				stats.hp = min(stats.max_hp, stats.hp + amount)
 			return true
 
-		ItemEffectData.ValueMode.PERCENT:
-			var percent_amount: int = int(round(float(max_hp) * effect.percent_value))
-			stats.hp = min(max_hp, int(stats.hp) + max(1, percent_amount))
+		ItemEffectData.ResourceType.MP:
+			if not _has_property(stats, "mp") or not _has_property(stats, "max_mp"):
+				return false
+
+			if effect.value_mode == ItemEffectData.ValueMode.FULL:
+				stats.mp = stats.max_mp
+			elif effect.value_mode == ItemEffectData.ValueMode.PERCENT:
+				var restore_mp: int = int(round(float(stats.max_mp) * effect.percent_value))
+				stats.mp = min(stats.max_mp, stats.mp + restore_mp)
+			else:
+				stats.mp = min(stats.max_mp, stats.mp + amount)
 			return true
 
-		ItemEffectData.ValueMode.FULL:
-			stats.hp = max_hp
+		ItemEffectData.ResourceType.STAMINA:
+			if not _has_property(stats, "stamina") or not _has_property(stats, "max_stamina"):
+				return false
+
+			if effect.value_mode == ItemEffectData.ValueMode.FULL:
+				stats.stamina = stats.max_stamina
+			elif effect.value_mode == ItemEffectData.ValueMode.PERCENT:
+				var restore_stamina: int = int(round(float(stats.max_stamina) * effect.percent_value))
+				stats.stamina = min(stats.max_stamina, stats.stamina + restore_stamina)
+			else:
+				stats.stamina = min(stats.max_stamina, stats.stamina + amount)
 			return true
 
-		_:
-			return false
+		ItemEffectData.ResourceType.HUNGER:
+			if not _has_property(stats, "hunger") or not _has_property(stats, "max_hunger"):
+				return false
+
+			if effect.value_mode == ItemEffectData.ValueMode.FULL:
+				stats.hunger = stats.max_hunger
+			elif effect.value_mode == ItemEffectData.ValueMode.PERCENT:
+				var restore_hunger: int = int(round(float(stats.max_hunger) * effect.percent_value))
+				stats.hunger = min(stats.max_hunger, stats.hunger + restore_hunger)
+			else:
+				stats.hunger = min(stats.max_hunger, stats.hunger + amount)
+			return true
+
+	return false
 
 
-static func _apply_cure_status(target_unit, effect: ItemEffectData) -> bool:
-	if target_unit == null:
+static func _apply_cure_status(user, target, effect: ItemEffectData) -> bool:
+	if target == null:
 		return false
 
-	return UnitEffectRuntime.cure_status(target_unit, effect.status_id)
-
-
-static func _apply_status(target_unit, effect: ItemEffectData) -> bool:
-	if target_unit == null:
+	if effect.status_id == &"":
 		return false
 
-	return UnitEffectRuntime.apply_status(
-		target_unit,
-		effect.status_id,
-		effect.duration_seconds,
-		effect.status_power
-	)
+	if target.has_method("remove_status_effect"):
+		print("[ITEM EFFECT] cure_status status_id=", String(effect.status_id))
+		target.remove_status_effect(effect.status_id)
+		return true
+
+	return false
 
 
-static func _apply_buff(target_unit, effect: ItemEffectData) -> bool:
-	if target_unit == null:
+static func _apply_status(user, target, item_data: ItemData, effect: ItemEffectData) -> bool:
+	if target == null:
 		return false
 
-	return UnitEffectRuntime.apply_buff(
-		target_unit,
-		effect.stat_name,
-		effect.duration_seconds,
-		effect.stat_flat,
-		effect.stat_percent
-	)
-
-
-static func _apply_teleport_random(target_unit, effect: ItemEffectData) -> bool:
-	if target_unit == null:
+	if effect.status_id == &"":
 		return false
 
-	var ground_layer = target_unit.get("ground_layer")
-	if ground_layer == null:
+	if not target.has_method("add_status_effect_runtime"):
 		return false
 
-	var wall_layer = target_unit.get("wall_layer")
-	var units_node = target_unit.get("units_node")
+	var runtime := UnitEffectRuntime.new()
+	runtime.source_item_id = item_data.item_id
+	runtime.effect_type = ItemEffectData.EffectType.APPLY_STATUS
+	runtime.status_id = effect.status_id
+	runtime.duration_type = effect.duration_type
+	runtime.remaining_duration = effect.duration_value
 
-	var used_cells: Array[Vector2i] = ground_layer.get_used_cells()
-	if used_cells.is_empty():
+	print("[ITEM EFFECT] apply_status status_id=", String(effect.status_id), " duration=", effect.duration_value)
+	print("[ITEM EFFECT] apply_modifier kind=", effect.get_modifier_kind_name(), " stat=", String(effect.stat_name), " flat=", effect.stat_flat, " percent=", effect.stat_percent, " duration=", effect.duration_value)
+	target.add_status_effect_runtime(runtime)
+	return true
+
+
+static func _apply_modifier(user, target, item_data: ItemData, effect: ItemEffectData) -> bool:
+	if target == null:
 		return false
 
-	var current_cell: Vector2i = ground_layer.local_to_map(ground_layer.to_local(target_unit.global_position))
-	var candidate_cells: Array[Vector2i] = []
-
-	for cell in used_cells:
-		if wall_layer != null and wall_layer.get_cell_source_id(cell) != -1:
-			continue
-
-		var distance: int = abs(cell.x - current_cell.x) + abs(cell.y - current_cell.y)
-		if distance < effect.teleport_min_range:
-			continue
-		if effect.teleport_max_range > 0 and distance > effect.teleport_max_range:
-			continue
-
-		if _is_cell_occupied_by_other_unit(target_unit, units_node, ground_layer, cell):
-			continue
-
-		candidate_cells.append(cell)
-
-	if candidate_cells.is_empty():
+	if effect.stat_name == &"":
 		return false
 
-	var dest_cell: Vector2i = candidate_cells[randi_range(0, candidate_cells.size() - 1)]
-	var dest_global: Vector2 = ground_layer.to_global(ground_layer.map_to_local(dest_cell))
+	if not target.has_method("add_status_effect_runtime"):
+		return false
 
-	target_unit.global_position = dest_global
+	var runtime := UnitEffectRuntime.new()
+	runtime.source_item_id = item_data.item_id
+	runtime.effect_type = ItemEffectData.EffectType.APPLY_MODIFIER
+	runtime.modifier_kind = effect.modifier_kind
+	runtime.stat_name = effect.stat_name
+	runtime.stat_flat = effect.stat_flat
+	runtime.stat_percent = effect.stat_percent
+	runtime.duration_type = effect.duration_type
+	runtime.remaining_duration = effect.duration_value
 
-	if target_unit.get("target_position") != null:
-		target_unit.target_position = dest_global
+	target.add_status_effect_runtime(runtime)
+	return true
 
-	if target_unit.get("is_moving") != null:
-		target_unit.is_moving = false
 
-	if target_unit.get("repeat_timer") != null:
-		target_unit.repeat_timer = 0.0
+static func _apply_deal_damage(user, target, effect: ItemEffectData) -> bool:
+	if target == null:
+		return false
+
+	var stats = _get_stats_node(target)
+	if stats == null:
+		return false
+
+	if not _has_property(stats, "hp"):
+		return false
+
+	var damage_value: int = effect.get_rolled_power()
+	stats.hp = max(0, stats.hp - damage_value)
+	print("[ITEM EFFECT] damage=", damage_value, " target_hp=", stats.hp)
+	return true
+
+
+static func _apply_grant_item(user, target, effect: ItemEffectData) -> bool:
+	if target == null:
+		return false
+
+	if effect.grant_item_id == "":
+		return false
+
+	if target.has_method("grant_item_from_effect"):
+		target.grant_item_from_effect(effect.grant_item_id, effect.grant_item_amount)
+		return true
+
+	return false
+
+
+static func _apply_grant_currency(user, target, effect: ItemEffectData) -> bool:
+	if target == null:
+		return false
+
+	if effect.grant_currency_amount == 0:
+		return false
+
+	if target.has_method("grant_currency_from_effect"):
+		target.grant_currency_from_effect(effect.grant_currency_amount)
+		return true
+
+	return false
+
+
+static func _apply_teleport(user, target, effect: ItemEffectData) -> bool:
+	if target == null:
+		return false
+
+	if target.has_method("apply_item_teleport_effect"):
+		print("[ITEM EFFECT] teleport mode=", effect.get_teleport_mode_name())
+		target.apply_item_teleport_effect(effect)
+		return true
+
+	return false
+
+
+static func _apply_permanent_stat_growth(user, target, effect: ItemEffectData) -> bool:
+	if target == null:
+		return false
+
+	var stats = _get_stats_node(target)
+	if stats == null:
+		return false
+
+	if effect.stat_name == &"":
+		return false
+
+	var stat_key: String = String(effect.stat_name)
+
+	if not _has_property(stats, stat_key):
+		return false
+
+	var grow_value: int = effect.get_rolled_power()
+	var current_value: int = int(stats.get(stat_key))
+	stats.set(stat_key, current_value + grow_value)
+
+	if stat_key == "max_hp" and _has_property(stats, "hp"):
+		stats.hp = min(stats.max_hp, stats.hp + grow_value)
 
 	return true
 
 
-static func _is_cell_occupied_by_other_unit(target_unit, units_node, ground_layer, cell: Vector2i) -> bool:
-	if target_unit == null:
-		return false
-	if units_node == null:
-		return false
-	if ground_layer == null:
+static func _apply_learn_skill(user, target, effect: ItemEffectData) -> bool:
+	if target == null:
 		return false
 
-	for other in units_node.get_children():
-		if other == null:
-			continue
-		if other == target_unit:
-			continue
+	if effect.skill_id == &"":
+		return false
 
-		var other_cell: Vector2i = ground_layer.local_to_map(
-			ground_layer.to_local(other.global_position)
-		)
-		if other_cell == cell:
+	if target.has_method("learn_skill_from_effect"):
+		target.learn_skill_from_effect(effect.skill_id)
+		return true
+
+	return false
+
+
+static func _apply_unlock_recipe(user, target, effect: ItemEffectData) -> bool:
+	if target == null:
+		return false
+
+	if effect.recipe_id == &"":
+		return false
+
+	if target.has_method("unlock_recipe_from_effect"):
+		target.unlock_recipe_from_effect(effect.recipe_id)
+		return true
+
+	return false
+
+
+static func _apply_identify_item(user, target, effect: ItemEffectData) -> bool:
+	if target == null:
+		return false
+
+	if target.has_method("identify_item_from_effect"):
+		target.identify_item_from_effect(effect.identify_all)
+		return true
+
+	return false
+
+
+static func _apply_read_document(user, target, effect: ItemEffectData) -> bool:
+	if target == null:
+		return false
+
+	if effect.document_text == "":
+		return false
+
+	if target.has_method("read_document_from_effect"):
+		target.read_document_from_effect(effect.document_text)
+		return true
+
+	return false
+
+
+static func _apply_spawn_object(user, target, effect: ItemEffectData) -> bool:
+	if target == null:
+		return false
+
+	if effect.spawn_object_id == &"":
+		return false
+
+	if target.has_method("spawn_object_from_effect"):
+		target.spawn_object_from_effect(effect.spawn_object_id)
+		return true
+
+	return false
+
+
+static func _get_stats_node(target):
+	if target == null:
+		return null
+
+	if target.has_node("Stats"):
+		return target.get_node("Stats")
+
+	if target.has_method("get_stats_node"):
+		return target.get_stats_node()
+
+	return null
+
+
+static func _has_property(obj: Object, property_name: String) -> bool:
+	if obj == null:
+		return false
+
+	for info in obj.get_property_list():
+		if String(info.get("name", "")) == property_name:
 			return true
 
 	return false

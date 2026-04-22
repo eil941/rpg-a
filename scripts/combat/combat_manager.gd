@@ -74,6 +74,7 @@ func try_bump_attack(attacker, target) -> bool:
 		damage = 1
 
 	target.stats.take_damage(damage)
+	_wake_up_target_if_needed(target)
 
 	if result["is_critical"]:
 		_log_attack_message(attacker, target, "%s の攻撃！ %s に %d ダメージ（クリティカル）" % [attacker.name, target.name, damage])
@@ -97,6 +98,9 @@ func can_attack(attacker, target) -> bool:
 		return false
 	if attacker.stats.hp <= 0 or target.stats.hp <= 0:
 		return false
+	if attacker.has_method("is_action_blocked_by_status"):
+		if attacker.is_action_blocked_by_status():
+			return false
 	if not Targeting.is_hostile(attacker, target):
 		return false
 	if not is_target_in_attack_range(attacker, target):
@@ -143,6 +147,7 @@ func perform_attack(attacker, target) -> bool:
 		damage = 1
 
 	target.stats.take_damage(damage)
+	_wake_up_target_if_needed(target)
 
 	if result["is_critical"]:
 		_log_attack_message(attacker, target, "%s の攻撃！ %s に %d ダメージ（クリティカル）" % [attacker.name, target.name, damage])
@@ -168,3 +173,10 @@ func _refresh_hud_status(attacker, target) -> void:
 
 	if target != null and target.is_player_unit:
 		target.notify_hud_player_status_refresh()
+
+
+func _wake_up_target_if_needed(target) -> void:
+	if target == null:
+		return
+	if target.has_method("remove_status_effect"):
+		target.remove_status_effect(&"sleep")

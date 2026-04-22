@@ -66,11 +66,15 @@ func _physics_process(delta: float) -> void:
 
 		if Input.is_action_just_pressed("interact"):
 			clear_move_hold()
+			if _is_player_action_blocked():
+				return
 			unit.try_interact_action()
 			return
 
 		if Input.is_action_just_pressed("attack"):
 			clear_move_hold()
+			if _is_player_action_blocked():
+				return
 			var acted = try_attack_action()
 			if acted:
 				if not DebugSettings.debug_free_action:
@@ -81,6 +85,8 @@ func _physics_process(delta: float) -> void:
 
 		if Input.is_action_just_pressed("wait"):
 			clear_move_hold()
+			if _is_player_action_blocked():
+				return
 			unit.wait_action()
 			if not DebugSettings.debug_free_action:
 				TimeManager.advance_time(units_node, unit.get_total_speed())
@@ -187,7 +193,11 @@ func face_direction_only(dir: Vector2) -> void:
 
 
 func try_move_in_direction(dir: Vector2) -> void:
-	var acted = unit.try_move(dir)
+	if _is_player_action_blocked():
+		return
+
+	var actual_dir: Vector2 = _get_effective_move_direction(dir)
+	var acted = unit.try_move(actual_dir)
 
 	if acted:
 		apply_move_growth()
@@ -196,6 +206,39 @@ func try_move_in_direction(dir: Vector2) -> void:
 			TimeManager.advance_time(units_node, unit.get_total_speed())
 			notify_hud()
 			TimeManager.resolve_ai_turns(units_node)
+
+
+
+func _is_player_action_blocked() -> bool:
+	if unit == null:
+		return false
+
+	if unit.has_method("is_action_blocked_by_status"):
+		if unit.is_action_blocked_by_status():
+			if unit.has_method("notify_hud_log"):
+				unit.notify_hud_log("今は行動できない")
+			return true
+
+	return false
+
+
+func _get_effective_move_direction(dir: Vector2) -> Vector2:
+	if unit == null:
+		return dir
+
+	if not unit.has_method("has_status_effect"):
+		return dir
+
+	if not unit.has_status_effect(&"confusion"):
+		return dir
+
+	var random_dirs: Array[Vector2] = [
+		Vector2.RIGHT,
+		Vector2.LEFT,
+		Vector2.DOWN,
+		Vector2.UP
+	]
+	return random_dirs[randi_range(0, random_dirs.size() - 1)]
 
 
 func apply_move_growth() -> void:

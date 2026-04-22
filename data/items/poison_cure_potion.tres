@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://c7n4tewsdyokg"]
+
+[ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_item"]
+[ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_effect"]
+[ext_resource type="Texture2D" uid="uid://xp2lsblny577" path="res://assets/deepsea.png" id="2_xrqiq"]
+
+[sub_resource type="Resource" id="Effect_CurePoison"]
+script = ExtResource("2_effect")
+effect_type = 2
+status_id = &"poison"
+
+[resource]
+script = ExtResource("1_item")
+item_id = "poison_cure_potion"
+display_name = "解毒薬"
+description = "毒状態を解除する。"
+icon = ExtResource("2_xrqiq")
+category = "consumable"
+max_stack = 20
+usable = true
+base_price = 150
+rarity = 4
+use_flags = 1
+target_flags = 1
+effects = Array[ExtResource("2_effect")]([SubResource("Effect_CurePoison")])

@@ -51,6 +51,7 @@ var debug_player_start_items: Array[Dictionary] = [
 	{"item_id": "paralysis_cure_potion","amount":10 },
 	{"item_id": "potion_of_strength","amount":10 },
 	{"item_id": "teleport_stone","amount":10 },
+	{"item_id": "poison_cure_potion","amount":10 },
 ]
 
 var debug_item_spawn: bool = true

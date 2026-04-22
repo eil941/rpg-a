@@ -1983,17 +1983,8 @@ func build_item_tooltip_lines(entry: Dictionary) -> Array[String]:
 
 		return lines
 
-	var effect_type: String = ItemDatabase.get_effect_type(item_id)
-	var effect_value: int = ItemDatabase.get_effect_value(item_id)
-
-	match effect_type:
-		"heal_hp":
-			lines.append("効果: HPを%d回復" % effect_value)
-		"log_only":
-			pass
-		_:
-			if effect_type != "":
-				lines.append("効果: %s (%d)" % [effect_type, effect_value])
+	for effect_line in ItemDatabase.get_effect_summary_lines(item_id):
+		lines.append("効果: " + effect_line)
 
 	return lines
 

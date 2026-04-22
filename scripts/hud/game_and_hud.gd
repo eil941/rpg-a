@@ -70,15 +70,44 @@ func update_hud_player_status() -> void:
 	if player.stats == null:
 		return
 
+	var total_max_hp: int = int(player.stats.max_hp)
+	if player.has_method("get_total_max_hp"):
+		total_max_hp = int(player.get_total_max_hp())
+
+	var current_mp: int = 0
+	var total_max_mp: int = 0
+	if _stats_has_property(player.stats, "mp"):
+		current_mp = int(player.stats.mp)
+	if _stats_has_property(player.stats, "max_mp"):
+		total_max_mp = int(player.stats.max_mp)
+
+	var current_stamina: int = 0
+	var total_max_stamina: int = 0
+	if _stats_has_property(player.stats, "stamina"):
+		current_stamina = int(player.stats.stamina)
+	if _stats_has_property(player.stats, "max_stamina"):
+		total_max_stamina = int(player.stats.max_stamina)
+
 	game_hud.set_player_status(
 		player.name,
-		player.stats.hp,
-		player.stats.max_hp,
-		0,
-		0,
-		0,
-		0
+		int(player.stats.hp),
+		total_max_hp,
+		current_mp,
+		total_max_mp,
+		current_stamina,
+		total_max_stamina
 	)
+
+
+func _stats_has_property(stats, property_name: String) -> bool:
+	if stats == null:
+		return false
+
+	for info in stats.get_property_list():
+		if String(info.get("name", "")) == property_name:
+			return true
+
+	return false
 
 
 func add_hud_log(text: String) -> void:
