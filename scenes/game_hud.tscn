@@ -4,9 +4,11 @@
 
 [node name="GameHUD" type="Control" unique_id=275878376]
 layout_mode = 3
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_jna2d")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=813876046]
@@ -14,8 +16,8 @@ script = ExtResource("1_jna2d")
 [node name="TimeArea" type="MarginContainer" parent="CanvasLayer" unique_id=1022014829]
 offset_left = 28.0
 offset_top = 16.0
-offset_right = 90.0
-offset_bottom = 93.0
+offset_right = 120.0
+offset_bottom = 100.0
 
 [node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/TimeArea" unique_id=2021417539]
 layout_mode = 2
@@ -71,7 +73,7 @@ layout_mode = 2
 
 [node name="MPLabel" type="Label" parent="CanvasLayer/UnitStatusArea/HBoxContainer/PlayerStatusCard/PanelContainer/VBoxContainer" unique_id=1236743853]
 layout_mode = 2
-text = "HP: 100 / 100"
+text = "MP: 0 / 0"
 
 [node name="MPBar" type="ProgressBar" parent="CanvasLayer/UnitStatusArea/HBoxContainer/PlayerStatusCard/PanelContainer/VBoxContainer" unique_id=1495003512]
 layout_mode = 2
@@ -111,11 +113,48 @@ layout_mode = 2
 layout_mode = 2
 text = "Mini Map"
 
+[node name="EffectBarArea" type="MarginContainer" parent="CanvasLayer" unique_id=668364101]
+visible = false
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = -198.0
+offset_right = 420.0
+offset_bottom = -154.0
+grow_vertical = 0
+
+[node name="EffectBarContainer" type="HBoxContainer" parent="CanvasLayer/EffectBarArea" unique_id=2104864945]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="HotbarArea" type="MarginContainer" parent="CanvasLayer" unique_id=1101729544]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -430.0
+offset_top = -198.0
+offset_right = -12.0
+offset_bottom = -142.0
+grow_horizontal = 0
+grow_vertical = 0
+
+[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/HotbarArea" unique_id=1235213790]
+layout_mode = 2
+
+[node name="HotbarContainer" type="HBoxContainer" parent="CanvasLayer/HotbarArea/PanelContainer" unique_id=1966081309]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 2
+
 [node name="LogArea" type="MarginContainer" parent="CanvasLayer" unique_id=1289726464]
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = -110.0
 grow_horizontal = 2
 grow_vertical = 0
 
@@ -130,6 +169,10 @@ layout_mode = 2
 text = "Log"
 
 [node name="LogLabel" type="Label" parent="CanvasLayer/LogArea/PanelContainer/VBoxContainer" unique_id=405674971]
+custom_minimum_size = Vector2(0, 108)
 layout_mode = 2
+size_flags_horizontal = 3
 text = "ゲーム開始
 草原に入りました"
+autowrap_mode = 2
+clip_text = true

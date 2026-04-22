@@ -18,6 +18,9 @@ extends Control
 @onready var log_title_label: Label = $CanvasLayer/LogArea/PanelContainer/VBoxContainer/LogTitleLabel
 @onready var log_label: Label = $CanvasLayer/LogArea/PanelContainer/VBoxContainer/LogLabel
 
+@onready var effect_bar_container: HBoxContainer = $CanvasLayer/EffectBarArea/EffectBarContainer
+@onready var hotbar_container: HBoxContainer = $CanvasLayer/HotbarArea/PanelContainer/HotbarContainer
+
 var current_day: int = 1
 var current_time_text: String = "08:30"
 var current_weather_text: String = "Sunny"
@@ -31,7 +34,9 @@ var current_stamina: int = 0
 var max_stamina: int = 0
 
 var log_lines: Array[String] = []
-var max_log_lines: int = 4
+var max_log_lines: int = 6
+
+var effect_entries: Array[Dictionary] = []
 
 
 func _ready() -> void:
@@ -46,6 +51,8 @@ func initialize_hud() -> void:
 	update_time_area()
 	update_player_status_area()
 	update_log_display()
+	rebuild_effect_bar()
+	rebuild_hotbar()
 
 
 func update_time_area() -> void:
@@ -107,3 +114,104 @@ func set_player_status(
 	current_stamina = p_stamina
 	max_stamina = p_max_stamina
 	update_player_status_area()
+
+
+func set_effect_entries(entries: Array) -> void:
+	effect_entries.clear()
+
+	for entry in entries:
+		if typeof(entry) != TYPE_DICTIONARY:
+			continue
+		effect_entries.append((entry as Dictionary).duplicate(true))
+
+	rebuild_effect_bar()
+
+
+func rebuild_effect_bar() -> void:
+	if effect_bar_container == null:
+		return
+
+	for child in effect_bar_container.get_children():
+		child.queue_free()
+
+	var effect_area := effect_bar_container.get_parent()
+	if effect_area != null:
+		effect_area.visible = not effect_entries.is_empty()
+
+	if effect_entries.is_empty():
+		return
+
+	for entry in effect_entries:
+		var pill := PanelContainer.new()
+		pill.custom_minimum_size = Vector2(88, 28)
+
+		var label := Label.new()
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.autowrap_mode = TextServer.AUTOWRAP_OFF
+		label.text = _build_effect_text(entry)
+		label.tooltip_text = _build_effect_tooltip(entry)
+		label.self_modulate = _get_effect_color(entry)
+
+		pill.add_child(label)
+		effect_bar_container.add_child(pill)
+
+
+func rebuild_hotbar() -> void:
+	if hotbar_container == null:
+		return
+
+	for child in hotbar_container.get_children():
+		child.queue_free()
+
+	for i in range(9):
+		var slot_panel := PanelContainer.new()
+		slot_panel.custom_minimum_size = Vector2(44, 44)
+
+		var slot_label := Label.new()
+		slot_label.text = str(i + 1)
+		slot_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		slot_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		slot_panel.add_child(slot_label)
+
+		hotbar_container.add_child(slot_panel)
+
+
+func _build_effect_text(entry: Dictionary) -> String:
+	var name_text: String = String(entry.get("short_name", "効果"))
+	var remaining_text: String = String(entry.get("remaining_text", ""))
+
+	if remaining_text == "":
+		return name_text
+
+	return "%s %s" % [name_text, remaining_text]
+
+
+func _build_effect_tooltip(entry: Dictionary) -> String:
+	var lines: Array[String] = []
+
+	lines.append(String(entry.get("name", "効果")))
+
+	var description: String = String(entry.get("description", ""))
+	if description != "":
+		lines.append(description)
+
+	var remaining_text: String = String(entry.get("remaining_text", ""))
+	if remaining_text != "":
+		lines.append("残り: " + remaining_text)
+
+	return "\n".join(lines)
+
+
+func _get_effect_color(entry: Dictionary) -> Color:
+	var kind: String = String(entry.get("kind", ""))
+
+	match kind:
+		"status":
+			return Color(1.0, 0.75, 0.75)
+		"buff":
+			return Color(0.75, 1.0, 0.8)
+		"debuff":
+			return Color(1.0, 0.85, 0.65)
+		_:
+			return Color(1.0, 1.0, 1.0)

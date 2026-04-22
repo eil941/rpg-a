@@ -43,6 +43,7 @@ func load_map(map_scene: PackedScene) -> void:
 func refresh_hud() -> void:
 	update_hud_time()
 	update_hud_player_status()
+	update_hud_effects()
 
 
 func update_hud_time() -> void:
@@ -97,6 +98,187 @@ func update_hud_player_status() -> void:
 		current_stamina,
 		total_max_stamina
 	)
+
+
+func update_hud_effects() -> void:
+	if game_hud == null:
+		return
+	if not game_hud.has_method("set_effect_entries"):
+		return
+
+	var player = find_player()
+	if player == null:
+		game_hud.set_effect_entries([])
+		return
+
+	var entries: Array[Dictionary] = _build_player_effect_entries(player)
+	game_hud.set_effect_entries(entries)
+
+
+func _build_player_effect_entries(player) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+
+	if player == null:
+		return result
+
+	if not ("active_effect_runtimes" in player):
+		return result
+
+	var runtimes: Array = player.active_effect_runtimes
+	for runtime_value in runtimes:
+		if runtime_value == null:
+			continue
+
+		var entry: Dictionary = _build_effect_entry(runtime_value)
+		if entry.is_empty():
+			continue
+
+		result.append(entry)
+
+	return result
+
+
+func _build_effect_entry(runtime) -> Dictionary:
+	if runtime == null:
+		return {}
+
+	var entry: Dictionary = {
+		"name": "効果",
+		"short_name": "効果",
+		"description": "",
+		"remaining_text": _format_runtime_remaining(runtime),
+		"kind": "status"
+	}
+
+	if runtime.effect_type == ItemEffectData.EffectType.APPLY_STATUS:
+		var status_name: String = _get_status_display_name(String(runtime.status_id))
+		entry["name"] = status_name
+		entry["short_name"] = status_name
+		entry["description"] = _get_status_description(String(runtime.status_id))
+		entry["kind"] = "status"
+		return entry
+
+	if runtime.effect_type == ItemEffectData.EffectType.APPLY_MODIFIER:
+		var stat_name: String = _get_stat_display_name(String(runtime.stat_name))
+		var is_debuff: bool = runtime.modifier_kind == ItemEffectData.ModifierKind.DEBUFF
+		var prefix: String = "↑"
+		var kind: String = "buff"
+		if is_debuff:
+			prefix = "↓"
+			kind = "debuff"
+
+		entry["name"] = stat_name + ("低下" if is_debuff else "上昇")
+		entry["short_name"] = prefix + stat_name
+		entry["description"] = _build_modifier_description(runtime, stat_name, is_debuff)
+		entry["kind"] = kind
+		return entry
+
+	return {}
+
+
+func _build_modifier_description(runtime, stat_name: String, is_debuff: bool) -> String:
+	var value_text: String = ""
+
+	if float(runtime.stat_percent) != 0.0:
+		value_text = str(int(round(abs(float(runtime.stat_percent)) * 100.0))) + "%"
+	elif int(runtime.stat_flat) != 0:
+		value_text = str(abs(int(runtime.stat_flat)))
+	else:
+		value_text = "0"
+
+	return stat_name + ("低下 " if is_debuff else "上昇 ") + value_text
+
+
+func _format_runtime_remaining(runtime) -> String:
+	var duration_type: int = int(runtime.duration_type)
+	var remaining_value: float = float(runtime.remaining_duration)
+
+	match duration_type:
+		ItemEffectData.DurationType.TIME:
+			var total_seconds: int = max(0, int(ceil(remaining_value)))
+			if total_seconds >= 3600:
+				var hours: int = total_seconds / 3600
+				var minutes: int = (total_seconds % 3600) / 60
+				return "%dh%02dm" % [hours, minutes]
+			if total_seconds >= 60:
+				var mins: int = total_seconds / 60
+				var secs: int = total_seconds % 60
+				return "%dm%02ds" % [mins, secs]
+			return "%ds" % total_seconds
+
+		ItemEffectData.DurationType.TURN:
+			return "%dT" % max(0, int(ceil(remaining_value)))
+
+		ItemEffectData.DurationType.ACTION:
+			return "%dA" % max(0, int(ceil(remaining_value)))
+
+	return ""
+
+
+func _get_status_display_name(status_id: String) -> String:
+	match status_id:
+		"poison":
+			return "毒"
+		"paralysis":
+			return "麻痺"
+		"sleep":
+			return "睡眠"
+		"burning":
+			return "炎上"
+		"frostbite":
+			return "凍傷"
+		"confusion":
+			return "混乱"
+		"blind":
+			return "盲目"
+		"hallucination":
+			return "幻覚"
+		"curse":
+			return "呪い"
+		_:
+			return status_id
+
+
+func _get_status_description(status_id: String) -> String:
+	match status_id:
+		"poison":
+			return "継続ダメージを受ける"
+		"paralysis":
+			return "行動できない"
+		"sleep":
+			return "眠っている"
+		"burning":
+			return "燃焼ダメージを受ける"
+		"frostbite":
+			return "凍傷ダメージを受ける"
+		"confusion":
+			return "移動が乱れる"
+		"blind":
+			return "視界が悪化している"
+		"hallucination":
+			return "見えるものが不安定になる"
+		"curse":
+			return "不吉な影響を受けている"
+		_:
+			return ""
+
+
+func _get_stat_display_name(stat_name: String) -> String:
+	match stat_name:
+		"attack":
+			return "攻撃"
+		"defense":
+			return "防御"
+		"speed":
+			return "速度"
+		"accuracy":
+			return "命中"
+		"evasion":
+			return "回避"
+		"crit_rate":
+			return "会心"
+		_:
+			return stat_name
 
 
 func _stats_has_property(stats, property_name: String) -> bool:
