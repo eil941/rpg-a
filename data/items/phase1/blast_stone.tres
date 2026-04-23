@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://boprenc87dgl3"]
+
+[ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_itemdata"]
+[ext_resource type="Texture2D" uid="uid://cxtb1pxr3y2o2" path="res://assets/glass.png" id="2_7scw0"]
+[ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_itemeffect"]
+
+[sub_resource type="Resource" id="Resource_blast_stone"]
+script = ExtResource("2_itemeffect")
+effect_type = 5
+power_min = 25
+power_max = 40
+
+[resource]
+script = ExtResource("1_itemdata")
+item_id = "blast_stone"
+display_name = "爆裂石"
+description = "敵1体に直接ダメージを与える。"
+icon = ExtResource("2_7scw0")
+category = "consumable"
+usable = true
+base_price = 140
+use_flags = 2
+target_flags = 4
+effects = Array[ExtResource("2_itemeffect")]([SubResource("Resource_blast_stone")])

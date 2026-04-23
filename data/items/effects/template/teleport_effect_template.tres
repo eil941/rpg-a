@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ItemEffectData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/item_effect_data.gd" id="1_effect"]
+
+[resource]
+script = ExtResource("1_effect")
+effect_type = 8
+teleport_mode = 0
+teleport_min_range = 3
+teleport_max_range = 999
+warp_point_id = &""

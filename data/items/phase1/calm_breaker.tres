@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://dq47a78scp1em"]
+
+[ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_itemdata"]
+[ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_itemeffect"]
+[ext_resource type="Texture2D" uid="uid://b2cbq34vcbsoc" path="res://assets/highrock1.png" id="2_m75eq"]
+
+[sub_resource type="Resource" id="Resource_calm_breaker"]
+script = ExtResource("2_itemeffect")
+effect_type = 4
+modifier_kind = 1
+stat_name = &"crit_rate"
+stat_flat = 80
+duration_type = 1
+duration_value = 15.0
+
+[resource]
+script = ExtResource("1_itemdata")
+item_id = "calm_breaker"
+display_name = "冷静崩し"
+description = "敵1体の会心率を下げる。"
+icon = ExtResource("2_m75eq")
+category = "consumable"
+usable = true
+base_price = 110
+use_flags = 2
+target_flags = 4
+effects = Array[ExtResource("2_itemeffect")]([SubResource("Resource_calm_breaker")])

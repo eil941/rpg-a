@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://dm6mas2k5e38f"]
+
+[ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_itemdata"]
+[ext_resource type="Texture2D" uid="uid://b6wdxyd2fhi5b" path="res://assets/bat2.png" id="2_371it"]
+[ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_itemeffect"]
+
+[sub_resource type="Resource" id="Resource_guard_tonic"]
+script = ExtResource("2_itemeffect")
+effect_type = 4
+stat_name = &"defense"
+stat_percent = 0.3
+duration_type = 1
+duration_value = 20.0
+
+[resource]
+script = ExtResource("1_itemdata")
+item_id = "guard_tonic"
+display_name = "守りの薬"
+description = "しばらく防御が上がる。"
+icon = ExtResource("2_371it")
+category = "consumable"
+usable = true
+base_price = 100
+use_flags = 1
+target_flags = 1
+effects = Array[ExtResource("2_itemeffect")]([SubResource("Resource_guard_tonic")])

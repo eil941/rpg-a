@@ -15,7 +15,25 @@ static var ITEM_RESOURCES = {
 	"paralysis_cure_potion": preload("res://data/items/paralysis_cure_potion.tres"),
 	"potion_of_strength": preload("res://data/items/potion_of_strength.tres"),
 	"teleport_stone": preload("res://data/items/teleport_stone.tres"),
-	"poison_cure_potion":preload("res://data/items/poison_cure_potion.tres"),
+	"poison_cure_potion": preload("res://data/items/poison_cure_potion.tres"),
+
+	# phase1 items
+	"fire_bottle": preload("res://data/items/phase1/fire_bottle.tres"),
+	"frost_bottle": preload("res://data/items/phase1/frost_bottle.tres"),
+	"sleep_orb": preload("res://data/items/phase1/sleep_orb.tres"),
+	"confusion_mushroom": preload("res://data/items/phase1/confusion_mushroom.tres"),
+	"softening_powder": preload("res://data/items/phase1/softening_powder.tres"),
+	"slow_slime": preload("res://data/items/phase1/slow_slime.tres"),
+	"blur_powder": preload("res://data/items/phase1/blur_powder.tres"),
+	"snare_smoke": preload("res://data/items/phase1/snare_smoke.tres"),
+	"calm_breaker": preload("res://data/items/phase1/calm_breaker.tres"),
+	"blast_stone": preload("res://data/items/phase1/blast_stone.tres"),
+	"guard_tonic": preload("res://data/items/phase1/guard_tonic.tres"),
+	"swift_tonic": preload("res://data/items/phase1/swift_tonic.tres"),
+	"focus_tonic": preload("res://data/items/phase1/focus_tonic.tres"),
+	"dodge_tonic": preload("res://data/items/phase1/dodge_tonic.tres"),
+	"crit_oil": preload("res://data/items/phase1/crit_oil.tres"),
+	"life_seed": preload("res://data/items/phase1/life_seed.tres"),
 
 	# equipment
 	"knife": preload("res://data/equipment/weapons/knife.tres"),

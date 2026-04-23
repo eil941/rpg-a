@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="ItemEffectData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/item_effect_data.gd" id="1_effect"]
+
+[resource]
+script = ExtResource("1_effect")
+effect_type = 5
+power_min = 25
+power_max = 40

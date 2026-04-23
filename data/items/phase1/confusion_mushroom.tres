@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://dhwyjgboghlj6"]
+
+[ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_itemdata"]
+[ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_itemeffect"]
+[ext_resource type="Texture2D" uid="uid://c2m7luwc4wy8b" path="res://assets/wall.png" id="2_l522w"]
+
+[sub_resource type="Resource" id="Resource_confusion_mushroom"]
+script = ExtResource("2_itemeffect")
+effect_type = 3
+status_id = &"confusion"
+duration_type = 1
+duration_value = 12.0
+
+[resource]
+script = ExtResource("1_itemdata")
+item_id = "confusion_mushroom"
+display_name = "混乱茸"
+description = "敵1体を混乱させる。"
+icon = ExtResource("2_l522w")
+category = "consumable"
+usable = true
+base_price = 130
+use_flags = 2
+target_flags = 4
+effects = Array[ExtResource("2_itemeffect")]([SubResource("Resource_confusion_mushroom")])

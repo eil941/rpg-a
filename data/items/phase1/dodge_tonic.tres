@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://djtqor6nla7ot"]
+
+[ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_itemdata"]
+[ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_itemeffect"]
+[ext_resource type="Texture2D" uid="uid://bq007sqr4ej4b" path="res://assets/sea.png" id="2_lmyek"]
+
+[sub_resource type="Resource" id="Resource_dodge_tonic"]
+script = ExtResource("2_itemeffect")
+effect_type = 4
+stat_name = &"evasion"
+stat_flat = 80
+duration_type = 1
+duration_value = 20.0
+
+[resource]
+script = ExtResource("1_itemdata")
+item_id = "dodge_tonic"
+display_name = "身かわしの薬"
+description = "しばらく回避が上がる。"
+icon = ExtResource("2_lmyek")
+category = "consumable"
+usable = true
+base_price = 110
+use_flags = 1
+target_flags = 1
+effects = Array[ExtResource("2_itemeffect")]([SubResource("Resource_dodge_tonic")])

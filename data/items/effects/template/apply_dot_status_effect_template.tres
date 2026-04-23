@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ItemEffectData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/item_effect_data.gd" id="1_effect"]
+
+[resource]
+script = ExtResource("1_effect")
+effect_type = 3
+status_id = &"burning"
+status_power = 3
+duration_type = 1
+duration_value = 8.0

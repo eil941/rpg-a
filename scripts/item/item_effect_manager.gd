@@ -3,6 +3,9 @@ class_name ItemEffectManager
 
 
 static func apply_item_effects(user, target, item_data: ItemData, use_flag_override: int = -1) -> bool:
+	if _is_item_use_blocked_by_status(user):
+		return false
+
 	if item_data == null:
 		return false
 
@@ -75,6 +78,23 @@ static func apply_item_effect(arg1, arg2, arg3 = null, arg4: int = -1) -> bool:
 
 	print("[ITEM EFFECT] new call item_id=", item_data.item_id, " target=", target.name if target != null and "name" in target else "null")
 	return apply_item_effects(user, target, item_data, use_flag_override)
+
+
+static func _is_item_use_blocked_by_status(user) -> bool:
+	if user == null:
+		return false
+
+	if not user.has_method("has_status_effect"):
+		return false
+
+	if user.has_status_effect(&"sleep"):
+		if user.has_method("consume_blocked_action_turn"):
+			user.consume_blocked_action_turn("眠っていてアイテムを使えない")
+		elif user.has_method("notify_hud_log"):
+			user.notify_hud_log("眠っていてアイテムを使えない")
+		return true
+
+	return false
 
 
 static func apply_single_effect(user, target, item_data: ItemData, effect: ItemEffectData, use_flag_override: int = -1) -> bool:
@@ -221,15 +241,15 @@ static func _apply_status(user, target, item_data: ItemData, effect: ItemEffectD
 	if not target.has_method("add_status_effect_runtime"):
 		return false
 
-	var runtime := UnitEffectRuntime.new()
+	var runtime: UnitEffectRuntime = UnitEffectRuntime.new()
 	runtime.source_item_id = item_data.item_id
 	runtime.effect_type = ItemEffectData.EffectType.APPLY_STATUS
 	runtime.status_id = effect.status_id
+	runtime.status_power = max(0, int(effect.status_power))
 	runtime.duration_type = effect.duration_type
 	runtime.remaining_duration = effect.duration_value
 
-	print("[ITEM EFFECT] apply_status status_id=", String(effect.status_id), " duration=", effect.duration_value)
-	print("[ITEM EFFECT] apply_modifier kind=", effect.get_modifier_kind_name(), " stat=", String(effect.stat_name), " flat=", effect.stat_flat, " percent=", effect.stat_percent, " duration=", effect.duration_value)
+	print("[ITEM EFFECT] apply_status status_id=", String(effect.status_id), " power=", runtime.status_power, " duration=", effect.duration_value)
 	target.add_status_effect_runtime(runtime)
 	return true
 
@@ -269,9 +289,22 @@ static func _apply_deal_damage(user, target, effect: ItemEffectData) -> bool:
 	if not _has_property(stats, "hp"):
 		return false
 
-	var damage_value: int = effect.get_rolled_power()
-	stats.hp = max(0, stats.hp - damage_value)
+	var damage_value: int = max(0, effect.get_rolled_power())
+	if damage_value <= 0:
+		return false
+
+	if stats.has_method("take_damage"):
+		stats.take_damage(damage_value)
+	else:
+		stats.hp = max(0, stats.hp - damage_value)
+
 	print("[ITEM EFFECT] damage=", damage_value, " target_hp=", stats.hp)
+
+	if target.has_method("notify_hud_player_status_refresh"):
+		target.notify_hud_player_status_refresh()
+	if target.has_method("notify_hud_effects_refresh"):
+		target.notify_hud_effects_refresh()
+
 	return true
 
 

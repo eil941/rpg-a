@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://bxrbedndnv0vb"]
+
+[ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_itemdata"]
+[ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_itemeffect"]
+[ext_resource type="Texture2D" uid="uid://b0v3y154dsf23" path="res://assets/enemy.png" id="2_mvnt4"]
+
+[sub_resource type="Resource" id="Resource_life_seed"]
+script = ExtResource("2_itemeffect")
+effect_type = 9
+power_min = 10
+power_max = 10
+stat_name = &"max_hp"
+
+[resource]
+script = ExtResource("1_itemdata")
+item_id = "life_seed"
+display_name = "命の木の実"
+description = "最大HPが恒久的に増加する。"
+icon = ExtResource("2_mvnt4")
+category = "consumable"
+usable = true
+base_price = 250
+use_flags = 1
+target_flags = 1
+effects = Array[ExtResource("2_itemeffect")]([SubResource("Resource_life_seed")])

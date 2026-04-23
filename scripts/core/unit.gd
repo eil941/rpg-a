@@ -1827,6 +1827,38 @@ func notify_hud_player_status_refresh() -> void:
 		node = node.get_parent()
 
 
+func notify_hud_effects_refresh() -> void:
+	var node: Node = self
+
+	while node != null:
+		if node.has_method("update_hud_effects"):
+			node.update_hud_effects()
+			return
+		node = node.get_parent()
+
+
+func consume_blocked_action_turn(log_text: String = "今は行動できない") -> void:
+	if log_text != "":
+		notify_hud_log(log_text)
+
+	if DebugSettings.debug_free_action:
+		return
+
+	if units_node == null:
+		return
+
+	TimeManager.advance_time(units_node, get_total_speed())
+
+	var node: Node = self
+	while node != null:
+		if node.has_method("refresh_hud"):
+			node.refresh_hud()
+			break
+		node = node.get_parent()
+
+	TimeManager.resolve_ai_turns(units_node)
+
+
 func try_auto_use_dungeon_stairs_on_touch() -> bool:
 	if map_root == null:
 		return false
@@ -2086,6 +2118,23 @@ func process_effect_ticks() -> void:
 			_apply_runtime_tick(runtime, stats_node)
 
 
+func _apply_runtime_damage(stats_node, status_label: String, damage_value: int) -> void:
+	if stats_node == null:
+		return
+	if damage_value <= 0:
+		return
+
+	if stats_node.has_method("take_damage"):
+		stats_node.take_damage(damage_value)
+	elif _stats_has_property(stats_node, "hp"):
+		stats_node.hp = max(0, int(stats_node.hp) - damage_value)
+
+	print("[STATUS TICK] unit=", name, " status=", status_label, " damage=", damage_value, " hp=", stats_node.hp)
+
+	notify_hud_player_status_refresh()
+	notify_hud_effects_refresh()
+
+
 func _apply_runtime_tick(runtime: UnitEffectRuntime, stats_node) -> void:
 	if runtime == null:
 		return
@@ -2287,7 +2336,6 @@ func load_effect_runtimes_save_data(data_list: Array) -> void:
 
 	recompute_runtime_modifiers()
 
-
 func apply_offscreen_effect_elapsed(elapsed_seconds: float) -> void:
 	if elapsed_seconds <= 0.0:
 		return
@@ -2305,15 +2353,20 @@ func apply_offscreen_effect_elapsed(elapsed_seconds: float) -> void:
 		if runtime == null:
 			continue
 
+		var effective_elapsed: float = elapsed_seconds
+
 		if runtime.duration_type == ItemEffectData.DurationType.TIME:
-			runtime.remaining_duration -= elapsed_seconds
+			effective_elapsed = min(elapsed_seconds, max(0.0, runtime.remaining_duration))
+			runtime.remaining_duration -= effective_elapsed
 
 		if stats_node == null:
 			continue
 		if runtime.tick_interval_seconds <= 0.0:
 			continue
+		if effective_elapsed <= 0.0:
+			continue
 
-		var total_accumulated: float = runtime.tick_accumulator_seconds + elapsed_seconds
+		var total_accumulated: float = runtime.tick_accumulator_seconds + effective_elapsed
 		var tick_count: int = int(floor(total_accumulated / runtime.tick_interval_seconds))
 		runtime.tick_accumulator_seconds = fmod(total_accumulated, runtime.tick_interval_seconds)
 

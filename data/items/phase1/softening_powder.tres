@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://b5w1mc5j0lgrp"]
+
+[ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_itemdata"]
+[ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_itemeffect"]
+[ext_resource type="Texture2D" uid="uid://bcoul43amc5om" path="res://assets/player_back_1.png" id="2_y3et6"]
+
+[sub_resource type="Resource" id="Resource_softening_powder"]
+script = ExtResource("2_itemeffect")
+effect_type = 4
+modifier_kind = 1
+stat_name = &"defense"
+stat_percent = 0.25
+duration_type = 1
+duration_value = 15.0
+
+[resource]
+script = ExtResource("1_itemdata")
+item_id = "softening_powder"
+display_name = "軟化粉"
+description = "敵1体の防御を下げる。"
+icon = ExtResource("2_y3et6")
+category = "consumable"
+usable = true
+base_price = 90
+use_flags = 2
+target_flags = 4
+effects = Array[ExtResource("2_itemeffect")]([SubResource("Resource_softening_powder")])

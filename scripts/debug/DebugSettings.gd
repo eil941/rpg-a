@@ -52,6 +52,24 @@ var debug_player_start_items: Array[Dictionary] = [
 	{"item_id": "potion_of_strength","amount":10 },
 	{"item_id": "teleport_stone","amount":10 },
 	{"item_id": "poison_cure_potion","amount":10 },
+	
+	# phase1 items
+	{"item_id": "fire_bottle", "amount": 10},
+	{"item_id": "frost_bottle", "amount": 10},
+	{"item_id": "sleep_orb", "amount": 10},
+	{"item_id": "confusion_mushroom", "amount": 10},
+	{"item_id": "softening_powder", "amount": 10},
+	{"item_id": "slow_slime", "amount": 10},
+	{"item_id": "blur_powder", "amount": 10},
+	{"item_id": "snare_smoke", "amount": 10},
+	{"item_id": "calm_breaker", "amount": 10},
+	{"item_id": "blast_stone", "amount": 10},
+	{"item_id": "guard_tonic", "amount": 10},
+	{"item_id": "swift_tonic", "amount": 10},
+	{"item_id": "focus_tonic", "amount": 10},
+	{"item_id": "dodge_tonic", "amount": 10},
+	{"item_id": "crit_oil", "amount": 10},
+	{"item_id": "life_seed", "amount": 10},
 ]
 
 var debug_item_spawn: bool = true

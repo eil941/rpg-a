@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemEffectData" format=3]
+
+[ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="1_itemeffect"]
+
+[resource]
+script = ExtResource("1_itemeffect")
+effect_type = 4
+modifier_kind = 1
+stat_name = &"evasion"
+stat_flat = 80
+duration_type = 1
+duration_value = 15.0

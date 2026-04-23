@@ -117,6 +117,12 @@ func handle_move_input(delta: float) -> void:
 		clear_move_hold()
 		return
 
+	if _is_sleeping():
+		clear_move_hold()
+		if _is_direction_attempt_just_pressed():
+			_consume_blocked_action("眠っていて動けない")
+		return
+
 	if not is_holding_move:
 		start_hold(input_dir)
 		return
@@ -171,6 +177,38 @@ func clear_move_hold() -> void:
 	first_move_done = false
 
 
+func _is_sleeping() -> bool:
+	if unit == null:
+		return false
+	if not unit.has_method("has_status_effect"):
+		return false
+	return unit.has_status_effect(&"sleep")
+
+
+func _is_direction_attempt_just_pressed() -> bool:
+	if Input.is_action_just_pressed("RIGHT"):
+		return true
+	if Input.is_action_just_pressed("LEFT"):
+		return true
+	if Input.is_action_just_pressed("DOWN"):
+		return true
+	if Input.is_action_just_pressed("UP"):
+		return true
+	return false
+
+
+func _consume_blocked_action(message: String) -> void:
+	clear_move_hold()
+
+	if unit == null:
+		return
+
+	if unit.has_method("consume_blocked_action_turn"):
+		unit.consume_blocked_action_turn(message)
+	elif unit.has_method("notify_hud_log"):
+		unit.notify_hud_log(message)
+
+
 func face_direction_only(dir: Vector2) -> void:
 	if unit == null:
 		return
@@ -212,6 +250,10 @@ func try_move_in_direction(dir: Vector2) -> void:
 func _is_player_action_blocked() -> bool:
 	if unit == null:
 		return false
+
+	if unit.has_method("has_status_effect") and unit.has_status_effect(&"sleep"):
+		_consume_blocked_action("眠っていて行動できない")
+		return true
 
 	if unit.has_method("is_action_blocked_by_status"):
 		if unit.is_action_blocked_by_status():

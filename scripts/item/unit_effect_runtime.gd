@@ -66,12 +66,14 @@ func advance_time(elapsed_seconds: float) -> void:
 	if elapsed_seconds <= 0.0:
 		return
 
+	var effective_elapsed: float = elapsed_seconds
+
 	if duration_type == ItemEffectData.DurationType.TIME:
-		remaining_duration -= elapsed_seconds
+		effective_elapsed = min(elapsed_seconds, max(0.0, remaining_duration))
+		remaining_duration -= effective_elapsed
 
 	if tick_interval_seconds > 0.0:
-		tick_accumulator_seconds += elapsed_seconds
-
+		tick_accumulator_seconds += effective_elapsed
 
 func consume_turn(turn_count: int = 1) -> void:
 	if turn_count <= 0:
