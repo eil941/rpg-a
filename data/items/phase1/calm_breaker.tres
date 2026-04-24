@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_itemdata"]
 [ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_itemeffect"]
-[ext_resource type="Texture2D" uid="uid://b2cbq34vcbsoc" path="res://assets/highrock1.png" id="2_m75eq"]
+[ext_resource type="Texture2D" uid="uid://blabgr3pfc47e" path="res://assets/items/sample/calm_breaker.png" id="2_woak1"]
 
 [sub_resource type="Resource" id="Resource_calm_breaker"]
 script = ExtResource("2_itemeffect")
@@ -12,13 +12,15 @@ stat_name = &"crit_rate"
 stat_flat = 80
 duration_type = 1
 duration_value = 15.0
+grant_item_ids = null
+grant_item_categories = null
 
 [resource]
 script = ExtResource("1_itemdata")
 item_id = "calm_breaker"
 display_name = "冷静崩し"
 description = "敵1体の会心率を下げる。"
-icon = ExtResource("2_m75eq")
+icon = ExtResource("2_woak1")
 category = "consumable"
 usable = true
 base_price = 110

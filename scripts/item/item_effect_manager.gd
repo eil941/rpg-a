@@ -27,6 +27,9 @@ static func apply_item_effects(user, target, item_data: ItemData, use_flag_overr
 		else:
 			print("[ITEM EFFECT] failed effect_type=", effect.get_effect_type_name())
 
+	if applied_any:
+		_wake_sleep_target_if_needed(user, target)
+
 	return applied_any
 
 
@@ -52,7 +55,7 @@ static func apply_item_effect(arg1, arg2, arg3 = null, arg4: int = -1) -> bool:
 			print("[ITEM EFFECT] item_data not found item_id=", String(arg2))
 			return false
 
-		if not bool(item_data.usable):
+		if not item_data.usable:
 			print("[ITEM EFFECT] item is not usable item_id=", String(arg2))
 			return false
 
@@ -92,6 +95,13 @@ static func _is_item_use_blocked_by_status(user) -> bool:
 			user.consume_blocked_action_turn("眠っていてアイテムを使えない")
 		elif user.has_method("notify_hud_log"):
 			user.notify_hud_log("眠っていてアイテムを使えない")
+		return true
+
+	if user.has_status_effect(&"paralysis"):
+		if user.has_method("consume_blocked_action_turn"):
+			user.consume_blocked_action_turn("麻痺していてアイテムを使えない")
+		elif user.has_method("notify_hud_log"):
+			user.notify_hud_log("麻痺していてアイテムを使えない")
 		return true
 
 	return false
@@ -223,6 +233,11 @@ static func _apply_cure_status(user, target, effect: ItemEffectData) -> bool:
 	if effect.status_id == &"":
 		return false
 
+	if effect.status_id == &"sleep":
+		if user != null and user.has_method("notify_hud_log"):
+			user.notify_hud_log("睡眠は状態異常回復では治らない")
+		return false
+
 	if target.has_method("remove_status_effect"):
 		print("[ITEM EFFECT] cure_status status_id=", String(effect.status_id))
 		target.remove_status_effect(effect.status_id)
@@ -238,6 +253,9 @@ static func _apply_status(user, target, item_data: ItemData, effect: ItemEffectD
 	if effect.status_id == &"":
 		return false
 
+	if effect.status_id == &"curse":
+		return _apply_curse_status(user, target, item_data, effect)
+
 	if not target.has_method("add_status_effect_runtime"):
 		return false
 
@@ -252,6 +270,70 @@ static func _apply_status(user, target, item_data: ItemData, effect: ItemEffectD
 	print("[ITEM EFFECT] apply_status status_id=", String(effect.status_id), " power=", runtime.status_power, " duration=", effect.duration_value)
 	target.add_status_effect_runtime(runtime)
 	return true
+
+
+static func _apply_curse_status(user, target, item_data: ItemData, effect: ItemEffectData) -> bool:
+	if target == null:
+		return false
+
+	if not target.has_method("add_status_effect_runtime"):
+		return false
+
+	var picked_indices: Array[int] = _pick_curse_status_indices(effect)
+	if picked_indices.is_empty():
+		print("[CURSE] no valid curse pool")
+		return false
+
+	var applied_child_count: int = 0
+
+	for pool_index in picked_indices:
+		var child_status_id: StringName = effect.get_curse_status_id_at(pool_index)
+		if child_status_id == &"":
+			continue
+
+		var child_runtime: UnitEffectRuntime = UnitEffectRuntime.new()
+		child_runtime.source_item_id = item_data.item_id
+		child_runtime.effect_type = ItemEffectData.EffectType.APPLY_STATUS
+		child_runtime.status_id = child_status_id
+		child_runtime.status_power = max(0, int(effect.get_curse_status_power_for_index(pool_index)))
+		child_runtime.duration_type = effect.get_curse_duration_type_for_index(pool_index)
+		child_runtime.remaining_duration = effect.get_curse_duration_value_for_index(pool_index)
+
+		print(
+			"[CURSE] add status=", String(child_status_id),
+			" power=", child_runtime.status_power,
+			" duration_type=", child_runtime.duration_type,
+			" duration=", child_runtime.remaining_duration
+		)
+
+		target.add_status_effect_runtime(child_runtime)
+		applied_child_count += 1
+
+	return applied_child_count > 0
+
+
+static func _pick_curse_status_indices(effect: ItemEffectData) -> Array[int]:
+	var valid_indices: Array[int] = []
+
+	for index in range(effect.get_curse_pool_count()):
+		var status_id: StringName = effect.get_curse_status_id_at(index)
+		if status_id == &"":
+			continue
+		valid_indices.append(index)
+
+	if valid_indices.is_empty():
+		return []
+
+	var pick_count: int = min(effect.get_curse_pick_count(), valid_indices.size())
+	var picked: Array[int] = []
+
+	while picked.size() < pick_count and not valid_indices.is_empty():
+		var random_index: int = randi_range(0, valid_indices.size() - 1)
+		picked.append(valid_indices[random_index])
+		valid_indices.remove_at(random_index)
+
+	return picked
+
 
 
 static func _apply_modifier(user, target, item_data: ItemData, effect: ItemEffectData) -> bool:
@@ -312,6 +394,12 @@ static func _apply_grant_item(user, target, effect: ItemEffectData) -> bool:
 	if target == null:
 		return false
 
+	if target.has_method("grant_items_from_effect"):
+		var grant_result = target.grant_items_from_effect(effect)
+		if grant_result is bool:
+			return grant_result
+		return true
+
 	if effect.grant_item_id == "":
 		return false
 
@@ -326,12 +414,14 @@ static func _apply_grant_currency(user, target, effect: ItemEffectData) -> bool:
 	if target == null:
 		return false
 
+	if target.has_method("grant_currency_from_effect"):
+		var result = target.grant_currency_from_effect(effect)
+		if result is bool:
+			return bool(result)
+		return true
+
 	if effect.grant_currency_amount == 0:
 		return false
-
-	if target.has_method("grant_currency_from_effect"):
-		target.grant_currency_from_effect(effect.grant_currency_amount)
-		return true
 
 	return false
 
@@ -439,6 +529,26 @@ static func _apply_spawn_object(user, target, effect: ItemEffectData) -> bool:
 		return true
 
 	return false
+
+
+static func _wake_sleep_target_if_needed(user, target) -> void:
+	if target == null:
+		return
+	if user == null:
+		return
+	if target == user:
+		return
+	if not target.has_method("has_status_effect"):
+		return
+	if not target.has_method("remove_status_effect"):
+		return
+	if not target.has_status_effect(&"sleep"):
+		return
+
+	target.remove_status_effect(&"sleep")
+
+	if user.has_method("notify_hud_log"):
+		user.notify_hud_log("%s は目を覚ました" % String(target.name))
 
 
 static func _get_stats_node(target):

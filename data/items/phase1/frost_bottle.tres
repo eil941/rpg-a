@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://cw0xdg5cj0f2v"]
 
 [ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_itemdata"]
-[ext_resource type="Texture2D" uid="uid://ci1uxejq1rcpi" path="res://assets/orc.png" id="2_h8ta7"]
+[ext_resource type="Texture2D" uid="uid://bp0g3qb1kskg3" path="res://assets/items/sample/frost_bottle.png" id="2_eybqp"]
 [ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_itemeffect"]
 
 [sub_resource type="Resource" id="Resource_frost_bottle"]
@@ -11,13 +11,15 @@ status_id = &"frostbite"
 status_power = 2
 duration_type = 1
 duration_value = 10.0
+grant_item_ids = null
+grant_item_categories = null
 
 [resource]
 script = ExtResource("1_itemdata")
 item_id = "frost_bottle"
 display_name = "氷結瓶"
 description = "敵1体を凍傷状態にする。"
-icon = ExtResource("2_h8ta7")
+icon = ExtResource("2_eybqp")
 category = "consumable"
 usable = true
 base_price = 120

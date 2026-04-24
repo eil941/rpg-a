@@ -104,6 +104,15 @@ enum TeleportMode {
 @export var duration_type: DurationType = DurationType.NONE
 @export var duration_value: float = 0.0
 
+# 呪い専用
+# curse のときだけ使う
+# 個別設定が無いものは duration_type / duration_value を使う
+@export var curse_random_status_count: int = 3
+@export var curse_status_pool: Array[StringName] = []
+@export var curse_status_power_overrides: Array[int] = []
+@export var curse_duration_type_overrides: Array[int] = []
+@export var curse_duration_value_overrides: Array[float] = []
+
 # テレポート系
 @export var teleport_mode: TeleportMode = TeleportMode.RANDOM
 @export var teleport_min_range: int = 0
@@ -127,6 +136,7 @@ enum TeleportMode {
 
 # 設置
 @export var spawn_object_id: StringName = &""
+
 
 func get_effect_type_name() -> String:
 	match effect_type:
@@ -163,6 +173,7 @@ func get_effect_type_name() -> String:
 		_:
 			return "unknown"
 
+
 func get_resource_type_name() -> String:
 	match resource_type:
 		ResourceType.HP:
@@ -176,6 +187,7 @@ func get_resource_type_name() -> String:
 		_:
 			return ""
 
+
 func get_modifier_kind_name() -> String:
 	match modifier_kind:
 		ModifierKind.BUFF:
@@ -184,6 +196,7 @@ func get_modifier_kind_name() -> String:
 			return "debuff"
 		_:
 			return ""
+
 
 func get_teleport_mode_name() -> String:
 	match teleport_mode:
@@ -198,6 +211,7 @@ func get_teleport_mode_name() -> String:
 		_:
 			return ""
 
+
 func get_rolled_power() -> int:
 	var min_value: int = power_min
 	var max_value: int = max(power_max, min_value)
@@ -207,35 +221,113 @@ func get_rolled_power() -> int:
 
 	return randi_range(min_value, max_value)
 
+
 func has_duration() -> bool:
 	return duration_type != DurationType.NONE and duration_value > 0.0
+
 
 func uses_status_id() -> bool:
 	return effect_type == EffectType.CURE_STATUS or effect_type == EffectType.APPLY_STATUS
 
+
 func uses_modifier_fields() -> bool:
 	return effect_type == EffectType.APPLY_MODIFIER or effect_type == EffectType.PERMANENT_STAT_GROWTH
+
 
 func uses_resource_type() -> bool:
 	return effect_type == EffectType.RESTORE_RESOURCE
 
+
 func uses_teleport_fields() -> bool:
 	return effect_type == EffectType.TELEPORT
+
 
 func uses_grant_item_fields() -> bool:
 	return effect_type == EffectType.GRANT_ITEM
 
+
 func uses_grant_currency_fields() -> bool:
 	return effect_type == EffectType.GRANT_CURRENCY
+
 
 func uses_skill_id() -> bool:
 	return effect_type == EffectType.LEARN_SKILL
 
+
 func uses_recipe_id() -> bool:
 	return effect_type == EffectType.UNLOCK_RECIPE
+
 
 func uses_document_text() -> bool:
 	return effect_type == EffectType.READ_DOCUMENT
 
+
 func uses_spawn_object_id() -> bool:
 	return effect_type == EffectType.SPAWN_OBJECT
+
+
+func uses_curse_fields() -> bool:
+	return effect_type == EffectType.APPLY_STATUS and status_id == &"curse"
+
+
+func get_curse_pool_count() -> int:
+	return curse_status_pool.size()
+
+
+func get_curse_pick_count() -> int:
+	var pool_count: int = get_curse_pool_count()
+	if pool_count <= 0:
+		return 0
+
+	var desired_count: int = max(1, curse_random_status_count)
+	return min(desired_count, pool_count)
+
+
+func get_curse_status_id_at(index: int) -> StringName:
+	if index < 0 or index >= curse_status_pool.size():
+		return &""
+
+	return curse_status_pool[index]
+
+
+func get_curse_status_power_for_index(index: int) -> int:
+	if index >= 0 and index < curse_status_power_overrides.size():
+		var override_value: int = int(curse_status_power_overrides[index])
+		if override_value >= 0:
+			return override_value
+
+	return status_power
+
+
+func get_curse_duration_type_for_index(index: int) -> int:
+	var fallback_type: int = int(duration_type)
+
+	if index < 0 or index >= curse_duration_type_overrides.size():
+		return fallback_type
+
+	var override_value: int = int(curse_duration_type_overrides[index])
+
+	# 未設定扱い:
+	# -1
+	# 0(NONE)
+	if override_value <= 0:
+		return fallback_type
+
+	return override_value
+
+
+func get_curse_duration_value_for_index(index: int) -> float:
+	var fallback_value: float = float(duration_value)
+
+	if index < 0 or index >= curse_duration_value_overrides.size():
+		return fallback_value
+
+	var override_value: float = float(curse_duration_value_overrides[index])
+
+	# 未設定扱い:
+	# -1.0
+	# 0.0
+	if override_value <= 0.0:
+		return fallback_value
+
+	return override_value

@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="ItemEffectData" format=3]
+
+[ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="1_effect"]
+
+[resource]
+script = ExtResource("1_effect")
+effect_type = 7
+grant_currency_amount_min = 50
+grant_currency_amount_max = 180

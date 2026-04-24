@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://m0ryg5n886l1"]
+
+[ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_itemdata"]
+[ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_itemeffect"]
+[ext_resource type="Texture2D" uid="uid://0vijxq0uyph0" path="res://assets/items/sample/blind_sand.png" id="2_kri23"]
+
+[sub_resource type="Resource" id="Resource_blind_sand"]
+script = ExtResource("2_itemeffect")
+effect_type = 3
+status_id = &"blind"
+duration_type = 1
+duration_value = 5000.0
+grant_item_ids = null
+grant_item_categories = null
+
+[resource]
+script = ExtResource("1_itemdata")
+item_id = "blind_sand"
+display_name = "目潰し砂"
+description = "敵1体を盲目にする。プレイヤーなら周囲以外が見えなくなる。"
+icon = ExtResource("2_kri23")
+category = "consumable"
+usable = true
+base_price = 130
+rarity = 3
+use_flags = 2
+target_flags = 4
+effects = Array[ExtResource("2_itemeffect")]([SubResource("Resource_blind_sand")])

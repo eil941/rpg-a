@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://yfnf1d6glq2g"]
 
 [ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_item"]
-[ext_resource type="Texture2D" uid="uid://ckexfog112hi2" path="res://assets/items/strength_potion.png" id="2_cajgh"]
+[ext_resource type="Texture2D" uid="uid://dwkuk0o7aexk0" path="res://assets/items/sample/potion_of_strength.png" id="2_cajgh"]
 [ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_effect"]
 
 [sub_resource type="Resource" id="Effect_AttackBuff"]
@@ -11,6 +11,8 @@ stat_name = &"attack"
 stat_percent = 0.2
 duration_type = 1
 duration_value = 7200.0
+grant_item_ids = null
+grant_item_categories = null
 
 [resource]
 script = ExtResource("1_item")

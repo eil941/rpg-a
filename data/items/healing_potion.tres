@@ -2,13 +2,15 @@
 
 [ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_item"]
 [ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_effect"]
-[ext_resource type="Texture2D" uid="uid://dxp2r6xq4klxt" path="res://assets/items/healing_potion.png" id="2_ijg6u"]
+[ext_resource type="Texture2D" uid="uid://b7qibacar4arp" path="res://assets/items/sample/healing_potion.png" id="2_ijg6u"]
 
 [sub_resource type="Resource" id="Effect_RestoreHP"]
 script = ExtResource("2_effect")
 effect_type = 1
 power_min = 30
 power_max = 30
+grant_item_ids = null
+grant_item_categories = null
 
 [resource]
 script = ExtResource("1_item")

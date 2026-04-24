@@ -123,6 +123,12 @@ func handle_move_input(delta: float) -> void:
 			_consume_blocked_action("眠っていて動けない")
 		return
 
+	if _is_paralyzed():
+		clear_move_hold()
+		if _is_direction_attempt_just_pressed():
+			_consume_blocked_action("麻痺していて動けない")
+		return
+
 	if not is_holding_move:
 		start_hold(input_dir)
 		return
@@ -183,6 +189,14 @@ func _is_sleeping() -> bool:
 	if not unit.has_method("has_status_effect"):
 		return false
 	return unit.has_status_effect(&"sleep")
+
+
+func _is_paralyzed() -> bool:
+	if unit == null:
+		return false
+	if not unit.has_method("has_status_effect"):
+		return false
+	return unit.has_status_effect(&"paralysis")
 
 
 func _is_direction_attempt_just_pressed() -> bool:
@@ -246,13 +260,16 @@ func try_move_in_direction(dir: Vector2) -> void:
 			TimeManager.resolve_ai_turns(units_node)
 
 
-
 func _is_player_action_blocked() -> bool:
 	if unit == null:
 		return false
 
 	if unit.has_method("has_status_effect") and unit.has_status_effect(&"sleep"):
 		_consume_blocked_action("眠っていて行動できない")
+		return true
+
+	if unit.has_method("has_status_effect") and unit.has_status_effect(&"paralysis"):
+		_consume_blocked_action("麻痺していて行動できない")
 		return true
 
 	if unit.has_method("is_action_blocked_by_status"):
@@ -315,6 +332,9 @@ func notify_hud() -> void:
 	while node != null:
 		if node.has_method("refresh_hud"):
 			node.refresh_hud()
+
+			if node.has_method("force_sync_hallucination_visuals"):
+				node.force_sync_hallucination_visuals()
 			return
 		node = node.get_parent()
 

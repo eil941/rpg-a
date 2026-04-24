@@ -2,19 +2,21 @@
 
 [ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="1_0bv3h"]
 [ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_0jtar"]
-[ext_resource type="Texture2D" uid="uid://snxa032qnsjt" path="res://assets/items/potion.png" id="1_wdku8"]
+[ext_resource type="Texture2D" uid="uid://b8bln7l4ilj6f" path="res://assets/items/sample/potion.png" id="2_0bv3h"]
 
 [sub_resource type="Resource" id="Effect_RestoreHP"]
 script = ExtResource("1_0bv3h")
 effect_type = 1
 power_min = 500
 power_max = 500
+grant_item_ids = null
+grant_item_categories = null
 
 [resource]
 script = ExtResource("1_0jtar")
 item_id = "potion"
 display_name = "potion"
-icon = ExtResource("1_wdku8")
+icon = ExtResource("2_0bv3h")
 category = "consumable"
 usable = true
 base_price = 100

@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://5lwki01hoslg"]
+
+[ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_item"]
+[ext_resource type="Texture2D" uid="uid://c2m7luwc4wy8b" path="res://assets/wall.png" id="2_efewy"]
+[ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_effect"]
+
+[sub_resource type="Resource" id="Resource_curse_orb_effect"]
+script = ExtResource("2_effect")
+effect_type = 3
+status_id = &"curse"
+duration_type = 1
+duration_value = 5.0
+curse_status_pool = Array[StringName]([&"poison", &"blind", &"confusion", &"burning", &"hallucination", &"frostbite", &"paralysis"])
+curse_status_power_overrides = Array[int]([2, 0, 0, 2])
+
+[resource]
+script = ExtResource("1_item")
+item_id = "curse_orb"
+display_name = "呪い玉"
+description = "敵1体に呪いを与え、複数の状態異常をランダムで付与する。"
+icon = ExtResource("2_efewy")
+category = "consumable"
+max_stack = 20
+usable = true
+base_price = 220
+rarity = 6
+spawn_weight = 40
+use_flags = 2
+target_flags = 4
+effects = Array[ExtResource("2_effect")]([SubResource("Resource_curse_orb_effect")])

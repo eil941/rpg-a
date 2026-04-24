@@ -2,13 +2,13 @@
 
 [ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="1_6crmk"]
 [ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_pkq13"]
-[ext_resource type="Texture2D" uid="uid://kqryfdfyqjeu" path="res://assets/items/wood.png" id="1_qnvr4"]
+[ext_resource type="Texture2D" uid="uid://ciqws8aeoyia5" path="res://assets/items/sample/wood.png" id="2_6crmk"]
 
 [resource]
 script = ExtResource("1_pkq13")
 item_id = "wood"
 display_name = "wood"
-icon = ExtResource("1_qnvr4")
+icon = ExtResource("2_6crmk")
 category = "material"
 base_price = 10
 rarity = 9

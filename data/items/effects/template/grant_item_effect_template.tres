@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemEffectData" format=3]
+
+[ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="1_effect"]
+
+[resource]
+script = ExtResource("1_effect")
+effect_type = 6
+grant_item_ids = PackedStringArray("healing_potion", "poison_cure_potion", "paralysis_cure_potion")
+grant_item_categories = PackedStringArray("material")
+grant_item_kind_min = 1
+grant_item_kind_max = 3
+grant_item_amount_min = 1
+grant_item_amount_max = 4

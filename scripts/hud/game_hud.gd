@@ -100,7 +100,7 @@ func _create_effect_tooltip() -> void:
 	tooltip_panel = PanelContainer.new()
 	tooltip_panel.visible = false
 	tooltip_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tooltip_panel.z_index = 9999
+	tooltip_panel.z_index = 99
 	tooltip_panel.custom_minimum_size = Vector2(220, 0)
 
 	var style: StyleBoxFlat = StyleBoxFlat.new()

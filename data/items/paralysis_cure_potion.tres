@@ -1,13 +1,15 @@
 [gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://bumjxq24xq8ke"]
 
 [ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_item"]
-[ext_resource type="Texture2D" uid="uid://bmmif2o6flwe" path="res://assets/items/paralysis_cure_potion.png" id="2_ao02s"]
+[ext_resource type="Texture2D" uid="uid://bugkyw0mssf3m" path="res://assets/items/sample/paralysis_cure_potion.png" id="2_ao02s"]
 [ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_effect"]
 
 [sub_resource type="Resource" id="Effect_CureParalysis"]
 script = ExtResource("2_effect")
 effect_type = 2
 status_id = &"paralysis"
+grant_item_ids = null
+grant_item_categories = null
 
 [resource]
 script = ExtResource("1_item")

@@ -1,32 +1,25 @@
 extends RefCounted
 class_name UnitEffectRuntime
 
-# どのアイテムや原因から来たか
 var source_item_id: String = ""
 var source_unit_id: String = ""
 
-# 効果の大分類
 var effect_type: int = ItemEffectData.EffectType.NONE
 
-# 状態異常系
 var status_id: StringName = &""
 var status_power: int = 0
 
-# modifier 系
 var modifier_kind: int = ItemEffectData.ModifierKind.BUFF
 var stat_name: StringName = &""
 var stat_flat: int = 0
 var stat_percent: float = 0.0
 
-# 継続時間
 var duration_type: int = ItemEffectData.DurationType.NONE
 var remaining_duration: float = 0.0
 
-# 状態異常の内部処理用
 var tick_interval_seconds: float = 0.0
 var tick_accumulator_seconds: float = 0.0
 
-# 任意の補助情報
 var extra_data: Dictionary = {}
 
 
@@ -74,6 +67,7 @@ func advance_time(elapsed_seconds: float) -> void:
 
 	if tick_interval_seconds > 0.0:
 		tick_accumulator_seconds += effective_elapsed
+
 
 func consume_turn(turn_count: int = 1) -> void:
 	if turn_count <= 0:

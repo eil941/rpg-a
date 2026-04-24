@@ -1,8 +1,8 @@
 [gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://088h02nx6b7r"]
 
 [ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_hpaic"]
-[ext_resource type="Texture2D" uid="uid://bm7bfq5g3fsh" path="res://assets/items/apple.png" id="1_j163c"]
 [ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_effect"]
+[ext_resource type="Texture2D" uid="uid://b2g84ys3adsh5" path="res://assets/items/sample/apple.png" id="2_hwi2a"]
 
 [sub_resource type="Resource" id="Effect_RestoreHunger"]
 script = ExtResource("2_effect")
@@ -10,12 +10,14 @@ effect_type = 1
 power_min = 10
 power_max = 10
 resource_type = 3
+grant_item_ids = null
+grant_item_categories = null
 
 [resource]
 script = ExtResource("1_hpaic")
 item_id = "apple"
 display_name = "apple"
-icon = ExtResource("1_j163c")
+icon = ExtResource("2_hwi2a")
 category = "food"
 usable = true
 base_price = 50

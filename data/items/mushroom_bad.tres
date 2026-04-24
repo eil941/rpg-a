@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://bsco3v25uvael"]
 
 [ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_item"]
-[ext_resource type="Texture2D" uid="uid://brjyt064jvdma" path="res://assets/items/mushroom_bad.png" id="2_5j6ul"]
+[ext_resource type="Texture2D" uid="uid://xpmpilrm1wd1" path="res://assets/items/sample/mushroom_bad.png" id="2_5j6ul"]
 [ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_effect"]
 
 [sub_resource type="Resource" id="Effect_Poison"]
@@ -11,6 +11,8 @@ status_id = &"poison"
 status_power = 1
 duration_type = 1
 duration_value = 3600.0
+grant_item_ids = null
+grant_item_categories = null
 
 [resource]
 script = ExtResource("1_item")

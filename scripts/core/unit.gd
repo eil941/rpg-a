@@ -1853,6 +1853,9 @@ func consume_blocked_action_turn(log_text: String = "今は行動できない") 
 	while node != null:
 		if node.has_method("refresh_hud"):
 			node.refresh_hud()
+
+			if node.has_method("force_sync_hallucination_visuals"):
+				node.force_sync_hallucination_visuals()
 			break
 		node = node.get_parent()
 
@@ -2269,8 +2272,289 @@ func is_action_blocked_by_status() -> bool:
 	return false
 
 
-func apply_item_teleport_effect(effect: ItemEffectData) -> void:
+func _build_grant_item_candidate_ids(effect: ItemEffectData) -> Array[String]:
+	var result: Array[String] = []
+
+	if effect == null:
+		return result
+
+	if effect.grant_item_id != "":
+		if ItemDatabase.exists(effect.grant_item_id):
+			result.append(effect.grant_item_id)
+
+	for raw_id in effect.grant_item_ids:
+		var item_id: String = String(raw_id)
+		if item_id == "":
+			continue
+		if not ItemDatabase.exists(item_id):
+			continue
+		if not result.has(item_id):
+			result.append(item_id)
+
+	var normalized_categories: Array[String] = []
+	for raw_category in effect.grant_item_categories:
+		var category_text: String = ItemCategories.normalize(String(raw_category))
+		if category_text == "":
+			continue
+		if not normalized_categories.has(category_text):
+			normalized_categories.append(category_text)
+
+	if not normalized_categories.is_empty():
+		var category_items: Array[String] = ItemDatabase.get_item_ids_by_categories(normalized_categories)
+		for item_id in category_items:
+			if item_id == "":
+				continue
+			if not result.has(item_id):
+				result.append(item_id)
+
+	return result
+
+
+func _roll_grant_item_entries(effect: ItemEffectData) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+
+	if effect == null:
+		return result
+
+	var candidate_ids: Array[String] = _build_grant_item_candidate_ids(effect)
+	if candidate_ids.is_empty():
+		return result
+
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.randomize()
+
+	var kind_count: int = effect.get_rolled_grant_item_kind_count()
+	kind_count = clamp(kind_count, 1, candidate_ids.size())
+
+	var pool: Array[String] = candidate_ids.duplicate()
+
+	for i in range(kind_count):
+		if pool.is_empty():
+			break
+
+		var pick_index: int = rng.randi_range(0, pool.size() - 1)
+		var item_id: String = pool[pick_index]
+		pool.remove_at(pick_index)
+
+		var amount: int = effect.get_rolled_grant_item_amount()
+		amount = max(1, amount)
+
+		result.append({
+			"item_id": item_id,
+			"amount": amount
+		})
+
+	return result
+
+
+func _can_add_all_entries_to_inventory(entries: Array[Dictionary]) -> bool:
+	if inventory == null:
+		return false
+
+	var temp_inventory: Inventory = Inventory.new()
+	temp_inventory.max_slots = inventory.max_slots
+	temp_inventory.initialize_empty_slots()
+	temp_inventory.load_inventory_data(inventory.save_inventory_data())
+
+	for entry in entries:
+		if typeof(entry) != TYPE_DICTIONARY:
+			return false
+		if not temp_inventory.add_item_entry(entry):
+			return false
+
+	return true
+
+
+func grant_items_from_effect(effect: ItemEffectData) -> bool:
+	if effect == null:
+		return false
+	if inventory == null:
+		return false
+
+	var rolled_entries: Array[Dictionary] = _roll_grant_item_entries(effect)
+	if rolled_entries.is_empty():
+		notify_hud_log("補給袋の中身が決まらなかった")
+		return false
+
+	if not _can_add_all_entries_to_inventory(rolled_entries):
+		notify_hud_log("持ち物がいっぱいで受け取れない")
+		return false
+
+	for entry in rolled_entries:
+		if typeof(entry) != TYPE_DICTIONARY:
+			continue
+
+		var item_id: String = String(entry.get("item_id", ""))
+		var amount: int = int(entry.get("amount", 0))
+		if item_id == "" or amount <= 0:
+			continue
+
+		inventory.add_item_entry({
+			"item_id": item_id,
+			"amount": amount
+		})
+
+		notify_hud_log("入手: %s x%d" % [ItemDatabase.get_display_name(item_id), amount])
+
+	PlayerData.inventory_data = inventory.save_inventory_data()
+	notify_inventory_refresh()
+	return true
+
+
+func grant_item_from_effect(item_id: String, amount: int) -> bool:
+	if item_id == "" or amount <= 0:
+		return false
+	if inventory == null:
+		return false
+	if not inventory.add_item(item_id, amount):
+		notify_hud_log("持ち物がいっぱいで受け取れない")
+		return false
+
+	PlayerData.inventory_data = inventory.save_inventory_data()
+	notify_inventory_refresh()
+	notify_hud_log("入手: %s x%d" % [ItemDatabase.get_display_name(item_id), amount])
+	return true
+
+
+func grant_currency_from_effect(effect_or_amount) -> bool:
+	if inventory == null:
+		return false
+
+	var amount: int = 0
+
+	if effect_or_amount is ItemEffectData:
+		amount = effect_or_amount.get_rolled_grant_currency_amount()
+	else:
+		amount = int(effect_or_amount)
+
+	if amount <= 0:
+		return false
+
+	if not inventory.add_item("gold", amount):
+		notify_hud_log("持ち物がいっぱいで金貨を受け取れない")
+		return false
+
+	PlayerData.inventory_data = inventory.save_inventory_data()
+	notify_inventory_refresh()
+	notify_hud_log("入手: Gold x%d" % amount)
+	return true
+
+
+func apply_item_teleport_effect(effect: ItemEffectData) -> bool:
+	if effect == null:
+		return false
+
 	print("[ITEM EFFECT] teleport requested mode=", effect.get_teleport_mode_name())
+
+	match effect.teleport_mode:
+		ItemEffectData.TeleportMode.RANDOM:
+			return _apply_random_teleport(effect)
+		_:
+			notify_hud_log("今はランダムテレポートのみ対応")
+			return false
+
+
+func _apply_random_teleport(effect: ItemEffectData) -> bool:
+	if ground_layer == null:
+		return false
+
+	var current_tile: Vector2i = get_current_tile_coords()
+	var min_range: int = max(0, int(effect.teleport_min_range))
+	var max_range: int = max(min_range, int(effect.teleport_max_range))
+
+	var candidates: Array[Vector2i] = _collect_random_teleport_candidates(current_tile, min_range, max_range)
+	if candidates.is_empty():
+		notify_hud_log("テレポート先が見つからない")
+		return false
+
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.randomize()
+
+	var picked_index: int = rng.randi_range(0, candidates.size() - 1)
+	var target_tile: Vector2i = candidates[picked_index]
+
+	_teleport_to_tile(target_tile)
+	notify_hud_log("ランダムテレポートした")
+	return true
+
+
+func _collect_random_teleport_candidates(origin_tile: Vector2i, min_range: int, max_range: int) -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+
+	for dx in range(-max_range, max_range + 1):
+		for dy in range(-max_range, max_range + 1):
+			var distance: int = absi(dx) + absi(dy)
+			if distance < min_range:
+				continue
+			if distance > max_range:
+				continue
+			if dx == 0 and dy == 0:
+				continue
+
+			var target_tile: Vector2i = origin_tile + Vector2i(dx, dy)
+			if _can_teleport_to_tile(target_tile):
+				result.append(target_tile)
+
+	return result
+
+
+func _can_teleport_to_tile(tile_coords: Vector2i) -> bool:
+	if ground_layer == null:
+		return false
+
+	if ground_layer.get_cell_source_id(tile_coords) == -1:
+		return false
+
+	if units_node != null:
+		for other in units_node.get_children():
+			if other == null:
+				continue
+			if other == self:
+				continue
+			if not other.has_method("get_occupied_tile_coords"):
+				continue
+			if other.get_occupied_tile_coords() == tile_coords:
+				return false
+
+	var tile_data = get_tile_data_at_coords(tile_coords)
+	if tile_data != null:
+		var scene_transfer = tile_data.get_custom_data("scene_transfer")
+		if scene_transfer == true:
+			return false
+
+	var target_pos: Vector2 = ground_layer.to_global(ground_layer.map_to_local(tile_coords))
+	var shape_node: CollisionShape2D = get_node_or_null("CollisionShape2D")
+	if shape_node == null or shape_node.shape == null:
+		return false
+
+	var space_state = get_world_2d().direct_space_state
+	var query: PhysicsShapeQueryParameters2D = PhysicsShapeQueryParameters2D.new()
+	query.shape = shape_node.shape
+	query.transform = Transform2D(0, target_pos)
+	query.collide_with_areas = false
+	query.collide_with_bodies = true
+
+	var result: Array = space_state.intersect_shape(query)
+	if not result.is_empty():
+		return false
+
+	return true
+
+
+func _teleport_to_tile(tile_coords: Vector2i) -> void:
+	var target_pos: Vector2 = ground_layer.to_global(ground_layer.map_to_local(tile_coords))
+
+	is_transitioning = false
+	is_moving = false
+	repeat_timer = repeat_delay
+	velocity = Vector2.ZERO
+	global_position = target_pos
+	target_position = target_pos
+
+	debug_print_current_tile_info()
+
+	if is_player_unit:
+		try_pickup_items_on_current_tile()
 
 
 

@@ -1,8 +1,8 @@
 [gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://b2l8r35lx0mih"]
 
 [ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_itemdata"]
-[ext_resource type="Texture2D" uid="uid://wq3fbwj1mcv8" path="res://assets/rock1.png" id="2_fy6jg"]
 [ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_itemeffect"]
+[ext_resource type="Texture2D" uid="uid://qqe6vguhkgwh" path="res://assets/items/sample/blur_powder.png" id="2_nhign"]
 
 [sub_resource type="Resource" id="Resource_blur_powder"]
 script = ExtResource("2_itemeffect")
@@ -12,13 +12,15 @@ stat_name = &"accuracy"
 stat_flat = 100
 duration_type = 1
 duration_value = 15.0
+grant_item_ids = null
+grant_item_categories = null
 
 [resource]
 script = ExtResource("1_itemdata")
 item_id = "blur_powder"
 display_name = "目くらまし粉"
 description = "敵1体の命中を下げる。"
-icon = ExtResource("2_fy6jg")
+icon = ExtResource("2_nhign")
 category = "consumable"
 usable = true
 base_price = 100

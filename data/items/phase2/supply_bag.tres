@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://dt5ptmrbq7fx2"]
+
+[ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_item"]
+[ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_effect"]
+[ext_resource type="Texture2D" uid="uid://b5qc2y5tnierj" path="res://assets/items/sample/supply_bag.png" id="2_vn2li"]
+
+[sub_resource type="Resource" id="Resource_supply_bag_effect"]
+script = ExtResource("2_effect")
+effect_type = 6
+grant_item_ids = PackedStringArray("healing_potion", "poison_cure_potion", "paralysis_cure_potion")
+grant_item_categories = PackedStringArray("material")
+grant_item_kind_max = 3
+grant_item_amount_max = 4
+
+[resource]
+script = ExtResource("1_item")
+item_id = "supply_bag"
+display_name = "補給袋"
+description = "使うと補給品をランダムに入手する。"
+icon = ExtResource("2_vn2li")
+category = "consumable"
+max_stack = 20
+usable = true
+base_price = 180
+rarity = 4
+use_flags = 1
+target_flags = 1
+effects = Array[ExtResource("2_effect")]([SubResource("Resource_supply_bag_effect")])

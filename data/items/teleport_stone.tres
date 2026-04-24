@@ -1,13 +1,15 @@
 [gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://dim477vf7dfqs"]
 
 [ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_item"]
-[ext_resource type="Texture2D" uid="uid://d4ckmfvhsqqc1" path="res://assets/items/teleport_stone.png" id="2_aglkj"]
+[ext_resource type="Texture2D" uid="uid://qcbe6hkrvw7b" path="res://assets/items/sample/teleport_stone.png" id="2_aglkj"]
 [ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_effect"]
 
 [sub_resource type="Resource" id="Effect_Teleport"]
 script = ExtResource("2_effect")
 effect_type = 8
 teleport_min_range = 3
+grant_item_ids = null
+grant_item_categories = null
 
 [resource]
 script = ExtResource("1_item")

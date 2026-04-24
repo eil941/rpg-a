@@ -34,6 +34,15 @@ static var ITEM_RESOURCES = {
 	"dodge_tonic": preload("res://data/items/phase1/dodge_tonic.tres"),
 	"crit_oil": preload("res://data/items/phase1/crit_oil.tres"),
 	"life_seed": preload("res://data/items/phase1/life_seed.tres"),
+	
+	# phase2 items
+	"small_gold_pouch":preload("res://data/items/phase2/small_gold_pouch.tres"),
+	"supply_bag":preload("res://data/items/phase2/supply_bag.tres"),
+	
+	# phase3 items
+	"blind_sand": preload("res://data/items/phase3/blind_sand.tres"),
+	"hallucination_powder": preload("res://data/items/phase3/hallucination_powder.tres"),
+	"curse_orb":preload("res://data/items/phase3/curse_orb.tres"),
 
 	# equipment
 	"knife": preload("res://data/equipment/weapons/knife.tres"),

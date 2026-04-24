@@ -688,6 +688,23 @@ func build_equipment_slots() -> void:
 		equipment_slot_nodes.append(slot)
 
 
+func _get_hallucination_controller() -> Node:
+	var node: Node = self
+	while node != null:
+		if node.has_method("get_hallucinated_texture"):
+			return node
+		node = node.get_parent()
+	return null
+
+
+func _get_display_item_icon(item_id: String) -> Texture2D:
+	var base_icon: Texture2D = ItemDatabase.get_item_icon(item_id)
+	var controller: Node = _get_hallucination_controller()
+	if controller != null:
+		return controller.get_hallucinated_texture(base_icon)
+	return base_icon
+
+
 func refresh() -> void:
 	refresh_trade_slots()
 	refresh_inventory_slots()
@@ -713,10 +730,10 @@ func refresh_trade_slots() -> void:
 			var entry: Dictionary = items[i]
 			var item_id: String = String(entry.get("item_id", ""))
 			if slot.has_method("set_item_entry"):
-				slot.set_item_entry(entry, ItemDatabase.get_item_icon(item_id))
+				slot.set_item_entry(entry, _get_display_item_icon(item_id))
 			else:
 				var amount: int = int(entry.get("amount", 0))
-				slot.set_slot_data(item_id, amount, ItemDatabase.get_item_icon(item_id))
+				slot.set_slot_data(item_id, amount, _get_display_item_icon(item_id))
 		else:
 			if slot.has_method("set_item_entry"):
 				slot.set_item_entry({}, null)
@@ -742,10 +759,10 @@ func refresh_inventory_slots() -> void:
 			var entry: Dictionary = items[i]
 			var item_id: String = String(entry.get("item_id", ""))
 			if slot.has_method("set_item_entry"):
-				slot.set_item_entry(entry, ItemDatabase.get_item_icon(item_id))
+				slot.set_item_entry(entry, _get_display_item_icon(item_id))
 			else:
 				var amount: int = int(entry.get("amount", 0))
-				slot.set_slot_data(item_id, amount, ItemDatabase.get_item_icon(item_id))
+				slot.set_slot_data(item_id, amount, _get_display_item_icon(item_id))
 		else:
 			if slot.has_method("set_item_entry"):
 				slot.set_item_entry({}, null)
@@ -764,10 +781,10 @@ func refresh_equipment_slots() -> void:
 		var item_id: String = String(entry.get("item_id", ""))
 
 		if slot.has_method("set_item_entry"):
-			slot.set_item_entry(entry, ItemDatabase.get_item_icon(item_id))
+			slot.set_item_entry(entry, _get_display_item_icon(item_id))
 		else:
 			var amount: int = int(entry.get("amount", 0))
-			slot.set_slot_data(item_id, amount, ItemDatabase.get_item_icon(item_id))
+			slot.set_slot_data(item_id, amount, _get_display_item_icon(item_id))
 
 		slot.set_selected(focus_area == "equipment" and i == selected_index)
 
@@ -2175,7 +2192,7 @@ func update_held_item_preview() -> void:
 		held_item_preview.hide()
 		return
 
-	var icon_texture: Texture2D = ItemDatabase.get_item_icon(item_id)
+	var icon_texture: Texture2D = _get_display_item_icon(item_id)
 	held_item_icon.texture = icon_texture
 	held_item_icon.modulate = Color(1, 1, 1, 0.9)
 	held_item_amount_label.modulate = Color(1, 1, 1, 1)

@@ -41,15 +41,15 @@ var debug_give_player_start_items: bool = true
 #   {"item_id": "potion", "amount": 3}
 # ]
 var debug_player_start_items: Array[Dictionary] = [
-	{"item_id": "knife", "amount": 1},
-	{"item_id": "bow", "amount": 1},
-	{"item_id": "cloth_armor", "amount": 1},
-	{"item_id": "power_ring", "amount": 1},
-	{"item_id": "potion", "amount": 90},
-	{"item_id": "healing_potion","amount":10 },
+	#{"item_id": "knife", "amount": 1},
+	#{"item_id": "bow", "amount": 1},
+	#{"item_id": "cloth_armor", "amount": 1},
+	#{"item_id": "power_ring", "amount": 1},
+	#{"item_id": "potion", "amount": 90},
+	#{"item_id": "healing_potion","amount":10 },
 	{"item_id": "mushroom_bad","amount":10 },
 	{"item_id": "paralysis_cure_potion","amount":10 },
-	{"item_id": "potion_of_strength","amount":10 },
+	#{"item_id": "potion_of_strength","amount":10 },
 	{"item_id": "teleport_stone","amount":10 },
 	{"item_id": "poison_cure_potion","amount":10 },
 	
@@ -70,6 +70,13 @@ var debug_player_start_items: Array[Dictionary] = [
 	{"item_id": "dodge_tonic", "amount": 10},
 	{"item_id": "crit_oil", "amount": 10},
 	{"item_id": "life_seed", "amount": 10},
+	
+	#{"item_id":"supply_bag","amount":10},
+	#{"item_id":"small_gold_pouch","amount":10},
+	
+	{"item_id":"hallucination_powder","amount":10},
+	{"item_id":"blind_sand","amount":10},
+	{"item_id":"curse_orb","amount":10}
 ]
 
 var debug_item_spawn: bool = true

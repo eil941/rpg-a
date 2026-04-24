@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_itemdata"]
 [ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_itemeffect"]
-[ext_resource type="Texture2D" uid="uid://bi65cbt76yey" path="res://assets/sand.png" id="2_w1uck"]
+[ext_resource type="Texture2D" uid="uid://dvobqna4yj037" path="res://assets/items/sample/crit_oil.png" id="2_ucrum"]
 
 [sub_resource type="Resource" id="Resource_crit_oil"]
 script = ExtResource("2_itemeffect")
@@ -11,13 +11,15 @@ stat_name = &"crit_rate"
 stat_flat = 100
 duration_type = 1
 duration_value = 20.0
+grant_item_ids = null
+grant_item_categories = null
 
 [resource]
 script = ExtResource("1_itemdata")
 item_id = "crit_oil"
 display_name = "会心油"
 description = "しばらく会心率が上がる。"
-icon = ExtResource("2_w1uck")
+icon = ExtResource("2_ucrum")
 category = "consumable"
 usable = true
 base_price = 120

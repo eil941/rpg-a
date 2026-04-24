@@ -1,8 +1,8 @@
 [gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://coj4ptsjjv543"]
 
 [ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_itemdata"]
-[ext_resource type="Texture2D" uid="uid://dkvllwbkdf2tx" path="res://assets/slime.png" id="2_e154s"]
 [ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_itemeffect"]
+[ext_resource type="Texture2D" uid="uid://dp65jusuvax00" path="res://assets/items/sample/slow_slime.png" id="2_qn2y5"]
 
 [sub_resource type="Resource" id="Resource_slow_slime"]
 script = ExtResource("2_itemeffect")
@@ -12,13 +12,15 @@ stat_name = &"speed"
 stat_percent = 0.25
 duration_type = 1
 duration_value = 15.0
+grant_item_ids = null
+grant_item_categories = null
 
 [resource]
 script = ExtResource("1_itemdata")
 item_id = "slow_slime"
 display_name = "鈍足粘液"
 description = "敵1体の速度を下げる。"
-icon = ExtResource("2_e154s")
+icon = ExtResource("2_qn2y5")
 category = "consumable"
 usable = true
 base_price = 95

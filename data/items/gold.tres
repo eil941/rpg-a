@@ -1,15 +1,15 @@
 [gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://hkf8360g3w5w"]
 
-[ext_resource type="Texture2D" uid="uid://rmhc5lu48nh6" path="res://assets/items/gold.png" id="1_56iis"]
 [ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_krthx"]
 [ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="1_sch2q"]
+[ext_resource type="Texture2D" uid="uid://hgmtuseduxk1" path="res://assets/items/sample/gold.png" id="2_sch2q"]
 
 [resource]
 script = ExtResource("1_krthx")
 item_id = "gold"
 display_name = "G"
 description = "この世界の通貨"
-icon = ExtResource("1_56iis")
+icon = ExtResource("2_sch2q")
 category = "currency"
 max_stack = 99999999
 base_price = 1
