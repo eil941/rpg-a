@@ -69,11 +69,25 @@ var hp: int = 0
 var action_progress_seconds: float = 0.0
 var pending_actions: int = 0
 
+# スタミナ / 空腹
+@export var max_stamina: int = 100
+var stamina: int = 100
+
+@export var max_hunger: int = 100
+var hunger: float = 100.0
+
+# 空腹の減少速度と餓死ダメージ
+# 3日で100% -> 10% まで下がる既定値
+@export var hunger_days_to_ten_percent: float = 3.0
+@export var starvation_damage_per_day: float = 10.0
+
 func _ready() -> void:
 	reset_stats()
 
 func reset_stats() -> void:
 	hp = max_hp
+	stamina = max_stamina
+	hunger = float(max_hunger)
 	action_progress_seconds = 0.0
 	pending_actions = 0
 
@@ -233,10 +247,54 @@ func get_base_stat_growth_point(stat_name: String) -> int:
 	push_warning("未知の基礎ステータスです: %s" % stat_name)
 	return 0
 
+
+func get_hunger_ratio() -> float:
+	if max_hunger <= 0:
+		return 0.0
+	return clamp(float(hunger) / float(max_hunger), 0.0, 1.0)
+
+
+func get_stamina_ratio() -> float:
+	if max_stamina <= 0:
+		return 0.0
+	return clamp(float(stamina) / float(max_stamina), 0.0, 1.0)
+
+
+func get_hunger_condition_key() -> String:
+	var ratio: float = get_hunger_ratio()
+
+	if ratio <= 0.0:
+		return "starving_dead"
+	if ratio <= 0.10:
+		return "starving"
+	if ratio <= 0.40:
+		return "hungry"
+	if ratio >= 0.80:
+		return "full"
+
+	return ""
+
+
+func get_stamina_condition_key() -> String:
+	var ratio: float = get_stamina_ratio()
+
+	if ratio <= 0.05:
+		return "overwork"
+	if ratio <= 0.40:
+		return "fatigue"
+
+	return ""
+
 func get_stats_data() -> Dictionary:
 	return {
 		"hp": hp,
 		"max_hp": max_hp,
+		"stamina": stamina,
+		"max_stamina": max_stamina,
+		"hunger": hunger,
+		"max_hunger": max_hunger,
+		"hunger_days_to_ten_percent": hunger_days_to_ten_percent,
+		"starvation_damage_per_day": starvation_damage_per_day,
 		"attack": attack,
 		"defense": defense,
 		"speed": speed,
@@ -272,6 +330,18 @@ func apply_stats_data(data: Dictionary) -> void:
 		max_hp = int(data["max_hp"])
 	if data.has("hp"):
 		hp = int(data["hp"])
+	if data.has("max_stamina"):
+		max_stamina = int(data["max_stamina"])
+	if data.has("stamina"):
+		stamina = int(data["stamina"])
+	if data.has("max_hunger"):
+		max_hunger = int(data["max_hunger"])
+	if data.has("hunger"):
+		hunger = float(data["hunger"])
+	if data.has("hunger_days_to_ten_percent"):
+		hunger_days_to_ten_percent = float(data["hunger_days_to_ten_percent"])
+	if data.has("starvation_damage_per_day"):
+		starvation_damage_per_day = float(data["starvation_damage_per_day"])
 	if data.has("attack"):
 		attack = int(data["attack"])
 	if data.has("defense"):
@@ -330,3 +400,5 @@ func apply_stats_data(data: Dictionary) -> void:
 		pending_actions = int(data["pending_actions"])
 
 	hp = clamp(hp, 0, max_hp)
+	stamina = clamp(stamina, 0, max_stamina)
+	hunger = clamp(hunger, 0.0, float(max_hunger))

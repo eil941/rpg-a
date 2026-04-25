@@ -9,6 +9,12 @@ extends Control
 @export var icon_blind: Texture2D
 @export var icon_hallucination: Texture2D
 @export var icon_curse: Texture2D
+@export var icon_full: Texture2D
+@export var icon_hungry: Texture2D
+@export var icon_starving: Texture2D
+@export var icon_starve_damage: Texture2D
+@export var icon_fatigue: Texture2D
+@export var icon_exhausted: Texture2D
 
 @export var icon_attack_buff: Texture2D
 @export var icon_attack_debuff: Texture2D
@@ -411,6 +417,8 @@ func _get_effect_background_color(entry: Dictionary) -> Color:
 			return Color(0.18, 0.40, 0.22, 0.95)
 		"debuff":
 			return Color(0.50, 0.32, 0.10, 0.95)
+		"condition":
+			return Color(0.20, 0.28, 0.42, 0.95)
 		_:
 			return Color(0.25, 0.25, 0.25, 0.95)
 
@@ -460,6 +468,21 @@ func _get_effect_texture(entry: Dictionary) -> Texture2D:
 				return icon_evasion_debuff if is_debuff else icon_evasion_buff
 			"会心上昇", "会心低下":
 				return icon_crit_rate_debuff if is_debuff else icon_crit_rate_buff
+
+	if type_text == "コンディション":
+		match name_text:
+			"満腹":
+				return icon_full
+			"空腹":
+				return icon_hungry
+			"飢餓":
+				return icon_starving
+			"餓死":
+				return icon_starve_damage
+			"疲労":
+				return icon_fatigue
+			"過労":
+				return icon_exhausted
 
 	return null
 

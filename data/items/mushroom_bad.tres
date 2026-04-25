@@ -11,8 +11,6 @@ status_id = &"poison"
 status_power = 1
 duration_type = 1
 duration_value = 3600.0
-grant_item_ids = null
-grant_item_categories = null
 
 [resource]
 script = ExtResource("1_item")

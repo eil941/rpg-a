@@ -10,8 +10,6 @@ effect_type = 1
 power_min = 10
 power_max = 10
 resource_type = 3
-grant_item_ids = null
-grant_item_categories = null
 
 [resource]
 script = ExtResource("1_hpaic")

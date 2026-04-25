@@ -31,6 +31,9 @@ var hallucination_frames_remap: Dictionary = {}
 
 var hallucination_seed: int = 0
 
+var last_hunger_condition_key: String = "__unset__"
+var last_stamina_condition_key: String = "__unset__"
+
 
 func _ready() -> void:
 	_setup_blind_overlay()
@@ -194,8 +197,151 @@ func _build_player_effect_entries(player) -> Array[Dictionary]:
 
 		result.append(entry)
 
+	_append_hunger_condition_entry(player, result)
+	_append_stamina_condition_entry(player, result)
+
 	return result
 
+
+
+func _append_hunger_condition_entry(player, out_entries: Array[Dictionary]) -> void:
+	if player == null or player.stats == null:
+		return
+	if not player.stats.has_method("get_hunger_condition_key"):
+		return
+
+	var key: String = player.stats.get_hunger_condition_key()
+
+	if last_hunger_condition_key == "__unset__":
+		last_hunger_condition_key = key
+	elif key != last_hunger_condition_key:
+		_log_hunger_condition_change(key)
+		last_hunger_condition_key = key
+
+	var entry: Dictionary = _build_hunger_condition_entry(key)
+	if not entry.is_empty():
+		out_entries.append(entry)
+
+
+func _append_stamina_condition_entry(player, out_entries: Array[Dictionary]) -> void:
+	if player == null or player.stats == null:
+		return
+	if not player.stats.has_method("get_stamina_condition_key"):
+		return
+
+	var key: String = player.stats.get_stamina_condition_key()
+
+	if last_stamina_condition_key == "__unset__":
+		last_stamina_condition_key = key
+	elif key != last_stamina_condition_key:
+		_log_stamina_condition_change(key)
+		last_stamina_condition_key = key
+
+	var entry: Dictionary = _build_stamina_condition_entry(key)
+	if not entry.is_empty():
+		out_entries.append(entry)
+
+
+func _build_hunger_condition_entry(key: String) -> Dictionary:
+	match key:
+		"full":
+			return {
+				"name": "満腹",
+				"icon_text": "満",
+				"description": "十分に満たされている",
+				"remaining_time_text": "",
+				"remaining_turn_text": "",
+				"type_text": "空腹状態",
+				"kind": "status",
+				"hover_key": "condition:full"
+			}
+		"hungry":
+			return {
+				"name": "空腹",
+				"icon_text": "空",
+				"description": "空腹を感じている",
+				"remaining_time_text": "",
+				"remaining_turn_text": "",
+				"type_text": "空腹状態",
+				"kind": "status",
+				"hover_key": "condition:hungry"
+			}
+		"starving":
+			return {
+				"name": "飢餓",
+				"icon_text": "飢",
+				"description": "かなり飢えている",
+				"remaining_time_text": "",
+				"remaining_turn_text": "",
+				"type_text": "空腹状態",
+				"kind": "status",
+				"hover_key": "condition:starving"
+			}
+		"starving_dead":
+			return {
+				"name": "餓死",
+				"icon_text": "死",
+				"description": "餓死状態。継続ダメージを受ける",
+				"remaining_time_text": "",
+				"remaining_turn_text": "",
+				"type_text": "空腹状態",
+				"kind": "status",
+				"hover_key": "condition:starving_dead"
+			}
+		_:
+			return {}
+
+
+func _build_stamina_condition_entry(key: String) -> Dictionary:
+	match key:
+		"fatigue":
+			return {
+				"name": "疲労",
+				"icon_text": "疲",
+				"description": "スタミナが減っている",
+				"remaining_time_text": "",
+				"remaining_turn_text": "",
+				"type_text": "スタミナ状態",
+				"kind": "status",
+				"hover_key": "condition:fatigue"
+			}
+		"overwork":
+			return {
+				"name": "過労",
+				"icon_text": "労",
+				"description": "スタミナが限界に近い",
+				"remaining_time_text": "",
+				"remaining_turn_text": "",
+				"type_text": "スタミナ状態",
+				"kind": "status",
+				"hover_key": "condition:overwork"
+			}
+		_:
+			return {}
+
+
+func _log_hunger_condition_change(key: String) -> void:
+	match key:
+		"full":
+			add_hud_log("満腹になった")
+		"hungry":
+			add_hud_log("空腹になった")
+		"starving":
+			add_hud_log("飢餓状態になった")
+		"starving_dead":
+			add_hud_log("餓死状態になった")
+		"":
+			add_hud_log("空腹状態が落ち着いた")
+
+
+func _log_stamina_condition_change(key: String) -> void:
+	match key:
+		"fatigue":
+			add_hud_log("疲労状態になった")
+		"overwork":
+			add_hud_log("過労状態になった")
+		"":
+			add_hud_log("スタミナ状態が回復した")
 
 func _build_effect_entry(runtime, player_speed: float) -> Dictionary:
 	if runtime == null:

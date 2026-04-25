@@ -10,8 +10,6 @@ effect_type = 9
 power_min = 10
 power_max = 10
 stat_name = &"max_hp"
-grant_item_ids = null
-grant_item_categories = null
 
 [resource]
 script = ExtResource("1_itemdata")

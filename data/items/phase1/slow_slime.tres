@@ -12,8 +12,6 @@ stat_name = &"speed"
 stat_percent = 0.25
 duration_type = 1
 duration_value = 15.0
-grant_item_ids = null
-grant_item_categories = null
 
 [resource]
 script = ExtResource("1_itemdata")

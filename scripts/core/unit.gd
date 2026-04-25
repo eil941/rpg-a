@@ -143,6 +143,7 @@ var walk_frame_index: int = -1
 
 var active_effect_runtimes: Array[UnitEffectRuntime] = []
 var last_effect_update_time: float = 0.0
+var starvation_damage_accumulator: float = 0.0
 
 var runtime_attack_multiplier: float = 1.0
 var runtime_defense_multiplier: float = 1.0
@@ -263,6 +264,8 @@ func _physics_process(delta: float) -> void:
 
 func on_time_advanced(elapsed_seconds: float) -> void:
 	advance_effect_runtimes(elapsed_seconds)
+	_apply_hunger_time_decay(elapsed_seconds, true)
+	_apply_hunger_starvation_damage(elapsed_seconds)
 
 	if not receives_time_turns:
 		return
@@ -1837,6 +1840,91 @@ func notify_hud_effects_refresh() -> void:
 		node = node.get_parent()
 
 
+func _apply_hunger_time_decay(elapsed_seconds: float, print_output: bool) -> void:
+	if elapsed_seconds <= 0.0:
+		return
+	if stats == null:
+		return
+	if not _stats_has_property(stats, "hunger"):
+		return
+	if not _stats_has_property(stats, "max_hunger"):
+		return
+
+	var max_hunger_value: float = float(stats.max_hunger)
+	if max_hunger_value <= 0.0:
+		return
+
+	var days_to_ten_percent: float = 3.0
+	if _stats_has_property(stats, "hunger_days_to_ten_percent"):
+		days_to_ten_percent = max(0.01, float(stats.hunger_days_to_ten_percent))
+
+	var hunger_loss_per_second: float = (max_hunger_value * 0.90) / (days_to_ten_percent * 86400.0)
+	var old_hunger: float = float(stats.hunger)
+	var new_hunger: float = max(0.0, old_hunger - hunger_loss_per_second * elapsed_seconds)
+
+	if is_equal_approx(old_hunger, new_hunger):
+		return
+
+	stats.hunger = new_hunger
+	notify_hud_effects_refresh()
+
+	if is_player_unit and print_output:
+		print("[HUNGER] ", _get_hunger_status_text())
+
+
+func _apply_hunger_starvation_damage(elapsed_seconds: float) -> void:
+	if elapsed_seconds <= 0.0:
+		return
+	if stats == null:
+		return
+	if not _stats_has_property(stats, "hunger"):
+		return
+	if float(stats.hunger) > 0.0:
+		starvation_damage_accumulator = 0.0
+		return
+	if not _stats_has_property(stats, "hp"):
+		return
+
+	var starvation_damage_per_second: float = 0.1
+	starvation_damage_accumulator += starvation_damage_per_second * elapsed_seconds
+
+	var damage_value: int = int(floor(starvation_damage_accumulator))
+	if damage_value <= 0:
+		return
+
+	starvation_damage_accumulator -= float(damage_value)
+
+	if stats.has_method("take_damage"):
+		stats.take_damage(damage_value)
+	else:
+		stats.hp = max(0, int(stats.hp) - damage_value)
+
+	if is_player_unit:
+		print("[HUNGER] 餓死ダメージ ", damage_value, " / ", _get_hunger_status_text())
+
+	notify_hud_player_status_refresh()
+	notify_hud_effects_refresh()
+
+
+func _get_hunger_status_text() -> String:
+	if stats == null:
+		return "0%"
+
+	var current_value: float = 0.0
+	var max_value: float = 0.0
+
+	if _stats_has_property(stats, "hunger"):
+		current_value = float(stats.hunger)
+	if _stats_has_property(stats, "max_hunger"):
+		max_value = float(stats.max_hunger)
+
+	if max_value <= 0.0:
+		return "0%"
+
+	var ratio_percent: int = int(round(clamp(current_value / max_value, 0.0, 1.0) * 100.0))
+	return "%d%% (%.1f/%.1f)" % [ratio_percent, current_value, max_value]
+
+
 func consume_blocked_action_turn(log_text: String = "今は行動できない") -> void:
 	if log_text != "":
 		notify_hud_log(log_text)
@@ -2623,6 +2711,9 @@ func load_effect_runtimes_save_data(data_list: Array) -> void:
 func apply_offscreen_effect_elapsed(elapsed_seconds: float) -> void:
 	if elapsed_seconds <= 0.0:
 		return
+
+	_apply_hunger_time_decay(elapsed_seconds, false)
+	_apply_hunger_starvation_damage(elapsed_seconds)
 
 	if active_effect_runtimes.is_empty():
 		if TimeManager != null:

@@ -9,8 +9,6 @@ script = ExtResource("2_itemeffect")
 effect_type = 5
 power_min = 25
 power_max = 40
-grant_item_ids = null
-grant_item_categories = null
 
 [resource]
 script = ExtResource("1_itemdata")
