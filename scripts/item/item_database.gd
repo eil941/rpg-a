@@ -594,7 +594,7 @@ static func get_sell_price(item_id: String) -> int:
 		return 0
 
 	var base_price: int = get_base_price(item_id)
-	return max(0, int(base_price / 2))
+	return max(0, int(float(base_price) / 2.0))
 
 	
 static func get_all_item_ids() -> Array[String]:

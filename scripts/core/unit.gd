@@ -1007,12 +1007,12 @@ func build_frame_from_index(sheet: Texture2D, frame_w: int, frame_h: int, index:
 	var atlas = AtlasTexture.new()
 	atlas.atlas = sheet
 
-	var columns: int = int(sheet.get_width() / frame_w)
+	var columns: int = int(float(sheet.get_width()) / float(frame_w))
 	if columns <= 0:
 		return null
 
 	var x: int = index % columns
-	var y: int = index / columns
+	var y: int = int(float(index) / float(columns))
 
 	atlas.region = Rect2(
 		x * frame_w,
@@ -1598,7 +1598,11 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 	talk_portrait = enemy_data.talk_portrait
 	unit_roles = enemy_data.unit_roles
 	friendliness = enemy_data.friendliness
-	_apply_hunger_behavior_from_source(enemy_data, false)
+	disable_hunger_decay = enemy_data.disable_hunger_decay
+	auto_eat_food_when_hungry = enemy_data.auto_eat_food_when_hungry
+	auto_generate_food_when_hungry = enemy_data.auto_generate_food_when_hungry
+	auto_generated_food_item_id = enemy_data.auto_generated_food_item_id
+	print_hunger_to_output = false
 	can_offer_request = enemy_data.can_offer_request
 	can_trade = enemy_data.can_trade
 	can_receive_order = enemy_data.can_receive_order
@@ -1696,7 +1700,11 @@ func apply_npc_data(npc_data: NpcData) -> void:
 	talk_portrait = npc_data.talk_portrait
 	unit_roles = npc_data.unit_roles
 	friendliness = npc_data.friendliness
-	_apply_hunger_behavior_from_source(npc_data, true)
+	disable_hunger_decay = npc_data.disable_hunger_decay
+	auto_eat_food_when_hungry = npc_data.auto_eat_food_when_hungry
+	auto_generate_food_when_hungry = npc_data.auto_generate_food_when_hungry
+	auto_generated_food_item_id = npc_data.auto_generated_food_item_id
+	print_hunger_to_output = true
 	can_offer_request = npc_data.can_offer_request
 	can_trade = npc_data.can_trade
 	can_receive_order = npc_data.can_receive_order
@@ -1852,45 +1860,6 @@ func notify_hud_effects_refresh() -> void:
 		node = node.get_parent()
 
 
-
-
-func _apply_hunger_behavior_from_source(source: Object, default_print_output: bool) -> void:
-	if source == null:
-		return
-	if source.get("disable_hunger_decay") != null:
-		disable_hunger_decay = bool(source.get("disable_hunger_decay"))
-	if source.get("auto_eat_food_when_hungry") != null:
-		auto_eat_food_when_hungry = bool(source.get("auto_eat_food_when_hungry"))
-	if source.get("auto_generate_food_when_hungry") != null:
-		auto_generate_food_when_hungry = bool(source.get("auto_generate_food_when_hungry"))
-	if source.get("auto_generated_food_item_id") != null:
-		auto_generated_food_item_id = String(source.get("auto_generated_food_item_id"))
-	print_hunger_to_output = default_print_output
-
-
-func _print_hunger_status() -> void:
-	if not _should_print_hunger_output():
-		return
-	print("[HUNGER] ", name, " / ", _get_hunger_status_text())
-
-
-func _print_hunger_food_generated(item_id: String) -> void:
-	if not _should_print_hunger_output():
-		return
-	print("[HUNGER] ", name, " が食料を生成: ", ItemDatabase.get_display_name(item_id))
-
-
-func _print_hunger_food_eaten(item_id: String) -> void:
-	if not _should_print_hunger_output():
-		return
-	print("[HUNGER] ", name, " が食べた: ", ItemDatabase.get_display_name(item_id), " / ", _get_hunger_status_text())
-
-
-func _print_hunger_starvation_damage(damage_value: int) -> void:
-	if not _should_print_hunger_output():
-		return
-	print("[HUNGER] ", name, " / 餓死ダメージ ", damage_value, " / ", _get_hunger_status_text())
-
 func _should_apply_hunger_decay() -> bool:
 	if disable_hunger_decay:
 		return false
@@ -1988,7 +1957,8 @@ func _spawn_auto_generated_food() -> bool:
 	})
 	if added:
 		notify_inventory_refresh()
-		_print_hunger_food_generated(item_id)
+		if _should_print_hunger_output():
+			print("[HUNGER] ", name, " が食料を生成: ", ItemDatabase.get_display_name(item_id))
 	return added
 
 
@@ -2013,7 +1983,8 @@ func _try_consume_food_from_inventory() -> bool:
 
 	if consumed:
 		notify_inventory_refresh()
-		_print_hunger_food_eaten(food_item_id)
+		if _should_print_hunger_output():
+			print("[HUNGER] ", name, " が食べた: ", ItemDatabase.get_display_name(food_item_id), " / ", _get_hunger_status_text())
 
 	return consumed
 
@@ -2104,8 +2075,8 @@ func _apply_hunger_time_decay(elapsed_seconds: float, print_output: bool) -> voi
 	stats.hunger = new_hunger
 	notify_hud_effects_refresh()
 
-	if print_output:
-		_print_hunger_status()
+	if print_output and _should_print_hunger_output():
+		print("[HUNGER] ", name, " / ", _get_hunger_status_text())
 
 
 func _apply_hunger_starvation_damage(elapsed_seconds: float) -> void:
@@ -2135,7 +2106,8 @@ func _apply_hunger_starvation_damage(elapsed_seconds: float) -> void:
 	else:
 		stats.hp = max(0, int(stats.hp) - damage_value)
 
-	_print_hunger_starvation_damage(damage_value)
+	if _should_print_hunger_output():
+		print("[HUNGER] ", name, " / 餓死ダメージ ", damage_value, " / ", _get_hunger_status_text())
 
 	notify_hud_player_status_refresh()
 	notify_hud_effects_refresh()
@@ -2525,34 +2497,34 @@ func recompute_runtime_modifiers() -> void:
 		if not runtime.is_modifier_effect():
 			continue
 
-		var sign: float = 1.0
+		var modifier_sign: float = 1.0
 		if runtime.modifier_kind == ItemEffectData.ModifierKind.DEBUFF:
-			sign = -1.0
+			modifier_sign = -1.0
 
 		match String(runtime.stat_name):
 			"attack":
-				runtime_attack_flat += int(sign * float(runtime.stat_flat))
-				runtime_attack_multiplier += sign * runtime.stat_percent
+				runtime_attack_flat += int(modifier_sign * float(runtime.stat_flat))
+				runtime_attack_multiplier += modifier_sign * runtime.stat_percent
 
 			"defense":
-				runtime_defense_flat += int(sign * float(runtime.stat_flat))
-				runtime_defense_multiplier += sign * runtime.stat_percent
+				runtime_defense_flat += int(modifier_sign * float(runtime.stat_flat))
+				runtime_defense_multiplier += modifier_sign * runtime.stat_percent
 
 			"speed":
-				runtime_speed_flat += int(sign * float(runtime.stat_flat))
-				runtime_speed_multiplier += sign * runtime.stat_percent
+				runtime_speed_flat += int(modifier_sign * float(runtime.stat_flat))
+				runtime_speed_multiplier += modifier_sign * runtime.stat_percent
 
 			"accuracy":
-				runtime_accuracy_flat += int(sign * float(runtime.stat_flat))
-				runtime_accuracy_multiplier += sign * runtime.stat_percent
+				runtime_accuracy_flat += int(modifier_sign * float(runtime.stat_flat))
+				runtime_accuracy_multiplier += modifier_sign * runtime.stat_percent
 
 			"evasion":
-				runtime_evasion_flat += int(sign * float(runtime.stat_flat))
-				runtime_evasion_multiplier += sign * runtime.stat_percent
+				runtime_evasion_flat += int(modifier_sign * float(runtime.stat_flat))
+				runtime_evasion_multiplier += modifier_sign * runtime.stat_percent
 
 			"crit_rate":
-				runtime_crit_rate_flat += int(sign * float(runtime.stat_flat))
-				runtime_crit_rate_multiplier += sign * runtime.stat_percent
+				runtime_crit_rate_flat += int(modifier_sign * float(runtime.stat_flat))
+				runtime_crit_rate_multiplier += modifier_sign * runtime.stat_percent
 
 	runtime_attack_multiplier = max(0.0, runtime_attack_multiplier)
 	runtime_defense_multiplier = max(0.0, runtime_defense_multiplier)

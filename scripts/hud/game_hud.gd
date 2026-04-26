@@ -140,17 +140,18 @@ func update_time_area() -> void:
 
 func update_player_status_area() -> void:
 	player_name_label.text = player_name
-	_update_bar(hp_label, hp_bar, "HP", current_hp, max_hp)
-	_update_bar(mp_label, mp_bar, "MP", current_mp, max_mp)
-	_update_bar(stamina_label, stamina_bar, "STM", current_stamina, max_stamina)
 
+	hp_label.text = "HP: %d / %d" % [current_hp, max_hp]
+	hp_bar.max_value = max_hp
+	hp_bar.value = current_hp
 
-func _update_bar(label_node: Label, bar_node: ProgressBar, prefix: String, current_value: int, max_value_text: int) -> void:
-	if label_node != null:
-		label_node.text = "%s: %d / %d" % [prefix, current_value, max_value_text]
-	if bar_node != null:
-		bar_node.max_value = max_value_text
-		bar_node.value = current_value
+	mp_label.text = "MP: %d / %d" % [current_mp, max_mp]
+	mp_bar.max_value = max_mp
+	mp_bar.value = current_mp
+
+	stamina_label.text = "STM: %d / %d" % [current_stamina, max_stamina]
+	stamina_bar.max_value = max_stamina
+	stamina_bar.value = current_stamina
 
 
 func add_log(text: String) -> void:
@@ -203,22 +204,14 @@ func set_effect_entries(entries: Array) -> void:
 		new_entries.append(entry.duplicate(true))
 
 	if _are_effect_entries_equal(effect_entries, new_entries):
-		_refresh_hovered_tooltip_entry()
+		if hovered_effect_key != "":
+			var updated_entry: Dictionary = _find_entry_by_hover_key(effect_entries, hovered_effect_key)
+			if not updated_entry.is_empty():
+				hovered_effect_tooltip_text = _build_effect_tooltip(updated_entry)
 		return
 
 	effect_entries = new_entries
 	rebuild_effect_bar()
-
-
-func _refresh_hovered_tooltip_entry() -> void:
-	if hovered_effect_key == "":
-		return
-
-	var updated_entry: Dictionary = _find_entry_by_hover_key(effect_entries, hovered_effect_key)
-	if updated_entry.is_empty():
-		return
-
-	hovered_effect_tooltip_text = _build_effect_tooltip(updated_entry)
 
 
 func rebuild_effect_bar() -> void:
@@ -242,16 +235,75 @@ func rebuild_effect_bar() -> void:
 		return
 
 	for entry in effect_entries:
-		var icon_root: Control = _build_effect_icon(entry)
-		if icon_root == null:
-			continue
+		var hover_key: String = String(entry.get("hover_key", ""))
+		var effect_tooltip_text: String = _build_effect_tooltip(entry)
+		var texture: Texture2D = _get_effect_texture(entry)
+
+		var icon_root: Control = null
+
+		if texture != null:
+			var icon_button: Button = Button.new()
+			icon_button.custom_minimum_size = Vector2(34, 34)
+			icon_button.focus_mode = Control.FOCUS_NONE
+			icon_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+			icon_button.mouse_filter = Control.MOUSE_FILTER_STOP
+			icon_button.flat = true
+			icon_button.set_meta("hover_key", hover_key)
+
+			var clear_style: StyleBoxFlat = StyleBoxFlat.new()
+			clear_style.bg_color = Color(0, 0, 0, 0)
+			clear_style.border_width_left = 0
+			clear_style.border_width_top = 0
+			clear_style.border_width_right = 0
+			clear_style.border_width_bottom = 0
+
+			icon_button.add_theme_stylebox_override("normal", clear_style)
+			icon_button.add_theme_stylebox_override("hover", clear_style)
+			icon_button.add_theme_stylebox_override("pressed", clear_style)
+			icon_button.add_theme_stylebox_override("focus", clear_style)
+
+			var texture_rect: TextureRect = TextureRect.new()
+			texture_rect.texture = texture
+			texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			texture_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			texture_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+			texture_rect.offset_left = 0.0
+			texture_rect.offset_top = 0.0
+			texture_rect.offset_right = 0.0
+			texture_rect.offset_bottom = 0.0
+
+			icon_button.add_child(texture_rect)
+
+			icon_button.mouse_entered.connect(_on_effect_icon_mouse_entered.bind(icon_button, effect_tooltip_text, hover_key))
+			icon_button.mouse_exited.connect(_on_effect_icon_mouse_exited.bind(icon_button))
+			icon_button.gui_input.connect(_on_effect_icon_gui_input.bind(icon_button, effect_tooltip_text, hover_key))
+
+			icon_root = icon_button
+		else:
+			var icon_button: Button = Button.new()
+			icon_button.custom_minimum_size = Vector2(34, 34)
+			icon_button.text = _build_effect_icon_text(entry)
+			icon_button.focus_mode = Control.FOCUS_NONE
+			icon_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+			icon_button.mouse_filter = Control.MOUSE_FILTER_STOP
+			icon_button.flat = false
+			icon_button.add_theme_font_size_override("font_size", 13)
+			icon_button.set_meta("hover_key", hover_key)
+
+			_apply_effect_icon_style(icon_button, entry)
+
+			icon_button.mouse_entered.connect(_on_effect_icon_mouse_entered.bind(icon_button, effect_tooltip_text, hover_key))
+			icon_button.mouse_exited.connect(_on_effect_icon_mouse_exited.bind(icon_button))
+			icon_button.gui_input.connect(_on_effect_icon_gui_input.bind(icon_button, effect_tooltip_text, hover_key))
+
+			icon_root = icon_button
 
 		effect_bar_container.add_child(icon_root)
 
-		var hover_key: String = String(entry.get("hover_key", ""))
 		if previous_hover_key != "" and hover_key == previous_hover_key:
 			hovered_effect_button = icon_root
-			hovered_effect_tooltip_text = _build_effect_tooltip(entry)
+			hovered_effect_tooltip_text = effect_tooltip_text
 			hovered_effect_key = hover_key
 
 	if hovered_effect_button != null:
@@ -259,76 +311,6 @@ func rebuild_effect_bar() -> void:
 	else:
 		hovered_effect_key = ""
 		_hide_effect_tooltip()
-
-
-func _build_effect_icon(entry: Dictionary) -> Control:
-	var hover_key: String = String(entry.get("hover_key", ""))
-	var tooltip_text: String = _build_effect_tooltip(entry)
-	var texture: Texture2D = _get_effect_texture(entry)
-
-	if texture != null:
-		return _build_texture_effect_icon(texture, tooltip_text, hover_key)
-
-	return _build_text_effect_icon(entry, tooltip_text, hover_key)
-
-
-func _build_texture_effect_icon(texture: Texture2D, tooltip_text: String, hover_key: String) -> Control:
-	var icon_button: Button = Button.new()
-	icon_button.custom_minimum_size = Vector2(34, 34)
-	icon_button.focus_mode = Control.FOCUS_NONE
-	icon_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	icon_button.mouse_filter = Control.MOUSE_FILTER_STOP
-	icon_button.flat = true
-	icon_button.set_meta("hover_key", hover_key)
-
-	var clear_style: StyleBoxFlat = StyleBoxFlat.new()
-	clear_style.bg_color = Color(0, 0, 0, 0)
-	clear_style.border_width_left = 0
-	clear_style.border_width_top = 0
-	clear_style.border_width_right = 0
-	clear_style.border_width_bottom = 0
-
-	icon_button.add_theme_stylebox_override("normal", clear_style)
-	icon_button.add_theme_stylebox_override("hover", clear_style)
-	icon_button.add_theme_stylebox_override("pressed", clear_style)
-	icon_button.add_theme_stylebox_override("focus", clear_style)
-
-	var texture_rect: TextureRect = TextureRect.new()
-	texture_rect.texture = texture
-	texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	texture_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	texture_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
-	texture_rect.offset_left = 0.0
-	texture_rect.offset_top = 0.0
-	texture_rect.offset_right = 0.0
-	texture_rect.offset_bottom = 0.0
-
-	icon_button.add_child(texture_rect)
-	_connect_effect_icon_signals(icon_button, tooltip_text, hover_key)
-	return icon_button
-
-
-func _build_text_effect_icon(entry: Dictionary, tooltip_text: String, hover_key: String) -> Control:
-	var icon_button: Button = Button.new()
-	icon_button.custom_minimum_size = Vector2(34, 34)
-	icon_button.text = _build_effect_icon_text(entry)
-	icon_button.focus_mode = Control.FOCUS_NONE
-	icon_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	icon_button.mouse_filter = Control.MOUSE_FILTER_STOP
-	icon_button.flat = false
-	icon_button.add_theme_font_size_override("font_size", 13)
-	icon_button.set_meta("hover_key", hover_key)
-
-	_apply_effect_icon_style(icon_button, entry)
-	_connect_effect_icon_signals(icon_button, tooltip_text, hover_key)
-	return icon_button
-
-
-func _connect_effect_icon_signals(button: Control, tooltip_text: String, hover_key: String) -> void:
-	button.mouse_entered.connect(_on_effect_icon_mouse_entered.bind(button, tooltip_text, hover_key))
-	button.mouse_exited.connect(_on_effect_icon_mouse_exited.bind(button))
-	button.gui_input.connect(_on_effect_icon_gui_input.bind(button, tooltip_text, hover_key))
 
 
 func rebuild_hotbar() -> void:
@@ -505,11 +487,11 @@ func _get_effect_texture(entry: Dictionary) -> Texture2D:
 	return null
 
 
-func _on_effect_icon_mouse_entered(button: Control, tooltip_text: String, hover_key: String) -> void:
+func _on_effect_icon_mouse_entered(button: Control, effect_tooltip_text: String, hover_key: String) -> void:
 	hovered_effect_button = button
-	hovered_effect_tooltip_text = tooltip_text
+	hovered_effect_tooltip_text = effect_tooltip_text
 	hovered_effect_key = hover_key
-	_show_effect_tooltip(tooltip_text)
+	_show_effect_tooltip(effect_tooltip_text)
 
 
 func _on_effect_icon_mouse_exited(button: Control) -> void:
@@ -517,12 +499,12 @@ func _on_effect_icon_mouse_exited(button: Control) -> void:
 		pass
 
 
-func _on_effect_icon_gui_input(event: InputEvent, button: Control, tooltip_text: String, hover_key: String) -> void:
+func _on_effect_icon_gui_input(event: InputEvent, button: Control, effect_tooltip_text: String, hover_key: String) -> void:
 	if event is InputEventMouseMotion:
 		hovered_effect_button = button
-		hovered_effect_tooltip_text = tooltip_text
+		hovered_effect_tooltip_text = effect_tooltip_text
 		hovered_effect_key = hover_key
-		_show_effect_tooltip(tooltip_text)
+		_show_effect_tooltip(effect_tooltip_text)
 
 
 func _update_effect_tooltip_hover_state() -> void:
@@ -532,7 +514,9 @@ func _update_effect_tooltip_hover_state() -> void:
 	if hovered_effect_button == null or not is_instance_valid(hovered_effect_button):
 		var restored_button: Control = _find_effect_button_by_hover_key(hovered_effect_key)
 		if restored_button == null:
-			_clear_hover_state()
+			hovered_effect_key = ""
+			hovered_effect_tooltip_text = ""
+			_hide_effect_tooltip()
 			return
 
 		hovered_effect_button = restored_button
@@ -547,21 +531,17 @@ func _update_effect_tooltip_hover_state() -> void:
 		_show_effect_tooltip(hovered_effect_tooltip_text)
 		return
 
-	_clear_hover_state()
-	_hide_effect_tooltip()
-
-
-func _clear_hover_state() -> void:
 	hovered_effect_button = null
 	hovered_effect_tooltip_text = ""
 	hovered_effect_key = ""
+	_hide_effect_tooltip()
 
 
-func _show_effect_tooltip(tooltip_text: String) -> void:
+func _show_effect_tooltip(effect_tooltip_text: String) -> void:
 	if tooltip_panel == null or tooltip_label == null:
 		return
 
-	tooltip_label.text = tooltip_text
+	tooltip_label.text = effect_tooltip_text
 	tooltip_panel.visible = true
 
 	var mouse_pos: Vector2 = get_viewport().get_mouse_position()
@@ -612,7 +592,7 @@ func _find_entry_by_hover_key(entries: Array[Dictionary], hover_key: String) -> 
 
 
 func _find_effect_button_by_hover_key(hover_key: String) -> Control:
-	if hover_key == "" or effect_bar_container == null:
+	if hover_key == "":
 		return null
 
 	for child in effect_bar_container.get_children():
