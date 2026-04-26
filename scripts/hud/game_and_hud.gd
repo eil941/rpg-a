@@ -96,6 +96,36 @@ func load_map(map_scene: PackedScene) -> void:
 		_activate_hallucination()
 
 
+
+
+func _has_game_hud_method(method_name: String) -> bool:
+	if game_hud == null:
+		return false
+	return game_hud.has_method(method_name)
+
+
+func _get_player_with_stats():
+	var player = find_player()
+	if player == null:
+		return null
+	if player.stats == null:
+		return null
+	return player
+
+
+func _get_stats_int(stats, property_name: String) -> int:
+	if not _stats_has_property(stats, property_name):
+		return 0
+	return int(stats.get(property_name))
+
+
+func _is_dialog_open_via_manager() -> bool:
+	if DialogueManager == null:
+		return false
+	if not DialogueManager.has_method("is_dialog_open"):
+		return false
+	return DialogueManager.is_dialog_open()
+
 func refresh_hud() -> void:
 	update_hud_time()
 	update_hud_player_status()
@@ -103,9 +133,7 @@ func refresh_hud() -> void:
 
 
 func update_hud_time() -> void:
-	if game_hud == null:
-		return
-	if not game_hud.has_method("set_time_info"):
+	if not _has_game_hud_method("set_time_info"):
 		return
 
 	game_hud.set_time_info(
@@ -116,34 +144,21 @@ func update_hud_time() -> void:
 
 
 func update_hud_player_status() -> void:
-	if game_hud == null:
-		return
-	if not game_hud.has_method("set_player_status"):
+	if not _has_game_hud_method("set_player_status"):
 		return
 
-	var player = find_player()
+	var player = _get_player_with_stats()
 	if player == null:
-		return
-	if player.stats == null:
 		return
 
 	var total_max_hp: int = int(player.stats.max_hp)
 	if player.has_method("get_total_max_hp"):
 		total_max_hp = int(player.get_total_max_hp())
 
-	var current_mp: int = 0
-	var total_max_mp: int = 0
-	if _stats_has_property(player.stats, "mp"):
-		current_mp = int(player.stats.mp)
-	if _stats_has_property(player.stats, "max_mp"):
-		total_max_mp = int(player.stats.max_mp)
-
-	var current_stamina: int = 0
-	var total_max_stamina: int = 0
-	if _stats_has_property(player.stats, "stamina"):
-		current_stamina = int(player.stats.stamina)
-	if _stats_has_property(player.stats, "max_stamina"):
-		total_max_stamina = int(player.stats.max_stamina)
+	var current_mp: int = _get_stats_int(player.stats, "mp")
+	var total_max_mp: int = _get_stats_int(player.stats, "max_mp")
+	var current_stamina: int = _get_stats_int(player.stats, "stamina")
+	var total_max_stamina: int = _get_stats_int(player.stats, "max_stamina")
 
 	game_hud.set_player_status(
 		player.name,
@@ -157,9 +172,7 @@ func update_hud_player_status() -> void:
 
 
 func update_hud_effects() -> void:
-	if game_hud == null:
-		return
-	if not game_hud.has_method("set_effect_entries"):
+	if not _has_game_hud_method("set_effect_entries"):
 		return
 
 	var player = find_player()
@@ -601,9 +614,7 @@ func _object_has_property(obj: Object, property_name: String) -> bool:
 
 
 func add_hud_log(text: String) -> void:
-	if game_hud == null:
-		return
-	if not game_hud.has_method("add_log"):
+	if not _has_game_hud_method("add_log"):
 		return
 
 	game_hud.add_log(text)
@@ -1309,9 +1320,8 @@ func toggle_inventory_ui() -> void:
 	if is_status_open():
 		return
 
-	if DialogueManager != null and DialogueManager.has_method("is_dialog_open"):
-		if DialogueManager.is_dialog_open():
-			return
+	if _is_dialog_open_via_manager():
+		return
 
 	if inventory_ui.has_method("is_trade_mode_open"):
 		if inventory_ui.is_trade_mode_open():
@@ -1420,9 +1430,8 @@ func toggle_status_ui() -> void:
 	if is_trade_ui_open():
 		return
 
-	if DialogueManager != null and DialogueManager.has_method("is_dialog_open"):
-		if DialogueManager.is_dialog_open():
-			return
+	if _is_dialog_open_via_manager():
+		return
 
 	if is_inventory_open():
 		return
@@ -1444,9 +1453,8 @@ func open_status_ui() -> void:
 	if is_inventory_open():
 		return
 
-	if DialogueManager != null and DialogueManager.has_method("is_dialog_open"):
-		if DialogueManager.is_dialog_open():
-			return
+	if _is_dialog_open_via_manager():
+		return
 
 	var player = find_player()
 	if player == null:

@@ -1598,11 +1598,7 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 	talk_portrait = enemy_data.talk_portrait
 	unit_roles = enemy_data.unit_roles
 	friendliness = enemy_data.friendliness
-	disable_hunger_decay = enemy_data.disable_hunger_decay
-	auto_eat_food_when_hungry = enemy_data.auto_eat_food_when_hungry
-	auto_generate_food_when_hungry = enemy_data.auto_generate_food_when_hungry
-	auto_generated_food_item_id = enemy_data.auto_generated_food_item_id
-	print_hunger_to_output = false
+	_apply_hunger_behavior_from_source(enemy_data, false)
 	can_offer_request = enemy_data.can_offer_request
 	can_trade = enemy_data.can_trade
 	can_receive_order = enemy_data.can_receive_order
@@ -1700,11 +1696,7 @@ func apply_npc_data(npc_data: NpcData) -> void:
 	talk_portrait = npc_data.talk_portrait
 	unit_roles = npc_data.unit_roles
 	friendliness = npc_data.friendliness
-	disable_hunger_decay = npc_data.disable_hunger_decay
-	auto_eat_food_when_hungry = npc_data.auto_eat_food_when_hungry
-	auto_generate_food_when_hungry = npc_data.auto_generate_food_when_hungry
-	auto_generated_food_item_id = npc_data.auto_generated_food_item_id
-	print_hunger_to_output = true
+	_apply_hunger_behavior_from_source(npc_data, true)
 	can_offer_request = npc_data.can_offer_request
 	can_trade = npc_data.can_trade
 	can_receive_order = npc_data.can_receive_order
@@ -1860,6 +1852,45 @@ func notify_hud_effects_refresh() -> void:
 		node = node.get_parent()
 
 
+
+
+func _apply_hunger_behavior_from_source(source: Object, default_print_output: bool) -> void:
+	if source == null:
+		return
+	if source.get("disable_hunger_decay") != null:
+		disable_hunger_decay = bool(source.get("disable_hunger_decay"))
+	if source.get("auto_eat_food_when_hungry") != null:
+		auto_eat_food_when_hungry = bool(source.get("auto_eat_food_when_hungry"))
+	if source.get("auto_generate_food_when_hungry") != null:
+		auto_generate_food_when_hungry = bool(source.get("auto_generate_food_when_hungry"))
+	if source.get("auto_generated_food_item_id") != null:
+		auto_generated_food_item_id = String(source.get("auto_generated_food_item_id"))
+	print_hunger_to_output = default_print_output
+
+
+func _print_hunger_status() -> void:
+	if not _should_print_hunger_output():
+		return
+	print("[HUNGER] ", name, " / ", _get_hunger_status_text())
+
+
+func _print_hunger_food_generated(item_id: String) -> void:
+	if not _should_print_hunger_output():
+		return
+	print("[HUNGER] ", name, " が食料を生成: ", ItemDatabase.get_display_name(item_id))
+
+
+func _print_hunger_food_eaten(item_id: String) -> void:
+	if not _should_print_hunger_output():
+		return
+	print("[HUNGER] ", name, " が食べた: ", ItemDatabase.get_display_name(item_id), " / ", _get_hunger_status_text())
+
+
+func _print_hunger_starvation_damage(damage_value: int) -> void:
+	if not _should_print_hunger_output():
+		return
+	print("[HUNGER] ", name, " / 餓死ダメージ ", damage_value, " / ", _get_hunger_status_text())
+
 func _should_apply_hunger_decay() -> bool:
 	if disable_hunger_decay:
 		return false
@@ -1957,8 +1988,7 @@ func _spawn_auto_generated_food() -> bool:
 	})
 	if added:
 		notify_inventory_refresh()
-		if _should_print_hunger_output():
-			print("[HUNGER] ", name, " が食料を生成: ", ItemDatabase.get_display_name(item_id))
+		_print_hunger_food_generated(item_id)
 	return added
 
 
@@ -1983,8 +2013,7 @@ func _try_consume_food_from_inventory() -> bool:
 
 	if consumed:
 		notify_inventory_refresh()
-		if _should_print_hunger_output():
-			print("[HUNGER] ", name, " が食べた: ", ItemDatabase.get_display_name(food_item_id), " / ", _get_hunger_status_text())
+		_print_hunger_food_eaten(food_item_id)
 
 	return consumed
 
@@ -2075,8 +2104,8 @@ func _apply_hunger_time_decay(elapsed_seconds: float, print_output: bool) -> voi
 	stats.hunger = new_hunger
 	notify_hud_effects_refresh()
 
-	if print_output and _should_print_hunger_output():
-		print("[HUNGER] ", name, " / ", _get_hunger_status_text())
+	if print_output:
+		_print_hunger_status()
 
 
 func _apply_hunger_starvation_damage(elapsed_seconds: float) -> void:
@@ -2106,8 +2135,7 @@ func _apply_hunger_starvation_damage(elapsed_seconds: float) -> void:
 	else:
 		stats.hp = max(0, int(stats.hp) - damage_value)
 
-	if _should_print_hunger_output():
-		print("[HUNGER] ", name, " / 餓死ダメージ ", damage_value, " / ", _get_hunger_status_text())
+	_print_hunger_starvation_damage(damage_value)
 
 	notify_hud_player_status_refresh()
 	notify_hud_effects_refresh()

@@ -75,12 +75,9 @@ func _physics_process(delta: float) -> void:
 			clear_move_hold()
 			if _is_player_action_blocked():
 				return
-			var acted = try_attack_action()
+			var acted: bool = try_attack_action()
 			if acted:
-				if not DebugSettings.debug_free_action:
-					TimeManager.advance_time(units_node, unit.get_total_speed())
-					notify_hud()
-					TimeManager.resolve_ai_turns(units_node)
+				_advance_player_turn_after_action()
 			return
 
 		if Input.is_action_just_pressed("wait"):
@@ -88,10 +85,7 @@ func _physics_process(delta: float) -> void:
 			if _is_player_action_blocked():
 				return
 			unit.wait_action()
-			if not DebugSettings.debug_free_action:
-				TimeManager.advance_time(units_node, unit.get_total_speed())
-				notify_hud()
-				TimeManager.resolve_ai_turns(units_node)
+			_advance_player_turn_after_action()
 			return
 
 	handle_move_input(delta)
@@ -184,19 +178,19 @@ func clear_move_hold() -> void:
 
 
 func _is_sleeping() -> bool:
-	if unit == null:
-		return false
-	if not unit.has_method("has_status_effect"):
-		return false
-	return unit.has_status_effect(&"sleep")
+	return _has_status_effect(&"sleep")
 
 
 func _is_paralyzed() -> bool:
+	return _has_status_effect(&"paralysis")
+
+
+func _has_status_effect(status_id: StringName) -> bool:
 	if unit == null:
 		return false
 	if not unit.has_method("has_status_effect"):
 		return false
-	return unit.has_status_effect(&"paralysis")
+	return unit.has_status_effect(status_id)
 
 
 func _is_direction_attempt_just_pressed() -> bool:
@@ -249,26 +243,31 @@ func try_move_in_direction(dir: Vector2) -> void:
 		return
 
 	var actual_dir: Vector2 = _get_effective_move_direction(dir)
-	var acted = unit.try_move(actual_dir)
+	var acted: bool = unit.try_move(actual_dir)
 
 	if acted:
 		apply_move_growth()
+		_advance_player_turn_after_action()
 
-		if not DebugSettings.debug_free_action:
-			TimeManager.advance_time(units_node, unit.get_total_speed())
-			notify_hud()
-			TimeManager.resolve_ai_turns(units_node)
+
+func _advance_player_turn_after_action() -> void:
+	if DebugSettings.debug_free_action:
+		return
+
+	TimeManager.advance_time(units_node, unit.get_total_speed())
+	notify_hud()
+	TimeManager.resolve_ai_turns(units_node)
 
 
 func _is_player_action_blocked() -> bool:
 	if unit == null:
 		return false
 
-	if unit.has_method("has_status_effect") and unit.has_status_effect(&"sleep"):
+	if _has_status_effect(&"sleep"):
 		_consume_blocked_action("眠っていて行動できない")
 		return true
 
-	if unit.has_method("has_status_effect") and unit.has_status_effect(&"paralysis"):
+	if _has_status_effect(&"paralysis"):
 		_consume_blocked_action("麻痺していて行動できない")
 		return true
 
@@ -323,7 +322,7 @@ func try_attack_action() -> bool:
 			unit.notify_hud_log("攻撃できる対象がいない")
 		return false
 
-	var acted = CombatManager.perform_attack(unit, target)
+	var acted: bool = CombatManager.perform_attack(unit, target)
 	return acted
 
 

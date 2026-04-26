@@ -2,6 +2,69 @@ extends Node
 class_name ItemEffectManager
 
 
+static func _notify_item_use_blocked(user, message: String) -> void:
+	if user == null:
+		return
+	if user.has_method("consume_blocked_action_turn"):
+		user.consume_blocked_action_turn(message)
+		return
+	if user.has_method("notify_hud_log"):
+		user.notify_hud_log(message)
+
+
+static func _get_resource_property_names(resource_type: int) -> Dictionary:
+	match resource_type:
+		ItemEffectData.ResourceType.HP:
+			return {"current": "hp", "max": "max_hp"}
+		ItemEffectData.ResourceType.MP:
+			return {"current": "mp", "max": "max_mp"}
+		ItemEffectData.ResourceType.STAMINA:
+			return {"current": "stamina", "max": "max_stamina"}
+		ItemEffectData.ResourceType.HUNGER:
+			return {"current": "hunger", "max": "max_hunger"}
+		_:
+			return {}
+
+
+static func _apply_resource_restore(stats, current_property: String, max_property: String, effect: ItemEffectData, amount: int) -> bool:
+	if stats == null:
+		return false
+	if current_property == "" or max_property == "":
+		return false
+	if not _has_property(stats, current_property):
+		return false
+	if not _has_property(stats, max_property):
+		return false
+
+	var current_value_variant: Variant = stats.get(current_property)
+	var max_value_variant: Variant = stats.get(max_property)
+	var current_value: float = float(current_value_variant)
+	var max_value: float = float(max_value_variant)
+	var new_value: float = current_value
+
+	if effect.value_mode == ItemEffectData.ValueMode.FULL:
+		new_value = max_value
+	elif effect.value_mode == ItemEffectData.ValueMode.PERCENT:
+		new_value = min(max_value, current_value + max_value * float(effect.percent_value))
+	else:
+		new_value = min(max_value, current_value + float(amount))
+
+	if typeof(current_value_variant) == TYPE_FLOAT or typeof(max_value_variant) == TYPE_FLOAT:
+		stats.set(current_property, new_value)
+	else:
+		stats.set(current_property, int(round(new_value)))
+
+	return true
+
+
+static func _try_call_target_method(target, method_name: String, args: Array = []) -> Variant:
+	if target == null:
+		return null
+	if not target.has_method(method_name):
+		return null
+	return target.callv(method_name, args)
+
+
 static func apply_item_effects(user, target, item_data: ItemData, use_flag_override: int = -1) -> bool:
 	if _is_item_use_blocked_by_status(user):
 		return false
@@ -91,17 +154,11 @@ static func _is_item_use_blocked_by_status(user) -> bool:
 		return false
 
 	if user.has_status_effect(&"sleep"):
-		if user.has_method("consume_blocked_action_turn"):
-			user.consume_blocked_action_turn("眠っていてアイテムを使えない")
-		elif user.has_method("notify_hud_log"):
-			user.notify_hud_log("眠っていてアイテムを使えない")
+		_notify_item_use_blocked(user, "眠っていてアイテムを使えない")
 		return true
 
 	if user.has_status_effect(&"paralysis"):
-		if user.has_method("consume_blocked_action_turn"):
-			user.consume_blocked_action_turn("麻痺していてアイテムを使えない")
-		elif user.has_method("notify_hud_log"):
-			user.notify_hud_log("麻痺していてアイテムを使えない")
+		_notify_item_use_blocked(user, "麻痺していてアイテムを使えない")
 		return true
 
 	return false
@@ -169,61 +226,17 @@ static func _apply_restore_resource(user, target, effect: ItemEffectData) -> boo
 		return false
 
 	var amount: int = effect.get_rolled_power()
+	var property_names: Dictionary = _get_resource_property_names(effect.resource_type)
+	if property_names.is_empty():
+		return false
 
-	match effect.resource_type:
-		ItemEffectData.ResourceType.HP:
-			if not _has_property(stats, "hp") or not _has_property(stats, "max_hp"):
-				return false
-
-			if effect.value_mode == ItemEffectData.ValueMode.FULL:
-				stats.hp = stats.max_hp
-			elif effect.value_mode == ItemEffectData.ValueMode.PERCENT:
-				var restore_hp: int = int(round(float(stats.max_hp) * effect.percent_value))
-				stats.hp = min(stats.max_hp, stats.hp + restore_hp)
-			else:
-				stats.hp = min(stats.max_hp, stats.hp + amount)
-			return true
-
-		ItemEffectData.ResourceType.MP:
-			if not _has_property(stats, "mp") or not _has_property(stats, "max_mp"):
-				return false
-
-			if effect.value_mode == ItemEffectData.ValueMode.FULL:
-				stats.mp = stats.max_mp
-			elif effect.value_mode == ItemEffectData.ValueMode.PERCENT:
-				var restore_mp: int = int(round(float(stats.max_mp) * effect.percent_value))
-				stats.mp = min(stats.max_mp, stats.mp + restore_mp)
-			else:
-				stats.mp = min(stats.max_mp, stats.mp + amount)
-			return true
-
-		ItemEffectData.ResourceType.STAMINA:
-			if not _has_property(stats, "stamina") or not _has_property(stats, "max_stamina"):
-				return false
-
-			if effect.value_mode == ItemEffectData.ValueMode.FULL:
-				stats.stamina = stats.max_stamina
-			elif effect.value_mode == ItemEffectData.ValueMode.PERCENT:
-				var restore_stamina: int = int(round(float(stats.max_stamina) * effect.percent_value))
-				stats.stamina = min(stats.max_stamina, stats.stamina + restore_stamina)
-			else:
-				stats.stamina = min(stats.max_stamina, stats.stamina + amount)
-			return true
-
-		ItemEffectData.ResourceType.HUNGER:
-			if not _has_property(stats, "hunger") or not _has_property(stats, "max_hunger"):
-				return false
-
-			if effect.value_mode == ItemEffectData.ValueMode.FULL:
-				stats.hunger = stats.max_hunger
-			elif effect.value_mode == ItemEffectData.ValueMode.PERCENT:
-				var restore_hunger: int = int(round(float(stats.max_hunger) * effect.percent_value))
-				stats.hunger = min(stats.max_hunger, stats.hunger + restore_hunger)
-			else:
-				stats.hunger = min(stats.max_hunger, stats.hunger + amount)
-			return true
-
-	return false
+	return _apply_resource_restore(
+		stats,
+		String(property_names.get("current", "")),
+		String(property_names.get("max", "")),
+		effect,
+		amount
+	)
 
 
 static func _apply_cure_status(user, target, effect: ItemEffectData) -> bool:
@@ -394,8 +407,8 @@ static func _apply_grant_item(user, target, effect: ItemEffectData) -> bool:
 	if target == null:
 		return false
 
-	if target.has_method("grant_items_from_effect"):
-		var grant_result = target.grant_items_from_effect(effect)
+	var grant_result = _try_call_target_method(target, "grant_items_from_effect", [effect])
+	if grant_result != null:
 		if grant_result is bool:
 			return grant_result
 		return true
@@ -414,10 +427,10 @@ static func _apply_grant_currency(user, target, effect: ItemEffectData) -> bool:
 	if target == null:
 		return false
 
-	if target.has_method("grant_currency_from_effect"):
-		var result = target.grant_currency_from_effect(effect)
-		if result is bool:
-			return bool(result)
+	var grant_currency_result = _try_call_target_method(target, "grant_currency_from_effect", [effect])
+	if grant_currency_result != null:
+		if grant_currency_result is bool:
+			return bool(grant_currency_result)
 		return true
 
 	if effect.grant_currency_amount == 0:
@@ -430,9 +443,11 @@ static func _apply_teleport(user, target, effect: ItemEffectData) -> bool:
 	if target == null:
 		return false
 
-	if target.has_method("apply_item_teleport_effect"):
+	var teleport_result = _try_call_target_method(target, "apply_item_teleport_effect", [effect])
+	if teleport_result != null:
 		print("[ITEM EFFECT] teleport mode=", effect.get_teleport_mode_name())
-		target.apply_item_teleport_effect(effect)
+		if teleport_result is bool:
+			return bool(teleport_result)
 		return true
 
 	return false
@@ -471,8 +486,8 @@ static func _apply_learn_skill(user, target, effect: ItemEffectData) -> bool:
 	if effect.skill_id == &"":
 		return false
 
-	if target.has_method("learn_skill_from_effect"):
-		target.learn_skill_from_effect(effect.skill_id)
+	var result = _try_call_target_method(target, "learn_skill_from_effect", [effect.skill_id])
+	if result != null:
 		return true
 
 	return false
@@ -485,8 +500,8 @@ static func _apply_unlock_recipe(user, target, effect: ItemEffectData) -> bool:
 	if effect.recipe_id == &"":
 		return false
 
-	if target.has_method("unlock_recipe_from_effect"):
-		target.unlock_recipe_from_effect(effect.recipe_id)
+	var result = _try_call_target_method(target, "unlock_recipe_from_effect", [effect.recipe_id])
+	if result != null:
 		return true
 
 	return false
@@ -496,8 +511,8 @@ static func _apply_identify_item(user, target, effect: ItemEffectData) -> bool:
 	if target == null:
 		return false
 
-	if target.has_method("identify_item_from_effect"):
-		target.identify_item_from_effect(effect.identify_all)
+	var result = _try_call_target_method(target, "identify_item_from_effect", [effect.identify_all])
+	if result != null:
 		return true
 
 	return false
@@ -510,8 +525,8 @@ static func _apply_read_document(user, target, effect: ItemEffectData) -> bool:
 	if effect.document_text == "":
 		return false
 
-	if target.has_method("read_document_from_effect"):
-		target.read_document_from_effect(effect.document_text)
+	var result = _try_call_target_method(target, "read_document_from_effect", [effect.document_text])
+	if result != null:
 		return true
 
 	return false
@@ -524,8 +539,8 @@ static func _apply_spawn_object(user, target, effect: ItemEffectData) -> bool:
 	if effect.spawn_object_id == &"":
 		return false
 
-	if target.has_method("spawn_object_from_effect"):
-		target.spawn_object_from_effect(effect.spawn_object_id)
+	var result = _try_call_target_method(target, "spawn_object_from_effect", [effect.spawn_object_id])
+	if result != null:
 		return true
 
 	return false

@@ -89,11 +89,33 @@ func _can_stack_entry(entry: Dictionary) -> bool:
 	return true
 
 
+func _get_entry_item_id(entry: Dictionary) -> String:
+	return String(entry.get("item_id", ""))
+
+
+func _get_entry_amount(entry: Dictionary) -> int:
+	return int(entry.get("amount", 0))
+
+
+func _is_entry_empty(entry: Dictionary) -> bool:
+	return _get_entry_item_id(entry) == "" or _get_entry_amount(entry) <= 0
+
+
+func _count_empty_slots() -> int:
+	var empty_slots: int = 0
+
+	for i in range(items.size()):
+		if is_slot_empty(i):
+			empty_slots += 1
+
+	return empty_slots
+
+
 func is_same_item_instance(a: Dictionary, b: Dictionary) -> bool:
 	var a_normalized: Dictionary = _normalize_entry(a)
 	var b_normalized: Dictionary = _normalize_entry(b)
 
-	if String(a_normalized.get("item_id", "")) != String(b_normalized.get("item_id", "")):
+	if _get_entry_item_id(a_normalized) != _get_entry_item_id(b_normalized):
 		return false
 
 	var a_has_instance: bool = _has_instance_data(a_normalized)
@@ -119,9 +141,7 @@ func is_slot_empty(index: int) -> bool:
 		return true
 
 	var entry: Dictionary = items[index]
-	var item_id: String = String(entry.get("item_id", ""))
-	var amount: int = int(entry.get("amount", 0))
-	return item_id == "" or amount <= 0
+	return _is_entry_empty(entry)
 
 
 func get_item_data_at(index: int) -> Dictionary:
@@ -167,33 +187,41 @@ func add_item(item_id: String, amount: int = 1) -> bool:
 
 func add_item_entry(entry: Dictionary) -> bool:
 	var normalized: Dictionary = _normalize_entry(entry)
-	var item_id: String = String(normalized.get("item_id", ""))
-	var amount: int = int(normalized.get("amount", 0))
+	var item_id: String = _get_entry_item_id(normalized)
+	var amount: int = _get_entry_amount(normalized)
 
 	if item_id == "" or amount <= 0:
 		return false
 
 	if not _can_stack_entry(normalized):
-		if amount == 1:
-			var empty_index: int = find_first_empty_slot()
-			if empty_index < 0:
-				return false
-			items[empty_index] = normalized.duplicate(true)
-			return true
+		return _add_non_stackable_entry(normalized, amount)
 
-		var remaining_non_stack: int = amount
-		while remaining_non_stack > 0:
-			var empty_slot_index: int = find_first_empty_slot()
-			if empty_slot_index < 0:
-				return false
+	return _add_stackable_entry(normalized, item_id, amount)
 
-			var single_entry: Dictionary = normalized.duplicate(true)
-			single_entry["amount"] = 1
-			items[empty_slot_index] = single_entry
-			remaining_non_stack -= 1
 
+func _add_non_stackable_entry(normalized: Dictionary, amount: int) -> bool:
+	if amount == 1:
+		var empty_index: int = find_first_empty_slot()
+		if empty_index < 0:
+			return false
+		items[empty_index] = normalized.duplicate(true)
 		return true
 
+	var remaining_non_stack: int = amount
+	while remaining_non_stack > 0:
+		var empty_slot_index: int = find_first_empty_slot()
+		if empty_slot_index < 0:
+			return false
+
+		var single_entry: Dictionary = normalized.duplicate(true)
+		single_entry["amount"] = 1
+		items[empty_slot_index] = single_entry
+		remaining_non_stack -= 1
+
+	return true
+
+
+func _add_stackable_entry(normalized: Dictionary, item_id: String, amount: int) -> bool:
 	var max_stack: int = ItemDatabase.get_max_stack(item_id)
 	var remaining: int = amount
 
@@ -202,7 +230,7 @@ func add_item_entry(entry: Dictionary) -> bool:
 		if not is_same_item_instance(existing, normalized):
 			continue
 
-		var current_amount: int = int(existing.get("amount", 0))
+		var current_amount: int = _get_entry_amount(existing)
 		if current_amount >= max_stack:
 			continue
 
@@ -238,13 +266,13 @@ func remove_item(item_id: String, amount: int = 1) -> bool:
 
 	for i in range(items.size()):
 		var entry: Dictionary = items[i]
-		if String(entry.get("item_id", "")) != item_id:
+		if _get_entry_item_id(entry) != item_id:
 			continue
 
 		if _has_instance_data(entry):
 			continue
 
-		var current_amount: int = int(entry.get("amount", 0))
+		var current_amount: int = _get_entry_amount(entry)
 		if current_amount <= 0:
 			continue
 
@@ -266,12 +294,12 @@ func remove_item(item_id: String, amount: int = 1) -> bool:
 
 func remove_item_entry(target_entry: Dictionary) -> bool:
 	var normalized: Dictionary = _normalize_entry(target_entry)
-	if String(normalized.get("item_id", "")) == "":
+	if _get_entry_item_id(normalized) == "":
 		return false
 
 	for i in range(items.size()):
 		if is_same_item_instance(items[i], normalized):
-			var current_amount: int = int(items[i].get("amount", 0))
+			var current_amount: int = _get_entry_amount(items[i])
 			if current_amount <= 1:
 				items[i] = _make_empty_slot()
 			else:
@@ -299,8 +327,8 @@ func get_item_amount(item_id: String) -> int:
 	var total: int = 0
 
 	for entry in items:
-		if String(entry.get("item_id", "")) == item_id and not _has_instance_data(entry):
-			total += int(entry.get("amount", 0))
+		if _get_entry_item_id(entry) == item_id and not _has_instance_data(entry):
+			total += _get_entry_amount(entry)
 
 	return total
 
@@ -309,8 +337,8 @@ func get_total_amount(item_id: String) -> int:
 	var total: int = 0
 
 	for entry in items:
-		if String(entry.get("item_id", "")) == item_id:
-			total += int(entry.get("amount", 0))
+		if _get_entry_item_id(entry) == item_id:
+			total += _get_entry_amount(entry)
 
 	return total
 
@@ -342,13 +370,13 @@ func consume_item_amount(item_id: String, amount: int) -> bool:
 			break
 
 		var entry: Dictionary = items[i]
-		if String(entry.get("item_id", "")) != item_id:
+		if _get_entry_item_id(entry) != item_id:
 			continue
 
 		if _has_instance_data(entry):
 			continue
 
-		var current_amount: int = int(entry.get("amount", 0))
+		var current_amount: int = _get_entry_amount(entry)
 		if current_amount <= 0:
 			continue
 
@@ -387,25 +415,21 @@ func can_add_item(item_id: String, amount: int = 1) -> bool:
 
 func can_add_item_entry(entry: Dictionary) -> bool:
 	var normalized: Dictionary = _normalize_entry(entry)
-	var item_id: String = String(normalized.get("item_id", ""))
-	var amount: int = int(normalized.get("amount", 0))
+	var item_id: String = _get_entry_item_id(normalized)
+	var amount: int = _get_entry_amount(normalized)
 
 	if item_id == "" or amount <= 0:
 		return false
 
 	if not _can_stack_entry(normalized):
-		var empty_slots: int = 0
-		for i in range(items.size()):
-			if is_slot_empty(i):
-				empty_slots += 1
-		return empty_slots >= amount
+		return _count_empty_slots() >= amount
 
 	var max_stack: int = ItemDatabase.get_max_stack(item_id)
 	var capacity: int = 0
 
 	for existing in items:
-		var existing_id: String = String(existing.get("item_id", ""))
-		var existing_amount: int = int(existing.get("amount", 0))
+		var existing_id: String = _get_entry_item_id(existing)
+		var existing_amount: int = _get_entry_amount(existing)
 
 		if is_same_item_instance(existing, normalized):
 			capacity += max(0, max_stack - existing_amount)
@@ -441,7 +465,7 @@ func load_inventory_data(data: Array) -> void:
 	initialize_empty_slots()
 
 	for i in range(min(data.size(), max_slots)):
-		var entry = data[i]
+		var entry: Variant = data[i]
 
 		if typeof(entry) != TYPE_DICTIONARY:
 			continue
@@ -458,8 +482,8 @@ func use_item_at(index: int) -> Dictionary:
 		}
 
 	var entry: Dictionary = items[index]
-	var item_id: String = String(entry.get("item_id", ""))
-	var amount: int = int(entry.get("amount", 0))
+	var item_id: String = _get_entry_item_id(entry)
+	var amount: int = _get_entry_amount(entry)
 
 	if item_id == "" or amount <= 0:
 		return {
@@ -504,14 +528,14 @@ func use_item_at(index: int) -> Dictionary:
 		"item_id": item_id,
 		"message": "%sを使用した" % ItemDatabase.get_display_name(item_id)
 	}
-	
+
 
 func get_total_amount_ignore_instance(item_id: String) -> int:
 	var total: int = 0
 
 	for entry in items:
-		if String(entry.get("item_id", "")) == item_id:
-			total += int(entry.get("amount", 0))
+		if _get_entry_item_id(entry) == item_id:
+			total += _get_entry_amount(entry)
 
 	return total
 
@@ -543,10 +567,10 @@ func consume_total_amount_ignore_instance(item_id: String, amount: int) -> bool:
 			break
 
 		var entry: Dictionary = items[i]
-		if String(entry.get("item_id", "")) != item_id:
+		if _get_entry_item_id(entry) != item_id:
 			continue
 
-		var current_amount: int = int(entry.get("amount", 0))
+		var current_amount: int = _get_entry_amount(entry)
 		if current_amount <= 0:
 			continue
 

@@ -35,11 +35,18 @@ func _ready() -> void:
 	refresh_hud()
 
 
-func _spawn_fixed_units() -> void:
+# =========================================================
+# spawn helpers
+# =========================================================
+func _get_units_node() -> Node:
 	var units_node: Node = get_node_or_null("Units")
 	if units_node == null:
 		push_error("SpecialMapMain: Units ノードがありません")
-		return
+	return units_node
+
+
+func _get_valid_entries() -> Array[SpecialMapUnitEntry]:
+	var result: Array[SpecialMapUnitEntry] = []
 
 	for entry in unit_data_list:
 		if entry == null:
@@ -48,7 +55,24 @@ func _spawn_fixed_units() -> void:
 			continue
 		if entry.get_data_resource() == null:
 			continue
+		result.append(entry)
 
+	return result
+
+
+func _get_available_random_tiles() -> Array[Vector2i]:
+	return random_spawn_tiles.duplicate()
+
+
+# =========================================================
+# spawn main
+# =========================================================
+func _spawn_fixed_units() -> void:
+	var units_node: Node = _get_units_node()
+	if units_node == null:
+		return
+
+	for entry in _get_valid_entries():
 		var count: int = max(0, entry.fixed_spawn_count)
 		if entry.fixed_spawn_tiles.is_empty():
 			continue
@@ -60,16 +84,15 @@ func _spawn_fixed_units() -> void:
 
 
 func _spawn_random_total_units() -> void:
-	var units_node: Node = get_node_or_null("Units")
+	var units_node: Node = _get_units_node()
 	if units_node == null:
-		push_error("SpecialMapMain: Units ノードがありません")
 		return
 
 	var count: int = max(0, total_random_spawn_count)
 	if count <= 0:
 		return
 
-	var available_tiles: Array[Vector2i] = random_spawn_tiles.duplicate()
+	var available_tiles: Array[Vector2i] = _get_available_random_tiles()
 	if available_tiles.is_empty():
 		return
 
@@ -91,14 +114,7 @@ func _spawn_random_total_units() -> void:
 func _pick_random_entry() -> SpecialMapUnitEntry:
 	var weighted_pool: Array[SpecialMapUnitEntry] = []
 
-	for entry in unit_data_list:
-		if entry == null:
-			continue
-		if not entry.enabled:
-			continue
-		if entry.get_data_resource() == null:
-			continue
-
+	for entry in _get_valid_entries():
 		var weight: int = max(1, entry.random_weight)
 		for i in range(weight):
 			weighted_pool.append(entry)
@@ -149,6 +165,9 @@ func _make_spawned_unit_id(entry: SpecialMapUnitEntry) -> String:
 	return "%s_%s_%04d" % [map_key, base_name, _spawn_serial]
 
 
+# =========================================================
+# parent bridge helpers
+# =========================================================
 func _find_parent_with_method(method_name: String) -> Node:
 	var node: Node = get_parent()
 	while node != null:
@@ -158,6 +177,25 @@ func _find_parent_with_method(method_name: String) -> Node:
 	return null
 
 
+func _call_parent_void(method_name: String, args: Array = []) -> void:
+	var parent_node: Node = _find_parent_with_method(method_name)
+	if parent_node == null:
+		return
+
+	parent_node.callv(method_name, args)
+
+
+func _call_parent_bool(method_name: String, default_value: bool = false, args: Array = []) -> bool:
+	var parent_node: Node = _find_parent_with_method(method_name)
+	if parent_node == null:
+		return default_value
+
+	return bool(parent_node.callv(method_name, args))
+
+
+# =========================================================
+# save / load / root interface
+# =========================================================
 func load_map_by_path(scene_path: String) -> void:
 	var parent_node: Node = _find_parent_with_method("load_map_by_path")
 	if parent_node != null:
@@ -194,111 +232,75 @@ func find_player():
 	return null
 
 
+# =========================================================
+# HUD / UI bridge
+# =========================================================
 func refresh_hud() -> void:
-	var parent_node: Node = _find_parent_with_method("refresh_hud")
-	if parent_node != null:
-		parent_node.refresh_hud()
+	_call_parent_void("refresh_hud")
 
 
 func update_hud_time() -> void:
-	var parent_node: Node = _find_parent_with_method("update_hud_time")
-	if parent_node != null:
-		parent_node.update_hud_time()
+	_call_parent_void("update_hud_time")
 
 
 func update_hud_player_status() -> void:
-	var parent_node: Node = _find_parent_with_method("update_hud_player_status")
-	if parent_node != null:
-		parent_node.update_hud_player_status()
+	_call_parent_void("update_hud_player_status")
 
 
 func update_hud_effects() -> void:
-	var parent_node: Node = _find_parent_with_method("update_hud_effects")
-	if parent_node != null:
-		parent_node.update_hud_effects()
+	_call_parent_void("update_hud_effects")
 
 
 func add_hud_log(text: String) -> void:
-	var parent_node: Node = _find_parent_with_method("add_hud_log")
-	if parent_node != null:
-		parent_node.add_hud_log(text)
+	_call_parent_void("add_hud_log", [text])
 
 
 func toggle_inventory_ui() -> void:
-	var parent_node: Node = _find_parent_with_method("toggle_inventory_ui")
-	if parent_node != null:
-		parent_node.toggle_inventory_ui()
+	_call_parent_void("toggle_inventory_ui")
 
 
 func is_inventory_open() -> bool:
-	var parent_node: Node = _find_parent_with_method("is_inventory_open")
-	if parent_node != null:
-		return parent_node.is_inventory_open()
-	return false
+	return _call_parent_bool("is_inventory_open", false)
 
 
 func refresh_inventory_ui() -> void:
-	var parent_node: Node = _find_parent_with_method("refresh_inventory_ui")
-	if parent_node != null:
-		parent_node.refresh_inventory_ui()
+	_call_parent_void("refresh_inventory_ui")
 
 
 func open_trade_ui(player_unit, merchant_unit, return_context: Dictionary = {}) -> void:
-	var parent_node: Node = _find_parent_with_method("open_trade_ui")
-	if parent_node != null:
-		parent_node.open_trade_ui(player_unit, merchant_unit, return_context)
+	_call_parent_void("open_trade_ui", [player_unit, merchant_unit, return_context])
 
 
 func close_trade_ui() -> void:
-	var parent_node: Node = _find_parent_with_method("close_trade_ui")
-	if parent_node != null:
-		parent_node.close_trade_ui()
+	_call_parent_void("close_trade_ui")
 
 
 func is_trade_ui_open() -> bool:
-	var parent_node: Node = _find_parent_with_method("is_trade_ui_open")
-	if parent_node != null:
-		return parent_node.is_trade_ui_open()
-	return false
+	return _call_parent_bool("is_trade_ui_open", false)
 
 
 func on_trade_ui_closed() -> void:
-	var parent_node: Node = _find_parent_with_method("on_trade_ui_closed")
-	if parent_node != null:
-		parent_node.on_trade_ui_closed()
+	_call_parent_void("on_trade_ui_closed")
 
 
 func toggle_status_ui() -> void:
-	var parent_node: Node = _find_parent_with_method("toggle_status_ui")
-	if parent_node != null:
-		parent_node.toggle_status_ui()
+	_call_parent_void("toggle_status_ui")
 
 
 func open_status_ui() -> void:
-	var parent_node: Node = _find_parent_with_method("open_status_ui")
-	if parent_node != null:
-		parent_node.open_status_ui()
+	_call_parent_void("open_status_ui")
 
 
 func close_status_ui() -> void:
-	var parent_node: Node = _find_parent_with_method("close_status_ui")
-	if parent_node != null:
-		parent_node.close_status_ui()
+	_call_parent_void("close_status_ui")
 
 
 func is_status_open() -> bool:
-	var parent_node: Node = _find_parent_with_method("is_status_open")
-	if parent_node != null:
-		return parent_node.is_status_open()
-	return false
+	return _call_parent_bool("is_status_open", false)
 
 
 func is_dialog_open() -> bool:
 	if DialogueManager != null and DialogueManager.has_method("is_dialog_open"):
 		return DialogueManager.is_dialog_open()
 
-	var parent_node: Node = _find_parent_with_method("is_dialog_open")
-	if parent_node != null:
-		return parent_node.is_dialog_open()
-
-	return false
+	return _call_parent_bool("is_dialog_open", false)

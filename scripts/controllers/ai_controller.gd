@@ -35,7 +35,7 @@ enum ActionType {
 
 var unit = null
 var units_node = null
-var rng := RandomNumberGenerator.new()
+var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 
 func setup(owner_unit) -> void:
@@ -49,11 +49,22 @@ func take_turn() -> void:
 		consume_pending_action()
 		return
 
-	var context = build_ai_context()
-	var candidates = build_action_candidates(context)
+	var context: Dictionary = build_ai_context()
+	var candidates: Array[Dictionary] = build_action_candidates(context)
 
 	sort_candidates_desc(candidates)
+	_print_ai_debug(context, candidates)
 
+	for candidate in candidates:
+		if execute_candidate(candidate, context):
+			consume_pending_action()
+			return
+
+	unit.wait_action()
+	consume_pending_action()
+
+
+func _print_ai_debug(context: Dictionary, candidates: Array[Dictionary]) -> void:
 	if DebugSettings.debug_ai_turn:
 		print("----- AI TURN START -----")
 		print("unit: ", unit.name)
@@ -68,14 +79,6 @@ func take_turn() -> void:
 		print("unit: ", unit.name)
 		for i in range(candidates.size()):
 			print("[", i, "] ", candidates[i])
-
-	for candidate in candidates:
-		if execute_candidate(candidate, context):
-			consume_pending_action()
-			return
-
-	unit.wait_action()
-	consume_pending_action()
 
 
 func can_act() -> bool:
@@ -109,7 +112,7 @@ func consume_pending_action() -> void:
 
 func build_ai_context() -> Dictionary:
 	var nearest_hostile = Targeting.get_nearest_hostile_unit(units_node, unit, detection_range)
-	var dist_to_hostile := -1
+	var dist_to_hostile: int = -1
 
 	if nearest_hostile != null:
 		dist_to_hostile = Targeting.get_distance_between_units(unit, nearest_hostile)
@@ -138,7 +141,7 @@ func get_self_hp_rate() -> float:
 	if unit == null or unit.stats == null:
 		return 1.0
 
-	var max_hp = max(unit.get_total_max_hp(), 1)
+	var max_hp: int = max(unit.get_total_max_hp(), 1)
 	return float(unit.stats.hp) / float(max_hp)
 
 
@@ -190,13 +193,12 @@ func build_attack_candidates(context: Dictionary) -> Array[Dictionary]:
 	if attack_target == null:
 		return result
 
-	var move_style = context["move_style"]
-
+	var move_style: int = context["move_style"]
 	if move_style == MoveStyle.FLEE:
 		return result
 
 	if CombatManager.can_attack(unit, attack_target):
-		var score = get_normal_attack_score(context, attack_target)
+		var score: int = get_normal_attack_score(context, attack_target)
 		result.append(
 			make_action_candidate(
 				ActionType.ATTACK,
@@ -212,7 +214,7 @@ func build_attack_candidates(context: Dictionary) -> Array[Dictionary]:
 
 
 func get_normal_attack_score(context: Dictionary, target) -> int:
-	var combat_style = context["combat_style"]
+	var combat_style: int = context["combat_style"]
 
 	match combat_style:
 		CombatStyle.MELEE:
@@ -238,7 +240,7 @@ func build_move_candidates(context: Dictionary) -> Array[Dictionary]:
 	if target == null:
 		return result
 
-	var move_style = context["move_style"]
+	var move_style: int = context["move_style"]
 
 	match move_style:
 		MoveStyle.APPROACH:
@@ -267,7 +269,7 @@ func build_idle_move_candidates() -> Array[Dictionary]:
 	]
 	dirs.shuffle()
 
-	var score := 15
+	var score: int = 15
 	for dir in dirs:
 		result.append(make_action_candidate(ActionType.MOVE, score, {"direction": dir}))
 		score -= 1
@@ -277,9 +279,9 @@ func build_idle_move_candidates() -> Array[Dictionary]:
 
 func build_approach_move_candidates(context: Dictionary, target) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
-	var dirs = get_candidate_steps_toward_target(target)
+	var dirs: Array[Vector2] = get_candidate_steps_toward_target(target)
 
-	var score := 60
+	var score: int = 60
 	for dir in dirs:
 		result.append(make_action_candidate(ActionType.MOVE, score, {"direction": dir}))
 		score -= 5
@@ -290,13 +292,13 @@ func build_approach_move_candidates(context: Dictionary, target) -> Array[Dictio
 func build_keep_distance_move_candidates(context: Dictionary, target) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 
-	var dist = context["distance_to_target"]
+	var dist: int = context["distance_to_target"]
 
 	if dist < preferred_distance:
-		var away_dirs = get_candidate_steps_away_from_target(target)
-		var side_dirs = get_side_step_candidates(target)
+		var away_dirs: Array[Vector2] = get_candidate_steps_away_from_target(target)
+		var side_dirs: Array[Vector2] = get_side_step_candidates(target)
 
-		var score := 70
+		var score: int = 70
 		for dir in away_dirs:
 			result.append(make_action_candidate(ActionType.MOVE, score, {"direction": dir}))
 			score -= 5
@@ -306,10 +308,10 @@ func build_keep_distance_move_candidates(context: Dictionary, target) -> Array[D
 			score -= 5
 
 	elif dist > preferred_distance:
-		var toward_dirs = get_candidate_steps_toward_target(target)
-		var side_dirs2 = get_side_step_candidates(target)
+		var toward_dirs: Array[Vector2] = get_candidate_steps_toward_target(target)
+		var side_dirs2: Array[Vector2] = get_side_step_candidates(target)
 
-		var score2 := 55
+		var score2: int = 55
 		for dir in toward_dirs:
 			result.append(make_action_candidate(ActionType.MOVE, score2, {"direction": dir}))
 			score2 -= 5
@@ -324,10 +326,10 @@ func build_keep_distance_move_candidates(context: Dictionary, target) -> Array[D
 func build_flee_move_candidates(context: Dictionary, target) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 
-	var away_dirs = get_candidate_steps_away_from_target(target)
-	var side_dirs = get_side_step_candidates(target)
+	var away_dirs: Array[Vector2] = get_candidate_steps_away_from_target(target)
+	var side_dirs: Array[Vector2] = get_side_step_candidates(target)
 
-	var score := 75
+	var score: int = 75
 	for dir in away_dirs:
 		result.append(make_action_candidate(ActionType.MOVE, score, {"direction": dir}))
 		score -= 5
@@ -352,7 +354,7 @@ func sort_candidates_desc(candidates: Array[Dictionary]) -> void:
 
 
 func execute_candidate(candidate: Dictionary, context: Dictionary) -> bool:
-	var action_type = candidate["type"]
+	var action_type: int = candidate["type"]
 	var data: Dictionary = candidate["data"]
 
 	match action_type:
@@ -376,7 +378,7 @@ func execute_attack_candidate(data: Dictionary, context: Dictionary) -> bool:
 	if target == null:
 		return false
 
-	var attack_kind = data.get("attack_kind", "normal")
+	var attack_kind: String = data.get("attack_kind", "normal")
 
 	match attack_kind:
 		"normal":
@@ -408,12 +410,12 @@ func get_candidate_steps_toward_target(target) -> Array[Vector2]:
 	if unit == null or target == null:
 		return result
 
-	var my_tile = unit.get_current_tile_coords()
-	var target_tile = target.get_current_tile_coords()
-	var diff = target_tile - my_tile
+	var my_tile: Vector2i = unit.get_current_tile_coords()
+	var target_tile: Vector2i = target.get_current_tile_coords()
+	var diff: Vector2i = target_tile - my_tile
 
-	var primary := Vector2.ZERO
-	var secondary := Vector2.ZERO
+	var primary: Vector2 = Vector2.ZERO
+	var secondary: Vector2 = Vector2.ZERO
 
 	if abs(diff.x) >= abs(diff.y):
 		if diff.x > 0:
@@ -445,7 +447,7 @@ func get_candidate_steps_toward_target(target) -> Array[Vector2]:
 
 
 func get_candidate_steps_away_from_target(target) -> Array[Vector2]:
-	var toward_dirs = get_candidate_steps_toward_target(target)
+	var toward_dirs: Array[Vector2] = get_candidate_steps_toward_target(target)
 	var result: Array[Vector2] = []
 
 	for dir in toward_dirs:
@@ -460,9 +462,9 @@ func get_side_step_candidates(target) -> Array[Vector2]:
 	if unit == null or target == null:
 		return result
 
-	var my_tile = unit.get_current_tile_coords()
-	var target_tile = target.get_current_tile_coords()
-	var diff = target_tile - my_tile
+	var my_tile: Vector2i = unit.get_current_tile_coords()
+	var target_tile: Vector2i = target.get_current_tile_coords()
+	var diff: Vector2i = target_tile - my_tile
 
 	if abs(diff.x) >= abs(diff.y):
 		result.append(Vector2.UP)

@@ -47,16 +47,16 @@ var debug_player_start_items: Array[Dictionary] = [
 	#{"item_id": "power_ring", "amount": 1},
 	#{"item_id": "potion", "amount": 90},
 	#{"item_id": "healing_potion","amount":10 },
-	#{"item_id": "mushroom_bad","amount":10 },
+	{"item_id": "mushroom_bad","amount":10 },
 	#{"item_id": "paralysis_cure_potion","amount":10 },
 	#{"item_id": "potion_of_strength","amount":10 },
 	{"item_id": "teleport_stone","amount":10 },
-	#{"item_id": "poison_cure_potion","amount":10 },
+	{"item_id": "poison_cure_potion","amount":10 },
 	
 	# phase1 items
 	#{"item_id": "fire_bottle", "amount": 10},
 	#{"item_id": "frost_bottle", "amount": 10},
-	#{"item_id": "sleep_orb", "amount": 10},
+	{"item_id": "sleep_orb", "amount": 10},
 	#{"item_id": "confusion_mushroom", "amount": 10},
 	#{"item_id": "softening_powder", "amount": 10},
 	#{"item_id": "slow_slime", "amount": 10},
@@ -76,7 +76,7 @@ var debug_player_start_items: Array[Dictionary] = [
 	
 	#{"item_id":"hallucination_powder","amount":10},
 	#{"item_id":"blind_sand","amount":10},
-	#{"item_id":"curse_orb","amount":10},
+	{"item_id":"curse_orb","amount":10},
 	{"item_id":"bread","amount":10},
 	{"item_id":"apple","amount":10},
 	{"item_id":"meat_skewer","amount":10},
