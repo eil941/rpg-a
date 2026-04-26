@@ -80,6 +80,13 @@ enum UnitRole {
 var unit_roles: int = 0
 @export var friendliness: int = 0
 
+# 空腹まわりの挙動設定
+@export var disable_hunger_decay: bool = false
+@export var auto_eat_food_when_hungry: bool = false
+@export var auto_generate_food_when_hungry: bool = false
+@export var auto_generated_food_item_id: String = "apple"
+@export var print_hunger_to_output: bool = false
+
 @export var can_offer_request: bool = false
 @export var can_trade: bool = false
 @export var can_receive_order: bool = false
@@ -264,8 +271,11 @@ func _physics_process(delta: float) -> void:
 
 func on_time_advanced(elapsed_seconds: float) -> void:
 	advance_effect_runtimes(elapsed_seconds)
-	_apply_hunger_time_decay(elapsed_seconds, true)
-	_apply_hunger_starvation_damage(elapsed_seconds)
+
+	if _should_apply_hunger_decay():
+		_apply_hunger_time_decay(elapsed_seconds, true)
+		_try_auto_eat_food_if_needed()
+		_apply_hunger_starvation_damage(elapsed_seconds)
 
 	if not receives_time_turns:
 		return
@@ -1588,6 +1598,11 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 	talk_portrait = enemy_data.talk_portrait
 	unit_roles = enemy_data.unit_roles
 	friendliness = enemy_data.friendliness
+	disable_hunger_decay = enemy_data.disable_hunger_decay
+	auto_eat_food_when_hungry = enemy_data.auto_eat_food_when_hungry
+	auto_generate_food_when_hungry = enemy_data.auto_generate_food_when_hungry
+	auto_generated_food_item_id = enemy_data.auto_generated_food_item_id
+	print_hunger_to_output = false
 	can_offer_request = enemy_data.can_offer_request
 	can_trade = enemy_data.can_trade
 	can_receive_order = enemy_data.can_receive_order
@@ -1685,6 +1700,11 @@ func apply_npc_data(npc_data: NpcData) -> void:
 	talk_portrait = npc_data.talk_portrait
 	unit_roles = npc_data.unit_roles
 	friendliness = npc_data.friendliness
+	disable_hunger_decay = npc_data.disable_hunger_decay
+	auto_eat_food_when_hungry = npc_data.auto_eat_food_when_hungry
+	auto_generate_food_when_hungry = npc_data.auto_generate_food_when_hungry
+	auto_generated_food_item_id = npc_data.auto_generated_food_item_id
+	print_hunger_to_output = true
 	can_offer_request = npc_data.can_offer_request
 	can_trade = npc_data.can_trade
 	can_receive_order = npc_data.can_receive_order
@@ -1840,6 +1860,193 @@ func notify_hud_effects_refresh() -> void:
 		node = node.get_parent()
 
 
+func _should_apply_hunger_decay() -> bool:
+	if disable_hunger_decay:
+		return false
+	if stats == null:
+		return false
+	if not _stats_has_property(stats, "hunger"):
+		return false
+	if not _stats_has_property(stats, "max_hunger"):
+		return false
+	return true
+
+
+func _is_party_member_unit() -> bool:
+	# パーティー未実装。
+	# 実装後にここを差し替える想定。
+	return false
+
+
+func _is_food_item_id(item_id: String) -> bool:
+	if item_id == "":
+		return false
+	if not ItemDatabase.exists(item_id):
+		return false
+
+	var item_res = ItemDatabase.get_item_resource(item_id)
+	if item_res == null:
+		return false
+
+	for info in item_res.get_property_list():
+		if String(info.get("name", "")) == "category":
+			return String(item_res.get("category")).strip_edges().to_lower() == "food"
+
+	return false
+
+
+func _find_food_item_id_in_inventory() -> String:
+	if inventory == null:
+		return ""
+	if not inventory.has_method("get_all_items"):
+		return ""
+
+	var items: Array = inventory.get_all_items()
+	for raw_entry in items:
+		if typeof(raw_entry) != TYPE_DICTIONARY:
+			continue
+		var entry: Dictionary = raw_entry
+		var item_id: String = String(entry.get("item_id", ""))
+		var amount: int = int(entry.get("amount", 0))
+		if item_id == "" or amount <= 0:
+			continue
+		if _is_food_item_id(item_id):
+			return item_id
+
+	return ""
+
+
+func _get_all_food_item_ids() -> Array[String]:
+	var result: Array[String] = []
+
+	if ItemDatabase == null:
+		return result
+
+	var resources_dict: Dictionary = ItemDatabase.ITEM_RESOURCES
+	for raw_item_id in resources_dict.keys():
+		var item_id: String = String(raw_item_id)
+		if item_id == "":
+			continue
+		if _is_food_item_id(item_id):
+			result.append(item_id)
+
+	return result
+
+
+func _spawn_auto_generated_food() -> bool:
+	if inventory == null:
+		return false
+	if not inventory.has_method("add_item_entry"):
+		return false
+
+	var item_id: String = ""
+	var food_ids: Array[String] = _get_all_food_item_ids()
+	if not food_ids.is_empty():
+		var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+		rng.randomize()
+		item_id = food_ids[rng.randi_range(0, food_ids.size() - 1)]
+	elif auto_generated_food_item_id != "" and ItemDatabase.exists(auto_generated_food_item_id):
+		item_id = auto_generated_food_item_id
+
+	if item_id == "":
+		return false
+
+	var added: bool = inventory.add_item_entry({
+		"item_id": item_id,
+		"amount": 1
+	})
+	if added:
+		notify_inventory_refresh()
+		if _should_print_hunger_output():
+			print("[HUNGER] ", name, " が食料を生成: ", ItemDatabase.get_display_name(item_id))
+	return added
+
+
+func _try_consume_food_from_inventory() -> bool:
+	var food_item_id: String = _find_food_item_id_in_inventory()
+	if food_item_id == "":
+		return false
+
+	var item_data = ItemDatabase.get_item_data(food_item_id)
+	if item_data == null:
+		return false
+
+	if not ItemEffectManager.apply_item_effect(self, self, item_data):
+		return false
+
+	var consumed: bool = false
+	if inventory != null:
+		if inventory.has_method("consume_total_amount_ignore_instance"):
+			consumed = inventory.consume_total_amount_ignore_instance(food_item_id, 1)
+		elif inventory.has_method("consume_item_amount"):
+			consumed = inventory.consume_item_amount(food_item_id, 1)
+
+	if consumed:
+		notify_inventory_refresh()
+		if _should_print_hunger_output():
+			print("[HUNGER] ", name, " が食べた: ", ItemDatabase.get_display_name(food_item_id), " / ", _get_hunger_status_text())
+
+	return consumed
+
+
+func _try_auto_eat_food_if_needed() -> void:
+	if not auto_eat_food_when_hungry:
+		return
+	if stats == null:
+		return
+	if not _stats_has_property(stats, "hunger"):
+		return
+
+	var hunger_key: String = _get_hunger_condition_key_from_value(float(stats.hunger))
+	if hunger_key != "hungry" and hunger_key != "starving" and hunger_key != "starving_dead":
+		return
+
+	if _try_consume_food_from_inventory():
+		return
+
+	if not auto_generate_food_when_hungry:
+		return
+
+	if _spawn_auto_generated_food():
+		_try_consume_food_from_inventory()
+
+
+func _should_print_hunger_output() -> bool:
+	if is_player_unit:
+		return true
+	if print_hunger_to_output:
+		return true
+	if faction.to_upper() == "NPC":
+		return true
+	return false
+
+
+func _get_hunger_condition_key_from_value(hunger_value: float) -> String:
+	if stats == null:
+		return ""
+	if not _stats_has_property(stats, "max_hunger"):
+		return ""
+
+	var max_hunger_value: float = float(stats.max_hunger)
+	if max_hunger_value <= 0.0:
+		return ""
+
+	var ratio: float = clamp(hunger_value / max_hunger_value, 0.0, 1.0)
+
+	# 餓死は 0% のときだけ
+	if is_equal_approx(ratio, 0.0):
+		return "starving_dead"
+	if ratio <= 0.10:
+		return "starving"
+	if ratio <= 0.40:
+		return "hungry"
+	if ratio >= 0.80:
+		return "full"
+
+	return ""
+
+
+
 func _apply_hunger_time_decay(elapsed_seconds: float, print_output: bool) -> void:
 	if elapsed_seconds <= 0.0:
 		return
@@ -1868,8 +2075,8 @@ func _apply_hunger_time_decay(elapsed_seconds: float, print_output: bool) -> voi
 	stats.hunger = new_hunger
 	notify_hud_effects_refresh()
 
-	if is_player_unit and print_output:
-		print("[HUNGER] ", _get_hunger_status_text())
+	if print_output and _should_print_hunger_output():
+		print("[HUNGER] ", name, " / ", _get_hunger_status_text())
 
 
 func _apply_hunger_starvation_damage(elapsed_seconds: float) -> void:
@@ -1899,8 +2106,8 @@ func _apply_hunger_starvation_damage(elapsed_seconds: float) -> void:
 	else:
 		stats.hp = max(0, int(stats.hp) - damage_value)
 
-	if is_player_unit:
-		print("[HUNGER] 餓死ダメージ ", damage_value, " / ", _get_hunger_status_text())
+	if _should_print_hunger_output():
+		print("[HUNGER] ", name, " / 餓死ダメージ ", damage_value, " / ", _get_hunger_status_text())
 
 	notify_hud_player_status_refresh()
 	notify_hud_effects_refresh()
@@ -2711,9 +2918,6 @@ func load_effect_runtimes_save_data(data_list: Array) -> void:
 func apply_offscreen_effect_elapsed(elapsed_seconds: float) -> void:
 	if elapsed_seconds <= 0.0:
 		return
-
-	_apply_hunger_time_decay(elapsed_seconds, false)
-	_apply_hunger_starvation_damage(elapsed_seconds)
 
 	if active_effect_runtimes.is_empty():
 		if TimeManager != null:

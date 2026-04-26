@@ -17,6 +17,7 @@ metadata/_custom_type_script = "uid://0c32in4pchg3"
 
 [resource]
 script = ExtResource("2_n2gxl")
+spawn_generator_tags = Array[String](["FOREST"])
 talk_display_name = "sabosan"
 talk_portrait = ExtResource("3_n2gxl")
 unit_roles = 31

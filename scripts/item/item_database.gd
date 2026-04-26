@@ -43,6 +43,11 @@ static var ITEM_RESOURCES = {
 	"blind_sand": preload("res://data/items/phase3/blind_sand.tres"),
 	"hallucination_powder": preload("res://data/items/phase3/hallucination_powder.tres"),
 	"curse_orb":preload("res://data/items/phase3/curse_orb.tres"),
+	
+	#food関連のサンプル
+	"bread":preload("res://data/items/food/bread.tres"),
+	"meat_skewer":preload("res://data/items/food/meat_skewer.tres"),
+	"travel_ration":preload("res://data/items/food/travel_ration.tres"),
 
 	# equipment
 	"knife": preload("res://data/equipment/weapons/knife.tres"),

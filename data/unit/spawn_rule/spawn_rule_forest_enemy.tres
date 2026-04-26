@@ -5,9 +5,10 @@
 [resource]
 script = ExtResource("1_cmq16")
 rule_id = "forest_enemy"
+spawn_kind = "NPC"
 allowed_generator_types = Array[String](["FOREST"])
-min_area_difficulty = 1
-max_area_difficulty = 100
-max_spawn_count = 100
+min_area_difficulty = 0
+max_area_difficulty = 10
+max_spawn_count = 10
 weight = 5
 metadata/_custom_type_script = "uid://b7ysbp1aifykm"

@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://3hvgblsbgdb7"]
+
+[ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_item"]
+[ext_resource type="Texture2D" uid="uid://0ju60bjkqptr" path="res://assets/items/sample/travel_ration.png" id="2_e2bo7"]
+[ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_effect"]
+
+[sub_resource type="Resource" id="Resource_travel_ration_effect"]
+script = ExtResource("2_effect")
+effect_type = 1
+power_min = 35
+power_max = 45
+resource_type = 3
+
+[resource]
+script = ExtResource("1_item")
+item_id = "travel_ration"
+display_name = "携帯食料"
+description = "保存性の高い携帯食。空腹を大きく回復する。"
+icon = ExtResource("2_e2bo7")
+category = "food"
+max_stack = 10
+usable = true
+base_price = 65
+rarity = 2
+spawn_weight = 55
+use_flags = 2
+target_flags = 1
+effects = Array[ExtResource("2_effect")]([SubResource("Resource_travel_ration_effect")])

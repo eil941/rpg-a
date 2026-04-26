@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://j1mtghc32ac1"]
+
+[ext_resource type="Script" uid="uid://cmkxp6ab4l88m" path="res://scripts/data/item_data.gd" id="1_item"]
+[ext_resource type="Texture2D" uid="uid://cwjp0o5klspne" path="res://assets/items/sample/meat_skewer.png" id="2_b4py8"]
+[ext_resource type="Script" uid="uid://bho0tg4blvres" path="res://scripts/data/item_effect_data.gd" id="2_effect"]
+
+[sub_resource type="Resource" id="Resource_meat_skewer_effect"]
+script = ExtResource("2_effect")
+effect_type = 1
+power_min = 22
+power_max = 30
+resource_type = 3
+
+[resource]
+script = ExtResource("1_item")
+item_id = "meat_skewer"
+display_name = "串焼き肉"
+description = "しっかり腹にたまる串焼き。空腹を中程度回復する。"
+icon = ExtResource("2_b4py8")
+category = "food"
+max_stack = 10
+usable = true
+base_price = 42
+rarity = 2
+spawn_weight = 70
+use_flags = 2
+target_flags = 1
+effects = Array[ExtResource("2_effect")]([SubResource("Resource_meat_skewer_effect")])

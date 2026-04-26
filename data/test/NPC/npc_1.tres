@@ -7,6 +7,7 @@
 [resource]
 script = ExtResource("1_gwhkx")
 npc_type_id = "npc_1"
+spawn_generator_tags = Array[String](["FOREST"])
 talk_portrait = ExtResource("2_bnd6u")
 unit_roles = 60
 metadata/_custom_type_script = "uid://bgt8humnn3jqj"

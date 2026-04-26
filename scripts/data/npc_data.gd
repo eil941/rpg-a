@@ -101,6 +101,11 @@ var move_style: int = AIMoveStyle.FLEE
 var unit_roles: int = 0
 
 @export var friendliness: int = 0
+
+@export var disable_hunger_decay: bool = false
+@export var auto_eat_food_when_hungry: bool = true
+@export var auto_generate_food_when_hungry: bool = true
+@export var auto_generated_food_item_id: String = "apple"
 @export var can_offer_request: bool = false
 
 @export var can_trade: bool = false
