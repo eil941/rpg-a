@@ -798,49 +798,83 @@ func build_page_1_basic_text(unit_node, stats) -> String:
 func build_page_1_combat_text(unit_node, stats) -> String:
 	var lines: PackedStringArray = []
 
-	var total_max_hp: int = int(stats.max_hp)
-	var total_attack: int = int(stats.attack)
-	var total_defense: int = int(stats.defense)
-	var total_speed: float = float(stats.get_effective_speed())
+	if stats == null:
+		lines.append("ステータスデータなし")
+		return "\n".join(lines)
 
-	if unit_node != null:
-		if unit_node.has_method("get_total_max_hp"):
-			total_max_hp = int(unit_node.get_total_max_hp())
-		if unit_node.has_method("get_total_attack"):
-			total_attack = int(unit_node.get_total_attack())
-		if unit_node.has_method("get_total_defense"):
-			total_defense = int(unit_node.get_total_defense())
-		if unit_node.has_method("get_total_speed"):
-			total_speed = float(unit_node.get_total_speed())
+	var combat_stats: Dictionary = {}
 
-	lines.append("HP: %d / %d" % [int(stats.hp), total_max_hp])
-	lines.append("攻撃力: %d" % total_attack)
-	lines.append("防御力: %d" % total_defense)
-	lines.append("速度: %.2f" % total_speed)
+	# 戦闘ステータス表示の入口は Unit 側に統一する。
+	# Unit.get_total_combat_stats() は、基礎ステータス由来の値に
+	# 装備・エンチャント・一時補正を反映した最終値を返す。
+	if unit_node != null and unit_node.has_method("get_total_combat_stats"):
+		combat_stats = unit_node.get_total_combat_stats()
+	else:
+		# Unit が取れない場合だけ Stats 側の派生値にフォールバックする。
+		# stats.attack / stats.defense などの旧デバッグ値は最後の保険としてだけ使う。
+		var fallback_max_hp: int = int(stats.max_hp)
+		var fallback_attack: int = int(stats.attack)
+		var fallback_defense: int = int(stats.defense)
+		var fallback_speed: float = float(stats.speed)
+		var fallback_accuracy: float = float(stats.accuracy)
+		var fallback_evasion: float = float(stats.evasion)
+		var fallback_crit_rate: float = float(stats.crit_rate)
+		var fallback_crit_damage: float = float(stats.crit_damage)
+		var fallback_luck: int = int(stats.luck)
 
-	var total_accuracy: float = float(stats.get_effective_accuracy())
-	var total_evasion: float = float(stats.get_effective_evasion())
-	var total_crit_rate: float = float(stats.get_effective_crit_rate())
-	var total_crit_damage: float = float(stats.crit_damage)
+		if stats.has_method("get_effective_max_hp"):
+			fallback_max_hp = int(stats.get_effective_max_hp())
 
-	if unit_node != null:
-		if unit_node.has_method("get_total_accuracy"):
-			total_accuracy = float(unit_node.get_total_accuracy())
-		if unit_node.has_method("get_total_evasion"):
-			total_evasion = float(unit_node.get_total_evasion())
-		if unit_node.has_method("get_total_crit_rate"):
-			total_crit_rate = float(unit_node.get_total_crit_rate())
-		if unit_node.has_method("get_total_crit_damage"):
-			total_crit_damage = float(unit_node.get_total_crit_damage())
+		if stats.has_method("get_effective_attack"):
+			fallback_attack = int(round(stats.get_effective_attack()))
 
-	lines.append("命中率: %d%%" % int(round(total_accuracy * 100.0)))
-	lines.append("回避率: %d%%" % int(round(total_evasion * 100.0)))
-	lines.append("クリティカル率: %d%%" % int(round(total_crit_rate * 100.0)))
-	lines.append("クリティカルダメージ: %.2f" % total_crit_damage)
-	lines.append("属性: %s" % String(stats.element))
+		if stats.has_method("get_effective_defense"):
+			fallback_defense = int(round(stats.get_effective_defense()))
+
+		if stats.has_method("get_effective_speed"):
+			fallback_speed = float(stats.get_effective_speed())
+
+		if stats.has_method("get_effective_accuracy"):
+			fallback_accuracy = float(stats.get_effective_accuracy())
+
+		if stats.has_method("get_effective_evasion"):
+			fallback_evasion = float(stats.get_effective_evasion())
+
+		if stats.has_method("get_effective_crit_rate"):
+			fallback_crit_rate = float(stats.get_effective_crit_rate())
+
+		if stats.has_method("get_effective_crit_damage"):
+			fallback_crit_damage = float(stats.get_effective_crit_damage())
+
+		if stats.has_method("get_effective_luck"):
+			fallback_luck = int(stats.get_effective_luck())
+
+		combat_stats = {
+			"hp": int(stats.hp),
+			"max_hp": fallback_max_hp,
+			"attack": fallback_attack,
+			"defense": fallback_defense,
+			"speed": fallback_speed,
+			"accuracy": fallback_accuracy,
+			"evasion": fallback_evasion,
+			"crit_rate": fallback_crit_rate,
+			"crit_damage": fallback_crit_damage,
+			"luck": fallback_luck,
+			"element": String(stats.element)
+		}
+
+	lines.append("HP: %d / %d" % [int(combat_stats.get("hp", int(stats.hp))), int(combat_stats.get("max_hp", 1))])
+	lines.append("攻撃力: %d" % int(combat_stats.get("attack", 0)))
+	lines.append("防御力: %d" % int(combat_stats.get("defense", 0)))
+	lines.append("速度: %.2f" % float(combat_stats.get("speed", 1.0)))
+	lines.append("命中率: %d%%" % int(round(float(combat_stats.get("accuracy", 0.0)) * 100.0)))
+	lines.append("回避率: %d%%" % int(round(float(combat_stats.get("evasion", 0.0)) * 100.0)))
+	lines.append("クリティカル率: %d%%" % int(round(float(combat_stats.get("crit_rate", 0.0)) * 100.0)))
+	lines.append("クリティカルダメージ: %.2f" % float(combat_stats.get("crit_damage", 1.5)))
+	lines.append("運: %d" % int(combat_stats.get("luck", 0)))
+	lines.append("属性: %s" % String(combat_stats.get("element", String(stats.element))))
 
 	return "\n".join(lines)
-
 
 func build_page_1_notes_text(unit_node) -> String:
 	var lines: PackedStringArray = []

@@ -4,7 +4,6 @@
 [ext_resource type="Resource" uid="uid://bkpgh1ni8dk52" path="res://data/player_animation_profile.tres" id="2_gr2wx"]
 [ext_resource type="Script" uid="uid://b1xneybof8tc7" path="res://scripts/core/stats.gd" id="3_tb304"]
 [ext_resource type="Script" uid="uid://chtsgc7lseb8o" path="res://scripts/controllers/player_controller.gd" id="4_gic7v"]
-[ext_resource type="Texture2D" uid="uid://ckj4j0fakksd0" path="res://assets/player.png" id="4_oee7j"]
 [ext_resource type="Script" uid="uid://gj4ek5g6ew7q" path="res://scripts/item/inventory.gd" id="5_tb304"]
 [ext_resource type="Script" uid="uid://bpt1qou48v5jr" path="res://scripts/core/skills.gd" id="6_oee7j"]
 
@@ -13,15 +12,8 @@ size = Vector2(30, 30)
 
 [node name="Unit" type="CharacterBody2D" unique_id=40692456]
 script = ExtResource("1_1jvru")
-can_trigger_scene_transition = true
-can_bump_attack = true
-receives_time_turns = false
 instant_move = false
-unit_id = "Player"
-is_player_unit = true
 animation_profile = ExtResource("2_gr2wx")
-talk_display_name = "testaa"
-talk_portrait = ExtResource("4_oee7j")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=427796898]
 
@@ -34,6 +26,14 @@ shape = SubResource("RectangleShape2D_ruro2")
 script = ExtResource("3_tb304")
 attack = 15
 defense = 10
+strength = 20
+vitality = 20
+agility = 20
+dexterity = 20
+intelligence = 20
+spirit = 20
+sense = 20
+charm = 20
 
 [node name="Skills" type="Node" parent="." unique_id=1324358935]
 script = ExtResource("6_oee7j")

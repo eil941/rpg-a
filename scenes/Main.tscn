@@ -15,7 +15,6 @@
 [ext_resource type="TileSet" uid="uid://bc0aui1htbk1v" path="res://data/test/test_wall.tres" id="16_bb450"]
 [ext_resource type="TileSet" uid="uid://cpndipp741lyo" path="res://data/test/test_event.tres" id="16_ft6cd"]
 [ext_resource type="PackedScene" uid="uid://dnaf0ryx1bvp8" path="res://scenes/chest.tscn" id="16_nfivy"]
-[ext_resource type="PackedScene" uid="uid://dukdlvjr2ivir" path="res://scenes/QuestBoard.tscn" id="20_1nqs0"]
 
 [node name="Main" type="Node2D" unique_id=1202522057]
 script = ExtResource("1_rarhs")
@@ -48,9 +47,7 @@ tile_set = ExtResource("16_ft6cd")
 
 [node name="Unit" parent="Units" unique_id=40692456 instance=ExtResource("11_bjd11")]
 position = Vector2(258, 122)
-receives_time_turns = true
-unit_id = ""
-talk_display_name = ""
-talk_portrait = null
-
-[node name="QuestBoard" parent="." unique_id=1138804263 instance=ExtResource("20_1nqs0")]
+can_trigger_scene_transition = true
+can_bump_attack = true
+unit_id = "player"
+is_player_unit = true

@@ -43,5 +43,6 @@ tile_set = ExtResource("14_ojpl4")
 position = Vector2(258, 122)
 talk_display_name = ""
 talk_portrait = null
+use_generated_quests = false
 
 [node name="QuestBoard" parent="." unique_id=1138804263 instance=ExtResource("16_pvemd")]

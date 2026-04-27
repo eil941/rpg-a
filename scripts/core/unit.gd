@@ -419,76 +419,207 @@ func _get_total_enchantment_bonus(stat_name: String) -> int:
 
 
 func get_total_max_hp() -> int:
-	var total: int = stats.max_hp
+	if stats == null:
+		return 1
+
+	var total: int = 1
+
+	if stats.has_method("get_effective_max_hp"):
+		total = int(stats.get_effective_max_hp())
+	else:
+		total = int(stats.max_hp)
 
 	for equipment in get_all_equipped_resources():
 		total += equipment.max_hp_bonus
 
 	total += _get_total_enchantment_bonus("max_hp")
+
 	return max(total, 1)
 
 
 func get_total_attack() -> int:
-	var total: int = stats.attack
+	if stats == null:
+		return 0
+
+	var total: int = 0
+
+	if stats.has_method("get_effective_attack"):
+		total = int(round(stats.get_effective_attack()))
+	else:
+		total = int(stats.attack)
 
 	for equipment in get_all_equipped_resources():
 		total += equipment.attack_bonus
 
 	total += _get_total_enchantment_bonus("attack")
+
 	return get_modified_stat_value(&"attack", max(total, 0))
 
 
 func get_total_defense() -> int:
-	var total: int = stats.defense
+	if stats == null:
+		return 0
+
+	var total: int = 0
+
+	if stats.has_method("get_effective_defense"):
+		total = int(round(stats.get_effective_defense()))
+	else:
+		total = int(stats.defense)
 
 	for equipment in get_all_equipped_resources():
 		total += equipment.defense_bonus
 
 	total += _get_total_enchantment_bonus("defense")
+
 	return get_modified_stat_value(&"defense", max(total, 0))
 
 
 func get_total_speed() -> float:
-	var total: int = int(round(stats.get_effective_speed()))
+	if stats == null:
+		return 1.0
+
+	var total: int = 1
+
+	if stats.has_method("get_effective_speed"):
+		total = int(round(stats.get_effective_speed()))
+	else:
+		total = int(round(float(stats.speed)))
 
 	for equipment in get_all_equipped_resources():
 		total += equipment.speed_bonus
 
 	total += _get_total_enchantment_bonus("speed")
+
 	return float(get_modified_stat_value(&"speed", max(total, 1)))
 
 
 func get_total_accuracy() -> float:
-	var base_accuracy: float = stats.get_effective_accuracy()
+	if stats == null:
+		return 0.0
+
+	var base_accuracy: float = 0.0
+	if stats.has_method("get_effective_accuracy"):
+		base_accuracy = float(stats.get_effective_accuracy())
+	else:
+		base_accuracy = float(stats.accuracy)
+
 	var scaled_accuracy: int = int(round(base_accuracy * 1000.0))
 	var modified_accuracy: int = get_modified_stat_value(&"accuracy", scaled_accuracy)
+
 	return clamp(float(modified_accuracy) / 1000.0, 0.0, 1.0)
 
 
 func get_total_evasion() -> float:
-	var base_evasion: float = stats.get_effective_evasion()
+	if stats == null:
+		return 0.0
+
+	var base_evasion: float = 0.0
+	if stats.has_method("get_effective_evasion"):
+		base_evasion = float(stats.get_effective_evasion())
+	else:
+		base_evasion = float(stats.evasion)
+
 	var scaled_evasion: int = int(round(base_evasion * 1000.0))
 	var modified_evasion: int = get_modified_stat_value(&"evasion", scaled_evasion)
+
 	return clamp(float(modified_evasion) / 1000.0, 0.0, 1.0)
 
 
 func get_total_crit_rate() -> float:
-	var base_crit_rate: float = stats.get_effective_crit_rate()
+	if stats == null:
+		return 0.0
+
+	var base_crit_rate: float = 0.0
+	if stats.has_method("get_effective_crit_rate"):
+		base_crit_rate = float(stats.get_effective_crit_rate())
+	else:
+		base_crit_rate = float(stats.crit_rate)
+
 	var scaled_crit_rate: int = int(round(base_crit_rate * 1000.0))
 	var modified_crit_rate: int = get_modified_stat_value(&"crit_rate", scaled_crit_rate)
+
 	return clamp(float(modified_crit_rate) / 1000.0, 0.0, 1.0)
 
 
 func get_total_crit_damage() -> float:
 	if stats == null:
 		return 1.5
+
+	if stats.has_method("get_effective_crit_damage"):
+		return max(1.0, float(stats.get_effective_crit_damage()))
+
 	return max(1.0, float(stats.crit_damage))
 
 
 func get_total_luck() -> int:
 	if stats == null:
 		return 0
+
+	if stats.has_method("get_effective_luck"):
+		return int(stats.get_effective_luck())
+
 	return int(stats.luck)
+
+
+func get_total_combat_stats() -> Dictionary:
+	var current_hp: int = 0
+	var current_element: String = "neutral"
+
+	if stats != null:
+		current_hp = int(stats.hp)
+		current_element = String(stats.element)
+
+	return {
+		"hp": current_hp,
+		"max_hp": get_total_max_hp(),
+		"attack": get_total_attack(),
+		"defense": get_total_defense(),
+		"speed": get_total_speed(),
+		"accuracy": get_total_accuracy(),
+		"evasion": get_total_evasion(),
+		"crit_rate": get_total_crit_rate(),
+		"crit_damage": get_total_crit_damage(),
+		"luck": get_total_luck(),
+		"element": current_element
+	}
+
+
+# =========================
+# 基礎ステータス成長入口
+# =========================
+# 成長プロフィールの中身は Stats.gd に集約する。
+# 他スクリプトからは基本的に unit.apply_base_growth_profile() を呼ぶ。
+# まだ各行動には散らばせず、ここは呼び出し口だけ用意しておく。
+
+func apply_base_growth_profile(profile_id: StringName, multiplier: int = 1) -> void:
+	if stats == null:
+		return
+
+	if not stats.has_method("apply_base_growth_profile"):
+		return
+
+	stats.apply_base_growth_profile(profile_id, multiplier)
+
+
+func has_base_growth_profile(profile_id: StringName) -> bool:
+	if stats == null:
+		return false
+
+	if not stats.has_method("has_base_growth_profile"):
+		return false
+
+	return stats.has_base_growth_profile(profile_id)
+
+
+func get_base_growth_profile(profile_id: StringName) -> Dictionary:
+	if stats == null:
+		return {}
+
+	if not stats.has_method("get_base_growth_profile"):
+		return {}
+
+	return stats.get_base_growth_profile(profile_id)
 
 
 func get_attack_type_id() -> String:
@@ -1570,6 +1701,11 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 	stats.sense = enemy_data.sense
 	stats.charm = enemy_data.charm
 
+	# 基礎ステータスから派生した最大HPを反映し、出現時は満タンにする。
+	if stats.has_method("refresh_derived_max_hp"):
+		stats.refresh_derived_max_hp(false)
+		stats.hp = stats.max_hp
+
 	if skills != null:
 		skills.gathering = enemy_data.gathering
 		skills.investigation = enemy_data.investigation
@@ -1671,6 +1807,11 @@ func apply_npc_data(npc_data: NpcData) -> void:
 	stats.spirit = npc_data.spirit
 	stats.sense = npc_data.sense
 	stats.charm = npc_data.charm
+
+	# 基礎ステータスから派生した最大HPを反映し、出現時は満タンにする。
+	if stats.has_method("refresh_derived_max_hp"):
+		stats.refresh_derived_max_hp(false)
+		stats.hp = stats.max_hp
 
 	if skills != null:
 		skills.gathering = npc_data.gathering

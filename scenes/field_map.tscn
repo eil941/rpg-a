@@ -24,6 +24,7 @@ tile_set = ExtResource("2_4fq26")
 [node name="Units" type="Node" parent="." unique_id=332583731]
 
 [node name="Unit" parent="Units" unique_id=40692456 instance=ExtResource("11_qok4n")]
-receives_time_turns = true
-talk_display_name = ""
-talk_portrait = null
+can_trigger_scene_transition = true
+can_bump_attack = true
+unit_id = "player"
+is_player_unit = true
