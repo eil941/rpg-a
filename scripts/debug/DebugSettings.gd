@@ -42,7 +42,7 @@ var debug_give_player_start_items: bool = true
 # ]
 var debug_player_start_items: Array[Dictionary] = [
 	#{"item_id": "knife", "amount": 1},
-	#{"item_id": "bow", "amount": 1},
+	{"item_id": "bow", "amount": 1},
 	#{"item_id": "cloth_armor", "amount": 1},
 	#{"item_id": "power_ring", "amount": 1},
 	#{"item_id": "potion", "amount": 90},

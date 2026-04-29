@@ -1,7 +1,27 @@
 extends Node
 class_name Inventory
 
-@export var max_slots: int = 20
+
+# =========================
+# Slot layout / slot count
+# =========================
+# スロット総数の本体は slot_columns × slot_rows。
+# InventoryUI 側でスロット総数を決めない。
+#
+# 例:
+# プレイヤー: 9列 × 4段 = 36
+# 商人:       9列 × 3段 = 27
+# 小さい箱:   5列 × 3段 = 15
+#
+# max_slots は旧互換・キャッシュ用として残す。
+# 直接編集する本命は slot_columns / slot_rows。
+
+@export var slot_columns: int = 9
+@export var slot_rows: int = 4
+
+# 旧互換用。
+# 現在は slot_columns * slot_rows に同期される。
+@export var max_slots: int = 36
 
 var items: Array[Dictionary] = []
 
@@ -10,22 +30,99 @@ func _ready() -> void:
 	initialize_empty_slots()
 
 
-func initialize_empty_slots() -> void:
-	items.clear()
+func get_slot_columns() -> int:
+	return max(1, slot_columns)
 
+
+func get_slot_rows() -> int:
+	ensure_slot_count()
+	return max(1, slot_rows)
+
+
+func get_slot_count() -> int:
+	ensure_slot_count()
+	return max_slots
+
+
+func set_slot_grid_size(new_columns: int, new_rows: int, keep_items: bool = true) -> void:
+	new_columns = max(1, new_columns)
+	new_rows = max(1, new_rows)
+
+	var old_items: Array[Dictionary] = []
+	if keep_items:
+		old_items = get_all_items()
+
+	slot_columns = new_columns
+	slot_rows = new_rows
+	_sync_max_slots_from_grid()
+
+	items.clear()
+	for i in range(max_slots):
+		items.append(_make_empty_slot())
+
+	if keep_items:
+		for i in range(min(old_items.size(), max_slots)):
+			items[i] = _normalize_entry(old_items[i])
+
+
+func initialize_empty_slots() -> void:
+	_sync_max_slots_from_grid()
+
+	items.clear()
 	for i in range(max_slots):
 		items.append(_make_empty_slot())
 
 
+func ensure_slot_count() -> void:
+	_sync_max_slots_from_grid()
+
+	# items の方が長い場合は、絶対に切り捨てない。
+	# ここで切ると、下段のアイテム消失が起きる。
+	if items.size() > max_slots:
+		_expand_grid_to_fit_count(items.size())
+
+	while items.size() < max_slots:
+		items.append(_make_empty_slot())
+
+
+func _sync_max_slots_from_grid() -> void:
+	slot_columns = max(1, slot_columns)
+	slot_rows = max(1, slot_rows)
+	max_slots = slot_columns * slot_rows
+
+
+func _expand_grid_to_fit_count(required_count: int) -> void:
+	required_count = max(1, required_count)
+	slot_columns = max(1, slot_columns)
+
+	var required_rows: int = int(ceil(float(required_count) / float(slot_columns)))
+	slot_rows = max(slot_rows, required_rows)
+	_sync_max_slots_from_grid()
+
+
+func _get_last_non_empty_slot_index(source_items: Array[Dictionary]) -> int:
+	for i in range(source_items.size() - 1, -1, -1):
+		var entry: Dictionary = _normalize_entry(source_items[i])
+		if not _is_entry_empty(entry):
+			return i
+
+	return -1
+
+
+# 旧コード互換用。
+# new_max_slots を直接指定された場合も、現在の列数を維持して rows を自動調整する。
+# ただし、入りきらない非空スロットがある場合は切り捨てず、必要な分だけ広げる。
 func resize_inventory(new_max_slots: int) -> void:
 	if new_max_slots <= 0:
 		return
 
-	if new_max_slots == max_slots and items.size() == max_slots:
-		return
-
 	var old_items: Array[Dictionary] = get_all_items()
-	max_slots = new_max_slots
+	var last_non_empty_index: int = _get_last_non_empty_slot_index(old_items)
+	var required_count: int = max(new_max_slots, last_non_empty_index + 1)
+
+	slot_columns = max(1, slot_columns)
+	slot_rows = max(1, int(ceil(float(required_count) / float(slot_columns))))
+	_sync_max_slots_from_grid()
 
 	items.clear()
 	for i in range(max_slots):
@@ -56,7 +153,7 @@ func _normalize_entry(entry: Dictionary) -> Dictionary:
 
 	if entry.has("instance_data"):
 		var instance_data: Variant = entry.get("instance_data", {})
-		if typeof(instance_data) == TYPE_DICTIONARY and not instance_data.is_empty():
+		if typeof(instance_data) == TYPE_DICTIONARY and not (instance_data as Dictionary).is_empty():
 			result["instance_data"] = (instance_data as Dictionary).duplicate(true)
 
 	return result
@@ -102,6 +199,8 @@ func _is_entry_empty(entry: Dictionary) -> bool:
 
 
 func _count_empty_slots() -> int:
+	ensure_slot_count()
+
 	var empty_slots: int = 0
 
 	for i in range(items.size()):
@@ -133,6 +232,7 @@ func is_same_item_instance(a: Dictionary, b: Dictionary) -> bool:
 
 
 func is_valid_index(index: int) -> bool:
+	ensure_slot_count()
 	return index >= 0 and index < items.size()
 
 
@@ -168,9 +268,12 @@ func clear_slot(index: int) -> bool:
 
 
 func find_first_empty_slot() -> int:
+	ensure_slot_count()
+
 	for i in range(items.size()):
 		if is_slot_empty(i):
 			return i
+
 	return -1
 
 
@@ -186,6 +289,8 @@ func add_item(item_id: String, amount: int = 1) -> bool:
 
 
 func add_item_entry(entry: Dictionary) -> bool:
+	ensure_slot_count()
+
 	var normalized: Dictionary = _normalize_entry(entry)
 	var item_id: String = _get_entry_item_id(normalized)
 	var amount: int = _get_entry_amount(normalized)
@@ -204,6 +309,7 @@ func _add_non_stackable_entry(normalized: Dictionary, amount: int) -> bool:
 		var empty_index: int = find_first_empty_slot()
 		if empty_index < 0:
 			return false
+
 		items[empty_index] = normalized.duplicate(true)
 		return true
 
@@ -262,6 +368,8 @@ func remove_item(item_id: String, amount: int = 1) -> bool:
 	if item_id == "" or amount <= 0:
 		return false
 
+	ensure_slot_count()
+
 	var remaining: int = amount
 
 	for i in range(items.size()):
@@ -293,6 +401,8 @@ func remove_item(item_id: String, amount: int = 1) -> bool:
 
 
 func remove_item_entry(target_entry: Dictionary) -> bool:
+	ensure_slot_count()
+
 	var normalized: Dictionary = _normalize_entry(target_entry)
 	if _get_entry_item_id(normalized) == "":
 		return false
@@ -316,14 +426,19 @@ func has_item(item_id: String, amount: int = 1) -> bool:
 
 
 func has_item_entry(target_entry: Dictionary) -> bool:
+	ensure_slot_count()
+
 	var normalized: Dictionary = _normalize_entry(target_entry)
 	for entry in items:
 		if is_same_item_instance(entry, normalized):
 			return true
+
 	return false
 
 
 func get_item_amount(item_id: String) -> int:
+	ensure_slot_count()
+
 	var total: int = 0
 
 	for entry in items:
@@ -334,6 +449,8 @@ func get_item_amount(item_id: String) -> int:
 
 
 func get_total_amount(item_id: String) -> int:
+	ensure_slot_count()
+
 	var total: int = 0
 
 	for entry in items:
@@ -362,6 +479,8 @@ func consume_item_amount(item_id: String, amount: int) -> bool:
 
 	if not can_consume_item_amount(item_id, amount):
 		return false
+
+	ensure_slot_count()
 
 	var remaining: int = amount
 
@@ -414,6 +533,8 @@ func can_add_item(item_id: String, amount: int = 1) -> bool:
 
 
 func can_add_item_entry(entry: Dictionary) -> bool:
+	ensure_slot_count()
+
 	var normalized: Dictionary = _normalize_entry(entry)
 	var item_id: String = _get_entry_item_id(normalized)
 	var amount: int = _get_entry_amount(normalized)
@@ -440,6 +561,8 @@ func can_add_item_entry(entry: Dictionary) -> bool:
 
 
 func get_all_items() -> Array[Dictionary]:
+	ensure_slot_count()
+
 	var result: Array[Dictionary] = []
 
 	for entry in items:
@@ -453,6 +576,8 @@ func clear_inventory() -> void:
 
 
 func save_inventory_data() -> Array:
+	ensure_slot_count()
+
 	var result: Array = []
 
 	for entry in items:
@@ -462,9 +587,14 @@ func save_inventory_data() -> Array:
 
 
 func load_inventory_data(data: Array) -> void:
-	initialize_empty_slots()
+	if data.size() > 0:
+		_expand_grid_to_fit_count(data.size())
 
-	for i in range(min(data.size(), max_slots)):
+	items.clear()
+	for i in range(max_slots):
+		items.append(_make_empty_slot())
+
+	for i in range(min(data.size(), items.size())):
 		var entry: Variant = data[i]
 
 		if typeof(entry) != TYPE_DICTIONARY:
@@ -531,6 +661,8 @@ func use_item_at(index: int) -> Dictionary:
 
 
 func get_total_amount_ignore_instance(item_id: String) -> int:
+	ensure_slot_count()
+
 	var total: int = 0
 
 	for entry in items:
@@ -559,6 +691,8 @@ func consume_total_amount_ignore_instance(item_id: String, amount: int) -> bool:
 
 	if not can_consume_total_amount_ignore_instance(item_id, amount):
 		return false
+
+	ensure_slot_count()
 
 	var remaining: int = amount
 

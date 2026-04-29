@@ -37,6 +37,7 @@ var last_stamina_condition_key: String = "__unset__"
 
 func _ready() -> void:
 	_setup_blind_overlay()
+	_connect_hud_action_buttons()
 
 	load_map_by_path("res://scenes/field_map.tscn")
 	refresh_hud()
@@ -61,6 +62,29 @@ func _process(delta: float) -> void:
 	update_hud_time()
 	update_hud_player_status()
 	update_hud_effects()
+
+
+func _connect_hud_action_buttons() -> void:
+	if game_hud == null:
+		return
+
+	if game_hud.has_signal("inventory_button_pressed"):
+		var inventory_callable: Callable = Callable(self, "_on_hud_inventory_button_pressed")
+		if not game_hud.inventory_button_pressed.is_connected(inventory_callable):
+			game_hud.inventory_button_pressed.connect(inventory_callable)
+
+	if game_hud.has_signal("status_button_pressed"):
+		var status_callable: Callable = Callable(self, "_on_hud_status_button_pressed")
+		if not game_hud.status_button_pressed.is_connected(status_callable):
+			game_hud.status_button_pressed.connect(status_callable)
+
+
+func _on_hud_inventory_button_pressed() -> void:
+	toggle_inventory_ui()
+
+
+func _on_hud_status_button_pressed() -> void:
+	toggle_status_ui()
 
 
 func load_map_by_path(scene_path: String) -> void:

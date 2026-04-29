@@ -6,20 +6,26 @@ enum UIMode {
 	CHEST
 }
 
+# Godotのsize_flags_verticalで、子Controlを親Container内の上側に寄せる値。
+# Control.SIZE_SHRINK_BEGIN の値差異/誤指定を避けるため、ここでは明示的に0を使う。
+const SIZE_SHRINK_BEGIN_VALUE: int = 0
+
 @onready var root = $Root
 @onready var main_hbox = $Root/Overlay/CenterContainer/MainHBox
 
 @onready var trade_panel = $Root/Overlay/CenterContainer/MainHBox/TradePanel
 @onready var trade_margin = $Root/Overlay/CenterContainer/MainHBox/TradePanel/MarginContainer
+@onready var trade_vbox = $Root/Overlay/CenterContainer/MainHBox/TradePanel/MarginContainer/TradeVBox
 @onready var trade_title_label = $Root/Overlay/CenterContainer/MainHBox/TradePanel/MarginContainer/TradeVBox/TitleLabel
 @onready var trade_slot_grid = $Root/Overlay/CenterContainer/MainHBox/TradePanel/MarginContainer/TradeVBox/SlotGrid
 @onready var trade_back_button = $Root/Overlay/CenterContainer/MainHBox/TradePanel/MarginContainer/TradeVBox/BackButton
 
 @onready var inventory_panel = $Root/Overlay/CenterContainer/MainHBox/InventoryPanel
 @onready var inventory_margin = $Root/Overlay/CenterContainer/MainHBox/InventoryPanel/MarginContainer
-@onready var title_label = $Root/Overlay/CenterContainer/MainHBox/InventoryPanel/MarginContainer/LeftVBox/TitleLabel
+@onready var title_label = $Root/Overlay/CenterContainer/MainHBox/InventoryPanel/MarginContainer/LeftVBox/TitleRow/TitleLabel
+@onready var close_button = $Root/Overlay/CenterContainer/MainHBox/InventoryPanel/MarginContainer/LeftVBox/TitleRow/CloseButton
 @onready var slot_grid = $Root/Overlay/CenterContainer/MainHBox/InventoryPanel/MarginContainer/LeftVBox/SlotGrid
-@onready var help_label = $Root/Overlay/CenterContainer/MainHBox/InventoryPanel/MarginContainer/LeftVBox/HelpLabel
+@onready var help_label: Label = get_node_or_null("Root/Overlay/CenterContainer/MainHBox/InventoryPanel/MarginContainer/LeftVBox/HelpLabel") as Label
 
 @onready var equipment_panel = $Root/Overlay/CenterContainer/MainHBox/EquipmentPanel
 @onready var equipment_margin = $Root/Overlay/CenterContainer/MainHBox/EquipmentPanel/MarginContainer
@@ -43,6 +49,42 @@ enum UIMode {
 @export var tooltip_delay: float = 0.5
 @export var hold_repeat_initial_delay: float = 0.35
 @export var hold_repeat_interval: float = 0.08
+
+# インベントリ/取引グリッドをコンパクト表示する設定。
+# スロット間隔を0にし、Panelの固定最小サイズを使わず、スロット数に合わせて枠を縮める。
+@export var compact_slot_grid_gap: int = 0
+@export var compact_panel_margin: int = 4
+@export var fit_inventory_panel_to_slots: bool = true
+@export var fit_trade_panel_to_slots: bool = true
+
+# 装備欄の見た目整理用。
+# 装備スロットは装備構成が変わる可能性があるため、行自体はコードで生成する。
+# ただし、パネルや×ボタンなど固定UIは tscn 側に置く。
+@export var equipment_panel_margin: int = 4
+@export var equipment_row_gap: int = 3
+@export var equipment_label_width: int = 58
+@export var equipment_show_section_headers: bool = true
+@export var equipment_show_slot_placeholder_text: bool = true
+@export var equipment_slot_placeholder_font_size: int = 9
+@export var equipment_slot_placeholder_color: Color = Color(0.85, 0.85, 0.85, 0.85)
+
+# 装備スロット背景画像。
+# Inspectorからスロットごとに設定できます。
+# 画像が未設定のスロットは、空欄時に「右手」「胴」などのプレースホルダー文字を表示します。
+@export_group("Equipment Slot Backgrounds")
+@export var equipment_slot_background_right_hand: Texture2D
+@export var equipment_slot_background_left_hand: Texture2D
+@export var equipment_slot_background_head: Texture2D
+@export var equipment_slot_background_body: Texture2D
+@export var equipment_slot_background_hands: Texture2D
+@export var equipment_slot_background_waist: Texture2D
+@export var equipment_slot_background_feet: Texture2D
+@export var equipment_slot_background_accessory_1: Texture2D
+@export var equipment_slot_background_accessory_2: Texture2D
+@export var equipment_slot_background_accessory_3: Texture2D
+@export var equipment_slot_background_accessory_4: Texture2D
+@export_group("")
+
 
 var current_inventory = null
 var current_unit = null
@@ -75,6 +117,11 @@ var hold_repeat_delay_remaining: float = 0.0
 var hold_repeat_interval_remaining: float = 0.0
 var hold_repeat_secondary_mode: StringName = &""
 
+# マウスでスロット操作している間は、キーボード用のゲーム内カーソル
+# （選択枠/押下表示）を非表示にする。
+# キーボード操作が入ったら false に戻して選択枠を復活させる。
+var mouse_navigation_mode: bool = false
+
 
 func _ready() -> void:
 	layer = 10
@@ -83,7 +130,6 @@ func _ready() -> void:
 
 	title_label.text = "Inventory"
 	trade_title_label.text = "Trade"
-	help_label.text = "主操作: 全部持つ/置く/交換 / 副操作: 半分持つ・1個置く / 使用キー: 使用 / Esc: 閉じる"
 
 	tooltip_timer = Timer.new()
 	tooltip_timer.one_shot = true
@@ -92,12 +138,20 @@ func _ready() -> void:
 	tooltip_timer.timeout.connect(_on_tooltip_timer_timeout)
 
 	if trade_back_button != null:
+		# TradePanel の高さをスロット枠に合わせるため、旧「戻る」ボタンは表示しない。
+		# インベントリ全体の閉じる操作は右上の CloseButton を使う。
+		trade_back_button.visible = false
+		trade_back_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		trade_back_button.toggle_mode = true
 		trade_back_button.focus_mode = Control.FOCUS_NONE
-		trade_back_button.pressed.connect(_on_trade_back_button_pressed)
+		if not trade_back_button.pressed.is_connected(_on_trade_back_button_pressed):
+			trade_back_button.pressed.connect(_on_trade_back_button_pressed)
 
 	tooltip_panel.hide()
 	held_item_preview.hide()
+	ensure_mouse_passthrough_for_float_panels()
+	setup_close_button()
+	apply_compact_inventory_layout()
 
 	apply_ui_config()
 	apply_side_panel_visuals_for_mode()
@@ -116,25 +170,62 @@ func is_failed_quest_dialog_locked() -> bool:
 	return false
 
 
+func ensure_mouse_passthrough_for_float_panels() -> void:
+	# HeldItemPreview / tooltip are visual overlays only.
+	# If they receive mouse input, they cover the slot under the cursor and
+	# left-click placement will not reach the slot.
+	set_control_tree_mouse_filter_ignore(held_item_preview)
+	set_control_tree_mouse_filter_ignore(tooltip_panel)
+
+
+func set_control_tree_mouse_filter_ignore(node: Node) -> void:
+	if node == null:
+		return
+
+	if node is Control:
+		var control: Control = node as Control
+		control.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	for child in node.get_children():
+		set_control_tree_mouse_filter_ignore(child)
+
+
+func setup_close_button() -> void:
+	if close_button == null:
+		return
+
+	close_button.text = "×"
+	close_button.tooltip_text = "閉じる"
+	close_button.focus_mode = Control.FOCUS_NONE
+	close_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	close_button.custom_minimum_size = Vector2(22, 22)
+	close_button.add_theme_font_size_override("font_size", 13)
+	close_button.add_theme_constant_override("h_separation", 0)
+
+	if not close_button.pressed.is_connected(_on_close_button_pressed):
+		close_button.pressed.connect(_on_close_button_pressed)
+
+
+func _on_close_button_pressed() -> void:
+	close_inventory()
+
+
 func apply_ui_config() -> void:
 	if ui_config == null:
 		return
 
-	if ui_config.inventory_max_slots > 0 and current_inventory != null:
-		if current_inventory.has_method("resize_inventory"):
-			current_inventory.resize_inventory(ui_config.inventory_max_slots)
-		else:
-			current_inventory.max_slots = ui_config.inventory_max_slots
+	# スロット総数・列数・段数は Inventory.gd 側の slot_columns / slot_rows を本体にする。
+	# InventoryUI 側では inventory_max_slots で実データ数を変更しない。
 
-	if ui_config.inventory_panel_size != Vector2.ZERO:
+	if fit_inventory_panel_to_slots:
+		inventory_panel.custom_minimum_size = Vector2.ZERO
+	elif ui_config.inventory_panel_size != Vector2.ZERO:
 		inventory_panel.custom_minimum_size = ui_config.inventory_panel_size
 
 	if ui_config.equipment_panel_size != Vector2.ZERO:
 		equipment_panel.custom_minimum_size = ui_config.equipment_panel_size
 
-	if ui_config.inventory_columns > 0:
-		slot_grid.columns = ui_config.inventory_columns
-		trade_slot_grid.columns = ui_config.inventory_columns
+	sync_slot_grid_columns_from_inventories()
 
 	if ui_config.main_hbox_separation >= 0:
 		main_hbox.add_theme_constant_override("separation", ui_config.main_hbox_separation)
@@ -161,12 +252,138 @@ func apply_ui_config() -> void:
 	if ui_config.equipment_margin_bottom >= 0:
 		equipment_margin.add_theme_constant_override("margin_bottom", ui_config.equipment_margin_bottom)
 
+	apply_compact_inventory_layout()
+
 	if inventory_bg != null and ui_config.inventory_background != null:
 		inventory_bg.texture = ui_config.inventory_background
 	if trade_bg != null and ui_config.inventory_background != null:
 		trade_bg.texture = ui_config.inventory_background
 	if equipment_bg != null and ui_config.equipment_background != null:
 		equipment_bg.texture = ui_config.equipment_background
+
+
+func apply_compact_inventory_layout() -> void:
+	var grid_gap: int = max(0, compact_slot_grid_gap)
+	var frame_margin: int = max(0, compact_panel_margin)
+
+	if slot_grid != null:
+		slot_grid.add_theme_constant_override("h_separation", grid_gap)
+		slot_grid.add_theme_constant_override("v_separation", grid_gap)
+		slot_grid.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		slot_grid.size_flags_vertical = SIZE_SHRINK_BEGIN_VALUE
+
+	if trade_vbox != null:
+		# TradePanel も InventoryPanel と同じく、タイトル + スロットグリッドの高さに寄せる。
+		trade_vbox.add_theme_constant_override("separation", 4)
+		trade_vbox.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		trade_vbox.size_flags_vertical = SIZE_SHRINK_BEGIN_VALUE
+
+	if trade_slot_grid != null:
+		trade_slot_grid.add_theme_constant_override("h_separation", grid_gap)
+		trade_slot_grid.add_theme_constant_override("v_separation", grid_gap)
+		trade_slot_grid.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		trade_slot_grid.size_flags_vertical = SIZE_SHRINK_BEGIN_VALUE
+
+	if fit_inventory_panel_to_slots and inventory_panel != null:
+		inventory_panel.custom_minimum_size = Vector2.ZERO
+
+	if trade_panel != null:
+		# HBoxContainer内で、装備欄や画面高さに合わせて縦に引き伸ばされないようにする。
+		trade_panel.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		trade_panel.size_flags_vertical = SIZE_SHRINK_BEGIN_VALUE
+		if fit_trade_panel_to_slots:
+			trade_panel.custom_minimum_size = Vector2.ZERO
+
+	if inventory_margin != null:
+		inventory_margin.add_theme_constant_override("margin_left", frame_margin)
+		inventory_margin.add_theme_constant_override("margin_top", frame_margin)
+		inventory_margin.add_theme_constant_override("margin_right", frame_margin)
+		inventory_margin.add_theme_constant_override("margin_bottom", frame_margin)
+
+	if trade_margin != null:
+		trade_margin.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		trade_margin.size_flags_vertical = SIZE_SHRINK_BEGIN_VALUE
+		trade_margin.add_theme_constant_override("margin_left", frame_margin)
+		trade_margin.add_theme_constant_override("margin_top", frame_margin)
+		trade_margin.add_theme_constant_override("margin_right", frame_margin)
+		trade_margin.add_theme_constant_override("margin_bottom", frame_margin)
+
+	if equipment_margin != null:
+		var eq_margin: int = max(0, equipment_panel_margin)
+		equipment_margin.add_theme_constant_override("margin_left", eq_margin)
+		equipment_margin.add_theme_constant_override("margin_top", eq_margin)
+		equipment_margin.add_theme_constant_override("margin_right", eq_margin)
+		equipment_margin.add_theme_constant_override("margin_bottom", eq_margin)
+
+	if equipment_panel != null:
+		equipment_panel.custom_minimum_size = Vector2.ZERO
+
+	if equipment_vbox != null:
+		equipment_vbox.add_theme_constant_override("separation", max(0, equipment_row_gap))
+
+	# CloseButton を TitleRow の右端に押し出すため、タイトルは横方向に広げる。
+	if title_label != null:
+		title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	apply_top_aligned_inventory_panels()
+
+
+func force_trade_panel_fit_to_slots() -> void:
+	if trade_panel == null:
+		return
+
+	apply_top_aligned_inventory_panels()
+
+	trade_panel.custom_minimum_size = Vector2.ZERO
+
+	# Containerの最小サイズ計算を更新する。
+	trade_panel.update_minimum_size()
+	if inventory_panel != null:
+		inventory_panel.update_minimum_size()
+	if equipment_panel != null:
+		equipment_panel.update_minimum_size()
+
+
+func apply_top_aligned_inventory_panels() -> void:
+	# トレード画面では Merchant 側と Player 側のインベントリ枠の上端を揃える。
+	# HBoxContainer 内で size_flags_vertical が SHRINK_CENTER になると、
+	# Player 側だけ中央寄せになって上下位置がズレるため、明示的に上寄せに固定する。
+	if main_hbox != null:
+		main_hbox.size_flags_vertical = SIZE_SHRINK_BEGIN_VALUE
+
+	var top_aligned_controls: Array = [
+		trade_panel,
+		trade_margin,
+		trade_vbox,
+		trade_slot_grid,
+		inventory_panel,
+		inventory_margin,
+		slot_grid,
+		equipment_panel,
+		equipment_margin,
+		equipment_vbox
+	]
+
+	for control in top_aligned_controls:
+		if control == null:
+			continue
+		if control is Control:
+			control.size_flags_vertical = SIZE_SHRINK_BEGIN_VALUE
+
+
+func get_inventory_slot_visual_size() -> Vector2:
+	if ui_config != null and ui_config.inventory_slot_size != Vector2.ZERO:
+		return ui_config.inventory_slot_size
+
+	return Vector2(48, 48)
+
+
+func get_inventory_grid_pixel_width() -> float:
+	var columns: int = get_inventory_slot_columns()
+
+	var slot_size: Vector2 = get_inventory_slot_visual_size()
+	var gap: int = max(0, compact_slot_grid_gap)
+	return slot_size.x * float(columns) + float(gap * max(columns - 1, 0))
 
 
 func get_chest_ui_data() -> ChestData:
@@ -183,33 +400,42 @@ func get_chest_ui_data() -> ChestData:
 
 
 func apply_side_panel_visuals_for_mode() -> void:
+	sync_slot_grid_columns_from_inventories()
+
 	if ui_mode == UIMode.CHEST:
 		var chest_data: ChestData = get_chest_ui_data()
 
 		if chest_data != null:
-			if trade_slot_grid != null and chest_data.ui_slot_columns > 0:
-				trade_slot_grid.columns = chest_data.ui_slot_columns
+			# スロット列数は基本的に chest_inventory.get_slot_columns() を優先。
+			# 旧ChestDataの表示列数は、Inventory側に列情報がない時の保険としてだけ使う。
+			if trade_inventory == null or not trade_inventory.has_method("get_slot_columns"):
+				if trade_slot_grid != null and chest_data.ui_slot_columns > 0:
+					trade_slot_grid.columns = chest_data.ui_slot_columns
 
-			if trade_panel != null and chest_data.ui_panel_min_size != Vector2.ZERO:
-				trade_panel.custom_minimum_size = chest_data.ui_panel_min_size
+			if trade_panel != null:
+				if fit_trade_panel_to_slots:
+					trade_panel.custom_minimum_size = Vector2.ZERO
+				elif chest_data.ui_panel_min_size != Vector2.ZERO:
+					trade_panel.custom_minimum_size = chest_data.ui_panel_min_size
 
 			if trade_bg != null and chest_data.ui_background != null:
 				trade_bg.texture = chest_data.ui_background
 		else:
 			if ui_config != null:
-				if ui_config.inventory_columns > 0 and trade_slot_grid != null:
-					trade_slot_grid.columns = ui_config.inventory_columns
-				if ui_config.inventory_panel_size != Vector2.ZERO and trade_panel != null:
-					trade_panel.custom_minimum_size = ui_config.inventory_panel_size
+				if trade_panel != null:
+					if fit_trade_panel_to_slots:
+						trade_panel.custom_minimum_size = Vector2.ZERO
+					elif ui_config.inventory_panel_size != Vector2.ZERO:
+						trade_panel.custom_minimum_size = ui_config.inventory_panel_size
 				if trade_bg != null and ui_config.inventory_background != null:
 					trade_bg.texture = ui_config.inventory_background
 	else:
 		if ui_config != null:
-			if ui_config.inventory_columns > 0 and trade_slot_grid != null:
-				trade_slot_grid.columns = ui_config.inventory_columns
-
-			if ui_config.inventory_panel_size != Vector2.ZERO and trade_panel != null:
-				trade_panel.custom_minimum_size = ui_config.inventory_panel_size
+			if trade_panel != null:
+				if fit_trade_panel_to_slots:
+					trade_panel.custom_minimum_size = Vector2.ZERO
+				elif ui_config.inventory_panel_size != Vector2.ZERO:
+					trade_panel.custom_minimum_size = ui_config.inventory_panel_size
 
 			if trade_bg != null and ui_config.inventory_background != null:
 				trade_bg.texture = ui_config.inventory_background
@@ -241,9 +467,13 @@ func update_trade_panel_visibility() -> void:
 
 	if trade_panel != null:
 		trade_panel.visible = side_visible
+		if side_visible:
+			force_trade_panel_fit_to_slots()
 
 	if trade_back_button != null:
-		trade_back_button.visible = side_visible
+		# 高さ合わせのため、TradePanel 内の戻るボタンは常に非表示。
+		trade_back_button.visible = false
+		trade_back_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 func begin_trade_session() -> void:
@@ -262,6 +492,27 @@ func is_side_mode() -> bool:
 	return ui_mode == UIMode.TRADE or ui_mode == UIMode.CHEST
 
 
+func is_game_cursor_visible() -> bool:
+	return not mouse_navigation_mode
+
+
+func enter_mouse_navigation_mode() -> void:
+	if mouse_navigation_mode:
+		return
+
+	mouse_navigation_mode = true
+	refresh()
+
+
+func restore_game_cursor_from_keyboard() -> void:
+	if not mouse_navigation_mode:
+		return
+
+	mouse_navigation_mode = false
+	refresh()
+	restart_tooltip_timer()
+
+
 func _input(event: InputEvent) -> void:
 	if not visible:
 		return
@@ -272,41 +523,49 @@ func _input(event: InputEvent) -> void:
 		return
 
 	if event.is_action_pressed("ui_cancel"):
+		restore_game_cursor_from_keyboard()
 		close_inventory()
 		get_viewport().set_input_as_handled()
 		return
 
 	if event.is_action_pressed("ui_right"):
+		restore_game_cursor_from_keyboard()
 		move_selection(1, 0)
 		get_viewport().set_input_as_handled()
 		return
 
 	if event.is_action_pressed("ui_left"):
+		restore_game_cursor_from_keyboard()
 		move_selection(-1, 0)
 		get_viewport().set_input_as_handled()
 		return
 
 	if event.is_action_pressed("ui_down"):
+		restore_game_cursor_from_keyboard()
 		move_selection(0, 1)
 		get_viewport().set_input_as_handled()
 		return
 
 	if event.is_action_pressed("ui_up"):
+		restore_game_cursor_from_keyboard()
 		move_selection(0, -1)
 		get_viewport().set_input_as_handled()
 		return
 
 	if event.is_action_pressed("inventory_quick_move_primary"):
+		restore_game_cursor_from_keyboard()
 		handle_quick_move_primary_action()
 		get_viewport().set_input_as_handled()
 		return
 
 	if event.is_action_pressed("inventory_quick_move_secondary"):
+		restore_game_cursor_from_keyboard()
 		handle_quick_move_secondary_action()
 		get_viewport().set_input_as_handled()
 		return
 
 	if event.is_action_pressed("inventory_secondary_action"):
+		restore_game_cursor_from_keyboard()
 		if held_entry.is_empty():
 			handle_split_pick_action()
 			stop_hold_repeat()
@@ -326,11 +585,13 @@ func _input(event: InputEvent) -> void:
 			return
 
 	if event.is_action_pressed("inventory_primary_action"):
+		restore_game_cursor_from_keyboard()
 		handle_confirm_action()
 		get_viewport().set_input_as_handled()
 		return
 
 	if event.is_action_pressed("inventory_use"):
+		restore_game_cursor_from_keyboard()
 		use_selected_item()
 		get_viewport().set_input_as_handled()
 		return
@@ -554,27 +815,283 @@ func toggle_with_inventory(inventory) -> void:
 		await open_with_inventory(inventory)
 
 
+func get_inventory_slot_columns() -> int:
+	if current_inventory != null:
+		if current_inventory.has_method("get_slot_columns"):
+			return max(1, int(current_inventory.get_slot_columns()))
+		if "slot_columns" in current_inventory:
+			return max(1, int(current_inventory.slot_columns))
+
+	if slot_grid != null and slot_grid.columns > 0:
+		return max(1, int(slot_grid.columns))
+
+	if ui_config != null and ui_config.inventory_columns > 0:
+		return max(1, int(ui_config.inventory_columns))
+
+	return 9
+
+
+func get_inventory_slot_rows() -> int:
+	if current_inventory != null:
+		if current_inventory.has_method("get_slot_rows"):
+			return max(1, int(current_inventory.get_slot_rows()))
+		if "slot_rows" in current_inventory:
+			return max(1, int(current_inventory.slot_rows))
+
+	var count: int = get_inventory_slot_count()
+	var columns: int = get_inventory_slot_columns()
+	return max(1, int(ceil(float(count) / float(columns))))
+
+
+func get_trade_slot_columns() -> int:
+	if trade_inventory != null:
+		if trade_inventory.has_method("get_slot_columns"):
+			return max(1, int(trade_inventory.get_slot_columns()))
+		if "slot_columns" in trade_inventory:
+			return max(1, int(trade_inventory.slot_columns))
+
+	if ui_mode == UIMode.CHEST:
+		var chest_data: ChestData = get_chest_ui_data()
+		if chest_data != null and chest_data.ui_slot_columns > 0:
+			return max(1, int(chest_data.ui_slot_columns))
+
+	if trade_slot_grid != null and trade_slot_grid.columns > 0:
+		return max(1, int(trade_slot_grid.columns))
+
+	if ui_config != null and ui_config.inventory_columns > 0:
+		return max(1, int(ui_config.inventory_columns))
+
+	return 9
+
+
+func get_trade_slot_rows() -> int:
+	if trade_inventory != null:
+		if trade_inventory.has_method("get_slot_rows"):
+			return max(1, int(trade_inventory.get_slot_rows()))
+		if "slot_rows" in trade_inventory:
+			return max(1, int(trade_inventory.slot_rows))
+
+	var count: int = get_trade_slot_count()
+	var columns: int = get_trade_slot_columns()
+	return max(1, int(ceil(float(count) / float(columns))))
+
+
+func sync_slot_grid_columns_from_inventories() -> void:
+	if slot_grid != null:
+		slot_grid.columns = get_inventory_slot_columns()
+
+	if trade_slot_grid != null:
+		trade_slot_grid.columns = get_trade_slot_columns()
+
+
 func get_inventory_slot_count() -> int:
 	if current_inventory == null:
 		return 0
-	return current_inventory.max_slots
+
+	if current_inventory.has_method("get_slot_count"):
+		return max(0, int(current_inventory.get_slot_count()))
+
+	if "max_slots" in current_inventory:
+		return max(0, int(current_inventory.max_slots))
+
+	return 0
 
 
 func get_trade_slot_count() -> int:
 	if trade_inventory == null:
 		return 0
-	return trade_inventory.max_slots
+
+	if trade_inventory.has_method("get_slot_count"):
+		return max(0, int(trade_inventory.get_slot_count()))
+
+	if "max_slots" in trade_inventory:
+		return max(0, int(trade_inventory.max_slots))
+
+	return 0
 
 
 func get_equipment_slot_count() -> int:
 	return equipment_slot_order.size()
 
 
+# =========================
+# Mouse Slot Input
+# =========================
+# インベントリ / ショップ / チェスト / 装備スロットをマウス操作に対応させる。
+# 新しいアイテム移動処理は作らず、既存の handle_confirm_action()
+# handle_split_pick_action() / handle_put_one_action() / use_selected_item()
+# に流す。
+#
+# 左クリック:
+# - 持つ / 置く / 交換
+#
+# 右クリック:
+# - 何も持っていない時: 半分持つ
+# - 何か持っている時: 1個置く
+#
+# 左ダブルクリック:
+# - 使用にはしない。通常の左クリックと同じく持つ/置く/交換。
+#
+# マウスホバー:
+# - 選択位置をそのスロットへ移動し、ツールチップ対象も更新する。
+
+func bind_mouse_input_to_slot(slot: Node, area: String, index: int) -> void:
+	if slot == null:
+		return
+
+	# slot_scene の中に TextureRect / Label / Panel などの子Controlがある場合、
+	# root の gui_input だけではクリックが届かないことがある。
+	# そのため、スロットrootだけでなく子Controlにも同じ入力を接続する。
+	bind_mouse_input_to_control_tree(slot, area, index)
+
+
+func bind_mouse_input_to_control_tree(node: Node, area: String, index: int) -> void:
+	if node == null:
+		return
+
+	if node is Control:
+		var control: Control = node as Control
+		control.mouse_filter = Control.MOUSE_FILTER_STOP
+
+		var gui_callable: Callable = Callable(self, "_on_inventory_slot_gui_input").bind(area, index)
+		if not control.gui_input.is_connected(gui_callable):
+			control.gui_input.connect(gui_callable)
+
+		var mouse_entered_callable: Callable = Callable(self, "_on_inventory_slot_mouse_entered").bind(area, index)
+		if not control.mouse_entered.is_connected(mouse_entered_callable):
+			control.mouse_entered.connect(mouse_entered_callable)
+
+	for child in node.get_children():
+		bind_mouse_input_to_control_tree(child, area, index)
+
+
+func _on_inventory_slot_mouse_entered(area: String, index: int) -> void:
+	if not visible:
+		return
+
+	if is_building_slots:
+		return
+
+	if is_failed_quest_dialog_locked():
+		return
+
+	enter_mouse_navigation_mode()
+	set_mouse_focus_slot(area, index)
+	restart_tooltip_timer()
+
+
+func _on_inventory_slot_gui_input(event: InputEvent, area: String, index: int) -> void:
+	if not visible:
+		return
+
+	if is_building_slots:
+		return
+
+	if is_failed_quest_dialog_locked():
+		return
+
+	if not (event is InputEventMouseButton):
+		return
+
+	var mouse_event: InputEventMouseButton = event as InputEventMouseButton
+
+	if not mouse_event.pressed:
+		if mouse_event.button_index == MOUSE_BUTTON_RIGHT:
+			if hold_repeat_action == &"inventory_secondary_action":
+				stop_hold_repeat()
+				get_viewport().set_input_as_handled()
+		return
+
+	enter_mouse_navigation_mode()
+	set_mouse_focus_slot(area, index)
+
+	if mouse_event.button_index == MOUSE_BUTTON_LEFT:
+		# ダブルクリックでも使用せず、通常の左クリックと同じく
+		# 持つ / 置く / 交換 のみを行う。
+		handle_confirm_action()
+		get_viewport().set_input_as_handled()
+		return
+
+	if mouse_event.button_index == MOUSE_BUTTON_RIGHT:
+		if held_entry.is_empty():
+			handle_split_pick_action()
+			stop_hold_repeat()
+		else:
+			handle_put_one_action()
+
+			if held_entry.is_empty():
+				stop_hold_repeat()
+			else:
+				start_hold_repeat(&"inventory_secondary_action", &"put_one")
+
+		get_viewport().set_input_as_handled()
+		return
+
+	if mouse_event.button_index == MOUSE_BUTTON_MIDDLE:
+		try_mouse_use_selected_item()
+		get_viewport().set_input_as_handled()
+		return
+
+
+func set_mouse_focus_slot(area: String, index: int) -> void:
+	if area == "trade":
+		if not is_side_mode():
+			return
+
+		var count: int = get_trade_slot_count()
+		if count <= 0:
+			return
+
+		focus_area = "trade"
+		selected_index = clamp(index, 0, count - 1)
+
+	elif area == "inventory":
+		var count: int = get_inventory_slot_count()
+		if count <= 0:
+			return
+
+		focus_area = "inventory"
+		selected_index = clamp(index, 0, count - 1)
+
+	elif area == "equipment":
+		var count: int = get_equipment_slot_count()
+		if count <= 0:
+			return
+
+		focus_area = "equipment"
+		selected_index = clamp(index, 0, count - 1)
+
+	elif area == "trade_back":
+		# trade_back は非表示化したため、マウスフォーカス対象にしない。
+		return
+
+	else:
+		return
+
+	hide_tooltip()
+	refresh()
+
+
+func try_mouse_use_selected_item() -> void:
+	if ui_mode != UIMode.NORMAL:
+		return
+
+	if focus_area != "inventory":
+		return
+
+	if not held_entry.is_empty():
+		return
+
+	use_selected_item()
+
+
 func rebuild_inventory_slots_if_needed() -> void:
 	if current_inventory == null:
 		return
 
-	var target_count: int = current_inventory.max_slots
+	sync_slot_grid_columns_from_inventories()
+
+	var target_count: int = get_inventory_slot_count()
 	if slot_grid.get_child_count() == target_count:
 		return
 
@@ -604,8 +1121,11 @@ func rebuild_inventory_slots_if_needed() -> void:
 			)
 
 		slot_grid.add_child(slot)
+		bind_mouse_input_to_slot(slot, "inventory", i)
 
 	await get_tree().process_frame
+	apply_compact_inventory_layout()
+	force_trade_panel_fit_to_slots()
 
 	is_building_slots = false
 
@@ -617,7 +1137,9 @@ func rebuild_trade_slots_if_needed() -> void:
 		await get_tree().process_frame
 		return
 
-	var target_count: int = trade_inventory.max_slots
+	sync_slot_grid_columns_from_inventories()
+
+	var target_count: int = get_trade_slot_count()
 	if trade_slot_grid.get_child_count() == target_count:
 		return
 
@@ -652,10 +1174,232 @@ func rebuild_trade_slots_if_needed() -> void:
 			)
 
 		trade_slot_grid.add_child(slot)
+		bind_mouse_input_to_slot(slot, "trade", i)
 
 	await get_tree().process_frame
+	apply_compact_inventory_layout()
+	force_trade_panel_fit_to_slots()
 
 	is_building_slots = false
+
+
+func get_equipment_slot_display_name(slot_name: String) -> String:
+	match slot_name:
+		"right_hand":
+			return "右手"
+		"left_hand":
+			return "左手"
+		"head":
+			return "頭"
+		"body":
+			return "胴"
+		"hands":
+			return "手"
+		"waist":
+			return "腰"
+		"feet":
+			return "足"
+		"accessory_1":
+			return "装飾1"
+		"accessory_2":
+			return "装飾2"
+		"accessory_3":
+			return "装飾3"
+		"accessory_4":
+			return "装飾4"
+		_:
+			return slot_name.capitalize()
+
+
+func get_equipment_slot_section_id(slot_name: String) -> StringName:
+	match slot_name:
+		"right_hand", "left_hand":
+			return &"weapon"
+		"head", "body", "hands", "waist", "feet":
+			return &"armor"
+		"accessory_1", "accessory_2", "accessory_3", "accessory_4":
+			return &"accessory"
+		_:
+			return &"other"
+
+
+func get_equipment_section_label(section_id: StringName) -> String:
+	match section_id:
+		&"weapon":
+			return "武器"
+		&"armor":
+			return "防具"
+		&"accessory":
+			return "装飾品"
+		_:
+			return "その他"
+
+
+
+func get_equipment_slot_background_texture(slot_name: String) -> Texture2D:
+	match slot_name:
+		"right_hand":
+			return equipment_slot_background_right_hand
+		"left_hand":
+			return equipment_slot_background_left_hand
+		"head":
+			return equipment_slot_background_head
+		"body":
+			return equipment_slot_background_body
+		"hands":
+			return equipment_slot_background_hands
+		"waist":
+			return equipment_slot_background_waist
+		"feet":
+			return equipment_slot_background_feet
+		"accessory_1":
+			return equipment_slot_background_accessory_1
+		"accessory_2":
+			return equipment_slot_background_accessory_2
+		"accessory_3":
+			return equipment_slot_background_accessory_3
+		"accessory_4":
+			return equipment_slot_background_accessory_4
+		_:
+			return null
+
+
+func get_equipment_slot_placeholder_text(slot_name: String) -> String:
+	# スロット内に収まりやすい短い表示。
+	# 左側のスロット名ラベルは表示しないため、
+	# 背景画像が未設定の時はここで「何を装備する枠か」を表示する。
+	match slot_name:
+		"right_hand":
+			return "右手"
+		"left_hand":
+			return "左手"
+		"head":
+			return "頭"
+		"body":
+			return "胴"
+		"hands":
+			return "手"
+		"waist":
+			return "腰"
+		"feet":
+			return "足"
+		"accessory_1":
+			return "装1"
+		"accessory_2":
+			return "装2"
+		"accessory_3":
+			return "装3"
+		"accessory_4":
+			return "装4"
+		_:
+			return get_equipment_slot_display_name(slot_name)
+
+
+func get_slot_root_control(slot: Node) -> Control:
+	if slot == null:
+		return null
+
+	var slot_root: Node = slot.get_node_or_null("SlotRoot")
+	if slot_root is Control:
+		return slot_root as Control
+
+	if slot is Control:
+		return slot as Control
+
+	return null
+
+
+func setup_equipment_slot_visual(slot: Node, slot_name: String) -> void:
+	if slot == null:
+		return
+
+	var slot_root: Control = get_slot_root_control(slot)
+	if slot_root == null:
+		return
+
+	var background_texture: Texture2D = get_equipment_slot_background_texture(slot_name)
+
+	var background: TextureRect = slot_root.get_node_or_null("EquipmentSlotBackground") as TextureRect
+	if background == null:
+		background = TextureRect.new()
+		background.name = "EquipmentSlotBackground"
+		background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		background.anchors_preset = Control.PRESET_FULL_RECT
+		background.anchor_right = 1.0
+		background.anchor_bottom = 1.0
+		background.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		background.grow_vertical = Control.GROW_DIRECTION_BOTH
+		background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		background.z_index = -1
+		slot_root.add_child(background)
+
+	background.texture = background_texture
+	background.visible = background_texture != null
+	slot_root.move_child(background, 0)
+
+	var placeholder: Label = slot_root.get_node_or_null("EquipmentSlotPlaceholder") as Label
+	if placeholder == null:
+		placeholder = Label.new()
+		placeholder.name = "EquipmentSlotPlaceholder"
+		placeholder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		placeholder.anchors_preset = Control.PRESET_FULL_RECT
+		placeholder.anchor_right = 1.0
+		placeholder.anchor_bottom = 1.0
+		placeholder.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		placeholder.grow_vertical = Control.GROW_DIRECTION_BOTH
+		placeholder.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		placeholder.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		placeholder.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		placeholder.z_index = 0
+		slot_root.add_child(placeholder)
+
+	placeholder.text = get_equipment_slot_placeholder_text(slot_name)
+	placeholder.add_theme_font_size_override("font_size", equipment_slot_placeholder_font_size)
+	placeholder.modulate = equipment_slot_placeholder_color
+
+	if slot_root.get_child_count() > 1:
+		slot_root.move_child(placeholder, 1)
+
+	update_equipment_slot_placeholder(slot, slot_name, true)
+
+
+func update_equipment_slot_placeholder(slot: Node, slot_name: String, is_empty: bool) -> void:
+	if slot == null:
+		return
+
+	var slot_root: Control = get_slot_root_control(slot)
+	if slot_root == null:
+		return
+
+	var background_texture: Texture2D = get_equipment_slot_background_texture(slot_name)
+
+	var background: TextureRect = slot_root.get_node_or_null("EquipmentSlotBackground") as TextureRect
+	if background != null:
+		background.texture = background_texture
+		background.visible = background_texture != null
+
+	var placeholder: Label = slot_root.get_node_or_null("EquipmentSlotPlaceholder") as Label
+	if placeholder == null:
+		return
+
+	placeholder.text = get_equipment_slot_placeholder_text(slot_name)
+	placeholder.add_theme_font_size_override("font_size", equipment_slot_placeholder_font_size)
+	placeholder.modulate = equipment_slot_placeholder_color
+
+	# 背景画像がある場合は、画像そのものを「何を装備するか」の表示として扱う。
+	# 背景画像がない場合だけ、空スロットに文字を出す。
+	placeholder.visible = equipment_show_slot_placeholder_text and is_empty and background_texture == null
+
+func add_equipment_section_header(section_label: String) -> void:
+	if not equipment_show_section_headers:
+		return
+
+	var label: Label = Label.new()
+	label.text = section_label
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.add_theme_font_size_override("font_size", 12)
+	equipment_vbox.add_child(label)
 
 
 func build_equipment_slots() -> void:
@@ -664,15 +1408,10 @@ func build_equipment_slots() -> void:
 	for child in equipment_vbox.get_children():
 		child.queue_free()
 
+	# 左側のスロット名ラベルと「武器/防具/装飾品」の区切り見出しは表示しない。
+	# 一番上の「装備」タイトルだけを残し、何を装備する枠かは
+	# スロット内の背景画像またはプレースホルダー文字で表示する。
 	for slot_name in equipment_slot_order:
-		var row = HBoxContainer.new()
-		row.alignment = BoxContainer.ALIGNMENT_BEGIN
-		row.add_theme_constant_override("separation", 8)
-
-		var label = Label.new()
-		label.custom_minimum_size = Vector2(72, 0)
-		label.text = slot_name.capitalize()
-
 		var slot = slot_scene.instantiate()
 
 		if ui_config != null and slot.has_method("apply_config"):
@@ -681,10 +1420,14 @@ func build_equipment_slots() -> void:
 				ui_config.equipment_icon_margin
 			)
 
-		row.add_child(label)
-		row.add_child(slot)
+		setup_equipment_slot_visual(slot, String(slot_name))
 
-		equipment_vbox.add_child(row)
+		if slot is Control:
+			var slot_control: Control = slot as Control
+			slot_control.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+
+		equipment_vbox.add_child(slot)
+		bind_mouse_input_to_slot(slot, "equipment", equipment_slot_nodes.size())
 		equipment_slot_nodes.append(slot)
 
 
@@ -740,7 +1483,7 @@ func refresh_trade_slots() -> void:
 			else:
 				slot.set_slot_data("", 0, null)
 
-		slot.set_selected(focus_area == "trade" and i == selected_index)
+		slot.set_selected(is_game_cursor_visible() and focus_area == "trade" and i == selected_index)
 
 
 func refresh_inventory_slots() -> void:
@@ -769,7 +1512,7 @@ func refresh_inventory_slots() -> void:
 			else:
 				slot.set_slot_data("", 0, null)
 
-		slot.set_selected(focus_area == "inventory" and i == selected_index)
+		slot.set_selected(is_game_cursor_visible() and focus_area == "inventory" and i == selected_index)
 
 
 func refresh_equipment_slots() -> void:
@@ -786,36 +1529,21 @@ func refresh_equipment_slots() -> void:
 			var amount: int = int(entry.get("amount", 0))
 			slot.set_slot_data(item_id, amount, _get_display_item_icon(item_id))
 
-		slot.set_selected(focus_area == "equipment" and i == selected_index)
+		slot.set_selected(is_game_cursor_visible() and focus_area == "equipment" and i == selected_index)
+		update_equipment_slot_placeholder(slot, slot_name, item_id == "")
 
 
 func refresh_trade_back_button() -> void:
-	if trade_back_button == null:
-		return
-
-	if not is_side_mode():
+	# TradePanel の高さをスロット枠に合わせるため、旧「戻る」ボタンは使わない。
+	if trade_back_button != null:
+		trade_back_button.visible = false
 		trade_back_button.button_pressed = false
-		return
-
-	trade_back_button.button_pressed = (focus_area == "trade_back")
 
 
 func update_help_text() -> void:
-	var text: String = "Enter: 持つ/置く/交換 / Shift+Enter: 1個持つ / Ctrl+Enter: 1個置く / 使用キー: 使用 / Esc: 閉じる"
-
-	if ui_mode == UIMode.TRADE:
-		text = "Enter: 持つ/置く/交換 / Shift+Enter: 1個持つ / Ctrl+Enter: 1個置く / 使用不可 / Esc: 閉じる"
-		text += "\n所持金: %dG" % get_player_gold_amount()
-	elif ui_mode == UIMode.CHEST:
-		text = "Enter: 持つ/置く/交換 / Shift+Enter: 1個持つ / Ctrl+Enter: 1個置く / 使用不可 / Esc: 閉じる"
-
-	if not held_entry.is_empty():
-		var held_name: String = ItemDatabase.get_display_name(String(held_entry.get("item_id", "")))
-		var held_amount: int = int(held_entry.get("amount", 0))
-		text += "\n持ち中: %s x%d" % [held_name, held_amount]
-
-	help_label.text = text
-
+	# 下部の操作説明文は表示しない。
+	# InventoryUI.tscn から HelpLabel も削除済み。
+	return
 
 func move_selection(dx: int, dy: int) -> void:
 	if is_building_slots:
@@ -828,7 +1556,9 @@ func move_selection(dx: int, dy: int) -> void:
 	elif focus_area == "equipment":
 		move_equipment_selection(dx, dy)
 	else:
-		move_trade_back_selection(dx, dy)
+		# trade_back は非表示化したため、選択が迷子になったら inventory に戻す。
+		focus_area = "inventory"
+		selected_index = clamp(selected_index, 0, max(get_inventory_slot_count() - 1, 0))
 
 	hide_tooltip()
 	refresh()
@@ -842,7 +1572,7 @@ func move_trade_selection(dx: int, dy: int) -> void:
 			focus_area = "inventory"
 			selected_index = 0
 		elif dy > 0:
-			focus_area = "trade_back"
+			# 旧 trade_back ボタンは非表示なので、下方向では選択を移動しない。
 			selected_index = 0
 		return
 
@@ -864,8 +1594,7 @@ func move_trade_selection(dx: int, dy: int) -> void:
 		return
 
 	if dy > 0 and row == max_row:
-		focus_area = "trade_back"
-		selected_index = 0
+		# 旧 trade_back ボタンは非表示なので、下方向では最下段に留まる。
 		return
 
 	col += dx
@@ -966,27 +1695,10 @@ func move_equipment_selection(dx: int, dy: int) -> void:
 
 
 func move_trade_back_selection(dx: int, dy: int) -> void:
-	if not is_side_mode():
-		return
-
-	if dy < 0:
-		var trade_count: int = get_trade_slot_count()
-		if trade_count <= 0:
-			focus_area = "trade"
-			selected_index = 0
-			return
-
-		var columns: int = trade_slot_grid.columns
-		if columns <= 0:
-			columns = 1
-
-		var max_row: int = int(ceil(float(trade_count) / float(columns))) - 1
-		var target_index: int = max_row * columns
-		target_index = clamp(target_index, 0, max(trade_count - 1, 0))
-
-		focus_area = "trade"
-		selected_index = target_index
-		return
+	# TradePanel の戻るボタンは非表示。
+	# 古い focus_area が残っていた場合は inventory へ戻す。
+	focus_area = "inventory"
+	selected_index = clamp(selected_index, 0, max(get_inventory_slot_count() - 1, 0))
 
 
 func map_trade_row_to_inventory_index(row: int) -> int:
@@ -2154,7 +2866,7 @@ func _get_or_create_held_enchant_overlay() -> ColorRect:
 	if existing is ColorRect:
 		return existing
 
-	var rect := ColorRect.new()
+	var rect: ColorRect = ColorRect.new()
 	rect.name = "EnchantOverlay"
 	rect.color = Color(0.7, 0.35, 0.95, 0.28)
 	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -2170,6 +2882,7 @@ func update_held_item_preview() -> void:
 		return
 
 	var enchant_overlay: ColorRect = _get_or_create_held_enchant_overlay()
+	ensure_mouse_passthrough_for_float_panels()
 
 	if is_failed_quest_dialog_locked():
 		if enchant_overlay != null:
@@ -2288,7 +3001,7 @@ func get_selected_slot_node():
 		return equipment_slot_nodes[selected_index]
 
 	if focus_area == "trade_back":
-		return trade_back_button
+		return null
 
 	return null
 

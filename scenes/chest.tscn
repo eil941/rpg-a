@@ -14,3 +14,5 @@ texture = ExtResource("2_gqd3d")
 
 [node name="Inventory" type="Node" parent="." unique_id=2101617205]
 script = ExtResource("1_oii8l")
+slot_columns = 3
+max_slots = 0

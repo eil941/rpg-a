@@ -130,39 +130,77 @@ grow_vertical = 0
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="ActionButtonsArea" type="MarginContainer" parent="CanvasLayer" unique_id=1875755372]
+[node name="ActionButtonsArea" type="MarginContainer" parent="CanvasLayer" unique_id=1537704508]
 anchors_preset = 3
 anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -549.0
+offset_left = -540.0
 offset_top = -190.0
-offset_right = -488.0
+offset_right = -438.0
 offset_bottom = -154.0
 grow_horizontal = 0
 grow_vertical = 0
 mouse_filter = 2
 
-[node name="ActionButtonContainer" type="HBoxContainer" parent="CanvasLayer/ActionButtonsArea" unique_id=1682576800]
+[node name="ActionButtonContainer" type="HBoxContainer" parent="CanvasLayer/ActionButtonsArea" unique_id=1360087882]
 layout_mode = 2
 theme_override_constants/separation = 5
 
-[node name="InventoryButton" type="Button" parent="CanvasLayer/ActionButtonsArea/ActionButtonContainer" unique_id=257261856]
-custom_minimum_size = Vector2(28, 28)
+[node name="InventoryButton" type="TextureButton" parent="CanvasLayer/ActionButtonsArea/ActionButtonContainer" unique_id=1391658295]
+custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
 tooltip_text = "所持品"
 focus_mode = 0
 mouse_default_cursor_shape = 2
-text = "所"
 
-[node name="StatusButton" type="Button" parent="CanvasLayer/ActionButtonsArea/ActionButtonContainer" unique_id=26785592]
-custom_minimum_size = Vector2(28, 28)
+[node name="FallbackLabel" type="Label" parent="CanvasLayer/ActionButtonsArea/ActionButtonContainer/InventoryButton" unique_id=818468220]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "I"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StatusButton" type="TextureButton" parent="CanvasLayer/ActionButtonsArea/ActionButtonContainer" unique_id=468375474]
+custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
 tooltip_text = "状態"
 focus_mode = 0
 mouse_default_cursor_shape = 2
-text = "状"
+
+[node name="FallbackLabel" type="Label" parent="CanvasLayer/ActionButtonsArea/ActionButtonContainer/StatusButton" unique_id=1945419828]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "S"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="WaitButton" type="TextureButton" parent="CanvasLayer/ActionButtonsArea/ActionButtonContainer" unique_id=75161926]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+tooltip_text = "待機"
+focus_mode = 0
+mouse_default_cursor_shape = 2
+
+[node name="FallbackLabel" type="Label" parent="CanvasLayer/ActionButtonsArea/ActionButtonContainer/WaitButton" unique_id=30595599]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "W"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="HotbarArea" type="MarginContainer" parent="CanvasLayer" unique_id=1101729544]
 anchors_preset = 3

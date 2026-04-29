@@ -1,5 +1,13 @@
 extends Control
 
+signal inventory_button_pressed
+signal status_button_pressed
+# HUD action button icons.
+# Inspector から差し込めます。未設定なら各ボタン内の FallbackLabel を表示します。
+@export var icon_inventory_action: Texture2D
+@export var icon_status_action: Texture2D
+
+
 @export var icon_poison: Texture2D
 @export var icon_paralysis: Texture2D
 @export var icon_sleep: Texture2D
@@ -53,6 +61,9 @@ extends Control
 @onready var effect_bar_container: HBoxContainer = $CanvasLayer/EffectBarArea/EffectBarContainer
 @onready var hotbar_container: HBoxContainer = $CanvasLayer/HotbarArea/PanelContainer/HotbarContainer
 
+@onready var inventory_action_button: BaseButton = get_node_or_null("CanvasLayer/ActionButtonsArea/ActionButtonContainer/InventoryButton") as BaseButton
+@onready var status_action_button: BaseButton = get_node_or_null("CanvasLayer/ActionButtonsArea/ActionButtonContainer/StatusButton") as BaseButton
+
 var current_day: int = 1
 var current_time_text: String = "08:30"
 var current_weather_text: String = "Sunny"
@@ -80,6 +91,7 @@ var hovered_effect_key: String = ""
 
 func _ready() -> void:
 	initialize_hud()
+	_setup_action_buttons()
 	_create_effect_tooltip()
 
 
@@ -97,6 +109,154 @@ func initialize_hud() -> void:
 	update_log_display()
 	rebuild_effect_bar()
 	rebuild_hotbar()
+
+
+func _setup_action_buttons() -> void:
+	_setup_action_icon_button(inventory_action_button, icon_inventory_action, "所", "所持品")
+	_setup_action_icon_button(status_action_button, icon_status_action, "状", "状態")
+
+	_connect_action_button(inventory_action_button, Callable(self, "_on_inventory_action_button_pressed"))
+	_connect_action_button(status_action_button, Callable(self, "_on_status_action_button_pressed"))
+
+
+func _setup_action_icon_button(button: BaseButton, icon: Texture2D, fallback_text: String, tooltip_text: String) -> void:
+	if button == null:
+		return
+
+	button.focus_mode = Control.FOCUS_NONE
+	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	button.custom_minimum_size = Vector2(28, 28)
+	button.tooltip_text = tooltip_text
+	button.clip_contents = true
+
+	var has_icon: bool = false
+
+	if button is TextureButton:
+		var texture_button: TextureButton = button as TextureButton
+
+		if icon != null:
+			texture_button.texture_normal = icon
+			texture_button.texture_hover = icon
+			texture_button.texture_pressed = icon
+			texture_button.texture_disabled = icon
+			has_icon = true
+		elif texture_button.texture_normal != null:
+			has_icon = true
+
+		# TextureButton は StyleBox を持てないため、アイコン未設定時は子 Label を表示する。
+		# 本番では下の tscn 修正版のように Button ノードにしておく方がきれい。
+		_update_action_button_fallback_label(button, fallback_text, not has_icon)
+		return
+
+	if button is Button:
+		var normal_button: Button = button as Button
+
+		if icon != null:
+			normal_button.icon = icon
+			normal_button.text = ""
+			normal_button.flat = true
+			_apply_clear_button_style(normal_button)
+			has_icon = true
+		else:
+			normal_button.icon = null
+			normal_button.text = fallback_text
+			normal_button.flat = false
+			normal_button.add_theme_font_size_override("font_size", 13)
+			_apply_action_fallback_icon_style(normal_button)
+
+		_update_action_button_fallback_label(button, fallback_text, false)
+		return
+
+	_update_action_button_fallback_label(button, fallback_text, not has_icon)
+
+
+func _update_action_button_fallback_label(button: BaseButton, fallback_text: String, show_label: bool) -> void:
+	if button == null:
+		return
+
+	var fallback_label: Label = button.get_node_or_null("FallbackLabel") as Label
+	if fallback_label == null:
+		return
+
+	fallback_label.text = fallback_text
+	fallback_label.visible = show_label
+	fallback_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fallback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	fallback_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	fallback_label.add_theme_font_size_override("font_size", 13)
+
+
+func _apply_action_fallback_icon_style(button: Button) -> void:
+	if button == null:
+		return
+
+	# アイコン未設定時は、状態異常アイコンの文字表示と同じ考え方の小さいボタンにする。
+	var bg_color: Color = Color(0.25, 0.25, 0.25, 0.95)
+	var font_color: Color = Color(1.0, 1.0, 1.0, 1.0)
+
+	var normal_style: StyleBoxFlat = StyleBoxFlat.new()
+	normal_style.bg_color = bg_color
+	normal_style.corner_radius_top_left = 4
+	normal_style.corner_radius_top_right = 4
+	normal_style.corner_radius_bottom_left = 4
+	normal_style.corner_radius_bottom_right = 4
+	normal_style.border_width_left = 1
+	normal_style.border_width_top = 1
+	normal_style.border_width_right = 1
+	normal_style.border_width_bottom = 1
+	normal_style.border_color = Color(0.15, 0.15, 0.15, 0.9)
+
+	var hover_style: StyleBoxFlat = normal_style.duplicate()
+	hover_style.bg_color = bg_color.lightened(0.12)
+
+	var pressed_style: StyleBoxFlat = normal_style.duplicate()
+	pressed_style.bg_color = bg_color.darkened(0.08)
+
+	button.add_theme_stylebox_override("normal", normal_style)
+	button.add_theme_stylebox_override("hover", hover_style)
+	button.add_theme_stylebox_override("pressed", pressed_style)
+	button.add_theme_stylebox_override("focus", hover_style)
+
+	button.add_theme_color_override("font_color", font_color)
+	button.add_theme_color_override("font_hover_color", font_color)
+	button.add_theme_color_override("font_pressed_color", font_color)
+	button.add_theme_color_override("font_focus_color", font_color)
+
+
+func _apply_clear_button_style(button: Button) -> void:
+	if button == null:
+		return
+
+	var clear_style: StyleBoxFlat = StyleBoxFlat.new()
+	clear_style.bg_color = Color(0, 0, 0, 0)
+	clear_style.border_width_left = 0
+	clear_style.border_width_top = 0
+	clear_style.border_width_right = 0
+	clear_style.border_width_bottom = 0
+
+	button.add_theme_stylebox_override("normal", clear_style)
+	button.add_theme_stylebox_override("hover", clear_style)
+	button.add_theme_stylebox_override("pressed", clear_style)
+	button.add_theme_stylebox_override("focus", clear_style)
+
+
+func _connect_action_button(button: BaseButton, callback: Callable) -> void:
+	if button == null:
+		return
+
+	button.focus_mode = Control.FOCUS_NONE
+	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+
+	if not button.pressed.is_connected(callback):
+		button.pressed.connect(callback)
+
+
+func _on_inventory_action_button_pressed() -> void:
+	inventory_button_pressed.emit()
+
+
+func _on_status_action_button_pressed() -> void:
+	status_button_pressed.emit()
 
 
 func _create_effect_tooltip() -> void:

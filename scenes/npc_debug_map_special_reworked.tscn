@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://lpmjqo6rh2c2" path="res://scripts/map/special_map/special_map_unit_entry.gd" id="2_eebdd"]
 [ext_resource type="PackedScene" uid="uid://c0jrt3uvmhd2g" path="res://scenes/npc1.tscn" id="3_k21mc"]
 [ext_resource type="Resource" uid="uid://sponxcnnn0fd" path="res://data/test/NPC/new_sabo.tres" id="6_g0ppq"]
+[ext_resource type="PackedScene" uid="uid://dnaf0ryx1bvp8" path="res://scenes/chest.tscn" id="8_87c2p"]
 [ext_resource type="TileSet" uid="uid://dbr5mtulmq0q2" path="res://data/test/test.tres" id="12_a7yfv"]
 [ext_resource type="TileSet" uid="uid://bc0aui1htbk1v" path="res://data/test/test_wall.tres" id="13_wjl7d"]
 [ext_resource type="TileSet" uid="uid://cpndipp741lyo" path="res://data/test/test_event.tres" id="14_ojpl4"]
@@ -37,12 +38,17 @@ tile_set = ExtResource("14_ojpl4")
 
 [node name="Chests" type="Node" parent="." unique_id=228394189]
 
+[node name="Chest" parent="Chests" unique_id=828771168 instance=ExtResource("8_87c2p")]
+tile_coords = Vector2i(3, 3)
+
 [node name="Units" type="Node" parent="." unique_id=332583731]
 
 [node name="Unit" parent="Units" unique_id=40692456 instance=ExtResource("15_8disr")]
 position = Vector2(258, 122)
-talk_display_name = ""
-talk_portrait = null
+can_trigger_scene_transition = true
+can_bump_attack = true
+unit_id = "palyer"
+is_player_unit = true
 use_generated_quests = false
 
 [node name="QuestBoard" parent="." unique_id=1138804263 instance=ExtResource("16_pvemd")]
