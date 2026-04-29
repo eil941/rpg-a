@@ -23,7 +23,13 @@ class_name Inventory
 # 現在は slot_columns * slot_rows に同期される。
 @export var max_slots: int = 36
 
+# ホットバーも Inventory が持つ独立した収納領域。
+# 通常インベントリ items の先頭を表示するのではなく、
+# hotbar_items 自体にアイテムを収納する。
+@export var hotbar_slot_count: int = 9
+
 var items: Array[Dictionary] = []
+var hotbar_items: Array[Dictionary] = []
 
 
 func _ready() -> void:
@@ -72,9 +78,13 @@ func initialize_empty_slots() -> void:
 	for i in range(max_slots):
 		items.append(_make_empty_slot())
 
+	hotbar_items.clear()
+	ensure_hotbar_slot_count()
+
 
 func ensure_slot_count() -> void:
 	_sync_max_slots_from_grid()
+	ensure_hotbar_slot_count()
 
 	# items の方が長い場合は、絶対に切り捨てない。
 	# ここで切ると、下段のアイテム消失が起きる。
@@ -259,6 +269,157 @@ func set_item_data_at(index: int, entry: Dictionary) -> bool:
 	return true
 
 
+# =========================
+# Hotbar slots
+# =========================
+
+func get_hotbar_slot_count() -> int:
+	ensure_hotbar_slot_count()
+	return hotbar_items.size()
+
+
+func set_hotbar_slot_count(new_count: int, keep_items: bool = true) -> void:
+	new_count = max(0, new_count)
+
+	var old_items: Array[Dictionary] = []
+	if keep_items:
+		old_items = get_all_hotbar_items()
+
+	hotbar_slot_count = new_count
+	hotbar_items.clear()
+
+	for i in range(hotbar_slot_count):
+		hotbar_items.append(_make_empty_slot())
+
+	if keep_items:
+		for i in range(min(old_items.size(), hotbar_items.size())):
+			hotbar_items[i] = _normalize_entry(old_items[i])
+
+
+func ensure_hotbar_slot_count() -> void:
+	hotbar_slot_count = max(0, hotbar_slot_count)
+
+	while hotbar_items.size() < hotbar_slot_count:
+		hotbar_items.append(_make_empty_slot())
+
+	# hotbar_items の方が長い場合は切り捨てない。
+	# 保存データ互換や一時的な設定ミスでアイテムが消えるのを防ぐ。
+	if hotbar_items.size() > hotbar_slot_count:
+		hotbar_slot_count = hotbar_items.size()
+
+
+func is_valid_hotbar_index(index: int) -> bool:
+	ensure_hotbar_slot_count()
+	return index >= 0 and index < hotbar_items.size()
+
+
+func is_hotbar_slot_empty(index: int) -> bool:
+	if not is_valid_hotbar_index(index):
+		return true
+
+	return _is_entry_empty(hotbar_items[index])
+
+
+func get_hotbar_item_data_at(index: int) -> Dictionary:
+	if not is_valid_hotbar_index(index):
+		return {}
+
+	return hotbar_items[index].duplicate(true)
+
+
+func set_hotbar_item_data_at(index: int, entry: Dictionary) -> bool:
+	if not is_valid_hotbar_index(index):
+		return false
+
+	hotbar_items[index] = _normalize_entry(entry)
+	return true
+
+
+func clear_hotbar_slot(index: int) -> bool:
+	if not is_valid_hotbar_index(index):
+		return false
+
+	hotbar_items[index] = _make_empty_slot()
+	return true
+
+
+func find_first_empty_hotbar_slot() -> int:
+	ensure_hotbar_slot_count()
+
+	for i in range(hotbar_items.size()):
+		if is_hotbar_slot_empty(i):
+			return i
+
+	return -1
+
+
+func get_all_hotbar_items() -> Array[Dictionary]:
+	ensure_hotbar_slot_count()
+
+	var result: Array[Dictionary] = []
+
+	for entry in hotbar_items:
+		result.append(entry.duplicate(true))
+
+	return result
+
+
+func use_hotbar_item_at(index: int) -> Dictionary:
+	if not is_valid_hotbar_index(index):
+		return {
+			"success": false,
+			"item_id": "",
+			"message": "範囲外"
+		}
+
+	var entry: Dictionary = hotbar_items[index]
+	var item_id: String = _get_entry_item_id(entry)
+	var amount: int = _get_entry_amount(entry)
+
+	if item_id == "" or amount <= 0:
+		return {
+			"success": false,
+			"item_id": "",
+			"message": "空スロット"
+		}
+
+	if _has_instance_data(entry):
+		return {
+			"success": false,
+			"item_id": item_id,
+			"message": "個体装備はここでは使用できない"
+		}
+
+	if not ItemDatabase.is_usable(item_id):
+		return {
+			"success": false,
+			"item_id": item_id,
+			"message": "このアイテムは使用できない"
+		}
+
+	var owner_unit = get_parent()
+
+	if not ItemEffectManager.apply_item_effect(owner_unit, item_id):
+		return {
+			"success": false,
+			"item_id": item_id,
+			"message": "使用失敗"
+		}
+
+	amount -= 1
+
+	if amount <= 0:
+		hotbar_items[index] = _make_empty_slot()
+	else:
+		entry["amount"] = amount
+		hotbar_items[index] = entry
+
+	return {
+		"success": true,
+		"item_id": item_id,
+		"message": "%sを使用した" % ItemDatabase.get_display_name(item_id)
+	}
+
 func clear_slot(index: int) -> bool:
 	if not is_valid_index(index):
 		return false
@@ -369,6 +530,7 @@ func remove_item(item_id: String, amount: int = 1) -> bool:
 		return false
 
 	ensure_slot_count()
+	ensure_hotbar_slot_count()
 
 	var remaining: int = amount
 
@@ -397,11 +559,36 @@ func remove_item(item_id: String, amount: int = 1) -> bool:
 		if remaining <= 0:
 			return true
 
-	return false
+	for i in range(hotbar_items.size()):
+		var entry: Dictionary = hotbar_items[i]
+		if _get_entry_item_id(entry) != item_id:
+			continue
 
+		if _has_instance_data(entry):
+			continue
+
+		var current_amount: int = _get_entry_amount(entry)
+		if current_amount <= 0:
+			continue
+
+		var removable: int = min(current_amount, remaining)
+		current_amount -= removable
+		remaining -= removable
+
+		if current_amount <= 0:
+			hotbar_items[i] = _make_empty_slot()
+		else:
+			entry["amount"] = current_amount
+			hotbar_items[i] = entry
+
+		if remaining <= 0:
+			return true
+
+	return false
 
 func remove_item_entry(target_entry: Dictionary) -> bool:
 	ensure_slot_count()
+	ensure_hotbar_slot_count()
 
 	var normalized: Dictionary = _normalize_entry(target_entry)
 	if _get_entry_item_id(normalized) == "":
@@ -418,8 +605,18 @@ func remove_item_entry(target_entry: Dictionary) -> bool:
 				items[i] = entry
 			return true
 
-	return false
+	for i in range(hotbar_items.size()):
+		if is_same_item_instance(hotbar_items[i], normalized):
+			var current_amount: int = _get_entry_amount(hotbar_items[i])
+			if current_amount <= 1:
+				hotbar_items[i] = _make_empty_slot()
+			else:
+				var entry: Dictionary = hotbar_items[i].duplicate(true)
+				entry["amount"] = current_amount - 1
+				hotbar_items[i] = entry
+			return true
 
+	return false
 
 func has_item(item_id: String, amount: int = 1) -> bool:
 	return get_item_amount(item_id) >= amount
@@ -427,17 +624,23 @@ func has_item(item_id: String, amount: int = 1) -> bool:
 
 func has_item_entry(target_entry: Dictionary) -> bool:
 	ensure_slot_count()
+	ensure_hotbar_slot_count()
 
 	var normalized: Dictionary = _normalize_entry(target_entry)
+
 	for entry in items:
+		if is_same_item_instance(entry, normalized):
+			return true
+
+	for entry in hotbar_items:
 		if is_same_item_instance(entry, normalized):
 			return true
 
 	return false
 
-
 func get_item_amount(item_id: String) -> int:
 	ensure_slot_count()
+	ensure_hotbar_slot_count()
 
 	var total: int = 0
 
@@ -445,11 +648,15 @@ func get_item_amount(item_id: String) -> int:
 		if _get_entry_item_id(entry) == item_id and not _has_instance_data(entry):
 			total += _get_entry_amount(entry)
 
-	return total
+	for entry in hotbar_items:
+		if _get_entry_item_id(entry) == item_id and not _has_instance_data(entry):
+			total += _get_entry_amount(entry)
 
+	return total
 
 func get_total_amount(item_id: String) -> int:
 	ensure_slot_count()
+	ensure_hotbar_slot_count()
 
 	var total: int = 0
 
@@ -457,8 +664,11 @@ func get_total_amount(item_id: String) -> int:
 		if _get_entry_item_id(entry) == item_id:
 			total += _get_entry_amount(entry)
 
-	return total
+	for entry in hotbar_items:
+		if _get_entry_item_id(entry) == item_id:
+			total += _get_entry_amount(entry)
 
+	return total
 
 func can_consume_item_amount(item_id: String, amount: int) -> bool:
 	if item_id == "":
@@ -481,6 +691,7 @@ func consume_item_amount(item_id: String, amount: int) -> bool:
 		return false
 
 	ensure_slot_count()
+	ensure_hotbar_slot_count()
 
 	var remaining: int = amount
 
@@ -508,8 +719,31 @@ func consume_item_amount(item_id: String, amount: int) -> bool:
 			remaining = 0
 			break
 
-	return remaining <= 0
+	for i in range(hotbar_items.size()):
+		if remaining <= 0:
+			break
 
+		var entry: Dictionary = hotbar_items[i]
+		if _get_entry_item_id(entry) != item_id:
+			continue
+
+		if _has_instance_data(entry):
+			continue
+
+		var current_amount: int = _get_entry_amount(entry)
+		if current_amount <= 0:
+			continue
+
+		if current_amount <= remaining:
+			remaining -= current_amount
+			hotbar_items[i] = _make_empty_slot()
+		else:
+			entry["amount"] = current_amount - remaining
+			hotbar_items[i] = entry
+			remaining = 0
+			break
+
+	return remaining <= 0
 
 func force_add_item_amount(item_id: String, amount: int) -> bool:
 	if item_id == "":
@@ -575,6 +809,9 @@ func clear_inventory() -> void:
 	initialize_empty_slots()
 
 
+# 旧セーブ経路互換用。
+# 既存の Unit.gd / PlayerData 側が Array を前提にしているため、ここでは通常インベントリだけを Array で返す。
+# ホットバー込みで保存したい場合は save_inventory_full_data() を使う。
 func save_inventory_data() -> Array:
 	ensure_slot_count()
 
@@ -586,22 +823,102 @@ func save_inventory_data() -> Array:
 	return result
 
 
-func load_inventory_data(data: Array) -> void:
-	if data.size() > 0:
-		_expand_grid_to_fit_count(data.size())
+# 新形式。通常インベントリ + ホットバー + グリッド情報をまとめて保存する。
+# PlayerData 側を Dictionary/Variant 対応にした後はこちらを使う。
+func save_inventory_full_data() -> Dictionary:
+	ensure_slot_count()
+	ensure_hotbar_slot_count()
+
+	var bag_result: Array = []
+
+	for entry in items:
+		bag_result.append(_normalize_entry(entry))
+
+	var hotbar_result: Array = []
+
+	for entry in hotbar_items:
+		hotbar_result.append(_normalize_entry(entry))
+
+	return {
+		"version": 2,
+		"slot_columns": slot_columns,
+		"slot_rows": slot_rows,
+		"max_slots": max_slots,
+		"hotbar_slot_count": hotbar_slot_count,
+		"items": bag_result,
+		"hotbar_items": hotbar_result
+	}
+
+
+func load_inventory_data(data: Variant) -> void:
+	# 旧形式互換: Array = 通常インベントリだけ。
+	if typeof(data) == TYPE_ARRAY:
+		var old_items: Array = data as Array
+		if old_items.size() > 0:
+			_expand_grid_to_fit_count(old_items.size())
+
+		items.clear()
+		for i in range(max_slots):
+			items.append(_make_empty_slot())
+
+		for i in range(min(old_items.size(), items.size())):
+			var entry: Variant = old_items[i]
+			if typeof(entry) != TYPE_DICTIONARY:
+				continue
+			items[i] = _normalize_entry(entry)
+
+		hotbar_items.clear()
+		ensure_hotbar_slot_count()
+		return
+
+	if typeof(data) != TYPE_DICTIONARY:
+		initialize_empty_slots()
+		return
+
+	var dict: Dictionary = data as Dictionary
+
+	if dict.has("slot_columns"):
+		slot_columns = max(1, int(dict.get("slot_columns", slot_columns)))
+
+	if dict.has("slot_rows"):
+		slot_rows = max(1, int(dict.get("slot_rows", slot_rows)))
+
+	if dict.has("hotbar_slot_count"):
+		hotbar_slot_count = max(0, int(dict.get("hotbar_slot_count", hotbar_slot_count)))
+
+	_sync_max_slots_from_grid()
+
+	var bag_items: Array = []
+	if dict.has("items") and typeof(dict.get("items")) == TYPE_ARRAY:
+		bag_items = dict.get("items") as Array
+
+	if bag_items.size() > 0:
+		_expand_grid_to_fit_count(bag_items.size())
 
 	items.clear()
 	for i in range(max_slots):
 		items.append(_make_empty_slot())
 
-	for i in range(min(data.size(), items.size())):
-		var entry: Variant = data[i]
-
+	for i in range(min(bag_items.size(), items.size())):
+		var entry: Variant = bag_items[i]
 		if typeof(entry) != TYPE_DICTIONARY:
 			continue
-
 		items[i] = _normalize_entry(entry)
 
+	var loaded_hotbar_items: Array = []
+	if dict.has("hotbar_items") and typeof(dict.get("hotbar_items")) == TYPE_ARRAY:
+		loaded_hotbar_items = dict.get("hotbar_items") as Array
+		if loaded_hotbar_items.size() > hotbar_slot_count:
+			hotbar_slot_count = loaded_hotbar_items.size()
+
+	hotbar_items.clear()
+	ensure_hotbar_slot_count()
+
+	for i in range(min(loaded_hotbar_items.size(), hotbar_items.size())):
+		var entry: Variant = loaded_hotbar_items[i]
+		if typeof(entry) != TYPE_DICTIONARY:
+			continue
+		hotbar_items[i] = _normalize_entry(entry)
 
 func use_item_at(index: int) -> Dictionary:
 	if not is_valid_index(index):
@@ -662,6 +979,7 @@ func use_item_at(index: int) -> Dictionary:
 
 func get_total_amount_ignore_instance(item_id: String) -> int:
 	ensure_slot_count()
+	ensure_hotbar_slot_count()
 
 	var total: int = 0
 
@@ -669,8 +987,11 @@ func get_total_amount_ignore_instance(item_id: String) -> int:
 		if _get_entry_item_id(entry) == item_id:
 			total += _get_entry_amount(entry)
 
-	return total
+	for entry in hotbar_items:
+		if _get_entry_item_id(entry) == item_id:
+			total += _get_entry_amount(entry)
 
+	return total
 
 func can_consume_total_amount_ignore_instance(item_id: String, amount: int) -> bool:
 	if item_id == "":
@@ -693,6 +1014,7 @@ func consume_total_amount_ignore_instance(item_id: String, amount: int) -> bool:
 		return false
 
 	ensure_slot_count()
+	ensure_hotbar_slot_count()
 
 	var remaining: int = amount
 
@@ -714,6 +1036,27 @@ func consume_total_amount_ignore_instance(item_id: String, amount: int) -> bool:
 		else:
 			entry["amount"] = current_amount - remaining
 			items[i] = entry
+			remaining = 0
+			break
+
+	for i in range(hotbar_items.size()):
+		if remaining <= 0:
+			break
+
+		var entry: Dictionary = hotbar_items[i]
+		if _get_entry_item_id(entry) != item_id:
+			continue
+
+		var current_amount: int = _get_entry_amount(entry)
+		if current_amount <= 0:
+			continue
+
+		if current_amount <= remaining:
+			remaining -= current_amount
+			hotbar_items[i] = _make_empty_slot()
+		else:
+			entry["amount"] = current_amount - remaining
+			hotbar_items[i] = entry
 			remaining = 0
 			break
 

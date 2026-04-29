@@ -61,7 +61,8 @@ const SIZE_SHRINK_BEGIN_VALUE: int = 0
 # 装備スロットは装備構成が変わる可能性があるため、行自体はコードで生成する。
 # ただし、パネルや×ボタンなど固定UIは tscn 側に置く。
 @export var equipment_panel_margin: int = 4
-@export var equipment_row_gap: int = 3
+@export var equipment_row_gap: int = 0
+@export var equipment_column_gap: int = 2
 @export var equipment_label_width: int = 58
 @export var equipment_show_section_headers: bool = true
 @export var equipment_show_slot_placeholder_text: bool = true
@@ -122,6 +123,12 @@ var hold_repeat_secondary_mode: StringName = &""
 # キーボード操作が入ったら false に戻して選択枠を復活させる。
 var mouse_navigation_mode: bool = false
 
+# Inventory 本体が持つホットバー収納領域を、インベントリ画面にも表示する。
+# hotbar_items は通常インベントリ items とは別配列。
+var hotbar_panel: PanelContainer = null
+var hotbar_slot_grid: GridContainer = null
+var hotbar_title_label: Label = null
+
 
 func _ready() -> void:
 	layer = 10
@@ -150,7 +157,9 @@ func _ready() -> void:
 	tooltip_panel.hide()
 	held_item_preview.hide()
 	ensure_mouse_passthrough_for_float_panels()
+	setup_inventory_overlay_mouse_passthrough()
 	setup_close_button()
+	ensure_hotbar_ui_nodes()
 	apply_compact_inventory_layout()
 
 	apply_ui_config()
@@ -188,6 +197,130 @@ func set_control_tree_mouse_filter_ignore(node: Node) -> void:
 
 	for child in node.get_children():
 		set_control_tree_mouse_filter_ignore(child)
+
+
+
+func setup_inventory_overlay_mouse_passthrough() -> void:
+	# InventoryUI は CanvasLayer 全体を覆うため、背景側Controlがマウス入力を止めると
+	# 下にある通常HUDホットバーをクリックできない。
+	# そのため、全画面の背景/中央寄せ用ノードは入力を透過し、
+	# 実際のInventory/Trade/Equipmentパネルだけが入力を受けるようにする。
+	var pass_nodes: Array[Node] = [
+		root,
+		get_node_or_null("Root/Overlay"),
+		get_node_or_null("Root/Overlay/CenterContainer"),
+		main_hbox
+	]
+
+	for node in pass_nodes:
+		if node is Control:
+			(node as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var stop_nodes: Array[Node] = [
+		inventory_panel,
+		trade_panel,
+		equipment_panel,
+		tooltip_panel,
+		held_item_preview
+	]
+
+	for node in stop_nodes:
+		if node is Control:
+			(node as Control).mouse_filter = Control.MOUSE_FILTER_STOP
+
+func apply_transparent_panel_style(panel: PanelContainer) -> void:
+	if panel == null:
+		return
+
+	var clear_style: StyleBoxFlat = StyleBoxFlat.new()
+	clear_style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
+	clear_style.border_width_left = 0
+	clear_style.border_width_top = 0
+	clear_style.border_width_right = 0
+	clear_style.border_width_bottom = 0
+	panel.add_theme_stylebox_override("panel", clear_style)
+
+
+func ensure_hotbar_ui_nodes() -> void:
+	if not show_hotbar_panel_in_inventory():
+		var existing_panel: Node = get_node_or_null("Root/Overlay/CenterContainer/MainHBox/InventoryPanel/MarginContainer/LeftVBox/HotbarPanel")
+		if existing_panel is Control:
+			(existing_panel as Control).visible = false
+		hotbar_panel = null
+		hotbar_slot_grid = null
+		hotbar_title_label = null
+		return
+
+	if hotbar_panel != null and is_instance_valid(hotbar_panel):
+		return
+
+	if slot_grid == null:
+		return
+
+	var left_vbox: Node = slot_grid.get_parent()
+	if left_vbox == null:
+		return
+
+	var existing_panel: Node = left_vbox.get_node_or_null("HotbarPanel")
+	if existing_panel is PanelContainer:
+		hotbar_panel = existing_panel as PanelContainer
+		hotbar_slot_grid = hotbar_panel.get_node_or_null("MarginContainer/VBoxContainer/HotbarSlotGrid") as GridContainer
+		hotbar_title_label = hotbar_panel.get_node_or_null("MarginContainer/VBoxContainer/HotbarTitleLabel") as Label
+		apply_transparent_panel_style(hotbar_panel)
+		if hotbar_slot_grid != null:
+			hotbar_slot_grid.add_theme_constant_override("h_separation", 0)
+			hotbar_slot_grid.add_theme_constant_override("v_separation", 0)
+		return
+
+	hotbar_panel = PanelContainer.new()
+	hotbar_panel.name = "HotbarPanel"
+	hotbar_panel.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	hotbar_panel.size_flags_vertical = SIZE_SHRINK_BEGIN_VALUE
+	apply_transparent_panel_style(hotbar_panel)
+
+	var margin: MarginContainer = MarginContainer.new()
+	margin.name = "MarginContainer"
+	margin.add_theme_constant_override("margin_left", compact_panel_margin)
+	margin.add_theme_constant_override("margin_top", compact_panel_margin)
+	margin.add_theme_constant_override("margin_right", compact_panel_margin)
+	margin.add_theme_constant_override("margin_bottom", compact_panel_margin)
+	margin.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	margin.size_flags_vertical = SIZE_SHRINK_BEGIN_VALUE
+	hotbar_panel.add_child(margin)
+
+	var vbox: VBoxContainer = VBoxContainer.new()
+	vbox.name = "VBoxContainer"
+	vbox.add_theme_constant_override("separation", 2)
+	vbox.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	vbox.size_flags_vertical = SIZE_SHRINK_BEGIN_VALUE
+	margin.add_child(vbox)
+
+	hotbar_title_label = Label.new()
+	hotbar_title_label.name = "HotbarTitleLabel"
+	hotbar_title_label.text = "ホットバー"
+	hotbar_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	hotbar_title_label.add_theme_font_size_override("font_size", 12)
+	vbox.add_child(hotbar_title_label)
+
+	hotbar_slot_grid = GridContainer.new()
+	hotbar_slot_grid.name = "HotbarSlotGrid"
+	hotbar_slot_grid.columns = get_hotbar_slot_columns()
+	hotbar_slot_grid.add_theme_constant_override("h_separation", 0)
+	hotbar_slot_grid.add_theme_constant_override("v_separation", 0)
+	hotbar_slot_grid.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	hotbar_slot_grid.size_flags_vertical = SIZE_SHRINK_BEGIN_VALUE
+	vbox.add_child(hotbar_slot_grid)
+
+	left_vbox.add_child(hotbar_panel)
+
+	# 通常インベントリグリッドの直前に置く。
+	left_vbox.move_child(hotbar_panel, slot_grid.get_index())
+
+
+func show_hotbar_panel_in_inventory() -> bool:
+	# インベントリ画面内に専用ホットバー欄は表示しない。
+	# ホットバーは通常時に表示されているHUD側のホットバーを直接操作する。
+	return false
 
 
 func setup_close_button() -> void:
@@ -283,6 +416,17 @@ func apply_compact_inventory_layout() -> void:
 		trade_slot_grid.add_theme_constant_override("v_separation", grid_gap)
 		trade_slot_grid.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 		trade_slot_grid.size_flags_vertical = SIZE_SHRINK_BEGIN_VALUE
+
+	if hotbar_slot_grid != null:
+		hotbar_slot_grid.add_theme_constant_override("h_separation", 0)
+		hotbar_slot_grid.add_theme_constant_override("v_separation", 0)
+		hotbar_slot_grid.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		hotbar_slot_grid.size_flags_vertical = SIZE_SHRINK_BEGIN_VALUE
+
+	if hotbar_panel != null:
+		hotbar_panel.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		hotbar_panel.size_flags_vertical = SIZE_SHRINK_BEGIN_VALUE
+		apply_transparent_panel_style(hotbar_panel)
 
 	if fit_inventory_panel_to_slots and inventory_panel != null:
 		inventory_panel.custom_minimum_size = Vector2.ZERO
@@ -683,6 +827,7 @@ func open_with_inventory(inventory) -> void:
 	update_background_visibility()
 	update_trade_panel_visibility()
 
+	await rebuild_hotbar_slots_if_needed()
 	await rebuild_inventory_slots_if_needed()
 	await rebuild_trade_slots_if_needed()
 	build_equipment_slots()
@@ -713,6 +858,7 @@ func open_trade_mode(player_inventory, player_unit, merchant_inventory, merchant
 	update_background_visibility()
 	update_trade_panel_visibility()
 
+	await rebuild_hotbar_slots_if_needed()
 	await rebuild_inventory_slots_if_needed()
 	await rebuild_trade_slots_if_needed()
 	build_equipment_slots()
@@ -749,6 +895,7 @@ func open_chest_mode(player_inventory, player_unit, chest_inventory, chest_owner
 	update_background_visibility()
 	update_trade_panel_visibility()
 
+	await rebuild_hotbar_slots_if_needed()
 	await rebuild_inventory_slots_if_needed()
 	await rebuild_trade_slots_if_needed()
 	build_equipment_slots()
@@ -883,6 +1030,9 @@ func sync_slot_grid_columns_from_inventories() -> void:
 	if trade_slot_grid != null:
 		trade_slot_grid.columns = get_trade_slot_columns()
 
+	if hotbar_slot_grid != null:
+		hotbar_slot_grid.columns = get_hotbar_slot_columns()
+
 
 func get_inventory_slot_count() -> int:
 	if current_inventory == null:
@@ -912,6 +1062,37 @@ func get_trade_slot_count() -> int:
 
 func get_equipment_slot_count() -> int:
 	return equipment_slot_order.size()
+
+
+func get_hotbar_slot_count() -> int:
+	if current_inventory == null:
+		return 0
+
+	if current_inventory.has_method("get_hotbar_slot_count"):
+		return max(0, int(current_inventory.get_hotbar_slot_count()))
+
+	if "hotbar_slot_count" in current_inventory:
+		return max(0, int(current_inventory.hotbar_slot_count))
+
+	return 0
+
+
+func get_hotbar_slot_columns() -> int:
+	var count: int = get_hotbar_slot_count()
+	if count > 0:
+		return count
+
+	return 9
+
+
+func get_hotbar_slot_rows() -> int:
+	var count: int = get_hotbar_slot_count()
+	var columns: int = get_hotbar_slot_columns()
+
+	if count <= 0 or columns <= 0:
+		return 1
+
+	return max(1, int(ceil(float(count) / float(columns))))
 
 
 # =========================
@@ -1045,6 +1226,14 @@ func set_mouse_focus_slot(area: String, index: int) -> void:
 		focus_area = "trade"
 		selected_index = clamp(index, 0, count - 1)
 
+	elif area == "hotbar":
+		var count: int = get_hotbar_slot_count()
+		if count <= 0:
+			return
+
+		focus_area = "hotbar"
+		selected_index = clamp(index, 0, count - 1)
+
 	elif area == "inventory":
 		var count: int = get_inventory_slot_count()
 		if count <= 0:
@@ -1076,13 +1265,63 @@ func try_mouse_use_selected_item() -> void:
 	if ui_mode != UIMode.NORMAL:
 		return
 
-	if focus_area != "inventory":
+	if focus_area != "inventory" and focus_area != "hotbar":
 		return
 
 	if not held_entry.is_empty():
 		return
 
 	use_selected_item()
+
+
+func rebuild_hotbar_slots_if_needed() -> void:
+	ensure_hotbar_ui_nodes()
+
+	if current_inventory == null:
+		return
+
+	if hotbar_slot_grid == null:
+		return
+
+	sync_slot_grid_columns_from_inventories()
+
+	var target_count: int = get_hotbar_slot_count()
+	if hotbar_slot_grid.get_child_count() == target_count:
+		return
+
+	is_building_slots = true
+	hide_tooltip()
+
+	if tooltip_timer != null:
+		tooltip_timer.stop()
+
+	if slot_scene == null:
+		push_error("InventoryUI: slot_scene が未設定です")
+		is_building_slots = false
+		return
+
+	for child in hotbar_slot_grid.get_children():
+		child.queue_free()
+
+	await get_tree().process_frame
+
+	for i in range(target_count):
+		var slot = slot_scene.instantiate()
+
+		if ui_config != null and slot.has_method("apply_config"):
+			slot.apply_config(
+				ui_config.inventory_slot_size,
+				ui_config.inventory_icon_margin
+			)
+
+		hotbar_slot_grid.add_child(slot)
+		bind_mouse_input_to_slot(slot, "hotbar", i)
+
+	await get_tree().process_frame
+	apply_compact_inventory_layout()
+	force_trade_panel_fit_to_slots()
+
+	is_building_slots = false
 
 
 func rebuild_inventory_slots_if_needed() -> void:
@@ -1402,35 +1641,128 @@ func add_equipment_section_header(section_label: String) -> void:
 	equipment_vbox.add_child(label)
 
 
+func get_equipment_left_column_slot_names() -> Array:
+	return [
+		"right_hand",
+		"left_hand",
+		"head",
+		"body",
+		"hands",
+		"waist",
+		"feet"
+	]
+
+
+func get_equipment_right_column_slot_names() -> Array:
+	return [
+		"accessory_1",
+		"accessory_2",
+		"accessory_3",
+		"accessory_4"
+	]
+
+
+func get_equipment_two_column_slot_lists(source_order: Array) -> Dictionary:
+	var left_names: Array = get_equipment_left_column_slot_names()
+	var right_names: Array = get_equipment_right_column_slot_names()
+
+	var left_slots: Array = []
+	var right_slots: Array = []
+	var used: Dictionary = {}
+
+	for slot_name in left_names:
+		if source_order.has(slot_name):
+			left_slots.append(slot_name)
+			used[String(slot_name)] = true
+
+	for slot_name in right_names:
+		if source_order.has(slot_name):
+			right_slots.append(slot_name)
+			used[String(slot_name)] = true
+
+	# 未知の装備スロットが将来追加された場合は、消さずに左列へ逃がす。
+	for raw_slot_name in source_order:
+		var slot_name: String = String(raw_slot_name)
+		if used.has(slot_name):
+			continue
+		left_slots.append(slot_name)
+		used[slot_name] = true
+
+	var display_order: Array = []
+	for slot_name in left_slots:
+		display_order.append(slot_name)
+	for slot_name in right_slots:
+		display_order.append(slot_name)
+
+	return {
+		"left": left_slots,
+		"right": right_slots,
+		"order": display_order
+	}
+
+
+func add_equipment_slot_to_column(column: VBoxContainer, slot_name: String) -> void:
+	var slot = slot_scene.instantiate()
+
+	if ui_config != null and slot.has_method("apply_config"):
+		slot.apply_config(
+			ui_config.equipment_slot_size,
+			ui_config.equipment_icon_margin
+		)
+
+	setup_equipment_slot_visual(slot, slot_name)
+
+	if slot is Control:
+		var slot_control: Control = slot as Control
+		slot_control.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		slot_control.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+
+	column.add_child(slot)
+	bind_mouse_input_to_slot(slot, "equipment", equipment_slot_nodes.size())
+	equipment_slot_nodes.append(slot)
+
+
 func build_equipment_slots() -> void:
 	equipment_slot_nodes.clear()
 
 	for child in equipment_vbox.get_children():
 		child.queue_free()
 
+	# 装備欄は2列表示。
+	# 左列: 右手 / 左手 / 頭 / 胴 / 手 / 腰 / 足
+	# 右列: アクセサリー1〜4
 	# 左側のスロット名ラベルと「武器/防具/装飾品」の区切り見出しは表示しない。
-	# 一番上の「装備」タイトルだけを残し、何を装備する枠かは
-	# スロット内の背景画像またはプレースホルダー文字で表示する。
-	for slot_name in equipment_slot_order:
-		var slot = slot_scene.instantiate()
+	var slot_lists: Dictionary = get_equipment_two_column_slot_lists(equipment_slot_order)
+	var left_slots: Array = slot_lists.get("left", [])
+	var right_slots: Array = slot_lists.get("right", [])
+	equipment_slot_order = slot_lists.get("order", [])
 
-		if ui_config != null and slot.has_method("apply_config"):
-			slot.apply_config(
-				ui_config.equipment_slot_size,
-				ui_config.equipment_icon_margin
-			)
+	var columns_row: HBoxContainer = HBoxContainer.new()
+	columns_row.name = "EquipmentSlotColumns"
+	columns_row.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	columns_row.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	columns_row.add_theme_constant_override("separation", max(0, equipment_column_gap))
+	equipment_vbox.add_child(columns_row)
 
-		setup_equipment_slot_visual(slot, String(slot_name))
+	var left_column: VBoxContainer = VBoxContainer.new()
+	left_column.name = "EquipmentLeftColumn"
+	left_column.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	left_column.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	left_column.add_theme_constant_override("separation", max(0, equipment_row_gap))
+	columns_row.add_child(left_column)
 
-		if slot is Control:
-			var slot_control: Control = slot as Control
-			slot_control.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	var right_column: VBoxContainer = VBoxContainer.new()
+	right_column.name = "EquipmentAccessoryColumn"
+	right_column.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	right_column.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	right_column.add_theme_constant_override("separation", max(0, equipment_row_gap))
+	columns_row.add_child(right_column)
 
-		equipment_vbox.add_child(slot)
-		bind_mouse_input_to_slot(slot, "equipment", equipment_slot_nodes.size())
-		equipment_slot_nodes.append(slot)
+	for slot_name in left_slots:
+		add_equipment_slot_to_column(left_column, String(slot_name))
 
-
+	for slot_name in right_slots:
+		add_equipment_slot_to_column(right_column, String(slot_name))
 func _get_hallucination_controller() -> Node:
 	var node: Node = self
 	while node != null:
@@ -1450,6 +1782,7 @@ func _get_display_item_icon(item_id: String) -> Texture2D:
 
 func refresh() -> void:
 	refresh_trade_slots()
+	refresh_hotbar_slots()
 	refresh_inventory_slots()
 	refresh_equipment_slots()
 	refresh_trade_back_button()
@@ -1484,6 +1817,47 @@ func refresh_trade_slots() -> void:
 				slot.set_slot_data("", 0, null)
 
 		slot.set_selected(is_game_cursor_visible() and focus_area == "trade" and i == selected_index)
+
+
+func refresh_hotbar_slots() -> void:
+	if current_inventory == null:
+		return
+
+	if hotbar_slot_grid == null:
+		return
+
+	var items: Array = []
+	if current_inventory.has_method("get_all_hotbar_items"):
+		items = current_inventory.get_all_hotbar_items()
+	else:
+		for i in range(get_hotbar_slot_count()):
+			if current_inventory.has_method("get_hotbar_item_data_at"):
+				items.append(current_inventory.get_hotbar_item_data_at(i))
+			else:
+				items.append({})
+
+	var child_count: int = hotbar_slot_grid.get_child_count()
+
+	for i in range(child_count):
+		var slot = hotbar_slot_grid.get_child(i)
+		if slot == null:
+			continue
+
+		if i < items.size():
+			var entry: Dictionary = items[i]
+			var item_id: String = String(entry.get("item_id", ""))
+			if slot.has_method("set_item_entry"):
+				slot.set_item_entry(entry, _get_display_item_icon(item_id))
+			else:
+				var amount: int = int(entry.get("amount", 0))
+				slot.set_slot_data(item_id, amount, _get_display_item_icon(item_id))
+		else:
+			if slot.has_method("set_item_entry"):
+				slot.set_item_entry({}, null)
+			else:
+				slot.set_slot_data("", 0, null)
+
+		slot.set_selected(is_game_cursor_visible() and focus_area == "hotbar" and i == selected_index)
 
 
 func refresh_inventory_slots() -> void:
@@ -1551,6 +1925,8 @@ func move_selection(dx: int, dy: int) -> void:
 
 	if focus_area == "trade":
 		move_trade_selection(dx, dy)
+	elif focus_area == "hotbar":
+		move_hotbar_selection(dx, dy)
 	elif focus_area == "inventory":
 		move_inventory_selection(dx, dy)
 	elif focus_area == "equipment":
@@ -1563,6 +1939,29 @@ func move_selection(dx: int, dy: int) -> void:
 	hide_tooltip()
 	refresh()
 	restart_tooltip_timer()
+
+
+func move_hotbar_selection(dx: int, dy: int) -> void:
+	var slot_count: int = get_hotbar_slot_count()
+	if slot_count <= 0:
+		focus_area = "inventory"
+		selected_index = clamp(selected_index, 0, max(get_inventory_slot_count() - 1, 0))
+		return
+
+	var columns: int = get_hotbar_slot_columns()
+	if columns <= 0:
+		columns = 1
+
+	var col: int = selected_index % columns
+
+	if dy > 0:
+		focus_area = "inventory"
+		selected_index = clamp(col, 0, max(get_inventory_slot_count() - 1, 0))
+		return
+
+	col += dx
+	col = clamp(col, 0, slot_count - 1)
+	selected_index = col
 
 
 func move_trade_selection(dx: int, dy: int) -> void:
@@ -1637,6 +2036,9 @@ func move_inventory_selection(dx: int, dy: int) -> void:
 	var row_end: int = min(row_start + columns - 1, slot_count - 1)
 	var row_last_col: int = row_end - row_start
 
+	# インベントリ画面内の専用ホットバー欄は廃止したため、
+	# キーボード上移動で hotbar へフォーカスしない。
+
 	if dx < 0 and col == 0 and is_side_mode():
 		focus_area = "trade"
 		selected_index = map_inventory_row_to_trade_index(row)
@@ -1675,7 +2077,31 @@ func move_equipment_selection(dx: int, dy: int) -> void:
 	if slot_count <= 0:
 		return
 
+	selected_index = clamp(selected_index, 0, slot_count - 1)
+
+	var slot_lists: Dictionary = get_equipment_two_column_slot_lists(equipment_slot_order)
+	var left_slots: Array = slot_lists.get("left", [])
+	var right_slots: Array = slot_lists.get("right", [])
+	var current_slot_name: String = String(equipment_slot_order[selected_index])
+
+	var in_right_column: bool = right_slots.has(current_slot_name)
+	var current_column: Array = right_slots if in_right_column else left_slots
+	var current_row: int = current_column.find(current_slot_name)
+	if current_row < 0:
+		current_row = 0
+
 	if dx < 0:
+		if in_right_column:
+			if left_slots.size() <= 0:
+				return
+
+			var left_row: int = clamp(current_row, 0, left_slots.size() - 1)
+			var left_slot_name: String = String(left_slots[left_row])
+			var left_index: int = equipment_slot_order.find(left_slot_name)
+			if left_index >= 0:
+				selected_index = left_index
+			return
+
 		var target_row: int = map_equipment_index_to_inventory_row(selected_index)
 		var columns: int = slot_grid.columns
 		if columns <= 0:
@@ -1689,11 +2115,29 @@ func move_equipment_selection(dx: int, dy: int) -> void:
 		selected_index = inventory_index
 		return
 
-	var new_index: int = selected_index + dy
-	new_index = clamp(new_index, 0, slot_count - 1)
-	selected_index = new_index
+	if dx > 0:
+		if in_right_column:
+			return
 
+		if right_slots.size() <= 0:
+			return
 
+		var right_row: int = clamp(current_row, 0, right_slots.size() - 1)
+		var right_slot_name: String = String(right_slots[right_row])
+		var right_index: int = equipment_slot_order.find(right_slot_name)
+		if right_index >= 0:
+			selected_index = right_index
+		return
+
+	if dy != 0:
+		if current_column.size() <= 0:
+			return
+
+		var next_row: int = clamp(current_row + dy, 0, current_column.size() - 1)
+		var next_slot_name: String = String(current_column[next_row])
+		var next_index: int = equipment_slot_order.find(next_slot_name)
+		if next_index >= 0:
+			selected_index = next_index
 func move_trade_back_selection(dx: int, dy: int) -> void:
 	# TradePanel の戻るボタンは非表示。
 	# 古い focus_area が残っていた場合は inventory へ戻す。
@@ -1859,6 +2303,9 @@ func pick_selected_entry() -> void:
 	if focus_area == "inventory":
 		held_from_index = selected_index
 		current_inventory.clear_slot(selected_index)
+	elif focus_area == "hotbar":
+		held_from_index = selected_index
+		current_inventory.clear_hotbar_slot(selected_index)
 	elif focus_area == "trade":
 		held_from_index = selected_index
 		trade_inventory.clear_slot(selected_index)
@@ -1899,12 +2346,16 @@ func pick_selected_entry_half() -> void:
 	if remaining_amount <= 0:
 		if focus_area == "inventory":
 			current_inventory.clear_slot(selected_index)
+		elif focus_area == "hotbar":
+			current_inventory.clear_hotbar_slot(selected_index)
 		else:
 			trade_inventory.clear_slot(selected_index)
 	else:
 		entry["amount"] = remaining_amount
 		if focus_area == "inventory":
 			current_inventory.set_item_data_at(selected_index, entry)
+		elif focus_area == "hotbar":
+			current_inventory.set_hotbar_item_data_at(selected_index, entry)
 		else:
 			trade_inventory.set_item_data_at(selected_index, entry)
 
@@ -1933,12 +2384,16 @@ func pick_selected_entry_one() -> void:
 		if amount <= 1:
 			if focus_area == "inventory":
 				current_inventory.clear_slot(selected_index)
+			elif focus_area == "hotbar":
+				current_inventory.clear_hotbar_slot(selected_index)
 			else:
 				trade_inventory.clear_slot(selected_index)
 		else:
 			entry["amount"] = amount - 1
 			if focus_area == "inventory":
 				current_inventory.set_item_data_at(selected_index, entry)
+			elif focus_area == "hotbar":
+				current_inventory.set_hotbar_item_data_at(selected_index, entry)
 			else:
 				trade_inventory.set_item_data_at(selected_index, entry)
 
@@ -1956,12 +2411,16 @@ func pick_selected_entry_one() -> void:
 		if amount <= 1:
 			if focus_area == "inventory":
 				current_inventory.clear_slot(selected_index)
+			elif focus_area == "hotbar":
+				current_inventory.clear_hotbar_slot(selected_index)
 			else:
 				trade_inventory.clear_slot(selected_index)
 		else:
 			entry["amount"] = amount - 1
 			if focus_area == "inventory":
 				current_inventory.set_item_data_at(selected_index, entry)
+			elif focus_area == "hotbar":
+				current_inventory.set_hotbar_item_data_at(selected_index, entry)
 			else:
 				trade_inventory.set_item_data_at(selected_index, entry)
 
@@ -1974,6 +2433,8 @@ func pick_selected_entry_one() -> void:
 func drop_held_entry() -> void:
 	if focus_area == "inventory":
 		drop_held_entry_to_inventory(selected_index)
+	elif focus_area == "hotbar":
+		drop_held_entry_to_hotbar(selected_index)
 	elif focus_area == "trade":
 		drop_held_entry_to_trade(selected_index)
 	else:
@@ -1983,6 +2444,8 @@ func drop_held_entry() -> void:
 func drop_held_entry_one() -> void:
 	if focus_area == "inventory":
 		drop_held_entry_one_to_inventory(selected_index)
+	elif focus_area == "hotbar":
+		drop_held_entry_one_to_hotbar(selected_index)
 	elif focus_area == "trade":
 		drop_held_entry_one_to_trade(selected_index)
 	else:
@@ -2129,6 +2592,92 @@ func drop_held_entry_to_inventory(target_index: int) -> void:
 	held_entry = old_target_entry
 	set_held_origin("inventory", target_index, "")
 	update_held_item_preview()
+
+
+func drop_held_entry_one_to_hotbar(target_index: int) -> void:
+	var target_entry: Dictionary = current_inventory.get_hotbar_item_data_at(target_index)
+
+	if is_empty_entry(held_entry):
+		return
+
+	if is_empty_entry(target_entry):
+		drop_partial_held_entry_to_hotbar(target_index, 1)
+		return
+
+	if can_merge_entries(held_entry, target_entry):
+		drop_partial_held_entry_to_hotbar(target_index, 1)
+		return
+
+	drop_held_entry_to_hotbar(target_index)
+
+
+func drop_held_entry_to_hotbar(target_index: int) -> void:
+	var target_entry: Dictionary = current_inventory.get_hotbar_item_data_at(target_index)
+	var source_area_before_swap: String = held_from_area
+	var moved_entry: Dictionary = held_entry.duplicate(true)
+
+	if is_empty_entry(target_entry):
+		if not notify_trade_transfer_if_needed("hotbar", moved_entry, source_area_before_swap):
+			return
+
+		current_inventory.set_hotbar_item_data_at(target_index, movedEntryFix(moved_entry))
+		clear_held_state()
+		return
+
+	if can_merge_entries(held_entry, target_entry):
+		if not notify_trade_transfer_if_needed("hotbar", moved_entry, source_area_before_swap):
+			return
+
+		apply_trade_price_to_entry(target_entry, moved_entry)
+
+		var remaining: int = merge_entries(held_entry, target_entry)
+		current_inventory.set_hotbar_item_data_at(target_index, target_entry)
+
+		if remaining <= 0:
+			clear_held_state()
+		else:
+			held_entry["amount"] = remaining
+		return
+
+	if not notify_trade_transfer_if_needed("hotbar", moved_entry, source_area_before_swap):
+		return
+
+	var old_target_entry: Dictionary = target_entry.duplicate(true)
+	current_inventory.set_hotbar_item_data_at(target_index, moved_entry)
+
+	held_entry = old_target_entry
+	set_held_origin("hotbar", target_index, "")
+	update_held_item_preview()
+
+
+func drop_partial_held_entry_to_hotbar(target_index: int, move_amount: int) -> void:
+	if current_inventory == null:
+		return
+
+	var moved_entry: Dictionary = create_partial_held_entry(move_amount)
+	if moved_entry.is_empty():
+		return
+
+	var source_area_before_swap: String = held_from_area
+	var target_entry: Dictionary = current_inventory.get_hotbar_item_data_at(target_index)
+
+	if is_empty_entry(target_entry):
+		if not notify_trade_transfer_if_needed("hotbar", moved_entry, source_area_before_swap):
+			return
+
+		current_inventory.set_hotbar_item_data_at(target_index, movedEntryFix(moved_entry))
+		consume_held_amount(move_amount)
+		return
+
+	if can_merge_entries(moved_entry, target_entry):
+		if not notify_trade_transfer_if_needed("hotbar", moved_entry, source_area_before_swap):
+			return
+
+		apply_trade_price_to_entry(target_entry, moved_entry)
+		var remaining: int = merge_entries(moved_entry, target_entry)
+		current_inventory.set_hotbar_item_data_at(target_index, target_entry)
+		consume_held_amount(move_amount - remaining)
+		return
 
 
 func drop_held_entry_one_to_trade(target_index: int) -> void:
@@ -2337,13 +2886,13 @@ func notify_trade_transfer_if_needed(target_area: String, moved_entry: Dictionar
 	if ui_mode == UIMode.CHEST:
 		if trade_unit != null:
 			if actual_source_area == "trade":
-				if target_area == "inventory" or target_area == "equipment":
+				if target_area == "inventory" or target_area == "hotbar" or target_area == "equipment":
 					if trade_unit.has_method("can_player_take_item"):
 						if not bool(trade_unit.can_player_take_item(item_id)):
 							notify_message("このチェストからは取り出せない")
 							return false
 
-			if actual_source_area == "inventory" or actual_source_area == "equipment":
+			if actual_source_area == "inventory" or actual_source_area == "hotbar" or actual_source_area == "equipment":
 				if target_area == "trade":
 					if trade_unit.has_method("can_player_put_item"):
 						if not bool(trade_unit.can_player_put_item(item_id)):
@@ -2356,7 +2905,7 @@ func notify_trade_transfer_if_needed(target_area: String, moved_entry: Dictionar
 		return true
 
 	if actual_source_area == "trade":
-		if target_area == "inventory" or target_area == "equipment":
+		if target_area == "inventory" or target_area == "hotbar" or target_area == "equipment":
 			var unit_buy_price: int = get_entry_buy_price(moved_entry)
 			var total_buy_price: int = unit_buy_price * amount
 
@@ -2375,7 +2924,7 @@ func notify_trade_transfer_if_needed(target_area: String, moved_entry: Dictionar
 			refresh()
 			return true
 
-	if actual_source_area == "inventory" or actual_source_area == "equipment":
+	if actual_source_area == "inventory" or actual_source_area == "hotbar" or actual_source_area == "equipment":
 		if target_area == "trade":
 			if not ItemDatabase.can_sell(item_id):
 				notify_message("そのアイテムは売れない")
@@ -2402,9 +2951,104 @@ func notify_trade_transfer_if_needed(target_area: String, moved_entry: Dictionar
 	return true
 
 
+
+# =========================
+# External HUD Hotbar Bridge
+# =========================
+# インベントリ画面内のホットバー欄は作らず、
+# 通常時に表示されているHUDホットバーを直接操作するための入口。
+# GameAndHud から、HUDホットバークリック時に呼ぶ。
+
+func has_held_entry() -> bool:
+	return not held_entry.is_empty()
+
+
+func handle_external_hotbar_slot_pressed(hotbar_index: int) -> bool:
+	if not visible:
+		return false
+
+	if current_inventory == null:
+		return false
+
+	if not current_inventory.has_method("get_hotbar_slot_count"):
+		return false
+
+	var slot_count: int = int(current_inventory.get_hotbar_slot_count())
+	if hotbar_index < 0 or hotbar_index >= slot_count:
+		return false
+
+	enter_mouse_navigation_mode()
+	focus_area = "hotbar"
+	selected_index = hotbar_index
+
+	if held_entry.is_empty():
+		var entry: Dictionary = current_inventory.get_hotbar_item_data_at(hotbar_index)
+		if is_empty_entry(entry):
+			return true
+		pick_selected_entry()
+	else:
+		drop_held_entry_to_hotbar(hotbar_index)
+
+	hide_tooltip()
+	refresh()
+	restart_tooltip_timer()
+	return true
+
+
+func handle_external_hotbar_slot_secondary_pressed(hotbar_index: int) -> bool:
+	if not visible:
+		return false
+
+	if current_inventory == null:
+		return false
+
+	if not current_inventory.has_method("get_hotbar_slot_count"):
+		return false
+
+	var slot_count: int = int(current_inventory.get_hotbar_slot_count())
+	if hotbar_index < 0 or hotbar_index >= slot_count:
+		return false
+
+	enter_mouse_navigation_mode()
+	focus_area = "hotbar"
+	selected_index = hotbar_index
+
+	if held_entry.is_empty():
+		pick_selected_entry_half()
+	else:
+		drop_held_entry_one_to_hotbar(hotbar_index)
+
+	hide_tooltip()
+	refresh()
+	restart_tooltip_timer()
+	return true
+
+
 func restore_held_entry_on_close() -> bool:
 	if held_entry.is_empty():
 		return true
+
+	if held_from_area == "hotbar":
+		if current_inventory.has_method("is_hotbar_slot_empty") and current_inventory.is_hotbar_slot_empty(held_from_index):
+			current_inventory.set_hotbar_item_data_at(held_from_index, held_entry)
+			clear_held_state()
+			return true
+
+		if current_inventory.has_method("find_first_empty_hotbar_slot"):
+			var empty_hotbar_index: int = current_inventory.find_first_empty_hotbar_slot()
+			if empty_hotbar_index >= 0:
+				current_inventory.set_hotbar_item_data_at(empty_hotbar_index, held_entry)
+				clear_held_state()
+				return true
+
+		var empty_inventory_index_for_hotbar: int = current_inventory.find_first_empty_slot()
+		if empty_inventory_index_for_hotbar >= 0:
+			current_inventory.set_item_data_at(empty_inventory_index_for_hotbar, held_entry)
+			clear_held_state()
+			return true
+
+		notify_message("空きスロットがないため閉じられない")
+		return false
 
 	if held_from_area == "inventory":
 		if current_inventory.is_slot_empty(held_from_index):
@@ -2535,6 +3179,9 @@ func get_selected_entry() -> Dictionary:
 	if focus_area == "inventory":
 		return current_inventory.get_item_data_at(selected_index)
 
+	if focus_area == "hotbar":
+		return current_inventory.get_hotbar_item_data_at(selected_index)
+
 	if focus_area == "trade":
 		return trade_inventory.get_item_data_at(selected_index)
 
@@ -2592,7 +3239,7 @@ func use_selected_item() -> void:
 	if ui_mode == UIMode.TRADE or ui_mode == UIMode.CHEST:
 		return
 
-	if focus_area != "inventory":
+	if focus_area != "inventory" and focus_area != "hotbar":
 		return
 
 	if current_inventory == null:
@@ -2601,7 +3248,11 @@ func use_selected_item() -> void:
 	if not held_entry.is_empty():
 		return
 
-	var result: Dictionary = current_inventory.use_item_at(selected_index)
+	var result: Dictionary = {}
+	if focus_area == "hotbar" and current_inventory.has_method("use_hotbar_item_at"):
+		result = current_inventory.use_hotbar_item_at(selected_index)
+	else:
+		result = current_inventory.use_item_at(selected_index)
 
 	if not bool(result.get("success", false)):
 		return

@@ -2,6 +2,15 @@ extends Control
 
 signal inventory_button_pressed
 signal status_button_pressed
+signal hotbar_slot_pressed(hotbar_index: int)
+
+@export var hotbar_slot_size: Vector2 = Vector2(44, 44)
+@export var hotbar_icon_margin: int = 4
+@export var hotbar_slot_gap: int = 0
+@export var hotbar_slot_background_alpha: float = 0.0
+# HotbarArea/PanelContainer の余分な薄灰色背景だけを消す。
+# スロット自体の背景・枠は _apply_hotbar_slot_style() 側で維持する。
+@export var hotbar_outer_background_alpha: float = 0.0
 # HUD action button icons.
 # Inspector から差し込めます。未設定なら各ボタン内の FallbackLabel を表示します。
 @export var icon_inventory_action: Texture2D
@@ -59,8 +68,11 @@ signal status_button_pressed
 
 @onready var effect_bar_area: Control = $CanvasLayer/EffectBarArea
 @onready var effect_bar_container: HBoxContainer = $CanvasLayer/EffectBarArea/EffectBarContainer
+@onready var hotbar_area: Control = get_node_or_null("CanvasLayer/HotbarArea") as Control
+@onready var hotbar_panel_container: PanelContainer = get_node_or_null("CanvasLayer/HotbarArea/PanelContainer") as PanelContainer
 @onready var hotbar_container: HBoxContainer = $CanvasLayer/HotbarArea/PanelContainer/HotbarContainer
 
+@onready var action_buttons_area: Control = get_node_or_null("CanvasLayer/ActionButtonsArea") as Control
 @onready var inventory_action_button: BaseButton = get_node_or_null("CanvasLayer/ActionButtonsArea/ActionButtonContainer/InventoryButton") as BaseButton
 @onready var status_action_button: BaseButton = get_node_or_null("CanvasLayer/ActionButtonsArea/ActionButtonContainer/StatusButton") as BaseButton
 
@@ -88,9 +100,28 @@ var hovered_effect_button: Control = null
 var hovered_effect_tooltip_text: String = ""
 var hovered_effect_key: String = ""
 
+var hotbar_inventory = null
+var hotbar_snapshot_key: String = ""
+var hovered_hotbar_button: Control = null
+var hovered_hotbar_tooltip_text: String = ""
+
+# インベントリを開いている間だけ、HUDホットバーを「収納操作モード」として見せる。
+# 通常時の見た目は変えない。
+var inventory_hotbar_edit_mode: bool = false
+
+# InventoryUI の暗い Overlay は CanvasLayer layer 10 にある。
+# インベントリ表示中も操作できる HUD 要素だけを、それより上の CanvasLayer に一時退避する。
+# これで「操作できるもの」だけがインベントリ本体と同じ明るさで見える。
+var inventory_interaction_layer: CanvasLayer = null
+var hotbar_area_original_parent: Node = null
+var hotbar_area_original_index: int = -1
+var action_buttons_area_original_parent: Node = null
+var action_buttons_area_original_index: int = -1
+
 
 func _ready() -> void:
 	initialize_hud()
+	_setup_inventory_interaction_layer()
 	_setup_action_buttons()
 	_create_effect_tooltip()
 
@@ -108,7 +139,103 @@ func initialize_hud() -> void:
 	update_player_status_area()
 	update_log_display()
 	rebuild_effect_bar()
+	_apply_hotbar_layout()
 	rebuild_hotbar()
+
+
+func _setup_inventory_interaction_layer() -> void:
+	if inventory_interaction_layer != null:
+		return
+
+	inventory_interaction_layer = get_node_or_null("InventoryInteractionLayer") as CanvasLayer
+
+	if inventory_interaction_layer == null:
+		inventory_interaction_layer = CanvasLayer.new()
+		inventory_interaction_layer.name = "InventoryInteractionLayer"
+		add_child(inventory_interaction_layer)
+
+	# InventoryUI.tscn は layer = 10。
+	# それより上に、インベントリ中も操作できるHUDだけを表示する。
+	inventory_interaction_layer.layer = 20
+	inventory_interaction_layer.visible = true
+
+	if hotbar_area != null and hotbar_area_original_parent == null:
+		hotbar_area_original_parent = hotbar_area.get_parent()
+		hotbar_area_original_index = hotbar_area.get_index()
+
+	if action_buttons_area != null and action_buttons_area_original_parent == null:
+		action_buttons_area_original_parent = action_buttons_area.get_parent()
+		action_buttons_area_original_index = action_buttons_area.get_index()
+
+
+func _set_inventory_interactable_brightness_mode(enabled: bool) -> void:
+	_setup_inventory_interaction_layer()
+
+	if enabled:
+		_move_inventory_interactable_nodes_above_inventory()
+	else:
+		_restore_inventory_interactable_nodes_to_hud()
+
+	_force_interactable_hud_brightness()
+
+
+func _move_inventory_interactable_nodes_above_inventory() -> void:
+	if inventory_interaction_layer == null:
+		return
+
+	# ホットバーと開閉/状態ボタンだけを InventoryUI の暗いOverlayより上へ移す。
+	# Time/Log/Minimap など、インベントリ中に操作しないHUDは暗いままでよい。
+	_reparent_runtime_node(action_buttons_area, inventory_interaction_layer, -1)
+	_reparent_runtime_node(hotbar_area, inventory_interaction_layer, -1)
+
+
+func _restore_inventory_interactable_nodes_to_hud() -> void:
+	_reparent_runtime_node(action_buttons_area, action_buttons_area_original_parent, action_buttons_area_original_index)
+	_reparent_runtime_node(hotbar_area, hotbar_area_original_parent, hotbar_area_original_index)
+
+
+func _reparent_runtime_node(node: Node, target_parent: Node, target_index: int = -1) -> void:
+	if node == null:
+		return
+
+	if target_parent == null:
+		return
+
+	if node.get_parent() == target_parent:
+		if target_index >= 0 and target_index < target_parent.get_child_count():
+			target_parent.move_child(node, target_index)
+		return
+
+	var old_parent: Node = node.get_parent()
+	if old_parent != null:
+		old_parent.remove_child(node)
+
+	target_parent.add_child(node)
+
+	if target_index >= 0 and target_index < target_parent.get_child_count():
+		target_parent.move_child(node, target_index)
+
+
+func _force_interactable_hud_brightness() -> void:
+	_force_control_tree_brightness(action_buttons_area)
+	_force_control_tree_brightness(hotbar_area)
+
+
+func _force_control_tree_brightness(node: Node) -> void:
+	if node == null:
+		return
+
+	if node is CanvasItem:
+		var canvas_item: CanvasItem = node as CanvasItem
+		canvas_item.modulate = Color(1.0, 1.0, 1.0, 1.0)
+		canvas_item.self_modulate = Color(1.0, 1.0, 1.0, 1.0)
+
+	if node is BaseButton:
+		var button: BaseButton = node as BaseButton
+		button.disabled = false
+
+	for child in node.get_children():
+		_force_control_tree_brightness(child)
 
 
 func _setup_action_buttons() -> void:
@@ -118,12 +245,34 @@ func _setup_action_buttons() -> void:
 	_connect_action_button(inventory_action_button, Callable(self, "_on_inventory_action_button_pressed"))
 	_connect_action_button(status_action_button, Callable(self, "_on_status_action_button_pressed"))
 
+	if inventory_hotbar_edit_mode:
+		_force_interactable_hud_brightness()
+
+
+func set_inventory_hotbar_edit_mode(enabled: bool) -> void:
+	if inventory_hotbar_edit_mode == enabled:
+		return
+
+	inventory_hotbar_edit_mode = enabled
+	_set_inventory_interactable_brightness_mode(enabled)
+
+	# 見た目だけを切り替える。通常時は以前のスタイルに戻す。
+	_setup_action_buttons()
+	rebuild_hotbar()
+
+
+func is_inventory_hotbar_edit_mode() -> bool:
+	return inventory_hotbar_edit_mode
+
 
 func _setup_action_icon_button(button: BaseButton, icon: Texture2D, fallback_text: String, tooltip_text: String) -> void:
 	if button == null:
 		return
 
 	button.focus_mode = Control.FOCUS_NONE
+	button.disabled = false
+	button.modulate = Color(1.0, 1.0, 1.0, 1.0)
+	button.self_modulate = Color(1.0, 1.0, 1.0, 1.0)
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	button.custom_minimum_size = Vector2(28, 28)
 	button.tooltip_text = tooltip_text
@@ -160,8 +309,8 @@ func _setup_action_icon_button(button: BaseButton, icon: Texture2D, fallback_tex
 		else:
 			normal_button.icon = null
 			normal_button.text = fallback_text
-			normal_button.flat = false
 			normal_button.add_theme_font_size_override("font_size", 13)
+			normal_button.flat = false
 			_apply_action_fallback_icon_style(normal_button)
 
 		_update_action_button_fallback_label(button, fallback_text, false)
@@ -238,6 +387,52 @@ func _apply_clear_button_style(button: Button) -> void:
 	button.add_theme_stylebox_override("hover", clear_style)
 	button.add_theme_stylebox_override("pressed", clear_style)
 	button.add_theme_stylebox_override("focus", clear_style)
+
+
+func _make_inventory_mode_clear_stylebox() -> StyleBoxFlat:
+	var clear_style: StyleBoxFlat = StyleBoxFlat.new()
+	clear_style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
+	clear_style.border_width_left = 0
+	clear_style.border_width_top = 0
+	clear_style.border_width_right = 0
+	clear_style.border_width_bottom = 0
+	return clear_style
+
+
+func _apply_inventory_mode_clear_button_style(button: Button) -> void:
+	if button == null:
+		return
+
+	button.flat = true
+	button.disabled = false
+	button.modulate = Color(1.0, 1.0, 1.0, 1.0)
+	button.self_modulate = Color(1.0, 1.0, 1.0, 1.0)
+
+	var clear_style: StyleBoxFlat = _make_inventory_mode_clear_stylebox()
+	var hover_style: StyleBoxFlat = clear_style.duplicate()
+	hover_style.bg_color = Color(1.0, 1.0, 1.0, 0.06)
+
+	var pressed_style: StyleBoxFlat = clear_style.duplicate()
+	pressed_style.bg_color = Color(1.0, 1.0, 1.0, 0.10)
+
+	button.add_theme_stylebox_override("normal", clear_style)
+	button.add_theme_stylebox_override("hover", hover_style)
+	button.add_theme_stylebox_override("pressed", pressed_style)
+	button.add_theme_stylebox_override("focus", hover_style)
+	button.add_theme_stylebox_override("disabled", clear_style)
+
+	var font_color: Color = Color(1.0, 1.0, 1.0, 1.0)
+	button.add_theme_color_override("font_color", font_color)
+	button.add_theme_color_override("font_hover_color", font_color)
+	button.add_theme_color_override("font_pressed_color", font_color)
+	button.add_theme_color_override("font_focus_color", font_color)
+	button.add_theme_color_override("font_disabled_color", font_color)
+
+
+func _apply_inventory_mode_action_button_style(button: Button) -> void:
+	# インベントリ表示中だけ、開閉ボタンが disabled/灰色に見えないようにする。
+	# 通常時のスタイルは _apply_action_fallback_icon_style() 側に任せる。
+	_apply_inventory_mode_clear_button_style(button)
 
 
 func _connect_action_button(button: BaseButton, callback: Callable) -> void:
@@ -473,25 +668,329 @@ func rebuild_effect_bar() -> void:
 		_hide_effect_tooltip()
 
 
+func set_hotbar_inventory(inventory) -> void:
+	# Hotbar は Inventory.hotbar_items を表示する。
+	# 通常インベントリ items の先頭9スロットではない。
+	hotbar_inventory = inventory
+	refresh_hotbar_if_changed()
+
+
+func refresh_hotbar_if_changed() -> void:
+	var next_snapshot_key: String = _build_hotbar_snapshot_key()
+
+	if next_snapshot_key == hotbar_snapshot_key:
+		return
+
+	hotbar_snapshot_key = next_snapshot_key
+	rebuild_hotbar()
+
+
 func rebuild_hotbar() -> void:
+	_apply_hotbar_layout()
+
 	if hotbar_container == null:
 		return
 
 	for child in hotbar_container.get_children():
 		child.queue_free()
 
-	for i in range(9):
-		var slot_panel: PanelContainer = PanelContainer.new()
-		slot_panel.custom_minimum_size = Vector2(44, 44)
+	var slot_count: int = get_hotbar_slot_count()
 
-		var slot_label: Label = Label.new()
-		slot_label.text = str(i + 1)
-		slot_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		slot_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		slot_panel.add_child(slot_label)
+	for i in range(slot_count):
+		var entry: Dictionary = _get_hotbar_inventory_entry(i)
+		var slot_button: Button = _create_hotbar_slot_button(i, entry)
+		hotbar_container.add_child(slot_button)
 
-		hotbar_container.add_child(slot_panel)
+	if inventory_hotbar_edit_mode:
+		_force_interactable_hud_brightness()
 
+
+func refresh_hotbar() -> void:
+	hotbar_snapshot_key = ""
+	rebuild_hotbar()
+
+
+func get_hotbar_slot_count() -> int:
+	if hotbar_inventory != null and hotbar_inventory.has_method("get_hotbar_slot_count"):
+		return max(1, int(hotbar_inventory.get_hotbar_slot_count()))
+
+	if hotbar_inventory != null and "hotbar_slot_count" in hotbar_inventory:
+		return max(1, int(hotbar_inventory.hotbar_slot_count))
+
+	return 9
+
+
+func _build_hotbar_snapshot_key() -> String:
+	var parts: Array[String] = []
+	var slot_count: int = get_hotbar_slot_count()
+	parts.append(str(slot_count))
+
+	for i in range(slot_count):
+		var entry: Dictionary = _get_hotbar_inventory_entry(i)
+		var item_id: String = String(entry.get("item_id", ""))
+		var amount: int = int(entry.get("amount", 0))
+		var instance_data: String = ""
+
+		if entry.has("instance_data"):
+			instance_data = str(entry.get("instance_data"))
+
+		parts.append("%d:%s:%d:%s" % [i, item_id, amount, instance_data])
+
+	return "|".join(parts)
+
+
+func _get_hotbar_inventory_entry(hotbar_index: int) -> Dictionary:
+	if hotbar_inventory == null:
+		return {}
+
+	if hotbar_inventory.has_method("get_hotbar_item_data_at"):
+		var entry: Dictionary = hotbar_inventory.get_hotbar_item_data_at(hotbar_index)
+		return entry.duplicate(true)
+
+	if "hotbar_items" in hotbar_inventory:
+		var items: Array = hotbar_inventory.hotbar_items
+		if hotbar_index >= 0 and hotbar_index < items.size():
+			var raw_entry: Variant = items[hotbar_index]
+			if typeof(raw_entry) == TYPE_DICTIONARY:
+				return (raw_entry as Dictionary).duplicate(true)
+
+	return {}
+
+
+func _apply_hotbar_layout() -> void:
+	if hotbar_container != null:
+		hotbar_container.add_theme_constant_override("separation", max(0, hotbar_slot_gap))
+		hotbar_container.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		hotbar_container.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+
+	# HotbarArea/PanelContainer に付いている余分な薄灰色背景だけを消す。
+	# 各ホットバースロットの背景・枠は通常通り残す。
+	_apply_hotbar_outer_background_style()
+
+
+func _apply_hotbar_outer_background_style() -> void:
+	if hotbar_panel_container == null:
+		return
+
+	var style: StyleBoxFlat = StyleBoxFlat.new()
+	style.bg_color = Color(0.0, 0.0, 0.0, clamp(hotbar_outer_background_alpha, 0.0, 1.0))
+	style.border_width_left = 0
+	style.border_width_top = 0
+	style.border_width_right = 0
+	style.border_width_bottom = 0
+	style.content_margin_left = 0.0
+	style.content_margin_top = 0.0
+	style.content_margin_right = 0.0
+	style.content_margin_bottom = 0.0
+
+	hotbar_panel_container.add_theme_stylebox_override("panel", style)
+	hotbar_panel_container.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	hotbar_panel_container.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+
+
+func _create_hotbar_slot_button(display_index: int, entry: Dictionary) -> Button:
+	var slot_button: Button = Button.new()
+	slot_button.custom_minimum_size = hotbar_slot_size
+	slot_button.focus_mode = Control.FOCUS_NONE
+	slot_button.disabled = false
+	slot_button.modulate = Color(1.0, 1.0, 1.0, 1.0)
+	slot_button.self_modulate = Color(1.0, 1.0, 1.0, 1.0)
+	slot_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	slot_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	slot_button.clip_contents = true
+	slot_button.set_meta("hotbar_index", display_index)
+
+	_apply_hotbar_slot_style(slot_button)
+
+	var item_id: String = String(entry.get("item_id", ""))
+	var amount: int = int(entry.get("amount", 0))
+	var has_item: bool = item_id != "" and amount > 0
+
+	if has_item:
+		var texture: Texture2D = ItemDatabase.get_item_icon(item_id)
+		if texture != null:
+			var icon_rect: TextureRect = TextureRect.new()
+			icon_rect.texture = texture
+			icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			icon_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+			icon_rect.offset_left = float(hotbar_icon_margin)
+			icon_rect.offset_top = float(hotbar_icon_margin)
+			icon_rect.offset_right = -float(hotbar_icon_margin)
+			icon_rect.offset_bottom = -float(hotbar_icon_margin)
+			slot_button.add_child(icon_rect)
+		else:
+			slot_button.text = _build_hotbar_fallback_item_text(item_id)
+	else:
+		slot_button.text = str(display_index + 1)
+
+	if has_item and amount > 1:
+		var amount_label: Label = Label.new()
+		amount_label.text = "x%d" % amount
+		amount_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		amount_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+		amount_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		amount_label.add_theme_font_size_override("font_size", 11)
+		amount_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+		amount_label.offset_left = 0.0
+		amount_label.offset_top = 0.0
+		amount_label.offset_right = -3.0
+		amount_label.offset_bottom = -1.0
+		slot_button.add_child(amount_label)
+
+	var tooltip_text: String = _build_hotbar_tooltip_text(display_index, entry)
+	slot_button.mouse_entered.connect(_on_hotbar_slot_mouse_entered.bind(slot_button, tooltip_text))
+	slot_button.mouse_exited.connect(_on_hotbar_slot_mouse_exited.bind(slot_button))
+	slot_button.gui_input.connect(_on_hotbar_slot_gui_input.bind(slot_button, tooltip_text))
+	slot_button.pressed.connect(_on_hotbar_slot_pressed.bind(display_index))
+
+	return slot_button
+
+
+func _apply_inventory_mode_hotbar_slot_style(button: Button) -> void:
+	if button == null:
+		return
+
+	button.flat = true
+	button.disabled = false
+	button.modulate = Color(1.0, 1.0, 1.0, 1.0)
+	button.self_modulate = Color(1.0, 1.0, 1.0, 1.0)
+
+	var normal_style: StyleBoxFlat = StyleBoxFlat.new()
+	normal_style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
+	normal_style.border_width_left = 1
+	normal_style.border_width_top = 1
+	normal_style.border_width_right = 1
+	normal_style.border_width_bottom = 1
+	normal_style.border_color = Color(1.0, 1.0, 1.0, 0.25)
+	normal_style.corner_radius_top_left = 3
+	normal_style.corner_radius_top_right = 3
+	normal_style.corner_radius_bottom_left = 3
+	normal_style.corner_radius_bottom_right = 3
+
+	var hover_style: StyleBoxFlat = normal_style.duplicate()
+	hover_style.bg_color = Color(1.0, 1.0, 1.0, 0.06)
+	hover_style.border_color = Color(1.0, 0.9, 0.35, 1.0)
+
+	var pressed_style: StyleBoxFlat = normal_style.duplicate()
+	pressed_style.bg_color = Color(1.0, 1.0, 1.0, 0.10)
+	pressed_style.border_color = Color(1.0, 0.9, 0.35, 1.0)
+
+	button.add_theme_stylebox_override("normal", normal_style)
+	button.add_theme_stylebox_override("hover", hover_style)
+	button.add_theme_stylebox_override("pressed", pressed_style)
+	button.add_theme_stylebox_override("focus", hover_style)
+	button.add_theme_stylebox_override("disabled", normal_style)
+
+	var font_color: Color = Color(1.0, 1.0, 1.0, 0.95)
+	button.add_theme_color_override("font_color", font_color)
+	button.add_theme_color_override("font_hover_color", font_color)
+	button.add_theme_color_override("font_pressed_color", font_color)
+	button.add_theme_color_override("font_focus_color", font_color)
+	button.add_theme_color_override("font_disabled_color", font_color)
+	button.add_theme_font_size_override("font_size", 13)
+
+
+func _apply_hotbar_slot_style(button: Button) -> void:
+	# インベントリ表示中も通常時と同じ見た目を維持する。
+	# 操作可能にするため disabled=false / modulate=白は維持するが、
+	# 背景や枠のStyleBoxは通常時と同じものを使う。
+	var normal_style: StyleBoxFlat = StyleBoxFlat.new()
+	normal_style.bg_color = Color(0.0, 0.0, 0.0, clamp(hotbar_slot_background_alpha, 0.0, 1.0))
+	normal_style.border_width_left = 1
+	normal_style.border_width_top = 1
+	normal_style.border_width_right = 1
+	normal_style.border_width_bottom = 1
+	normal_style.border_color = Color(0.45, 0.45, 0.45, 0.55)
+	normal_style.corner_radius_top_left = 3
+	normal_style.corner_radius_top_right = 3
+	normal_style.corner_radius_bottom_left = 3
+	normal_style.corner_radius_bottom_right = 3
+
+	var hover_style: StyleBoxFlat = normal_style.duplicate()
+	hover_style.bg_color = Color(1.0, 1.0, 1.0, 0.06)
+	hover_style.border_color = Color(1.0, 0.9, 0.35, 1.0)
+
+	var pressed_style: StyleBoxFlat = normal_style.duplicate()
+	pressed_style.bg_color = Color(1.0, 1.0, 1.0, 0.10)
+	pressed_style.border_color = Color(1.0, 0.9, 0.35, 1.0)
+
+	button.add_theme_stylebox_override("normal", normal_style)
+	button.add_theme_stylebox_override("hover", hover_style)
+	button.add_theme_stylebox_override("pressed", pressed_style)
+	button.add_theme_stylebox_override("focus", hover_style)
+	button.add_theme_font_size_override("font_size", 13)
+
+func _build_hotbar_fallback_item_text(item_id: String) -> String:
+	var display_name: String = ItemDatabase.get_display_name(item_id)
+	if display_name == "":
+		return "?"
+
+	if display_name.length() >= 2:
+		return display_name.substr(0, 2)
+
+	return display_name
+
+
+func _build_hotbar_tooltip_text(_display_index: int, entry: Dictionary) -> String:
+	var item_id: String = String(entry.get("item_id", ""))
+	var amount: int = int(entry.get("amount", 0))
+
+	# 空のホットバーにはホバー表示を出さない。
+	if item_id == "" or amount <= 0:
+		return ""
+
+	var lines: Array[String] = []
+	var display_name: String = ItemDatabase.get_display_name(item_id)
+	if display_name != "":
+		lines.append(display_name)
+	else:
+		lines.append(item_id)
+
+	var description: String = ItemDatabase.get_description(item_id)
+	if description != "":
+		lines.append(description)
+
+	if amount > 1:
+		lines.append("所持数: %d" % amount)
+
+	return "\n".join(lines)
+
+func _on_hotbar_slot_pressed(hotbar_index: int) -> void:
+	hotbar_slot_pressed.emit(hotbar_index)
+
+
+func _on_hotbar_slot_mouse_entered(button: Control, tooltip_text: String) -> void:
+	if tooltip_text == "":
+		hovered_hotbar_button = null
+		hovered_hotbar_tooltip_text = ""
+		_hide_effect_tooltip()
+		return
+
+	hovered_hotbar_button = button
+	hovered_hotbar_tooltip_text = tooltip_text
+	_show_effect_tooltip(tooltip_text)
+
+
+func _on_hotbar_slot_mouse_exited(button: Control) -> void:
+	if hovered_hotbar_button == button:
+		hovered_hotbar_button = null
+		hovered_hotbar_tooltip_text = ""
+		_hide_effect_tooltip()
+
+
+func _on_hotbar_slot_gui_input(event: InputEvent, button: Control, tooltip_text: String) -> void:
+	if event is InputEventMouseMotion:
+		if tooltip_text == "":
+			hovered_hotbar_button = null
+			hovered_hotbar_tooltip_text = ""
+			_hide_effect_tooltip()
+			return
+
+		hovered_hotbar_button = button
+		hovered_hotbar_tooltip_text = tooltip_text
+		_show_effect_tooltip(tooltip_text)
 
 func _build_effect_icon_text(entry: Dictionary) -> String:
 	var icon_text: String = String(entry.get("icon_text", ""))
@@ -668,18 +1167,33 @@ func _on_effect_icon_gui_input(event: InputEvent, button: Control, effect_toolti
 
 
 func _update_effect_tooltip_hover_state() -> void:
-	if hovered_effect_key == "":
+	if tooltip_panel == null:
 		return
 
-	if hovered_effect_button == null or not is_instance_valid(hovered_effect_button):
-		var restored_button: Control = _find_effect_button_by_hover_key(hovered_effect_key)
-		if restored_button == null:
-			hovered_effect_key = ""
-			hovered_effect_tooltip_text = ""
-			_hide_effect_tooltip()
+	if hovered_hotbar_button != null and is_instance_valid(hovered_hotbar_button):
+		var hotbar_mouse_pos: Vector2 = get_viewport().get_mouse_position()
+		var hotbar_rect: Rect2 = hovered_hotbar_button.get_global_rect()
+
+		if hotbar_rect.has_point(hotbar_mouse_pos):
+			if hovered_hotbar_tooltip_text != "":
+				_show_effect_tooltip(hovered_hotbar_tooltip_text)
+			else:
+				_hide_effect_tooltip()
 			return
 
-		hovered_effect_button = restored_button
+		hovered_hotbar_button = null
+		hovered_hotbar_tooltip_text = ""
+
+	if hovered_effect_button == null:
+		_hide_effect_tooltip()
+		return
+
+	if not is_instance_valid(hovered_effect_button):
+		hovered_effect_button = null
+		hovered_effect_tooltip_text = ""
+		hovered_effect_key = ""
+		_hide_effect_tooltip()
+		return
 
 	var mouse_pos: Vector2 = get_viewport().get_mouse_position()
 	var rect: Rect2 = hovered_effect_button.get_global_rect()
@@ -696,9 +1210,12 @@ func _update_effect_tooltip_hover_state() -> void:
 	hovered_effect_key = ""
 	_hide_effect_tooltip()
 
-
 func _show_effect_tooltip(effect_tooltip_text: String) -> void:
 	if tooltip_panel == null or tooltip_label == null:
+		return
+
+	if effect_tooltip_text == "":
+		_hide_effect_tooltip()
 		return
 
 	tooltip_label.text = effect_tooltip_text

@@ -10,6 +10,7 @@ var trade_return_context: Dictionary = {}
 
 var hud_refresh_interval: float = 0.2
 var hud_refresh_timer: float = 0.0
+var last_hud_inventory_edit_mode: bool = false
 
 # =========================================================
 # blind / hallucination visual settings
@@ -41,6 +42,7 @@ func _ready() -> void:
 
 	load_map_by_path("res://scenes/field_map.tscn")
 	refresh_hud()
+	_sync_hud_inventory_edit_mode(true)
 
 	if status_ui != null:
 		if status_ui.has_method("close_ui"):
@@ -53,6 +55,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_update_world_status_visuals(delta)
+	_sync_hud_inventory_edit_mode(false)
 
 	hud_refresh_timer += delta
 	if hud_refresh_timer < hud_refresh_interval:
@@ -62,6 +65,7 @@ func _process(delta: float) -> void:
 	update_hud_time()
 	update_hud_player_status()
 	update_hud_effects()
+	update_hud_hotbar()
 
 
 func _connect_hud_action_buttons() -> void:
@@ -78,6 +82,26 @@ func _connect_hud_action_buttons() -> void:
 		if not game_hud.status_button_pressed.is_connected(status_callable):
 			game_hud.status_button_pressed.connect(status_callable)
 
+	if game_hud.has_signal("hotbar_slot_pressed"):
+		var hotbar_callable: Callable = Callable(self, "_on_game_hud_hotbar_slot_pressed")
+		if not game_hud.hotbar_slot_pressed.is_connected(hotbar_callable):
+			game_hud.hotbar_slot_pressed.connect(hotbar_callable)
+
+
+func _sync_hud_inventory_edit_mode(force: bool = false) -> void:
+	var enabled: bool = inventory_ui != null and inventory_ui.visible
+
+	if not force and enabled == last_hud_inventory_edit_mode:
+		return
+
+	last_hud_inventory_edit_mode = enabled
+
+	if game_hud == null:
+		return
+
+	if game_hud.has_method("set_inventory_hotbar_edit_mode"):
+		game_hud.set_inventory_hotbar_edit_mode(enabled)
+
 
 func _on_hud_inventory_button_pressed() -> void:
 	toggle_inventory_ui()
@@ -85,6 +109,80 @@ func _on_hud_inventory_button_pressed() -> void:
 
 func _on_hud_status_button_pressed() -> void:
 	toggle_status_ui()
+
+
+func update_hud_hotbar() -> void:
+	if game_hud == null:
+		return
+
+	if not game_hud.has_method("set_hotbar_inventory"):
+		return
+
+	var player = find_player()
+	if player == null:
+		game_hud.set_hotbar_inventory(null)
+		return
+
+	if player.inventory == null:
+		game_hud.set_hotbar_inventory(null)
+		return
+
+	game_hud.set_hotbar_inventory(player.inventory)
+
+
+func _on_game_hud_hotbar_slot_pressed(hotbar_index: int) -> void:
+	# インベントリを開いている間は、HUDホットバーを収納スロットとして直接操作する。
+	# 左クリック: 持つ / 置く / 交換
+	if inventory_ui != null and inventory_ui.visible:
+		if inventory_ui.has_method("handle_external_hotbar_slot_pressed"):
+			if inventory_ui.handle_external_hotbar_slot_pressed(hotbar_index):
+				refresh_hud()
+				_refresh_inventory_ui_if_possible()
+				return
+
+	var player = find_player()
+	if player == null:
+		return
+
+	if player.inventory == null:
+		return
+
+	if not player.inventory.has_method("use_hotbar_item_at"):
+		return
+
+	var result: Dictionary = player.inventory.use_hotbar_item_at(hotbar_index)
+	var message: String = String(result.get("message", ""))
+	if message != "":
+		add_hud_log(message)
+
+	if bool(result.get("success", false)):
+		refresh_hud()
+		_refresh_inventory_ui_if_possible()
+
+
+func _refresh_inventory_ui_if_possible() -> void:
+	if inventory_ui == null:
+		return
+
+	if inventory_ui.has_method("refresh"):
+		inventory_ui.refresh()
+		return
+
+	if inventory_ui.has_method("refresh_inventory"):
+		inventory_ui.refresh_inventory()
+		return
+
+	if inventory_ui.has_method("refresh_all_slots"):
+		inventory_ui.refresh_all_slots()
+		return
+
+	if inventory_ui.has_method("rebuild_slots"):
+		inventory_ui.rebuild_slots()
+		return
+
+	if inventory_ui.has_method("redraw"):
+		inventory_ui.redraw()
+		return
 
 
 func load_map_by_path(scene_path: String) -> void:
@@ -124,6 +222,7 @@ func refresh_hud() -> void:
 	update_hud_time()
 	update_hud_player_status()
 	update_hud_effects()
+	update_hud_hotbar()
 
 
 func update_hud_time() -> void:
@@ -1330,6 +1429,17 @@ func toggle_inventory_ui() -> void:
 		print("inventory_ui is null")
 		return
 
+	# HUDの所持品ボタン/キーボード操作をトグル化する。
+	# インベントリを開いている状態で押した場合は閉じる。
+	# Trade/Chest中でも、閉じる処理はInventoryUI側に任せる。
+	if inventory_ui.visible:
+		if inventory_ui.has_method("close_inventory"):
+			inventory_ui.close_inventory()
+		else:
+			inventory_ui.hide()
+		_sync_hud_inventory_edit_mode(true)
+		return
+
 	if is_status_open():
 		return
 
@@ -1352,6 +1462,7 @@ func toggle_inventory_ui() -> void:
 
 	print("OPEN INVENTORY", player.inventory.get_all_items())
 	inventory_ui.toggle_with_inventory(player.inventory)
+	_sync_hud_inventory_edit_mode(true)
 
 
 func is_inventory_open() -> bool:
@@ -1397,6 +1508,7 @@ func open_trade_ui(player_unit, merchant_unit, return_context: Dictionary = {}) 
 			merchant_unit.inventory,
 			merchant_unit
 		)
+		_sync_hud_inventory_edit_mode(true)
 	else:
 		push_error("InventoryUI に open_trade_mode() がありません")
 
@@ -1411,6 +1523,7 @@ func close_trade_ui() -> void:
 
 	if inventory_ui.has_method("close_inventory"):
 		inventory_ui.close_inventory()
+		_sync_hud_inventory_edit_mode(true)
 
 
 func is_trade_ui_open() -> bool:
