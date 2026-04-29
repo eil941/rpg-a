@@ -49,6 +49,19 @@ const SIZE_SHRINK_BEGIN_VALUE: int = 0
 @export var tooltip_delay: float = 0.5
 @export var hold_repeat_initial_delay: float = 0.35
 @export var hold_repeat_interval: float = 0.08
+@export var allow_world_drop_from_inventory_ui: bool = true
+@export var allow_world_drop_from_shop_trade_items: bool = false
+@export var world_drop_search_radius: int = 5
+
+# マウスで持ち上げたアイテムの表示。
+# スロット位置ではなくマウスポインタに追従させる。
+@export var held_item_preview_follow_mouse: bool = true
+@export var held_item_preview_smooth_speed: float = 28.0
+@export var held_item_preview_mouse_offset: Vector2 = Vector2.ZERO
+@export var held_item_preview_center_on_mouse: bool = true
+@export var held_item_preview_snap_to_mouse_center: bool = true
+@export var held_item_preview_clamp_to_viewport: bool = true
+
 
 # インベントリ/取引グリッドをコンパクト表示する設定。
 # スロット間隔を0にし、Panelの固定最小サイズを使わず、スロット数に合わせて枠を縮める。
@@ -129,6 +142,9 @@ var hotbar_panel: PanelContainer = null
 var hotbar_slot_grid: GridContainer = null
 var hotbar_title_label: Label = null
 
+var held_item_preview_position_initialized: bool = false
+var held_item_preview_target_global_position: Vector2 = Vector2.ZERO
+
 
 func _ready() -> void:
 	layer = 10
@@ -158,6 +174,7 @@ func _ready() -> void:
 	held_item_preview.hide()
 	ensure_mouse_passthrough_for_float_panels()
 	setup_inventory_overlay_mouse_passthrough()
+	setup_world_drop_frame_input()
 	setup_close_button()
 	ensure_hotbar_ui_nodes()
 	apply_compact_inventory_layout()
@@ -227,6 +244,64 @@ func setup_inventory_overlay_mouse_passthrough() -> void:
 	for node in stop_nodes:
 		if node is Control:
 			(node as Control).mouse_filter = Control.MOUSE_FILTER_STOP
+
+
+func setup_world_drop_frame_input() -> void:
+	# スロット・ホットバー・装備欄など「置ける枠」以外の、
+	# Inventory/Trade/Equipment パネル本体にもドロップ判定を持たせる。
+	# これにより、枠部分までマウスで持ち上げたアイテムを表示しながら、
+	# 左クリックでワールドへ捨てられる。
+	var nodes: Array[Node] = [
+		inventory_panel,
+		inventory_margin,
+		equipment_panel,
+		equipment_margin,
+		trade_panel,
+		trade_margin,
+		inventory_bg,
+		equipment_bg,
+		trade_bg
+	]
+
+	for node in nodes:
+		if not (node is Control):
+			continue
+
+		var control: Control = node as Control
+		control.mouse_filter = Control.MOUSE_FILTER_STOP
+
+		var callable: Callable = Callable(self, "_on_world_drop_frame_gui_input")
+		if not control.gui_input.is_connected(callable):
+			control.gui_input.connect(callable)
+
+
+func _on_world_drop_frame_gui_input(event: InputEvent) -> void:
+	if not visible:
+		return
+
+	if held_entry.is_empty():
+		return
+
+	if is_failed_quest_dialog_locked():
+		return
+
+	if not (event is InputEventMouseButton):
+		return
+
+	var mouse_event: InputEventMouseButton = event as InputEventMouseButton
+	if not mouse_event.pressed:
+		return
+
+	if mouse_event.button_index == MOUSE_BUTTON_LEFT:
+		if try_drop_held_entry_to_world():
+			get_viewport().set_input_as_handled()
+		return
+
+	if mouse_event.button_index == MOUSE_BUTTON_RIGHT:
+		if try_drop_held_entry_one_to_world():
+			get_viewport().set_input_as_handled()
+		return
+
 
 func apply_transparent_panel_style(panel: PanelContainer) -> void:
 	if panel == null:
@@ -741,6 +816,128 @@ func _input(event: InputEvent) -> void:
 		return
 
 
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible:
+		return
+
+	if held_entry.is_empty():
+		return
+
+	if is_failed_quest_dialog_locked():
+		return
+
+	if not (event is InputEventMouseButton):
+		return
+
+	var mouse_event: InputEventMouseButton = event as InputEventMouseButton
+	if not mouse_event.pressed:
+		return
+
+	if mouse_event.button_index == MOUSE_BUTTON_LEFT:
+		if try_drop_held_entry_to_world():
+			get_viewport().set_input_as_handled()
+		return
+
+	if mouse_event.button_index == MOUSE_BUTTON_RIGHT:
+		if try_drop_held_entry_one_to_world():
+			get_viewport().set_input_as_handled()
+		return
+
+
+func try_drop_held_entry_one_to_world() -> bool:
+	return try_drop_partial_held_entry_to_world(1)
+
+
+func try_drop_partial_held_entry_to_world(drop_amount: int) -> bool:
+	if held_entry.is_empty():
+		return false
+
+	if drop_amount <= 0:
+		return false
+
+	if not allow_world_drop_from_inventory_ui:
+		return false
+
+	# ショップの相手側アイテムは、支払い前に外へ捨てられると破綻するので禁止。
+	# チェストモードの trade 側は「箱の中身」なので許可する。
+	if ui_mode == UIMode.TRADE and held_from_area == "trade" and not allow_world_drop_from_shop_trade_items:
+		notify_message("売買中の相手側アイテムはその場に捨てられない")
+		return true
+
+	if current_unit == null:
+		notify_message("捨てる対象のUnitが見つからない")
+		return true
+
+	var held_amount: int = int(held_entry.get("amount", 0))
+	if held_amount <= 0:
+		return false
+
+	var actual_drop_amount: int = min(drop_amount, held_amount)
+	var dropped_entry: Dictionary = held_entry.duplicate(true)
+	dropped_entry["amount"] = actual_drop_amount
+
+	if not ItemDropHelper.drop_entry_near_unit(dropped_entry, current_unit, world_drop_search_radius):
+		notify_message("ここには捨てられない")
+		return true
+
+	var item_id: String = String(dropped_entry.get("item_id", ""))
+	var display_name: String = ItemDatabase.get_display_name(item_id)
+	if display_name == "":
+		display_name = item_id
+
+	if actual_drop_amount > 1:
+		notify_message("%s x%d を捨てた" % [display_name, actual_drop_amount])
+	else:
+		notify_message("%s を1個捨てた" % display_name)
+
+	consume_held_amount(actual_drop_amount)
+	update_held_item_preview()
+	hide_tooltip()
+	refresh()
+	refresh_status_ui()
+	return true
+
+
+func try_drop_held_entry_to_world() -> bool:
+	if held_entry.is_empty():
+		return false
+
+	if not allow_world_drop_from_inventory_ui:
+		return false
+
+	# ショップの相手側アイテムは、支払い前に外へ捨てられると破綻するので禁止。
+	# チェストモードの trade 側は「箱の中身」なので許可する。
+	if ui_mode == UIMode.TRADE and held_from_area == "trade" and not allow_world_drop_from_shop_trade_items:
+		notify_message("売買中の相手側アイテムはその場に捨てられない")
+		return true
+
+	if current_unit == null:
+		notify_message("捨てる対象のUnitが見つからない")
+		return true
+
+	var dropped_entry: Dictionary = held_entry.duplicate(true)
+	if not ItemDropHelper.drop_entry_near_unit(dropped_entry, current_unit, world_drop_search_radius):
+		notify_message("ここには捨てられない")
+		return true
+
+	var item_id: String = String(dropped_entry.get("item_id", ""))
+	var amount: int = int(dropped_entry.get("amount", 0))
+	var display_name: String = ItemDatabase.get_display_name(item_id)
+	if display_name == "":
+		display_name = item_id
+
+	if amount > 1:
+		notify_message("%s x%d を捨てた" % [display_name, amount])
+	else:
+		notify_message("%s を捨てた" % display_name)
+
+	clear_held_state()
+	update_held_item_preview()
+	hide_tooltip()
+	refresh()
+	refresh_status_ui()
+	return true
 func _process(delta: float) -> void:
 	if is_failed_quest_dialog_locked():
 		stop_hold_repeat()
@@ -750,6 +947,7 @@ func _process(delta: float) -> void:
 
 	if visible:
 		refresh()
+		update_held_item_preview_motion(delta)
 
 	if hold_repeat_action == &"":
 		return
@@ -3539,12 +3737,14 @@ func update_held_item_preview() -> void:
 		if enchant_overlay != null:
 			enchant_overlay.visible = false
 		held_item_preview.hide()
+		held_item_preview_position_initialized = false
 		return
 
 	if held_entry.is_empty():
 		if enchant_overlay != null:
 			enchant_overlay.visible = false
 		held_item_preview.hide()
+		held_item_preview_position_initialized = false
 		return
 
 	var item_id: String = String(held_entry.get("item_id", ""))
@@ -3554,6 +3754,7 @@ func update_held_item_preview() -> void:
 		if enchant_overlay != null:
 			enchant_overlay.visible = false
 		held_item_preview.hide()
+		held_item_preview_position_initialized = false
 		return
 
 	var icon_texture: Texture2D = _get_display_item_icon(item_id)
@@ -3568,6 +3769,9 @@ func update_held_item_preview() -> void:
 		preview_size.x = 16.0
 	if preview_size.y < 16.0:
 		preview_size.y = 16.0
+
+	held_item_preview.custom_minimum_size = preview_size
+	held_item_preview.size = preview_size
 
 	held_item_icon.custom_minimum_size = preview_size
 	held_item_icon.size = preview_size
@@ -3591,31 +3795,85 @@ func update_held_item_preview() -> void:
 	held_item_amount_label.offset_right = preview_size.x + 12.0
 	held_item_amount_label.offset_bottom = preview_size.y + 4.0
 
-	var slot = get_selected_slot_node()
-	if slot == null:
-		if enchant_overlay != null:
-			enchant_overlay.visible = false
-		held_item_preview.hide()
-		return
+	held_item_preview_target_global_position = get_held_item_preview_target_position(preview_size)
 
-	var slot_rect = slot.get_global_rect()
+	if not held_item_preview.visible or not held_item_preview_position_initialized:
+		held_item_preview.global_position = held_item_preview_target_global_position
+		held_item_preview_position_initialized = true
 
-	var preview_pos: Vector2 = Vector2(
-		slot_rect.position.x + (slot_rect.size.x - preview_size.x) * 0.5,
-		slot_rect.position.y + (slot_rect.size.y - preview_size.y) * 0.5 - 6.0
-	)
-
-	var viewport_rect: Rect2 = get_viewport().get_visible_rect()
-
-	if preview_pos.x + preview_size.x > viewport_rect.position.x + viewport_rect.size.x:
-		preview_pos.x = viewport_rect.position.x + viewport_rect.size.x - preview_size.x - 8.0
-
-	if preview_pos.y < viewport_rect.position.y + 8.0:
-		preview_pos.y = viewport_rect.position.y + 8.0
-
-	held_item_preview.global_position = preview_pos
 	held_item_preview.show()
 
+
+func update_held_item_preview_motion(delta: float) -> void:
+	if held_item_preview == null:
+		return
+
+	if not held_item_preview.visible:
+		return
+
+	if held_entry.is_empty():
+		return
+
+	var preview_size: Vector2 = held_item_preview.size
+	if preview_size == Vector2.ZERO:
+		preview_size = get_selected_slot_visual_size() * 0.9
+
+	held_item_preview_target_global_position = get_held_item_preview_target_position(preview_size)
+
+	if not held_item_preview_follow_mouse:
+		held_item_preview.global_position = held_item_preview_target_global_position
+		return
+
+	if held_item_preview_snap_to_mouse_center:
+		held_item_preview.global_position = held_item_preview_target_global_position
+		return
+
+	var speed: float = max(1.0, held_item_preview_smooth_speed)
+	var weight: float = clamp(delta * speed, 0.0, 1.0)
+	held_item_preview.global_position = held_item_preview.global_position.lerp(held_item_preview_target_global_position, weight)
+
+
+func get_held_item_preview_target_position(preview_size: Vector2) -> Vector2:
+	var target_position: Vector2
+
+	if held_item_preview_follow_mouse:
+		# CanvasLayer上のControlなので、viewport座標をそのままglobal_positionとして使う。
+		# アイテムの中心がマウスポインターに重なるようにする。
+		var mouse_position: Vector2 = get_viewport().get_mouse_position()
+		if held_item_preview_center_on_mouse:
+			target_position = mouse_position - preview_size * 0.5 + held_item_preview_mouse_offset
+		else:
+			target_position = mouse_position + held_item_preview_mouse_offset
+	else:
+		# 保険: マウス追従を切った場合だけ、最後に選択しているスロット位置へ置く。
+		var slot = get_selected_slot_node()
+		if slot == null:
+			var mouse_position: Vector2 = get_viewport().get_mouse_position()
+			if held_item_preview_center_on_mouse:
+				target_position = mouse_position - preview_size * 0.5 + held_item_preview_mouse_offset
+			else:
+				target_position = mouse_position + held_item_preview_mouse_offset
+		else:
+			var slot_rect: Rect2 = slot.get_global_rect()
+			target_position = Vector2(
+				slot_rect.position.x + (slot_rect.size.x - preview_size.x) * 0.5,
+				slot_rect.position.y + (slot_rect.size.y - preview_size.y) * 0.5 - 6.0
+			)
+
+	if held_item_preview_clamp_to_viewport:
+		var viewport_rect: Rect2 = get_viewport().get_visible_rect()
+		target_position.x = clamp(
+			target_position.x,
+			viewport_rect.position.x + 4.0,
+			viewport_rect.position.x + viewport_rect.size.x - preview_size.x - 4.0
+		)
+		target_position.y = clamp(
+			target_position.y,
+			viewport_rect.position.y + 4.0,
+			viewport_rect.position.y + viewport_rect.size.y - preview_size.y - 4.0
+		)
+
+	return target_position
 
 func get_selected_slot_visual_size() -> Vector2:
 	var slot = get_selected_slot_node()
