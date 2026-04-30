@@ -87,6 +87,11 @@ var unit_roles: int = 0
 @export var auto_generated_food_item_id: String = "apple"
 @export var print_hunger_to_output: bool = false
 
+# 死亡時に、このUnitのInventory内アイテムを地面へ落とすか。
+# プレイヤー/敵/NPCごとにインスペクターで切り替え可能。
+@export var drop_inventory_on_death: bool = true
+@export var death_inventory_drop_radius: int = 5
+
 @export var can_offer_request: bool = false
 @export var can_trade: bool = false
 @export var can_receive_order: bool = false
@@ -780,6 +785,205 @@ func apply_debug_start_items_if_needed() -> void:
 	PlayerData.inventory_data = inventory.save_inventory_data()
 	PlayerData.debug_start_items_applied = true
 	print("DEBUG START ITEMS APPLIED")
+
+
+func apply_initial_inventory_from_data(initial_inventory_items: Array) -> void:
+	if inventory == null:
+		return
+
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.randomize()
+
+	for raw_entry in initial_inventory_items:
+		if raw_entry == null:
+			continue
+
+		# 新形式: InitialInventoryEntry Resource。
+		var resource_entry: InitialInventoryEntry = raw_entry as InitialInventoryEntry
+		if resource_entry != null:
+			var built_entries: Array = resource_entry.build_entries(rng)
+			for built_entry in built_entries:
+				if typeof(built_entry) != TYPE_DICTIONARY:
+					continue
+
+				_add_initial_inventory_entry((built_entry as Dictionary).duplicate(true))
+			continue
+
+		# 念のため旧Dictionary形式も読む。
+		# 既存.tresに古い値が残っていても、最低限は移行できるようにする。
+		if typeof(raw_entry) == TYPE_DICTIONARY:
+			var raw_dict: Dictionary = raw_entry
+			if not _roll_initial_inventory_entry(raw_dict):
+				continue
+
+			var entry: Dictionary = _normalize_initial_inventory_entry(raw_dict)
+			_add_initial_inventory_entry(entry)
+
+
+func _add_initial_inventory_entry(entry: Dictionary) -> void:
+	var normalized_entry: Dictionary = _normalize_initial_inventory_entry(entry)
+	if _is_inventory_drop_entry_empty(normalized_entry):
+		return
+
+	var added: bool = inventory.add_item_entry(normalized_entry)
+	if not added:
+		print("[INITIAL INVENTORY] add failed unit=", name, " entry=", normalized_entry)
+
+
+func _roll_initial_inventory_entry(entry: Dictionary) -> bool:
+	var chance: float = 1.0
+
+	if entry.has("chance"):
+		chance = float(entry.get("chance", 1.0))
+	elif entry.has("drop_chance"):
+		chance = float(entry.get("drop_chance", 1.0))
+
+	return _roll_initial_inventory_chance(chance)
+
+
+func _roll_initial_inventory_chance(chance: float) -> bool:
+	chance = clamp(chance, 0.0, 1.0)
+
+	if chance >= 1.0:
+		return true
+
+	if chance <= 0.0:
+		return false
+
+	return randf() <= chance
+
+
+func _normalize_initial_inventory_entry(entry: Dictionary) -> Dictionary:
+	var item_id: String = String(entry.get("item_id", ""))
+	var amount: int = int(entry.get("amount", 1))
+
+	if entry.has("amount_min") or entry.has("amount_max"):
+		var amount_min: int = int(entry.get("amount_min", amount))
+		var amount_max: int = int(entry.get("amount_max", amount_min))
+		if amount_max < amount_min:
+			var tmp_amount: int = amount_min
+			amount_min = amount_max
+			amount_max = tmp_amount
+		amount = randi_range(amount_min, amount_max)
+	elif entry.has("min_amount") or entry.has("max_amount"):
+		var min_amount: int = int(entry.get("min_amount", amount))
+		var max_amount: int = int(entry.get("max_amount", min_amount))
+		if max_amount < min_amount:
+			var tmp_amount2: int = min_amount
+			min_amount = max_amount
+			max_amount = tmp_amount2
+		amount = randi_range(min_amount, max_amount)
+
+	if item_id == "" or amount <= 0:
+		return {}
+
+	var result: Dictionary = {
+		"item_id": item_id,
+		"amount": amount
+	}
+
+	if entry.has("instance_data"):
+		var instance_data: Variant = entry.get("instance_data", {})
+		if typeof(instance_data) == TYPE_DICTIONARY and not (instance_data as Dictionary).is_empty():
+			result["instance_data"] = (instance_data as Dictionary).duplicate(true)
+
+	return result
+
+
+func apply_shop_inventory_from_data(
+	can_generate_shop_inventory: bool,
+	shop_min_items: int,
+	shop_max_items: int,
+	shop_loot_categories: Array
+) -> void:
+	if not can_generate_shop_inventory:
+		return
+
+	if inventory == null:
+		return
+
+	if shop_loot_categories.is_empty():
+		print("[SHOP INVENTORY] skip: shop_loot_categories is empty unit=", name)
+		return
+
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.randomize()
+
+	var min_count: int = max(0, shop_min_items)
+	var max_count: int = max(min_count, shop_max_items)
+	var generate_count: int = rng.randi_range(min_count, max_count)
+
+	for i in range(generate_count):
+		var category_entry: LootCategoryEntry = _pick_shop_loot_category(shop_loot_categories, rng)
+		if category_entry == null:
+			continue
+
+		var item_type: String = category_entry.get_normalized_item_type()
+		var item_id: String = ItemDatabase.get_random_item_id_by_category(item_type, rng)
+		if item_id == "":
+			print("[SHOP INVENTORY] no item for type=", item_type, " unit=", name)
+			continue
+
+		var min_amount: int = max(1, int(category_entry.min_amount))
+		var max_amount: int = max(min_amount, int(category_entry.max_amount))
+		var amount: int = rng.randi_range(min_amount, max_amount)
+
+		_add_generated_shop_item_to_inventory(item_id, amount, rng)
+
+
+func _pick_shop_loot_category(shop_loot_categories: Array, rng: RandomNumberGenerator) -> LootCategoryEntry:
+	var total_weight: int = 0
+
+	for raw_entry in shop_loot_categories:
+		var entry: LootCategoryEntry = raw_entry as LootCategoryEntry
+		if entry == null:
+			continue
+
+		var weight: int = max(0, int(entry.weight))
+		total_weight += weight
+
+	if total_weight <= 0:
+		return null
+
+	var roll: int = rng.randi_range(1, total_weight)
+	var current: int = 0
+
+	for raw_entry2 in shop_loot_categories:
+		var entry2: LootCategoryEntry = raw_entry2 as LootCategoryEntry
+		if entry2 == null:
+			continue
+
+		current += max(0, int(entry2.weight))
+		if roll <= current:
+			return entry2
+
+	return null
+
+
+func _add_generated_shop_item_to_inventory(item_id: String, amount: int, rng: RandomNumberGenerator) -> void:
+	if item_id == "" or amount <= 0:
+		return
+
+	if inventory == null:
+		return
+
+	if ItemDatabase.is_equipment(item_id):
+		for i in range(amount):
+			var equipment_entry: Dictionary = ItemDatabase.build_random_equipment_entry(item_id, rng)
+			equipment_entry["amount"] = 1
+			var added_equipment: bool = inventory.add_item_entry(equipment_entry)
+			if not added_equipment:
+				print("[SHOP INVENTORY] add equipment failed unit=", name, " entry=", equipment_entry)
+		return
+
+	var entry: Dictionary = {
+		"item_id": item_id,
+		"amount": amount
+	}
+
+	var added: bool = inventory.add_item_entry(entry)
+	if not added:
+		print("[SHOP INVENTORY] add failed unit=", name, " entry=", entry)
 
 
 func get_effective_combat_style() -> int:
@@ -1747,6 +1951,17 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 	request_accept_text = enemy_data.request_accept_text
 	request_decline_text = enemy_data.request_decline_text
 	random_talk_texts = enemy_data.random_talk_texts.duplicate()
+	drop_inventory_on_death = enemy_data.drop_inventory_on_death
+	death_inventory_drop_radius = enemy_data.death_inventory_drop_radius
+
+	apply_initial_inventory_from_data(enemy_data.initial_inventory_items)
+
+	apply_shop_inventory_from_data(
+		enemy_data.can_generate_shop_inventory,
+		enemy_data.shop_min_items,
+		enemy_data.shop_max_items,
+		enemy_data.shop_loot_categories
+	)
 
 	if sprite != null:
 		sprite.scale = enemy_data.sprite_scale
@@ -1767,6 +1982,8 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 
 
 func handle_death() -> void:
+	drop_inventory_items_on_death_if_needed()
+
 	if is_player_unit:
 		print("プレイヤー死亡")
 		return
@@ -1777,6 +1994,124 @@ func handle_death() -> void:
 		WorldState.unit_states[unit_id] = data
 
 	queue_free()
+
+
+func drop_inventory_items_on_death_if_needed() -> void:
+	if not drop_inventory_on_death:
+		return
+
+	if inventory == null:
+		return
+
+	var drop_targets: Array[Dictionary] = _collect_inventory_drop_targets()
+	if drop_targets.is_empty():
+		return
+
+	var dropped_count: int = 0
+	var failed_count: int = 0
+	var max_radius: int = max(1, death_inventory_drop_radius)
+
+	for target in drop_targets:
+		var entry_value: Variant = target.get("entry", {})
+		if typeof(entry_value) != TYPE_DICTIONARY:
+			failed_count += 1
+			continue
+
+		var entry: Dictionary = (entry_value as Dictionary).duplicate(true)
+		if _is_inventory_drop_entry_empty(entry):
+			continue
+
+		var dropped: bool = ItemDropHelper.drop_entry_near_unit(entry, self, max_radius)
+		if dropped:
+			dropped_count += 1
+			_clear_inventory_drop_target(target)
+		else:
+			failed_count += 1
+
+	if dropped_count <= 0:
+		if failed_count > 0:
+			print("[DEATH DROP] failed: ", name, " failed=", failed_count)
+		return
+
+	if is_player_unit:
+		PlayerData.inventory_data = inventory.save_inventory_data()
+
+	notify_inventory_refresh()
+	print("[DEATH DROP] unit=", name, " dropped=", dropped_count, " failed=", failed_count)
+
+
+func _collect_inventory_drop_targets() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+
+	if inventory == null:
+		return result
+
+	if inventory.has_method("get_all_items"):
+		var bag_items: Array = inventory.get_all_items()
+		for i in range(bag_items.size()):
+			var raw_entry: Variant = bag_items[i]
+			if typeof(raw_entry) != TYPE_DICTIONARY:
+				continue
+
+			var entry: Dictionary = (raw_entry as Dictionary).duplicate(true)
+			if _is_inventory_drop_entry_empty(entry):
+				continue
+
+			result.append({
+				"source": "bag",
+				"index": i,
+				"entry": entry
+			})
+
+	if inventory.has_method("get_all_hotbar_items"):
+		var hotbar_items: Array = inventory.get_all_hotbar_items()
+		for i in range(hotbar_items.size()):
+			var raw_hotbar_entry: Variant = hotbar_items[i]
+			if typeof(raw_hotbar_entry) != TYPE_DICTIONARY:
+				continue
+
+			var hotbar_entry: Dictionary = (raw_hotbar_entry as Dictionary).duplicate(true)
+			if _is_inventory_drop_entry_empty(hotbar_entry):
+				continue
+
+			result.append({
+				"source": "hotbar",
+				"index": i,
+				"entry": hotbar_entry
+			})
+
+	return result
+
+
+func _is_inventory_drop_entry_empty(entry: Dictionary) -> bool:
+	var item_id: String = String(entry.get("item_id", ""))
+	var amount: int = int(entry.get("amount", 0))
+	return item_id == "" or amount <= 0
+
+
+func _clear_inventory_drop_target(target: Dictionary) -> void:
+	if inventory == null:
+		return
+
+	var source: String = String(target.get("source", ""))
+	var index: int = int(target.get("index", -1))
+
+	if index < 0:
+		return
+
+	if source == "bag":
+		if inventory.has_method("clear_slot"):
+			inventory.clear_slot(index)
+		elif inventory.has_method("set_item_data_at"):
+			inventory.set_item_data_at(index, {})
+		return
+
+	if source == "hotbar":
+		if inventory.has_method("clear_hotbar_slot"):
+			inventory.clear_hotbar_slot(index)
+		elif inventory.has_method("set_hotbar_item_data_at"):
+			inventory.set_hotbar_item_data_at(index, {})
+		return
 
 
 func apply_npc_data(npc_data: NpcData) -> void:
@@ -1854,6 +2189,17 @@ func apply_npc_data(npc_data: NpcData) -> void:
 	request_accept_text = npc_data.request_accept_text
 	request_decline_text = npc_data.request_decline_text
 	random_talk_texts = npc_data.random_talk_texts.duplicate()
+	drop_inventory_on_death = npc_data.drop_inventory_on_death
+	death_inventory_drop_radius = npc_data.death_inventory_drop_radius
+
+	apply_initial_inventory_from_data(npc_data.initial_inventory_items)
+
+	apply_shop_inventory_from_data(
+		npc_data.can_generate_shop_inventory,
+		npc_data.shop_min_items,
+		npc_data.shop_max_items,
+		npc_data.shop_loot_categories
+	)
 
 	if npc_data.animation_profile != null:
 		apply_animation_profile(npc_data.animation_profile)

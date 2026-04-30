@@ -26,14 +26,14 @@ shape = SubResource("RectangleShape2D_ruro2")
 script = ExtResource("3_tb304")
 attack = 15
 defense = 10
-strength = 20
-vitality = 20
-agility = 20
-dexterity = 20
-intelligence = 20
-spirit = 20
-sense = 20
-charm = 20
+strength = 200
+vitality = 200
+agility = 200
+dexterity = 200
+intelligence = 200
+spirit = 200
+sense = 200
+charm = 200
 
 [node name="Skills" type="Node" parent="." unique_id=1324358935]
 script = ExtResource("6_oee7j")

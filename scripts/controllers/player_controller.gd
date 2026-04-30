@@ -12,8 +12,8 @@ var repeat_time: float = 0.0
 var is_holding_move: bool = false
 var first_move_done: bool = false
 
-@export var mouse_auto_move_max_search_tiles: int = 900
-@export var mouse_auto_move_search_margin: int = 8
+@export var mouse_auto_move_max_search_tiles: int = 12000
+@export var mouse_auto_move_search_margin: int = 4
 
 var mouse_auto_path: Array[Vector2i] = []
 var mouse_auto_target_tile: Vector2i = Vector2i.ZERO
@@ -442,19 +442,20 @@ func handle_mouse_map_input(event: InputEvent) -> bool:
 		show_mouse_context_menu_for_current_tile()
 		return true
 
-	if TimeManager.is_resolving_turn:
-		return false
-
 	if unit.is_transitioning:
 		return false
 
 	clear_move_hold()
 
-	# 移動アニメーション中/リピート待ち中に別マスをクリックした場合は、
-	# 今の1歩が終わった後に新しい目的地へ再ルートする。
+	# 移動アニメーション中/リピート待ち中の左クリックは、
+	# TimeManager.is_resolving_turn 中でも必ず受け取る。
+	# ここで古い自動移動予約を破棄し、最後にクリックしたタイルを次の目的地として上書きする。
 	if unit.is_moving or unit.repeat_timer > 0.0:
 		queue_mouse_click_after_current_step(get_mouse_tile_coords())
 		return true
+
+	if TimeManager.is_resolving_turn:
+		return false
 
 	if _is_player_action_blocked():
 		clear_mouse_auto_navigation()
@@ -728,6 +729,14 @@ func start_mouse_auto_path_to_interact_target(target_object, target_kind: String
 
 
 func start_mouse_auto_path_to_attack_target(target_unit) -> bool:
+	return start_mouse_auto_path_to_attack_target_with_kind(target_unit, &"attack_unit")
+
+
+func start_mouse_auto_path_to_force_attack_target(target_unit) -> bool:
+	return start_mouse_auto_path_to_attack_target_with_kind(target_unit, &"force_attack_unit")
+
+
+func start_mouse_auto_path_to_attack_target_with_kind(target_unit, target_kind: StringName) -> bool:
 	if target_unit == null:
 		return false
 
@@ -742,7 +751,7 @@ func start_mouse_auto_path_to_attack_target(target_unit) -> bool:
 
 	mouse_auto_path = path
 	mouse_auto_target_tile = target_tile
-	mouse_auto_target_kind = &"attack_unit"
+	mouse_auto_target_kind = target_kind
 	mouse_auto_target_unit = target_unit
 	mouse_auto_target_object = null
 	return true
@@ -764,7 +773,7 @@ func process_mouse_auto_path_step() -> bool:
 
 	# 敵クリックによる自動移動中は、敵の最新位置を追いかける。
 	# 敵が移動したらルートを再計算し、途中で射程に入ったら移動を止めて1回だけ攻撃する。
-	if mouse_auto_target_kind == &"attack_unit":
+	if is_mouse_auto_attack_kind(mouse_auto_target_kind):
 		if try_finish_mouse_auto_attack_once():
 			return true
 
@@ -800,7 +809,7 @@ func process_mouse_auto_path_step() -> bool:
 	if not is_mouse_path_step_still_valid(next_tile):
 		# 攻撃予約中は、敵や他Unitの移動でルートが塞がれても即キャンセルせず、
 		# 敵の最新位置に対してルートを作り直す。
-		if mouse_auto_target_kind == &"attack_unit":
+		if is_mouse_auto_attack_kind(mouse_auto_target_kind):
 			if rebuild_mouse_auto_attack_path():
 				return true
 
@@ -825,32 +834,41 @@ func process_mouse_auto_path_step() -> bool:
 	return true
 
 func try_finish_mouse_auto_attack_once() -> bool:
-	# 敵のいるマスを左クリックして射程外だった場合、
-	# 攻撃可能位置まで移動したあとに1回だけ攻撃する。
-	# 敵が移動しても、クリック時のUnit参照を追いかける。
-	# 攻撃したら必ず自動移動予約を消す。
+	# 敵クリック/右クリックメニュー攻撃による自動移動中、
+	# 攻撃可能位置に入ったら1回だけ攻撃して予約を消す。
 	var clicked_unit = get_mouse_auto_attack_target_unit()
 	if clicked_unit == null:
 		clear_mouse_auto_path()
 		return false
 
 	mouse_auto_target_tile = get_unit_tile_coords_for_mouse(clicked_unit)
+	var require_hostile: bool = mouse_auto_attack_requires_hostile()
 
-	if not is_attack_target_in_current_range(clicked_unit):
+	if not is_attack_target_in_current_range(clicked_unit, require_hostile):
 		return false
 
 	face_toward_tile_if_possible(mouse_auto_target_tile)
-	var acted: bool = CombatManager.perform_attack(unit, clicked_unit)
+	var acted: bool = CombatManager.perform_attack(unit, clicked_unit, require_hostile)
 	clear_mouse_auto_path()
 
 	if acted:
 		_advance_player_turn_after_action()
+	elif unit != null and unit.has_method("notify_hud_log"):
+		unit.notify_hud_log("攻撃に失敗した")
 
 	return true
 
 
+func is_mouse_auto_attack_kind(target_kind: StringName) -> bool:
+	return target_kind == &"attack_unit" or target_kind == &"force_attack_unit"
+
+
+func mouse_auto_attack_requires_hostile() -> bool:
+	return mouse_auto_target_kind != &"force_attack_unit"
+
+
 func get_mouse_auto_attack_target_unit():
-	if mouse_auto_target_kind != &"attack_unit":
+	if not is_mouse_auto_attack_kind(mouse_auto_target_kind):
 		return null
 
 	if mouse_auto_target_unit == null:
@@ -862,8 +880,9 @@ func get_mouse_auto_attack_target_unit():
 	if mouse_auto_target_unit == unit:
 		return null
 
-	if not Targeting.is_hostile(unit, mouse_auto_target_unit):
-		return null
+	if mouse_auto_attack_requires_hostile():
+		if not Targeting.is_hostile(unit, mouse_auto_target_unit):
+			return null
 
 	if mouse_auto_target_unit.has_node("Stats"):
 		var target_stats = mouse_auto_target_unit.get_node("Stats")
@@ -881,14 +900,14 @@ func refresh_mouse_auto_attack_path_if_needed() -> bool:
 
 	var current_target_tile: Vector2i = get_unit_tile_coords_for_mouse(target_unit)
 
-	# 敵が動いていない、かつまだルートが残っているならそのまま進む。
+	# 対象が動いていない、かつまだルートが残っているならそのまま進む。
 	if current_target_tile == mouse_auto_target_tile and not mouse_auto_path.is_empty():
 		return true
 
 	mouse_auto_target_tile = current_target_tile
 
 	# すでに射程内なら次の process 内で攻撃できる。
-	if is_attack_target_in_current_range(target_unit):
+	if is_attack_target_in_current_range(target_unit, mouse_auto_attack_requires_hostile()):
 		mouse_auto_path.clear()
 		return true
 
@@ -901,9 +920,10 @@ func rebuild_mouse_auto_attack_path() -> bool:
 		clear_mouse_auto_path()
 		return false
 
+	var target_kind: StringName = mouse_auto_target_kind
 	mouse_auto_target_tile = get_unit_tile_coords_for_mouse(target_unit)
 
-	if is_attack_target_in_current_range(target_unit):
+	if is_attack_target_in_current_range(target_unit, mouse_auto_attack_requires_hostile()):
 		mouse_auto_path.clear()
 		return true
 
@@ -917,7 +937,7 @@ func rebuild_mouse_auto_attack_path() -> bool:
 		return false
 
 	mouse_auto_path = path
-	mouse_auto_target_kind = &"attack_unit"
+	mouse_auto_target_kind = target_kind
 	mouse_auto_target_unit = target_unit
 	return true
 
@@ -1063,7 +1083,7 @@ func finish_mouse_auto_target_if_needed() -> bool:
 		clear_mouse_auto_path()
 		return false
 
-	if mouse_auto_target_kind == &"attack_unit":
+	if is_mouse_auto_attack_kind(mouse_auto_target_kind):
 		var attack_handled: bool = try_finish_mouse_auto_attack_once()
 		if not attack_handled:
 			clear_mouse_auto_path()
@@ -1152,7 +1172,7 @@ func get_attack_position_candidates(target_tile: Vector2i) -> Array[Vector2i]:
 	return goals
 
 
-func is_attack_target_in_current_range(target_unit) -> bool:
+func is_attack_target_in_current_range(target_unit, require_hostile: bool = true) -> bool:
 	if target_unit == null:
 		return false
 
@@ -1167,7 +1187,7 @@ func is_attack_target_in_current_range(target_unit) -> bool:
 	face_toward_tile_if_possible(target_tile)
 
 	if CombatManager.has_method("can_attack"):
-		return CombatManager.can_attack(unit, target_unit)
+		return CombatManager.can_attack(unit, target_unit, require_hostile)
 
 	return true
 
@@ -1272,12 +1292,75 @@ func find_mouse_path_to_adjacent_tile(start_tile: Vector2i, target_tile: Vector2
 	return find_mouse_path_to_any_goal(start_tile, goals)
 
 
+
 func find_mouse_path_to_any_goal(start_tile: Vector2i, goals: Array[Vector2i]) -> Array[Vector2i]:
 	var empty_path: Array[Vector2i] = []
 
 	if goals.is_empty():
 		return empty_path
 
+	var goal_lookup: Dictionary = {}
+	for goal in goals:
+		goal_lookup[goal] = true
+
+	if goal_lookup.has(start_tile):
+		return empty_path
+
+	var search_rect: Rect2i = get_mouse_path_search_rect(start_tile, goals)
+	var open_queue: Array[Vector2i] = [start_tile]
+	var queue_index: int = 0
+	var came_from: Dictionary = {}
+	var visited: Dictionary = {
+		start_tile: true
+	}
+	var searched_count: int = 0
+	var directions: Array[Vector2i] = [
+		Vector2i.RIGHT,
+		Vector2i.LEFT,
+		Vector2i.DOWN,
+		Vector2i.UP
+	]
+
+	while queue_index < open_queue.size():
+		searched_count += 1
+		if searched_count > mouse_auto_move_max_search_tiles:
+			break
+
+		var current: Vector2i = open_queue[queue_index]
+		queue_index += 1
+
+		for direction in directions:
+			var neighbor: Vector2i = current + direction
+
+			if not search_rect.has_point(neighbor):
+				continue
+
+			if visited.has(neighbor):
+				continue
+
+			if not is_mouse_path_tile_passable(neighbor, start_tile):
+				continue
+
+			visited[neighbor] = true
+			came_from[neighbor] = current
+
+			if goal_lookup.has(neighbor):
+				return reconstruct_mouse_path(came_from, neighbor, start_tile)
+
+			open_queue.append(neighbor)
+
+	return empty_path
+
+func get_mouse_path_search_rect(start_tile: Vector2i, goals: Array[Vector2i]) -> Rect2i:
+	var ground_layer = find_ground_layer()
+
+	if ground_layer != null and ground_layer.has_method("get_used_rect"):
+		var used_rect: Rect2i = ground_layer.get_used_rect()
+		if used_rect.size.x > 0 and used_rect.size.y > 0:
+			return grow_rect2i(used_rect, mouse_auto_move_search_margin)
+
+	# Fallback: if the map cannot provide its used rect, build a large enough rect
+	# around start and goals. This is only a fallback.
 	var min_x: int = start_tile.x
 	var max_x: int = start_tile.x
 	var min_y: int = start_tile.y
@@ -1289,96 +1372,36 @@ func find_mouse_path_to_any_goal(start_tile: Vector2i, goals: Array[Vector2i]) -
 		min_y = mini(min_y, goal.y)
 		max_y = maxi(max_y, goal.y)
 
-	min_x -= mouse_auto_move_search_margin
-	max_x += mouse_auto_move_search_margin
-	min_y -= mouse_auto_move_search_margin
-	max_y += mouse_auto_move_search_margin
+	var fallback_margin: int = max(mouse_auto_move_search_margin, 64)
+	return Rect2i(
+		Vector2i(min_x - fallback_margin, min_y - fallback_margin),
+		Vector2i((max_x - min_x) + fallback_margin * 2 + 1, (max_y - min_y) + fallback_margin * 2 + 1)
+	)
 
-	var open_set: Array[Vector2i] = [start_tile]
-	var came_from: Dictionary = {}
-	var g_score: Dictionary = {}
-	var closed_set: Dictionary = {}
-	var searched_count: int = 0
+func grow_rect2i(rect: Rect2i, amount: int) -> Rect2i:
+	amount = max(0, amount)
+	return Rect2i(
+		Vector2i(rect.position.x - amount, rect.position.y - amount),
+		Vector2i(rect.size.x + amount * 2, rect.size.y + amount * 2)
+	)
 
-	g_score[start_tile] = 0
+func is_mouse_path_tile_passable(tile: Vector2i, start_tile: Vector2i) -> bool:
+	if tile == start_tile:
+		return true
 
-	while not open_set.is_empty():
-		searched_count += 1
-		if searched_count > mouse_auto_move_max_search_tiles:
-			break
+	if not is_tile_walkable_for_mouse_path(tile):
+		return false
 
-		var current_index: int = get_lowest_f_score_index(open_set, g_score, goals)
-		var current: Vector2i = open_set[current_index]
-		open_set.remove_at(current_index)
+	if Targeting.get_unit_on_tile(units_node, tile, unit) != null:
+		return false
 
-		if goals.has(current):
-			return reconstruct_mouse_path(came_from, current, start_tile)
+	if get_chest_on_tile(tile) != null:
+		return false
 
-		closed_set[current] = true
+	if get_quest_board_on_tile(tile) != null:
+		return false
 
-		var neighbors: Array[Vector2i] = [
-			current + Vector2i.RIGHT,
-			current + Vector2i.LEFT,
-			current + Vector2i.DOWN,
-			current + Vector2i.UP
-		]
-
-		for neighbor in neighbors:
-			if neighbor.x < min_x or neighbor.x > max_x:
-				continue
-			if neighbor.y < min_y or neighbor.y > max_y:
-				continue
-			if closed_set.has(neighbor):
-				continue
-			if neighbor != start_tile and not goals.has(neighbor):
-				if not is_tile_walkable_for_mouse_path(neighbor):
-					continue
-				if Targeting.get_unit_on_tile(units_node, neighbor, unit) != null:
-					continue
-				if get_chest_on_tile(neighbor) != null:
-					continue
-				if get_quest_board_on_tile(neighbor) != null:
-					continue
-
-			var tentative_g: int = int(g_score.get(current, 999999)) + 1
-			var old_g: int = int(g_score.get(neighbor, 999999))
-
-			if tentative_g >= old_g:
-				continue
-
-			came_from[neighbor] = current
-			g_score[neighbor] = tentative_g
-
-			if not open_set.has(neighbor):
-				open_set.append(neighbor)
-
-	return empty_path
-
-
-func get_lowest_f_score_index(open_set: Array[Vector2i], g_score: Dictionary, goals: Array[Vector2i]) -> int:
-	var best_index: int = 0
-	var best_score: int = 999999999
-
-	for i in range(open_set.size()):
-		var tile: Vector2i = open_set[i]
-		var score: int = int(g_score.get(tile, 999999)) + get_nearest_goal_distance(tile, goals)
-		if score < best_score:
-			best_score = score
-			best_index = i
-
-	return best_index
-
-
-func get_nearest_goal_distance(tile: Vector2i, goals: Array[Vector2i]) -> int:
-	var best_distance: int = 999999999
-
-	for goal in goals:
-		var distance: int = abs(goal.x - tile.x) + abs(goal.y - tile.y)
-		best_distance = mini(best_distance, distance)
-
-	return best_distance
-
-
+	return true
 func reconstruct_mouse_path(came_from: Dictionary, current: Vector2i, start_tile: Vector2i) -> Array[Vector2i]:
 	var path: Array[Vector2i] = [current]
 
@@ -1719,6 +1742,7 @@ func show_mouse_context_menu_for_current_tile() -> void:
 		mouse_context_menu.add_item("調べる", 2)
 	elif mouse_context_target_kind == &"unit":
 		mouse_context_menu.add_item("話す", 3)
+		mouse_context_menu.add_item("攻撃", 1)
 		mouse_context_menu.add_item("調べる", 2)
 	elif mouse_context_target_kind == &"chest":
 		mouse_context_menu.add_item("開く", 4)
@@ -1797,7 +1821,31 @@ func execute_mouse_context_attack() -> void:
 		return
 
 	clear_mouse_auto_navigation()
-	handle_mouse_clicked_unit(mouse_context_target_unit)
+	start_mouse_context_force_attack(mouse_context_target_unit)
+
+
+func start_mouse_context_force_attack(target_unit) -> void:
+	if target_unit == null:
+		return
+
+	if not is_instance_valid(target_unit):
+		return
+
+	if _is_player_action_blocked():
+		return
+
+	if not is_attack_target_in_current_range(target_unit, false):
+		start_mouse_auto_path_to_force_attack_target(target_unit)
+		return
+
+	var target_tile: Vector2i = get_unit_tile_coords_for_mouse(target_unit)
+	face_toward_tile_if_possible(target_tile)
+
+	var acted: bool = CombatManager.perform_attack(unit, target_unit, false)
+	if acted:
+		_advance_player_turn_after_action()
+	elif unit != null and unit.has_method("notify_hud_log"):
+		unit.notify_hud_log("攻撃に失敗した")
 
 
 func execute_mouse_context_talk() -> void:

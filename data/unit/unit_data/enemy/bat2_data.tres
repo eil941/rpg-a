@@ -2,6 +2,7 @@
 
 [ext_resource type="Resource" uid="uid://cd7easl8dvdui" path="res://data/unit/animation_profiles/enemy/bat2_animation_profile.tres" id="1_tn22s"]
 [ext_resource type="Texture2D" uid="uid://beq3x3etje1lv" path="res://assets/bat.png" id="2_5uwbk"]
+[ext_resource type="Script" uid="uid://cr6yrijgbiw5e" path="res://scripts/data/initial_inventory_entry.gd" id="3_ep556"]
 [ext_resource type="Script" uid="uid://dnv8aysj2gsac" path="res://scripts/data/enemy_data.gd" id="3_od5sf"]
 [ext_resource type="Script" uid="uid://0c32in4pchg3" path="res://scripts/data/loot_category_entry.gd" id="4_e7o8d"]
 [ext_resource type="Texture2D" uid="uid://bhcrrex7womxr" path="res://assets/bat_back_1.png" id="5_appvh"]
@@ -12,6 +13,12 @@
 [ext_resource type="Texture2D" uid="uid://bs84lnwdcy3jx" path="res://assets/bat_right_1.png" id="9_n67uj"]
 [ext_resource type="Texture2D" uid="uid://bxlcg5n2ul0qa" path="res://assets/bat_right_2.png" id="10_g42ux"]
 
+[sub_resource type="Resource" id="Resource_xxl17"]
+script = ExtResource("3_ep556")
+item_id = "apple"
+amount_max = 12
+metadata/_custom_type_script = "uid://cr6yrijgbiw5e"
+
 [resource]
 script = ExtResource("3_od5sf")
 enemy_type_id = "bat_2"
@@ -21,6 +28,7 @@ spawn_generator_tags = Array[String](["FOREST", "NATURAL"])
 max_hp = 8
 attack = 2
 speed = 140.0
+initial_inventory_items = Array[ExtResource("3_ep556")]([SubResource("Resource_xxl17")])
 combat_style = 1
 move_style = 1
 talk_display_name = "bat 難易度2"

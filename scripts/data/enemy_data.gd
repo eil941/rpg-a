@@ -89,6 +89,19 @@ var faction: String = "ENEMY"
 @export var equipped_accessory_3: EquipmentData
 @export var equipped_accessory_4: EquipmentData
 
+# 生成時にInventoryへ入れる初期所持品。
+# ここに入れたアイテムはUnitのInventoryへ入り、死亡時ドロップ対象になる。
+#
+# 1要素 = 1アイテム設定。
+# item_id / 個数 / 確率を1つのResource内でまとめて設定するので、
+# 別配列の数ズレ・順番ミス・設定忘れを防げる。
+@export var initial_inventory_items: Array[InitialInventoryEntry] = []
+
+# 死亡時にInventory内アイテムを地面へ落とすか。
+# trueなら、上の初期所持品や後から持ったアイテムが死亡時にドロップされる。
+@export var drop_inventory_on_death: bool = true
+@export var death_inventory_drop_radius: int = 5
+
 @export var override_combat_style: bool = false
 @export_enum("AUTO", "MELEE", "MID", "LONG", "SUPPORTER", "HIT_AND_RUN", "DEFENSIVE")
 var combat_style: int = AICombatStyle.AUTO

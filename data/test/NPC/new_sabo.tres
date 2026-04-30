@@ -7,7 +7,7 @@
 
 [sub_resource type="Resource" id="Resource_knwna"]
 script = ExtResource("3_jwrdb")
-item_type = "equipment"
+item_type = "food"
 max_amount = 100
 metadata/_custom_type_script = "uid://0c32in4pchg3"
 
@@ -15,13 +15,22 @@ metadata/_custom_type_script = "uid://0c32in4pchg3"
 script = ExtResource("3_jwrdb")
 metadata/_custom_type_script = "uid://0c32in4pchg3"
 
+[sub_resource type="Resource" id="Resource_d388q"]
+script = ExtResource("3_jwrdb")
+item_type = "material"
+metadata/_custom_type_script = "uid://0c32in4pchg3"
+
 [resource]
 script = ExtResource("2_n2gxl")
 spawn_generator_tags = Array[String](["FOREST"])
 talk_display_name = "sabosan"
 talk_portrait = ExtResource("3_n2gxl")
-unit_roles = 31
+unit_roles = 27
+can_trade = true
+extra_interact_actions = Array[String](["test"])
 can_generate_shop_inventory = true
-shop_loot_categories = Array[ExtResource("3_jwrdb")]([SubResource("Resource_knwna"), SubResource("Resource_jwrdb")])
+shop_min_items = 6
+shop_max_items = 12
+shop_loot_categories = Array[ExtResource("3_jwrdb")]([SubResource("Resource_knwna"), SubResource("Resource_jwrdb"), SubResource("Resource_d388q")])
 animation_profile = ExtResource("1_flbg5")
 metadata/_custom_type_script = "uid://bgt8humnn3jqj"

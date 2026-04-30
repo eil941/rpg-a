@@ -42,4 +42,7 @@ tile_set = ExtResource("13_p08te")
 [node name="Unit" parent="Units" unique_id=40692456 instance=ExtResource("14_ctq6a")]
 position = Vector2(258, 122)
 start_tile = Vector2i(20, 2)
+can_trigger_scene_transition = true
+can_bump_attack = true
 unit_id = "player"
+is_player_unit = true
