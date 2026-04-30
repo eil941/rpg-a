@@ -100,7 +100,13 @@ var faction: String = "ENEMY"
 # 死亡時にInventory内アイテムを地面へ落とすか。
 # trueなら、上の初期所持品や後から持ったアイテムが死亡時にドロップされる。
 @export var drop_inventory_on_death: bool = true
+@export var drop_equipped_items_on_death: bool = true
 @export var death_inventory_drop_radius: int = 5
+
+# プレイヤーから右クリック攻撃などで明示的に攻撃された後の設定。
+# 1つのResourceに敵対化・戦闘スタイル・移動スタイルをまとめる。
+# 未設定(null)なら、Unit側で従来通り「敵対化 + 逃げる」を適用する。
+@export var attacked_by_player_behavior: AttackedBehaviorData
 
 @export var override_combat_style: bool = false
 @export_enum("AUTO", "MELEE", "MID", "LONG", "SUPPORTER", "HIT_AND_RUN", "DEFENSIVE")

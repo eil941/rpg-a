@@ -1,9 +1,17 @@
 [gd_resource type="Resource" script_class="NpcData" format=3 uid="uid://sponxcnnn0fd"]
 
 [ext_resource type="Resource" uid="uid://d2vbfb7uxelhe" path="res://data/santa_animation_profile.tres" id="1_flbg5"]
+[ext_resource type="Script" uid="uid://d2fpnidhgej4x" path="res://scripts/data/attacked_behavior_data.gd" id="2_d388q"]
 [ext_resource type="Script" uid="uid://bgt8humnn3jqj" path="res://scripts/data/npc_data.gd" id="2_n2gxl"]
 [ext_resource type="Script" uid="uid://0c32in4pchg3" path="res://scripts/data/loot_category_entry.gd" id="3_jwrdb"]
 [ext_resource type="Texture2D" uid="uid://cu2ogfvyg8oai" path="res://assets/npc1.png" id="3_n2gxl"]
+[ext_resource type="Script" uid="uid://cr6yrijgbiw5e" path="res://scripts/data/initial_inventory_entry.gd" id="3_sltxy"]
+
+[sub_resource type="Resource" id="Resource_id2ul"]
+script = ExtResource("2_d388q")
+override_combat_style = true
+move_style = 1
+metadata/_custom_type_script = "uid://d2fpnidhgej4x"
 
 [sub_resource type="Resource" id="Resource_knwna"]
 script = ExtResource("3_jwrdb")
@@ -23,6 +31,7 @@ metadata/_custom_type_script = "uid://0c32in4pchg3"
 [resource]
 script = ExtResource("2_n2gxl")
 spawn_generator_tags = Array[String](["FOREST"])
+attacked_by_player_behavior = SubResource("Resource_id2ul")
 talk_display_name = "sabosan"
 talk_portrait = ExtResource("3_n2gxl")
 unit_roles = 27

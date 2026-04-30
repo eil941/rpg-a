@@ -2,6 +2,7 @@
 
 [ext_resource type="Resource" uid="uid://cd7easl8dvdui" path="res://data/unit/animation_profiles/enemy/bat2_animation_profile.tres" id="1_tn22s"]
 [ext_resource type="Texture2D" uid="uid://beq3x3etje1lv" path="res://assets/bat.png" id="2_5uwbk"]
+[ext_resource type="Resource" uid="uid://kowquc370oyr" path="res://data/equipment/weapons/knife.tres" id="2_xxl17"]
 [ext_resource type="Script" uid="uid://cr6yrijgbiw5e" path="res://scripts/data/initial_inventory_entry.gd" id="3_ep556"]
 [ext_resource type="Script" uid="uid://dnv8aysj2gsac" path="res://scripts/data/enemy_data.gd" id="3_od5sf"]
 [ext_resource type="Script" uid="uid://0c32in4pchg3" path="res://scripts/data/loot_category_entry.gd" id="4_e7o8d"]
@@ -28,6 +29,7 @@ spawn_generator_tags = Array[String](["FOREST", "NATURAL"])
 max_hp = 8
 attack = 2
 speed = 140.0
+equipped_right_hand = ExtResource("2_xxl17")
 initial_inventory_items = Array[ExtResource("3_ep556")]([SubResource("Resource_xxl17")])
 combat_style = 1
 move_style = 1

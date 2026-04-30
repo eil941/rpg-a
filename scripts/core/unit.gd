@@ -90,7 +90,16 @@ var unit_roles: int = 0
 # 死亡時に、このUnitのInventory内アイテムを地面へ落とすか。
 # プレイヤー/敵/NPCごとにインスペクターで切り替え可能。
 @export var drop_inventory_on_death: bool = true
+
+# 死亡時に、装備中アイテムも地面へ落とすか。
+# trueなら equipped_items の中身もInventory内アイテムと同じ扱いでドロップする。
+@export var drop_equipped_items_on_death: bool = true
+
 @export var death_inventory_drop_radius: int = 5
+
+# プレイヤーから右クリック攻撃などで明示的に攻撃された後の設定。
+# EnemyData / NpcData から受け取る。未設定なら従来通り「敵対化 + 逃げる」。
+@export var attacked_by_player_behavior: AttackedBehaviorData
 
 @export var can_offer_request: bool = false
 @export var can_trade: bool = false
@@ -782,7 +791,7 @@ func apply_debug_start_items_if_needed() -> void:
 			print("DEBUG START ITEM FAILED: ", item_id, " x", amount)
 			notify_hud_log("デバッグアイテム追加失敗: %s x%d" % [item_id, amount])
 
-	PlayerData.inventory_data = inventory.save_inventory_data()
+	PlayerData.inventory_data = save_inventory_persistence_data()
 	PlayerData.debug_start_items_applied = true
 	print("DEBUG START ITEMS APPLIED")
 
@@ -1726,13 +1735,28 @@ func get_hp_status_text() -> String:
 	return "%s HP: %d/%d" % [name, stats.hp, get_total_max_hp()]
 
 
+func save_inventory_persistence_data() -> Variant:
+	if inventory == null:
+		return []
+
+	if inventory.has_method("save_inventory_full_data"):
+		return inventory.save_inventory_full_data()
+
+	return inventory.save_inventory_data()
+
+
 
 func get_stats_data() -> Dictionary:
 	var data: Dictionary = stats.get_stats_data()
 	data["tile_x"] = get_current_tile_coords().x
 	data["tile_y"] = get_current_tile_coords().y
-	data["inventory"] = inventory.save_inventory_data() if inventory != null else []
+	data["inventory"] = save_inventory_persistence_data() if inventory != null else []
 	data["equipment"] = get_equipment_save_data()
+	data["faction"] = faction
+	data["override_combat_style"] = override_combat_style
+	data["combat_style"] = combat_style
+	data["override_move_style"] = override_move_style
+	data["move_style"] = move_style
 	data["effect_runtimes"] = get_effect_runtimes_save_data()
 
 	if TimeManager != null:
@@ -1759,6 +1783,18 @@ func apply_stats_data(data: Dictionary) -> void:
 
 	if data.has("equipment"):
 		apply_equipment_save_data(data["equipment"])
+
+	if data.has("faction"):
+		faction = String(data["faction"]).strip_edges().to_upper()
+
+	if data.has("override_combat_style"):
+		override_combat_style = bool(data["override_combat_style"])
+	if data.has("combat_style"):
+		combat_style = int(data["combat_style"])
+	if data.has("override_move_style"):
+		override_move_style = bool(data["override_move_style"])
+	if data.has("move_style"):
+		move_style = int(data["move_style"])
 
 	if data.has("skills") and skills != null:
 		skills.apply_skills_data(data["skills"])
@@ -1801,7 +1837,7 @@ func save_persistent_stats() -> void:
 			PlayerData.skills_data = skills.get_skills_data()
 
 		if inventory != null:
-			PlayerData.inventory_data = inventory.save_inventory_data()
+			PlayerData.inventory_data = save_inventory_persistence_data()
 
 		PlayerData.equipment_data = get_equipment_save_data()
 
@@ -1926,7 +1962,10 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 		skills.medical = enemy_data.medical
 
 	equipped_items.clear()
-	apply_legacy_equipment_fields(enemy_data)
+	if enemy_data.has_method("get_equipment_save_data"):
+		apply_equipment_save_data(enemy_data.get_equipment_save_data())
+	else:
+		apply_legacy_equipment_fields(enemy_data)
 
 	override_combat_style = enemy_data.override_combat_style
 	combat_style = enemy_data.combat_style
@@ -1952,7 +1991,9 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 	request_decline_text = enemy_data.request_decline_text
 	random_talk_texts = enemy_data.random_talk_texts.duplicate()
 	drop_inventory_on_death = enemy_data.drop_inventory_on_death
+	drop_equipped_items_on_death = enemy_data.drop_equipped_items_on_death
 	death_inventory_drop_radius = enemy_data.death_inventory_drop_radius
+	attacked_by_player_behavior = enemy_data.attacked_by_player_behavior
 
 	apply_initial_inventory_from_data(enemy_data.initial_inventory_items)
 
@@ -2034,7 +2075,8 @@ func drop_inventory_items_on_death_if_needed() -> void:
 		return
 
 	if is_player_unit:
-		PlayerData.inventory_data = inventory.save_inventory_data()
+		PlayerData.inventory_data = save_inventory_persistence_data()
+		PlayerData.equipment_data = get_equipment_save_data()
 
 	notify_inventory_refresh()
 	print("[DEATH DROP] unit=", name, " dropped=", dropped_count, " failed=", failed_count)
@@ -2080,6 +2122,18 @@ func _collect_inventory_drop_targets() -> Array[Dictionary]:
 				"entry": hotbar_entry
 			})
 
+	if drop_equipped_items_on_death:
+		for slot_name in equipment_slot_order:
+			var equipment_entry: Dictionary = get_equipped_item_entry(slot_name)
+			if _is_inventory_drop_entry_empty(equipment_entry):
+				continue
+
+			result.append({
+				"source": "equipment",
+				"slot_name": slot_name,
+				"entry": equipment_entry.duplicate(true)
+			})
+
 	return result
 
 
@@ -2094,23 +2148,34 @@ func _clear_inventory_drop_target(target: Dictionary) -> void:
 		return
 
 	var source: String = String(target.get("source", ""))
-	var index: int = int(target.get("index", -1))
-
-	if index < 0:
-		return
 
 	if source == "bag":
+		var bag_index: int = int(target.get("index", -1))
+		if bag_index < 0:
+			return
+
 		if inventory.has_method("clear_slot"):
-			inventory.clear_slot(index)
+			inventory.clear_slot(bag_index)
 		elif inventory.has_method("set_item_data_at"):
-			inventory.set_item_data_at(index, {})
+			inventory.set_item_data_at(bag_index, {})
 		return
 
 	if source == "hotbar":
+		var hotbar_index: int = int(target.get("index", -1))
+		if hotbar_index < 0:
+			return
+
 		if inventory.has_method("clear_hotbar_slot"):
-			inventory.clear_hotbar_slot(index)
+			inventory.clear_hotbar_slot(hotbar_index)
 		elif inventory.has_method("set_hotbar_item_data_at"):
-			inventory.set_hotbar_item_data_at(index, {})
+			inventory.set_hotbar_item_data_at(hotbar_index, {})
+		return
+
+	if source == "equipment":
+		var slot_name: String = String(target.get("slot_name", ""))
+		if slot_name == "":
+			return
+		clear_equipment_slot(slot_name)
 		return
 
 
@@ -2164,7 +2229,10 @@ func apply_npc_data(npc_data: NpcData) -> void:
 		skills.medical = npc_data.medical
 
 	equipped_items.clear()
-	apply_legacy_equipment_fields(npc_data)
+	if npc_data.has_method("get_equipment_save_data"):
+		apply_equipment_save_data(npc_data.get_equipment_save_data())
+	else:
+		apply_legacy_equipment_fields(npc_data)
 
 	override_combat_style = npc_data.override_combat_style
 	combat_style = npc_data.combat_style
@@ -2190,7 +2258,9 @@ func apply_npc_data(npc_data: NpcData) -> void:
 	request_decline_text = npc_data.request_decline_text
 	random_talk_texts = npc_data.random_talk_texts.duplicate()
 	drop_inventory_on_death = npc_data.drop_inventory_on_death
+	drop_equipped_items_on_death = npc_data.drop_equipped_items_on_death
 	death_inventory_drop_radius = npc_data.death_inventory_drop_radius
+	attacked_by_player_behavior = npc_data.attacked_by_player_behavior
 
 	apply_initial_inventory_from_data(npc_data.initial_inventory_items)
 
@@ -2214,6 +2284,29 @@ func apply_npc_data(npc_data: NpcData) -> void:
 			npc_data.idle_up_frames,
 			npc_data.walk_up_frames
 		)
+
+
+func on_attacked_by_player(attacker) -> void:
+	# 右クリックメニューなどでプレイヤーから明示的に攻撃されたとき、
+	# このUnitだけ敵対化し、NpcData / EnemyData の attacked_by_player_behavior に従って行動を切り替える。
+	if attacker == null:
+		return
+
+	if "is_player_unit" in attacker and not bool(attacker.is_player_unit):
+		return
+
+	if attacked_by_player_behavior != null:
+		attacked_by_player_behavior.apply_to_unit(self)
+	else:
+		# 未設定時の互換動作。
+		# 以前の初期値と同じく、敵対化して逃げる。
+		if "faction" in self:
+			faction = "ENEMY"
+		override_move_style = true
+		move_style = AIMoveStyle.FLEE
+
+	if has_method("save_persistent_stats"):
+		save_persistent_stats()
 
 
 func sync_map_id_from_scene() -> void:
@@ -3136,7 +3229,7 @@ func _can_add_all_entries_to_inventory(entries: Array[Dictionary]) -> bool:
 	var temp_inventory: Inventory = Inventory.new()
 	temp_inventory.max_slots = inventory.max_slots
 	temp_inventory.initialize_empty_slots()
-	temp_inventory.load_inventory_data(inventory.save_inventory_data())
+	temp_inventory.load_inventory_data(save_inventory_persistence_data())
 
 	for entry in entries:
 		if typeof(entry) != TYPE_DICTIONARY:
@@ -3178,7 +3271,7 @@ func grant_items_from_effect(effect: ItemEffectData) -> bool:
 
 		notify_hud_log("入手: %s x%d" % [ItemDatabase.get_display_name(item_id), amount])
 
-	PlayerData.inventory_data = inventory.save_inventory_data()
+	PlayerData.inventory_data = save_inventory_persistence_data()
 	notify_inventory_refresh()
 	return true
 
@@ -3192,7 +3285,7 @@ func grant_item_from_effect(item_id: String, amount: int) -> bool:
 		notify_hud_log("持ち物がいっぱいで受け取れない")
 		return false
 
-	PlayerData.inventory_data = inventory.save_inventory_data()
+	PlayerData.inventory_data = save_inventory_persistence_data()
 	notify_inventory_refresh()
 	notify_hud_log("入手: %s x%d" % [ItemDatabase.get_display_name(item_id), amount])
 	return true
@@ -3216,7 +3309,7 @@ func grant_currency_from_effect(effect_or_amount) -> bool:
 		notify_hud_log("持ち物がいっぱいで金貨を受け取れない")
 		return false
 
-	PlayerData.inventory_data = inventory.save_inventory_data()
+	PlayerData.inventory_data = save_inventory_persistence_data()
 	notify_inventory_refresh()
 	notify_hud_log("入手: Gold x%d" % amount)
 	return true

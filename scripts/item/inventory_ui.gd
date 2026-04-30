@@ -62,6 +62,11 @@ const SIZE_SHRINK_BEGIN_VALUE: int = 0
 @export var held_item_preview_snap_to_mouse_center: bool = true
 @export var held_item_preview_clamp_to_viewport: bool = true
 
+# キーボード操作中にアイテムを持っている場合は、実マウス位置ではなく
+# インベントリ内の選択カーソル位置へ持ち上げアイテムを表示する。
+@export var held_item_preview_follow_selected_slot_when_keyboard: bool = true
+
+
 
 # インベントリ/取引グリッドをコンパクト表示する設定。
 # スロット間隔を0にし、Panelの固定最小サイズを使わず、スロット数に合わせて枠を縮める。
@@ -2136,6 +2141,7 @@ func move_selection(dx: int, dy: int) -> void:
 
 	hide_tooltip()
 	refresh()
+	update_held_item_preview()
 	restart_tooltip_timer()
 
 
@@ -3820,7 +3826,7 @@ func update_held_item_preview_motion(delta: float) -> void:
 
 	held_item_preview_target_global_position = get_held_item_preview_target_position(preview_size)
 
-	if not held_item_preview_follow_mouse:
+	if not should_hold_preview_follow_mouse():
 		held_item_preview.global_position = held_item_preview_target_global_position
 		return
 
@@ -3833,10 +3839,22 @@ func update_held_item_preview_motion(delta: float) -> void:
 	held_item_preview.global_position = held_item_preview.global_position.lerp(held_item_preview_target_global_position, weight)
 
 
+func should_hold_preview_follow_mouse() -> bool:
+	if not held_item_preview_follow_mouse:
+		return false
+
+	if held_item_preview_follow_selected_slot_when_keyboard:
+		# mouse_navigation_mode == true のときだけ実マウスカーソルに追従する。
+		# キーボード操作で選択枠を動かしている間は、選択中スロット位置へ表示する。
+		return mouse_navigation_mode
+
+	return true
+
+
 func get_held_item_preview_target_position(preview_size: Vector2) -> Vector2:
 	var target_position: Vector2
 
-	if held_item_preview_follow_mouse:
+	if should_hold_preview_follow_mouse():
 		# CanvasLayer上のControlなので、viewport座標をそのままglobal_positionとして使う。
 		# アイテムの中心がマウスポインターに重なるようにする。
 		var mouse_position: Vector2 = get_viewport().get_mouse_position()
@@ -3845,14 +3863,14 @@ func get_held_item_preview_target_position(preview_size: Vector2) -> Vector2:
 		else:
 			target_position = mouse_position + held_item_preview_mouse_offset
 	else:
-		# 保険: マウス追従を切った場合だけ、最後に選択しているスロット位置へ置く。
+		# キーボード操作中は、実マウス位置ではなくゲーム内カーソルの選択スロットへ追従させる。
 		var slot = get_selected_slot_node()
 		if slot == null:
-			var mouse_position: Vector2 = get_viewport().get_mouse_position()
+			var fallback_mouse_position: Vector2 = get_viewport().get_mouse_position()
 			if held_item_preview_center_on_mouse:
-				target_position = mouse_position - preview_size * 0.5 + held_item_preview_mouse_offset
+				target_position = fallback_mouse_position - preview_size * 0.5 + held_item_preview_mouse_offset
 			else:
-				target_position = mouse_position + held_item_preview_mouse_offset
+				target_position = fallback_mouse_position + held_item_preview_mouse_offset
 		else:
 			var slot_rect: Rect2 = slot.get_global_rect()
 			target_position = Vector2(
@@ -3903,6 +3921,13 @@ func get_selected_slot_node():
 		if selected_index < 0 or selected_index >= slot_grid.get_child_count():
 			return null
 		return slot_grid.get_child(selected_index)
+
+	if focus_area == "hotbar":
+		if hotbar_slot_grid == null:
+			return null
+		if selected_index < 0 or selected_index >= hotbar_slot_grid.get_child_count():
+			return null
+		return hotbar_slot_grid.get_child(selected_index)
 
 	if focus_area == "equipment":
 		if selected_index < 0 or selected_index >= equipment_slot_nodes.size():

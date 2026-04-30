@@ -3,10 +3,9 @@ extends Node
 
 
 func uses_forward_line_targeting(attacker) -> bool:
-	if attacker == null:
-		return false
-
-	return attacker.get_attack_max_range() > 1
+	# 現在の通常攻撃範囲は「周囲Nマス」。
+	# 前方直線専用の判定は使わない。
+	return false
 
 
 func is_target_in_attack_range(attacker, target) -> bool:
@@ -72,9 +71,6 @@ func get_attackable_targets(attacker) -> Array:
 	if attacker.units_node == null:
 		return result
 
-	if uses_forward_line_targeting(attacker):
-		return Targeting.get_hostile_units_in_forward_line(attacker.units_node, attacker)
-
 	return Targeting.get_hostile_units_in_attack_range(attacker.units_node, attacker)
 
 
@@ -83,9 +79,6 @@ func get_best_attack_target(attacker):
 		return null
 	if attacker.units_node == null:
 		return null
-
-	if uses_forward_line_targeting(attacker):
-		return Targeting.get_best_forward_line_hostile_target(attacker.units_node, attacker)
 
 	var candidates = Targeting.get_hostile_units_in_attack_range(attacker.units_node, attacker)
 	return Targeting.get_nearest_to_player(candidates, attacker.units_node)
@@ -147,20 +140,16 @@ func can_attack(attacker, target, require_hostile: bool = true) -> bool:
 	if not is_target_in_attack_range(attacker, target):
 		return false
 
-	if uses_forward_line_targeting(attacker):
-		if require_hostile:
-			if not is_target_in_forward_line(attacker, target):
-				return false
-		else:
-			if not is_target_in_forward_line_any(attacker, target):
-				return false
-
 	return true
 
 
 func perform_attack(attacker, target, require_hostile: bool = true) -> bool:
 	if not can_attack(attacker, target, require_hostile):
 		return false
+
+	var force_hostile_after_attack: bool = _should_force_target_hostile(attacker, target, require_hostile)
+	if force_hostile_after_attack:
+		_make_target_hostile_to_attacker(attacker, target)
 
 	# 近接だけ向きを合わせる
 	if not uses_forward_line_targeting(attacker):
@@ -184,6 +173,8 @@ func perform_attack(attacker, target, require_hostile: bool = true) -> bool:
 
 	if not result["hit"]:
 		_log_attack_message(attacker, target, "%s の攻撃は %s に回避された" % [attacker.name, target.name])
+		if force_hostile_after_attack:
+			_save_forced_hostility_state(target)
 		_refresh_hud_status(attacker, target)
 		return false
 
@@ -194,6 +185,9 @@ func perform_attack(attacker, target, require_hostile: bool = true) -> bool:
 	target.stats.take_damage(damage)
 	_wake_up_target_if_needed(target)
 
+	if force_hostile_after_attack and is_instance_valid(target):
+		_save_forced_hostility_state(target)
+
 	if result["is_critical"]:
 		_log_attack_message(attacker, target, "%s の攻撃！ %s に %d ダメージ（クリティカル）" % [attacker.name, target.name, damage])
 	else:
@@ -201,6 +195,51 @@ func perform_attack(attacker, target, require_hostile: bool = true) -> bool:
 
 	_refresh_hud_status(attacker, target)
 	return true
+
+
+func _should_force_target_hostile(attacker, target, require_hostile: bool) -> bool:
+	if require_hostile:
+		return false
+
+	if attacker == null or target == null:
+		return false
+
+	if Targeting.is_hostile(attacker, target):
+		return false
+
+	if not ("is_player_unit" in attacker):
+		return false
+
+	return bool(attacker.is_player_unit)
+
+
+func _make_target_hostile_to_attacker(attacker, target) -> void:
+	if attacker == null or target == null:
+		return
+
+	if target.has_method("on_attacked_by_player"):
+		target.on_attacked_by_player(attacker)
+	else:
+		if "faction" in target:
+			target.faction = "ENEMY"
+
+	if attacker.has_method("notify_hud_log"):
+		attacker.notify_hud_log("%s は敵対した" % target.name)
+
+
+func _save_forced_hostility_state(target) -> void:
+	if target == null:
+		return
+
+	if target.has_method("save_persistent_stats"):
+		target.save_persistent_stats()
+		return
+
+	if "unit_id" in target and String(target.unit_id) != "":
+		if target.has_method("get_stats_data"):
+			var data: Dictionary = target.get_stats_data()
+			data["faction"] = String(target.faction)
+			WorldState.unit_states[String(target.unit_id)] = data
 
 
 func _log_attack_message(attacker, target, message: String) -> void:

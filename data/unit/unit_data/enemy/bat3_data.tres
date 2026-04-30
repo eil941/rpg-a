@@ -1,8 +1,10 @@
 [gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://ck4mncyfjv536"]
 
 [ext_resource type="Resource" uid="uid://civw2ok72m04v" path="res://data/unit/animation_profiles/enemy/bat3_animation_profile.tres" id="1_q7ijv"]
+[ext_resource type="Resource" uid="uid://dt288tmg782b" path="res://data/equipment/armor/cloth_armor.tres" id="2_blwtu"]
 [ext_resource type="Texture2D" uid="uid://beq3x3etje1lv" path="res://assets/bat.png" id="2_ni1eh"]
 [ext_resource type="Script" uid="uid://dnv8aysj2gsac" path="res://scripts/data/enemy_data.gd" id="3_fmta1"]
+[ext_resource type="Script" uid="uid://cr6yrijgbiw5e" path="res://scripts/data/initial_inventory_entry.gd" id="4_5jsue"]
 [ext_resource type="Script" uid="uid://0c32in4pchg3" path="res://scripts/data/loot_category_entry.gd" id="4_y7x6b"]
 [ext_resource type="Texture2D" uid="uid://c5pfutrp3fa2a" path="res://icon.svg" id="5_fmta1"]
 [ext_resource type="Texture2D" uid="uid://bhcrrex7womxr" path="res://assets/bat_back_1.png" id="5_orl61"]
@@ -21,6 +23,7 @@ spawn_generator_tags = Array[String](["FOREST", "NATURAL"])
 max_hp = 8
 attack = 2
 speed = 130.0
+equipped_body = ExtResource("2_blwtu")
 combat_style = 1
 move_style = 1
 talk_display_name = "bat 難易度3"

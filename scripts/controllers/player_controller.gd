@@ -24,7 +24,10 @@ var mouse_has_pending_click: bool = false
 var mouse_pending_click_tile: Vector2i = Vector2i.ZERO
 
 @export var show_mouse_route_preview: bool = true
-@export var show_mouse_hover_highlight: bool = true
+@export var show_mouse_hover_highlight: bool = false
+# マウス操作時の足元/ホバー枠カーソル。
+# キーボード攻撃選択時だけ攻撃範囲カーソルを出したい場合は false のままにする。
+@export var enable_mouse_hover_cursor: bool = false
 @export var mouse_route_preview_color: Color = Color(0.2, 0.8, 1.0, 0.75)
 @export var mouse_hover_move_color: Color = Color(0.2, 0.8, 1.0, 0.45)
 @export var mouse_hover_enemy_color: Color = Color(1.0, 0.25, 0.2, 0.55)
@@ -40,16 +43,85 @@ var mouse_context_target_tile: Vector2i = Vector2i.ZERO
 var mouse_context_target_unit = null
 var mouse_context_target_object = null
 
+@export var show_keyboard_target_highlight: bool = true
+
+# 攻撃モードでは、射程内に敵がいなくても攻撃範囲だけ表示する。
+# カーソル/候補枠は「現在の武器で攻撃可能な範囲内にいる敵」だけに出す。
+@export var keyboard_attack_mode_can_start_without_target: bool = true
+
+# 攻撃範囲可視化モードをON/OFFするInput Map名。
+# Project Settings > Input Map に attack_mode を追加して、好きなキーを割り当てる。
+@export var keyboard_attack_mode_action: StringName = &"attack_mode"
+
+# フィールドマップでは攻撃範囲表示モードを使わない。
+# 詳細マップ/ダンジョンなど、実際に戦闘するマップだけで表示する。
+@export var allow_keyboard_attack_mode_on_field_map: bool = false
+@export var field_map_scene_path: String = "res://scenes/field_map.tscn"
+
+# attack_mode がまだInput Mapに無い場合だけ、旧互換として attack キーでも可視化モードに入れる。
+# attack_mode を登録した後は false 扱いになり、attack は攻撃確定専用になる。
+@export var keyboard_attack_key_starts_mode_if_mode_action_missing: bool = false
+
+# 可視化中の候補/範囲更新間隔。毎フレーム全範囲を描き直すと重いので、
+# 移動・射程変更・一定間隔のときだけ更新する。
+@export var keyboard_attack_mode_refresh_interval: float = 0.12
+
+# 攻撃モード中に敵候補を探す最大範囲。
+# 0以下なら同じUnitsノード内の敵対Unitを全て走査する。
+# 実際にカーソルを出す対象は、さらに武器の attack_min_range / attack_max_range 内に限定する。
+@export var keyboard_target_selection_radius: int = 12
+
+# キーボード攻撃ターゲット選択中に、武器の攻撃可能範囲を表示する。
+@export var show_keyboard_attack_range_highlight: bool = true
+@export var keyboard_attack_range_fill_color: Color = Color(0.2, 0.7, 1.0, 0.34)
+@export var keyboard_attack_range_border_color: Color = Color(0.1, 0.8, 1.0, 1.0)
+@export var keyboard_attack_range_border_width: float = 2.0
+
+# 攻撃候補になっている敵Unitのいるマスを強調する。
+# 選択中ではない候補は控えめな枠だけにして、カーソルが見やすいようにする。
+@export var keyboard_target_candidate_show_fill: bool = false
+@export var keyboard_target_candidate_fill_color: Color = Color(1.0, 0.85, 0.1, 0.10)
+@export var keyboard_target_candidate_color: Color = Color(1.0, 0.95, 0.15, 1.0)
+@export var keyboard_target_candidate_width: float = 4.0
+
+# 現在選択中の敵Unitのいるマス。
+# Inventoryの選択カーソルのように、黄色い四角い枠で表示する。
+@export var keyboard_target_selected_fill_color: Color = Color(1.0, 0.95, 0.05, 0.10)
+@export var keyboard_target_cursor_color: Color = Color(1.0, 0.95, 0.05, 1.0)
+@export var keyboard_target_cursor_width: float = 5.0
+@export var keyboard_target_cursor_shadow_color: Color = Color(0.0, 0.0, 0.0, 0.85)
+@export var keyboard_target_cursor_shadow_width: float = 8.0
+@export var keyboard_target_cursor_inset: float = 2.0
+
+var keyboard_target_mode: bool = false
+var keyboard_target_candidates: Array = []
+var keyboard_target_index: int = -1
+var keyboard_target_visual_root: Node2D = null
+var keyboard_target_visual_dirty: bool = false
+var keyboard_target_refresh_timer: float = 999.0
+var keyboard_target_last_player_tile: Vector2i = Vector2i(999999, 999999)
+var keyboard_target_last_min_range: int = -1
+var keyboard_target_last_max_range: int = -1
+
 
 func setup(owner_unit) -> void:
 	unit = owner_unit
 	units_node = unit.units_node
 	ensure_mouse_visual_nodes()
+	ensure_keyboard_target_visual_nodes()
 	ensure_mouse_context_menu()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	update_mouse_visual_feedback()
+
+	if keyboard_target_mode:
+		keyboard_target_refresh_timer += delta
+		refresh_keyboard_attack_mode_if_needed(false)
+
+		if keyboard_target_visual_dirty:
+			update_keyboard_target_visual_feedback()
+			keyboard_target_visual_dirty = false
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -71,6 +143,24 @@ func _physics_process(delta: float) -> void:
 
 	if units_node == null:
 		return
+
+	if keyboard_target_mode:
+		# フィールドマップに移動した場合は表示を消す。
+		if not is_keyboard_attack_mode_allowed_on_current_map():
+			cancel_keyboard_target_mode(false)
+			return
+
+		# 可視化モードは、移動・ターン解決では消さない。
+		# UIを開く/マップ遷移/キャンセルキー/可視化キー再押しなど、意図的な操作でだけ消す。
+		if is_ui_locked() or unit.is_transitioning:
+			cancel_keyboard_target_mode(false)
+			return
+
+		# 攻撃モードは「範囲表示 + ターゲット指定」の状態として維持する。
+		# 矢印キー/攻撃/キャンセルなど、攻撃モード専用入力だけ消費し、
+		# それ以外の入力、特にWASD移動は通常処理に流す。
+		if handle_keyboard_target_mode_input():
+			return
 
 	if Input.is_action_just_pressed("status"):
 		clear_move_hold()
@@ -118,14 +208,27 @@ func _physics_process(delta: float) -> void:
 			unit.try_interact_action()
 			return
 
+		if _is_keyboard_attack_mode_action_just_pressed():
+			clear_move_hold()
+			clear_mouse_auto_navigation()
+			if _is_player_action_blocked():
+				return
+			toggle_keyboard_attack_target_mode()
+			return
+
 		if Input.is_action_just_pressed("attack"):
 			clear_move_hold()
 			clear_mouse_auto_navigation()
 			if _is_player_action_blocked():
 				return
-			var acted: bool = try_attack_action()
-			if acted:
-				_advance_player_turn_after_action()
+
+			# attack_mode をまだInput Mapに登録していないプロジェクトでは旧互換としてattackで開始する。
+			# attack_mode を登録した後は、attackは攻撃確定用に分離する。
+			if keyboard_attack_key_starts_mode_if_mode_action_missing and not _has_input_action(keyboard_attack_mode_action):
+				start_keyboard_attack_target_mode()
+			else:
+				if unit != null and unit.has_method("notify_hud_log"):
+					unit.notify_hud_log("Qなどの attack_mode キーで攻撃範囲表示モードに入ってから、Enterで攻撃してください")
 			return
 
 		if Input.is_action_just_pressed("wait"):
@@ -257,16 +360,16 @@ func _has_status_effect(status_id: StringName) -> bool:
 
 
 func _is_direction_attempt_just_pressed() -> bool:
-	if Input.is_action_just_pressed("RIGHT"):
+	if Input.is_action_just_pressed("ui_right"):
 		return true
 
-	if Input.is_action_just_pressed("LEFT"):
+	if Input.is_action_just_pressed("ui_left"):
 		return true
 
-	if Input.is_action_just_pressed("DOWN"):
+	if Input.is_action_just_pressed("ui_down"):
 		return true
 
-	if Input.is_action_just_pressed("UP"):
+	if Input.is_action_just_pressed("ui_up"):
 		return true
 
 	return false
@@ -395,6 +498,467 @@ func try_attack_action() -> bool:
 
 	var acted: bool = CombatManager.perform_attack(unit, target)
 	return acted
+
+
+# =========================
+# Keyboard Target Selection
+# =========================
+# 攻撃キーでターゲット選択モードに入り、候補をハイライトする。
+# 攻撃/決定で攻撃、待機/キャンセルで中止、方向キーでターゲット変更。
+
+func _has_input_action(action_name: StringName) -> bool:
+	return InputMap.has_action(String(action_name))
+
+
+func _is_input_action_just_pressed_safe(action_name: StringName) -> bool:
+	if not _has_input_action(action_name):
+		return false
+	return Input.is_action_just_pressed(String(action_name))
+
+
+func _is_keyboard_attack_mode_action_just_pressed() -> bool:
+	return _is_input_action_just_pressed_safe(keyboard_attack_mode_action)
+
+
+func mark_keyboard_target_visual_dirty() -> void:
+	keyboard_target_visual_dirty = true
+
+
+func is_keyboard_attack_mode_allowed_on_current_map() -> bool:
+	# フィールドマップでは攻撃範囲表示モードを無効化する。
+	# map_id は詳細マップでも field_13_10 のような名前になるため、map_id では判定しない。
+	if allow_keyboard_attack_mode_on_field_map:
+		return true
+
+	var root: Node = get_map_root()
+	if root == null:
+		# 判定できない場合は、詳細マップなどで誤って無効化しないよう許可する。
+		return true
+
+	if field_map_scene_path != "" and String(root.scene_file_path) == field_map_scene_path:
+		return false
+
+	var script: Script = root.get_script() as Script
+	if script != null:
+		var script_path: String = String(script.resource_path)
+		if script_path.ends_with("/FiledMap.gd"):
+			return false
+		if script_path.ends_with("/FieldMap.gd"):
+			return false
+		if script_path.ends_with("/field_map.gd"):
+			return false
+
+	var root_name: String = String(root.name).strip_edges().to_lower()
+	if root_name == "fieldmap" or root_name == "field_map":
+		return false
+
+	return true
+
+
+func notify_attack_mode_disabled_on_field_map() -> void:
+	if unit == null:
+		return
+
+	if unit.has_method("notify_hud_log"):
+		unit.notify_hud_log("フィールドマップでは攻撃範囲表示を使えません")
+
+
+func toggle_keyboard_attack_target_mode() -> void:
+	if keyboard_target_mode:
+		cancel_keyboard_target_mode(true)
+		return
+
+	start_keyboard_attack_target_mode()
+
+
+func start_keyboard_attack_target_mode() -> void:
+	if unit == null:
+		return
+
+	if not is_keyboard_attack_mode_allowed_on_current_map():
+		cancel_keyboard_target_mode(false)
+		notify_attack_mode_disabled_on_field_map()
+		return
+
+	keyboard_target_mode = true
+	keyboard_target_index = -1
+	keyboard_target_candidates.clear()
+	keyboard_target_last_player_tile = Vector2i(999999, 999999)
+	keyboard_target_last_min_range = -1
+	keyboard_target_last_max_range = -1
+	keyboard_target_refresh_timer = 999.0
+
+	refresh_keyboard_attack_mode_if_needed(true)
+
+	if keyboard_target_candidates.is_empty():
+		keyboard_target_index = -1
+		mark_keyboard_target_visual_dirty()
+
+		if unit.has_method("notify_hud_log"):
+			if keyboard_attack_mode_can_start_without_target:
+				unit.notify_hud_log("攻撃範囲表示中。範囲内に敵が入るとカーソル表示。移動可能、攻撃範囲キー/待機で終了")
+			else:
+				unit.notify_hud_log("攻撃できる対象がいない")
+				cancel_keyboard_target_mode(false)
+		return
+
+	keyboard_target_index = 0
+	select_keyboard_target_index(keyboard_target_index, true)
+	mark_keyboard_target_visual_dirty()
+	if unit.has_method("notify_hud_log"):
+		unit.notify_hud_log("攻撃範囲表示中。矢印キーで対象変更、Enterで攻撃、WASDで移動、Q/待機/Escで終了")
+
+
+func handle_keyboard_target_mode_input() -> bool:
+	if not keyboard_target_mode:
+		return false
+
+	if _is_keyboard_attack_mode_action_just_pressed():
+		cancel_keyboard_target_mode(true)
+		return true
+
+	if Input.is_action_just_pressed("wait") or Input.is_action_just_pressed("inventory") or Input.is_action_just_pressed("status") or Input.is_action_just_pressed("ui_cancel"):
+		cancel_keyboard_target_mode(true)
+		return true
+
+	if Input.is_action_just_pressed("ui_right"):
+		select_keyboard_target_by_direction(Vector2i.RIGHT)
+		return true
+
+	if Input.is_action_just_pressed("ui_left"):
+		select_keyboard_target_by_direction(Vector2i.LEFT)
+		return true
+
+	if Input.is_action_just_pressed("ui_down"):
+		select_keyboard_target_by_direction(Vector2i.DOWN)
+		return true
+
+	if Input.is_action_just_pressed("ui_up"):
+		select_keyboard_target_by_direction(Vector2i.UP)
+		return true
+
+	if Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("ui_accept"):
+		confirm_keyboard_target_attack()
+		return true
+
+	# 攻撃モード中でも、専用入力でなければ通常の移動処理へ流す。
+	return false
+
+
+
+func get_keyboard_attack_candidates() -> Array:
+	var result: Array = []
+
+	if unit == null:
+		return result
+
+	if units_node == null:
+		return result
+
+	var player_tile: Vector2i = get_player_tile_coords()
+	var select_radius: int = int(keyboard_target_selection_radius)
+
+	for candidate in units_node.get_children():
+		if not is_keyboard_target_candidate_valid(candidate):
+			continue
+
+		var candidate_tile: Vector2i = get_unit_tile_coords_for_mouse(candidate)
+
+		# 探索範囲の上限。0以下なら探索上限なし。
+		if select_radius > 0:
+			var search_distance: int = get_mouse_tile_distance(player_tile, candidate_tile)
+			if search_distance > select_radius:
+				continue
+
+		# カーソルと候補枠は、現在の武器で「今この位置から攻撃可能」な敵だけに出す。
+		if not is_keyboard_target_in_current_attack_range(candidate):
+			continue
+
+		result.append(candidate)
+
+	result.sort_custom(Callable(self, "_sort_keyboard_attack_candidates"))
+	return result
+
+
+func is_keyboard_target_in_current_attack_range(candidate) -> bool:
+	if candidate == null:
+		return false
+
+	if not is_instance_valid(candidate):
+		return false
+
+	var player_tile: Vector2i = get_player_tile_coords()
+	var candidate_tile: Vector2i = get_unit_tile_coords_for_mouse(candidate)
+
+	if not is_target_tile_in_attack_range_from_tile(player_tile, candidate_tile):
+		return false
+
+	# CombatManager 側の最終攻撃条件にも合わせる。
+	# これにより、死亡済み・敵対でない・状態異常で行動不能なども候補から外れる。
+	if CombatManager != null and CombatManager.has_method("can_attack"):
+		return CombatManager.can_attack(unit, candidate, true)
+
+	return true
+
+
+func _sort_keyboard_attack_candidates(a, b) -> bool:
+	var player_tile: Vector2i = get_player_tile_coords()
+	var a_tile: Vector2i = get_unit_tile_coords_for_mouse(a)
+	var b_tile: Vector2i = get_unit_tile_coords_for_mouse(b)
+	var a_dist: int = get_mouse_tile_distance(player_tile, a_tile)
+	var b_dist: int = get_mouse_tile_distance(player_tile, b_tile)
+
+	if a_dist != b_dist:
+		return a_dist < b_dist
+
+	if a_tile.y != b_tile.y:
+		return a_tile.y < b_tile.y
+
+	return a_tile.x < b_tile.x
+
+
+func is_keyboard_target_candidate_valid(candidate) -> bool:
+	if candidate == null:
+		return false
+
+	if not is_instance_valid(candidate):
+		return false
+
+	if candidate.is_queued_for_deletion():
+		return false
+
+	if candidate == unit:
+		return false
+
+	if not candidate.has_node("Stats"):
+		return false
+
+	if candidate.stats.hp <= 0:
+		return false
+
+	if not Targeting.is_hostile(unit, candidate):
+		return false
+
+	# ここでは敵対・生存などの基本条件だけを見る。
+	# 射程内かどうかは get_keyboard_attack_candidates() 側で見る。
+	return true
+
+
+
+func refresh_keyboard_attack_mode_if_needed(force: bool) -> void:
+	if not keyboard_target_mode:
+		return
+
+	var player_tile: Vector2i = get_player_tile_coords()
+	var min_range: int = get_mouse_attack_min_range()
+	var max_range: int = get_mouse_attack_max_range()
+	var tile_changed: bool = player_tile != keyboard_target_last_player_tile
+	var range_changed: bool = min_range != keyboard_target_last_min_range or max_range != keyboard_target_last_max_range
+	var interval_elapsed: bool = keyboard_target_refresh_timer >= max(0.03, keyboard_attack_mode_refresh_interval)
+
+	if not force and not tile_changed and not range_changed and not interval_elapsed:
+		return
+
+	keyboard_target_refresh_timer = 0.0
+	keyboard_target_last_player_tile = player_tile
+	keyboard_target_last_min_range = min_range
+	keyboard_target_last_max_range = max_range
+	refresh_keyboard_attack_candidates_preserving_target()
+	mark_keyboard_target_visual_dirty()
+
+
+func refresh_keyboard_attack_candidates_preserving_target() -> void:
+	var selected_target = get_selected_keyboard_target()
+	var new_candidates: Array = get_keyboard_attack_candidates()
+
+	keyboard_target_candidates = new_candidates
+
+	if keyboard_target_candidates.is_empty():
+		keyboard_target_index = -1
+		return
+
+	keyboard_target_index = 0
+
+	if selected_target != null and is_instance_valid(selected_target):
+		for i in range(keyboard_target_candidates.size()):
+			if keyboard_target_candidates[i] == selected_target:
+				keyboard_target_index = i
+				break
+
+	select_keyboard_target_index(keyboard_target_index, false)
+
+
+
+func get_selected_keyboard_target():
+	if not keyboard_target_mode:
+		return null
+
+	if keyboard_target_index < 0 or keyboard_target_index >= keyboard_target_candidates.size():
+		return null
+
+	var target = keyboard_target_candidates[keyboard_target_index]
+	if target == null:
+		return null
+
+	if not is_instance_valid(target):
+		return null
+
+	if target.is_queued_for_deletion():
+		return null
+
+	return target
+
+
+func select_keyboard_target_index(index: int, announce: bool) -> void:
+	if keyboard_target_candidates.is_empty():
+		keyboard_target_index = -1
+		return
+
+	keyboard_target_index = clampi(index, 0, keyboard_target_candidates.size() - 1)
+	var target = get_selected_keyboard_target()
+	if target == null:
+		return
+
+	var target_tile: Vector2i = get_unit_tile_coords_for_mouse(target)
+	face_toward_tile_if_possible(target_tile)
+
+	if announce and unit != null and unit.has_method("notify_hud_log"):
+		unit.notify_hud_log("対象: %s" % String(target.name))
+
+	mark_keyboard_target_visual_dirty()
+
+
+func select_keyboard_target_by_direction(direction: Vector2i) -> void:
+	if keyboard_target_candidates.is_empty():
+		return
+
+	var current_target = get_selected_keyboard_target()
+	var current_tile: Vector2i = get_player_tile_coords()
+	if current_target != null:
+		current_tile = get_unit_tile_coords_for_mouse(current_target)
+
+	var best_index: int = -1
+	var best_score: int = 999999999
+
+	for i in range(keyboard_target_candidates.size()):
+		if i == keyboard_target_index:
+			continue
+
+		var candidate = keyboard_target_candidates[i]
+		if candidate == null or not is_instance_valid(candidate):
+			continue
+
+		var candidate_tile: Vector2i = get_unit_tile_coords_for_mouse(candidate)
+		var diff: Vector2i = candidate_tile - current_tile
+		var primary: int = 0
+		var secondary: int = 0
+
+		if direction == Vector2i.RIGHT:
+			if diff.x <= 0:
+				continue
+			primary = diff.x
+			secondary = abs(diff.y)
+		elif direction == Vector2i.LEFT:
+			if diff.x >= 0:
+				continue
+			primary = -diff.x
+			secondary = abs(diff.y)
+		elif direction == Vector2i.DOWN:
+			if diff.y <= 0:
+				continue
+			primary = diff.y
+			secondary = abs(diff.x)
+		elif direction == Vector2i.UP:
+			if diff.y >= 0:
+				continue
+			primary = -diff.y
+			secondary = abs(diff.x)
+
+		var score: int = primary * 1000 + secondary
+		if score < best_score:
+			best_score = score
+			best_index = i
+
+	if best_index < 0:
+		if direction == Vector2i.RIGHT or direction == Vector2i.DOWN:
+			best_index = (keyboard_target_index + 1) % keyboard_target_candidates.size()
+		else:
+			best_index = (keyboard_target_index - 1 + keyboard_target_candidates.size()) % keyboard_target_candidates.size()
+
+	select_keyboard_target_index(best_index, true)
+
+
+func confirm_keyboard_target_attack() -> void:
+	if unit != null:
+		if unit.is_moving or unit.repeat_timer > 0.0 or TimeManager.is_resolving_turn:
+			if unit.has_method("notify_hud_log"):
+				unit.notify_hud_log("移動/ターン処理が終わってから攻撃してください")
+			return
+
+	refresh_keyboard_attack_mode_if_needed(true)
+	var target = get_selected_keyboard_target()
+	if target == null:
+		if unit != null and unit.has_method("notify_hud_log"):
+			unit.notify_hud_log("攻撃範囲内に敵がいません")
+		mark_keyboard_target_visual_dirty()
+		return
+
+	if not CombatManager.can_attack(unit, target, true):
+		if unit != null and unit.has_method("notify_hud_log"):
+			unit.notify_hud_log("その対象は攻撃できません")
+		refresh_keyboard_attack_candidates_preserving_target()
+		mark_keyboard_target_visual_dirty()
+		return
+
+	var target_tile: Vector2i = get_unit_tile_coords_for_mouse(target)
+	face_toward_tile_if_possible(target_tile)
+
+	var acted: bool = CombatManager.perform_attack(unit, target, true)
+
+	# 攻撃しても攻撃範囲表示モードは解除しない。
+	# 倒した敵・移動した敵・射程外になった敵を候補から外し、
+	# 範囲内に別の敵がいれば次の対象へカーソルを移す。
+	if acted:
+		_advance_player_turn_after_action()
+		refresh_keyboard_attack_mode_after_action()
+	elif unit != null and unit.has_method("notify_hud_log"):
+		unit.notify_hud_log("攻撃に失敗した")
+		refresh_keyboard_attack_mode_after_action()
+
+
+func refresh_keyboard_attack_mode_after_action() -> void:
+	if not keyboard_target_mode:
+		return
+
+	if not is_keyboard_attack_mode_allowed_on_current_map():
+		cancel_keyboard_target_mode(false)
+		return
+
+	keyboard_target_refresh_timer = 999.0
+	refresh_keyboard_attack_mode_if_needed(true)
+	mark_keyboard_target_visual_dirty()
+
+	if keyboard_target_candidates.is_empty():
+		if unit != null and unit.has_method("notify_hud_log"):
+			unit.notify_hud_log("攻撃範囲内に敵がいません。攻撃範囲表示は継続中")
+		return
+
+	select_keyboard_target_index(keyboard_target_index, false)
+
+
+func cancel_keyboard_target_mode(show_message: bool) -> void:
+	keyboard_target_mode = false
+	keyboard_target_candidates.clear()
+	keyboard_target_index = -1
+	keyboard_target_visual_dirty = false
+	keyboard_target_refresh_timer = 999.0
+	keyboard_target_last_player_tile = Vector2i(999999, 999999)
+	keyboard_target_last_min_range = -1
+	keyboard_target_last_max_range = -1
+	clear_keyboard_target_visuals()
+
+	if show_message and unit != null and unit.has_method("notify_hud_log"):
+		unit.notify_hud_log("攻撃範囲表示を終了した")
 
 
 # =========================
@@ -1142,11 +1706,16 @@ func get_attack_position_candidates(target_tile: Vector2i) -> Array[Vector2i]:
 	var min_range: int = get_mouse_attack_min_range()
 	var max_range: int = get_mouse_attack_max_range()
 	var start_tile: Vector2i = get_player_tile_coords()
-	var dirs: Array[Vector2i] = [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Vector2i.UP]
 
-	for dir in dirs:
-		for distance in range(min_range, max_range + 1):
-			var candidate: Vector2i = target_tile + dir * distance
+	for y in range(-max_range, max_range + 1):
+		for x in range(-max_range, max_range + 1):
+			var offset: Vector2i = Vector2i(x, y)
+			var distance: int = abs(offset.x) + abs(offset.y)
+
+			if distance < min_range or distance > max_range:
+				continue
+
+			var candidate: Vector2i = target_tile + offset
 
 			if candidate == target_tile:
 				continue
@@ -1169,7 +1738,22 @@ func get_attack_position_candidates(target_tile: Vector2i) -> Array[Vector2i]:
 
 			goals.append(candidate)
 
+	goals.sort_custom(Callable(self, "_sort_attack_position_candidates"))
 	return goals
+
+
+func _sort_attack_position_candidates(a: Vector2i, b: Vector2i) -> bool:
+	var start_tile: Vector2i = get_player_tile_coords()
+	var da: int = get_mouse_tile_distance(start_tile, a)
+	var db: int = get_mouse_tile_distance(start_tile, b)
+
+	if da != db:
+		return da < db
+
+	if a.y != b.y:
+		return a.y < b.y
+
+	return a.x < b.x
 
 
 func is_attack_target_in_current_range(target_unit, require_hostile: bool = true) -> bool:
@@ -1203,11 +1787,6 @@ func is_target_tile_in_attack_range_from_tile(source_tile: Vector2i, target_tile
 
 	if distance > max_range:
 		return false
-
-	# 射程2以上は、現在の通常攻撃仕様に合わせて前方直線を前提にする。
-	if max_range > 1:
-		if source_tile.x != target_tile.x and source_tile.y != target_tile.y:
-			return false
 
 	return true
 
@@ -1605,7 +2184,7 @@ func update_mouse_visual_feedback() -> void:
 	if mouse_visual_root == null or not is_instance_valid(mouse_visual_root):
 		return
 
-	if is_ui_locked() or unit == null:
+	if is_ui_locked() or unit == null or keyboard_target_mode:
 		hide_mouse_route_preview()
 		hide_mouse_hover_highlight()
 		return
@@ -1649,7 +2228,7 @@ func update_mouse_hover_highlight() -> void:
 	if mouse_hover_line == null:
 		return
 
-	if not show_mouse_hover_highlight:
+	if not show_mouse_hover_highlight or not enable_mouse_hover_cursor:
 		hide_mouse_hover_highlight()
 		return
 
@@ -1685,6 +2264,231 @@ func set_mouse_hover_tile(tile: Vector2i, color: Color) -> void:
 	mouse_hover_line.points = points
 	mouse_hover_line.default_color = color
 	mouse_hover_line.visible = true
+
+
+func ensure_keyboard_target_visual_nodes() -> void:
+	if unit == null:
+		return
+
+	if keyboard_target_visual_root != null and is_instance_valid(keyboard_target_visual_root):
+		return
+
+	var parent_node: Node = find_ground_layer()
+	if parent_node == null:
+		parent_node = get_map_root()
+
+	if parent_node == null:
+		return
+
+	# 重要:
+	# top_level の Node2D にワールド座標を直接描く方式だと、
+	# カメラ/TileMapLayer/親Transformの組み合わせによって画面外に描かれることがある。
+	# そのため、攻撃範囲表示は GroundLayer の子に置き、
+	# GroundLayer.map_to_local(tile) の座標で描く。
+	keyboard_target_visual_root = Node2D.new()
+	keyboard_target_visual_root.name = "KeyboardTargetHighlights"
+	keyboard_target_visual_root.z_index = 100000
+	keyboard_target_visual_root.z_as_relative = false
+	parent_node.add_child(keyboard_target_visual_root)
+
+func update_keyboard_target_visual_feedback() -> void:
+	ensure_keyboard_target_visual_nodes()
+
+	if keyboard_target_visual_root == null or not is_instance_valid(keyboard_target_visual_root):
+		return
+
+	if not show_keyboard_target_highlight or not keyboard_target_mode:
+		clear_keyboard_target_visuals()
+		return
+
+	clear_keyboard_target_visuals()
+
+	# 先に攻撃可能範囲を薄く表示する。
+	# その上に候補枠、最後にInventory風の選択カーソルを描く。
+	if show_keyboard_attack_range_highlight:
+		var range_tiles: Array[Vector2i] = get_keyboard_attack_range_tiles()
+		for range_tile in range_tiles:
+			_add_keyboard_target_tile_fill(range_tile, keyboard_attack_range_fill_color)
+			_add_keyboard_target_tile_highlight(range_tile, keyboard_attack_range_border_color, keyboard_attack_range_border_width)
+
+	var selected_tile: Vector2i = Vector2i(999999, 999999)
+
+	for i in range(keyboard_target_candidates.size()):
+		var target = keyboard_target_candidates[i]
+		if target == null or not is_instance_valid(target):
+			continue
+
+		var tile: Vector2i = get_unit_tile_coords_for_mouse(target)
+
+		if i == keyboard_target_index:
+			selected_tile = tile
+			if keyboard_target_selected_fill_color.a > 0.0:
+				_add_keyboard_target_tile_fill(tile, keyboard_target_selected_fill_color)
+			continue
+
+		if keyboard_target_candidate_show_fill:
+			_add_keyboard_target_tile_fill(tile, keyboard_target_candidate_fill_color)
+
+		_add_keyboard_target_tile_highlight(tile, keyboard_target_candidate_color, keyboard_target_candidate_width)
+
+	# Inventoryのカーソルと同じ感覚で、選択中のUnitだけ黄色い四角枠を最前面に描く。
+	if selected_tile != Vector2i(999999, 999999):
+		_add_keyboard_target_inventory_cursor(selected_tile)
+
+
+func clear_keyboard_target_visuals() -> void:
+	if keyboard_target_visual_root == null or not is_instance_valid(keyboard_target_visual_root):
+		return
+
+	for child in keyboard_target_visual_root.get_children():
+		child.queue_free()
+
+
+func get_keyboard_attack_range_tiles() -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+
+	if unit == null:
+		return result
+
+	var origin_tile: Vector2i = get_player_tile_coords()
+	var min_range: int = 1
+	var max_range: int = 1
+
+	if unit.has_method("get_attack_min_range"):
+		min_range = max(0, int(unit.get_attack_min_range()))
+
+	if unit.has_method("get_attack_max_range"):
+		max_range = max(min_range, int(unit.get_attack_max_range()))
+
+	for y in range(-max_range, max_range + 1):
+		for x in range(-max_range, max_range + 1):
+			var offset: Vector2i = Vector2i(x, y)
+			var distance: int = abs(offset.x) + abs(offset.y)
+
+			if distance < min_range or distance > max_range:
+				continue
+
+			var tile: Vector2i = origin_tile + offset
+			if not is_keyboard_attack_range_tile_visible(tile):
+				continue
+
+			result.append(tile)
+
+	return result
+
+
+func is_keyboard_attack_range_tile_visible(tile: Vector2i) -> bool:
+	# 現在の攻撃判定は距離基準なので、ここでは最低限「地面があるマス」だけを表示する。
+	# 将来、壁や射線で攻撃不可にする場合は CombatManager 側の判定に合わせてここも拡張する。
+	if unit == null:
+		return false
+
+	if unit.ground_layer == null:
+		return true
+
+	return unit.ground_layer.get_cell_source_id(tile) != -1
+
+
+func _add_keyboard_target_inventory_cursor(tile: Vector2i) -> void:
+	# Inventoryスロット選択のような「黄色い四角カーソル」。
+	# 黒い太枠を下に描いてから黄色枠を重ねるので、背景が明るくても見失いにくい。
+	_add_keyboard_target_tile_highlight_with_inset(
+		tile,
+		keyboard_target_cursor_shadow_color,
+		keyboard_target_cursor_shadow_width,
+		keyboard_target_cursor_inset
+	)
+	_add_keyboard_target_tile_highlight_with_inset(
+		tile,
+		keyboard_target_cursor_color,
+		keyboard_target_cursor_width,
+		keyboard_target_cursor_inset
+	)
+
+
+func _add_keyboard_target_tile_fill(tile: Vector2i, color: Color) -> void:
+	if keyboard_target_visual_root == null or not is_instance_valid(keyboard_target_visual_root):
+		return
+
+	var polygon: Polygon2D = Polygon2D.new()
+	polygon.color = color
+	polygon.z_index = 5000
+	polygon.z_as_relative = false
+
+	var tile_size: float = float(get_unit_tile_size())
+	var center: Vector2 = tile_to_keyboard_target_visual_local(tile)
+	var half: float = tile_size * 0.5
+
+	polygon.polygon = PackedVector2Array([
+		center + Vector2(-half, -half),
+		center + Vector2(half, -half),
+		center + Vector2(half, half),
+		center + Vector2(-half, half)
+	])
+
+	keyboard_target_visual_root.add_child(polygon)
+
+
+func _add_keyboard_target_tile_highlight(tile: Vector2i, color: Color, width: float) -> void:
+	if keyboard_target_visual_root == null or not is_instance_valid(keyboard_target_visual_root):
+		return
+
+	var line: Line2D = Line2D.new()
+	line.width = width
+	line.default_color = color
+	line.closed = true
+	line.z_index = 5010
+	line.z_as_relative = false
+
+	var tile_size: float = float(get_unit_tile_size())
+	var center: Vector2 = tile_to_keyboard_target_visual_local(tile)
+	var half: float = tile_size * 0.5
+
+	var top_left: Vector2 = center + Vector2(-half, -half)
+	var top_right: Vector2 = center + Vector2(half, -half)
+	var bottom_right: Vector2 = center + Vector2(half, half)
+	var bottom_left: Vector2 = center + Vector2(-half, half)
+
+	line.points = PackedVector2Array([
+		top_left,
+		top_right,
+		bottom_right,
+		bottom_left,
+		top_left
+	])
+
+	keyboard_target_visual_root.add_child(line)
+
+
+func _add_keyboard_target_tile_highlight_with_inset(tile: Vector2i, color: Color, width: float, inset: float) -> void:
+	if keyboard_target_visual_root == null or not is_instance_valid(keyboard_target_visual_root):
+		return
+
+	var line: Line2D = Line2D.new()
+	line.width = width
+	line.default_color = color
+	line.closed = true
+	line.z_index = 5030
+	line.z_as_relative = false
+
+	var tile_size: float = float(get_unit_tile_size())
+	var center: Vector2 = tile_to_keyboard_target_visual_local(tile)
+	var half: float = max(1.0, tile_size * 0.5 - max(0.0, inset))
+
+	var top_left: Vector2 = center + Vector2(-half, -half)
+	var top_right: Vector2 = center + Vector2(half, -half)
+	var bottom_right: Vector2 = center + Vector2(half, half)
+	var bottom_left: Vector2 = center + Vector2(-half, half)
+
+	line.points = PackedVector2Array([
+		top_left,
+		top_right,
+		bottom_right,
+		bottom_left,
+		top_left
+	])
+
+	keyboard_target_visual_root.add_child(line)
 
 
 func get_mouse_hover_color_for_tile(tile: Vector2i) -> Color:
@@ -1725,6 +2529,26 @@ func tile_to_mouse_visual_local(tile: Vector2i) -> Vector2:
 
 	return global_pos
 
+
+func tile_to_keyboard_target_visual_local(tile: Vector2i) -> Vector2:
+	var ground_layer = find_ground_layer()
+
+	if keyboard_target_visual_root != null and is_instance_valid(keyboard_target_visual_root):
+		# Root が GroundLayer の子なら、TileMapLayer のローカル座標をそのまま使う。
+		# これが一番ズレにくい。
+		if ground_layer != null and keyboard_target_visual_root.get_parent() == ground_layer:
+			return ground_layer.map_to_local(tile)
+
+		# GroundLayer の子にできなかった場合だけ、グローバル座標から変換する。
+		if ground_layer != null:
+			var global_pos: Vector2 = ground_layer.to_global(ground_layer.map_to_local(tile))
+			return keyboard_target_visual_root.to_local(global_pos)
+
+	var tile_size: int = get_unit_tile_size()
+	return Vector2(
+		(float(tile.x) + 0.5) * float(tile_size),
+		(float(tile.y) + 0.5) * float(tile_size)
+	)
 
 func show_mouse_context_menu_for_current_tile() -> void:
 	ensure_mouse_context_menu()

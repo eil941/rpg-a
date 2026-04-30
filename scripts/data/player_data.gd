@@ -19,7 +19,9 @@ var last_tile: Vector2i = Vector2i.ZERO
 
 var map_positions: Dictionary = {}
 
-var inventory_data: Array = []
+# Inventory.save_inventory_full_data() は Dictionary を返す。
+# 旧データ互換の Array も Inventory.load_inventory_data() 側で読めるため、Variantで保持する。
+var inventory_data: Variant = []
 
 var equipment_data: Dictionary = {
 	"right_hand": {},
