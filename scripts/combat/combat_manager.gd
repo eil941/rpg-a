@@ -143,6 +143,203 @@ func can_attack(attacker, target, require_hostile: bool = true) -> bool:
 	return true
 
 
+func can_perform_selected_target_action(user, target) -> bool:
+	if _get_selected_target_item_data(user) != null:
+		return can_use_selected_target_item(user, target)
+
+	if _is_selected_hotbar_non_target_item_blocking_attack(user):
+		return false
+
+	return can_attack(user, target, true)
+
+
+func perform_selected_target_action(user, target) -> bool:
+	if _get_selected_target_item_data(user) != null:
+		return perform_selected_target_item_use(user, target)
+
+	if _is_selected_hotbar_non_target_item_blocking_attack(user):
+		if user != null and user.has_method("notify_hud_log"):
+			user.notify_hud_log("選択中のアイテムは対象に使えません")
+		return false
+
+	return perform_attack(user, target, true)
+
+
+func _get_selected_target_item_data(user) -> ItemData:
+	if user == null:
+		return null
+
+	if user.has_method("get_selected_target_item_data"):
+		return user.get_selected_target_item_data()
+
+	return null
+
+func _is_selected_hotbar_non_target_item_blocking_attack(user) -> bool:
+	if user == null:
+		return false
+
+	if user.has_method("is_selected_hotbar_non_target_item_blocking_attack"):
+		return bool(user.is_selected_hotbar_non_target_item_blocking_attack())
+
+	return false
+
+
+
+func can_use_selected_target_item(user, target) -> bool:
+	if user == null or target == null:
+		return false
+	if not user.has_node("Stats"):
+		return false
+	if not target.has_node("Stats"):
+		return false
+	if user.stats.hp <= 0 or target.stats.hp <= 0:
+		return false
+	if user.has_method("is_action_blocked_by_status"):
+		if user.is_action_blocked_by_status():
+			return false
+
+	var item_data: ItemData = _get_selected_target_item_data(user)
+	if item_data == null:
+		return false
+
+	if item_data.effects.is_empty():
+		return false
+
+	if not _is_target_allowed_for_item(user, target, item_data):
+		return false
+
+	if not _is_target_in_selected_item_range(user, target):
+		return false
+
+	return true
+
+
+func perform_selected_target_item_use(user, target) -> bool:
+	if not can_use_selected_target_item(user, target):
+		return false
+
+	var item_data: ItemData = _get_selected_target_item_data(user)
+	if item_data == null:
+		return false
+
+	var item_name: String = String(item_data.display_name)
+	if item_name == "":
+		item_name = String(item_data.item_id)
+
+	var hit: bool = true
+	if user != target:
+		hit = _roll_target_item_hit(user, target)
+	var consumed: bool = _consume_selected_target_item(user)
+
+	if not hit:
+		_log_attack_message(user, target, "%s は %s を使ったが、%s は回避した" % [user.name, item_name, target.name])
+		_refresh_hud_status(user, target)
+		return consumed
+
+	var applied: bool = ItemEffectManager.apply_item_effect(user, target, item_data)
+
+	if applied:
+		_wake_up_target_if_needed(target)
+		_log_attack_message(user, target, "%s は %s に %s を使った" % [user.name, target.name, item_name])
+	else:
+		_log_attack_message(user, target, "%s は %s に %s を使ったが、効果がなかった" % [user.name, target.name, item_name])
+
+	_refresh_hud_status(user, target)
+	return consumed or applied
+
+
+func _consume_selected_target_item(user) -> bool:
+	if user == null:
+		return false
+
+	if user.has_method("consume_selected_hotbar_target_item"):
+		return bool(user.consume_selected_hotbar_target_item(1))
+
+	var inv = null
+	if "inventory" in user:
+		inv = user.inventory
+
+	if inv != null and inv.has_method("consume_selected_hotbar_item_for_target_action"):
+		return bool(inv.consume_selected_hotbar_item_for_target_action(1))
+
+	return false
+
+
+func _is_target_in_selected_item_range(user, target) -> bool:
+	# 自分自身への対象指定使用は、距離0として常に射程内扱いにする。
+	# TARGET_SELF の可否は _is_target_allowed_for_item() 側で判定する。
+	if user == target:
+		return true
+
+	var dist: int = Targeting.get_distance_between_units(user, target)
+	var min_range: int = 1
+	var max_range: int = 5
+
+	if user.has_method("get_target_item_use_min_range"):
+		min_range = int(user.get_target_item_use_min_range())
+	if user.has_method("get_target_item_use_max_range"):
+		max_range = int(user.get_target_item_use_max_range())
+
+	min_range = max(0, min_range)
+	max_range = max(min_range, max_range)
+
+	return dist >= min_range and dist <= max_range
+
+
+func _is_target_allowed_for_item(user, target, item_data: ItemData) -> bool:
+	if item_data == null:
+		return false
+
+	if target == user:
+		return item_data.has_target_flag(ItemData.ItemTargetFlag.TARGET_SELF)
+
+	if Targeting.is_hostile(user, target):
+		return item_data.has_target_flag(ItemData.ItemTargetFlag.TARGET_ENEMY)
+
+	if _are_units_friendly(user, target):
+		return item_data.has_target_flag(ItemData.ItemTargetFlag.TARGET_ALLY)
+
+	return item_data.has_target_flag(ItemData.ItemTargetFlag.TARGET_NEUTRAL)
+
+
+func _are_units_friendly(unit_a, unit_b) -> bool:
+	if unit_a == null or unit_b == null:
+		return false
+	if unit_a == unit_b:
+		return true
+
+	if FactionManager != null and FactionManager.has_method("are_units_friendly"):
+		return bool(FactionManager.are_units_friendly(unit_a, unit_b))
+
+	if "faction" in unit_a and "faction" in unit_b:
+		return String(unit_a.faction).to_upper() == String(unit_b.faction).to_upper()
+
+	return false
+
+
+func _roll_target_item_hit(user, target) -> bool:
+	var hit_chance: float = 0.9
+
+	if user != null and user.has_method("get_total_accuracy"):
+		hit_chance = float(user.get_total_accuracy())
+
+	if target != null and target.has_method("get_total_evasion"):
+		hit_chance -= float(target.get_total_evasion())
+
+	var user_luck: int = 0
+	var target_luck: int = 0
+	if user != null and user.has_method("get_total_luck"):
+		user_luck = int(user.get_total_luck())
+	if target != null and target.has_method("get_total_luck"):
+		target_luck = int(target.get_total_luck())
+
+	hit_chance += float(user_luck - target_luck) * 0.001
+	hit_chance = clamp(hit_chance, 0.05, 0.95)
+
+	return randf() <= hit_chance
+
+
+
 func perform_attack(attacker, target, require_hostile: bool = true) -> bool:
 	if not can_attack(attacker, target, require_hostile):
 		return false

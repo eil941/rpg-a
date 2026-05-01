@@ -4,13 +4,35 @@ signal inventory_button_pressed
 signal status_button_pressed
 signal hotbar_slot_pressed(hotbar_index: int)
 
-@export var hotbar_slot_size: Vector2 = Vector2(44, 44)
-@export var hotbar_icon_margin: int = 4
+@export var hotbar_slot_size: Vector2 = Vector2(40, 40)
+@export var hotbar_icon_margin: int = 3
 @export var hotbar_slot_gap: int = 0
 @export var hotbar_slot_background_alpha: float = 0.0
 # HotbarArea/PanelContainer の余分な薄灰色背景だけを消す。
 # スロット自体の背景・枠は _apply_hotbar_slot_style() 側で維持する。
 @export var hotbar_outer_background_alpha: float = 0.0
+
+# 選択中ホットバー枠。インベントリカーソルに近い黄色枠で表示する。
+@export var hotbar_selected_cursor_enabled: bool = true
+# インベントリを開いてHUDホットバーを編集スロットとして使っている間は、
+# 通常プレイ用のホットバー選択カーソルを隠す。
+@export var hotbar_selected_cursor_visible_in_inventory: bool = false
+@export var hotbar_selected_cursor_color: Color = Color(1.0, 0.95, 0.05, 1.0)
+@export var hotbar_selected_cursor_width: int = 2
+@export var hotbar_selected_cursor_shadow_color: Color = Color(0.0, 0.0, 0.0, 0.85)
+@export var hotbar_selected_cursor_shadow_width: int = 4
+@export var hotbar_selected_cursor_inset: float = 1.5
+
+# ホットバー1の左に表示する特殊枠。
+# 表示順は [手持ち表示] [素] [1] [2] ...
+# 「手持ち表示」は表示専用で、選択対象には含めない。
+@export var hotbar_show_special_hand_slots: bool = true
+@export var hotbar_hand_display_empty_label: String = "手"
+@export var hotbar_hand_display_slot_size: Vector2 = Vector2(40, 40)
+@export var hotbar_bare_hand_label: String = "素"
+@export var hotbar_bare_hand_tooltip: String = "素手\n武器を使わずに攻撃します。"
+@export var hotbar_hand_item_tooltip_prefix: String = "手持ち表示"
+
 # HUD action button icons.
 # Inspector から差し込めます。未設定なら各ボタン内の FallbackLabel を表示します。
 @export var icon_inventory_action: Texture2D
@@ -101,6 +123,7 @@ var hovered_effect_tooltip_text: String = ""
 var hovered_effect_key: String = ""
 
 var hotbar_inventory = null
+var hotbar_owner_unit = null
 var hotbar_snapshot_key: String = ""
 var hovered_hotbar_button: Control = null
 var hovered_hotbar_tooltip_text: String = ""
@@ -309,7 +332,7 @@ func _setup_action_icon_button(button: BaseButton, icon: Texture2D, fallback_tex
 		else:
 			normal_button.icon = null
 			normal_button.text = fallback_text
-			normal_button.add_theme_font_size_override("font_size", 13)
+			normal_button.add_theme_font_size_override("font_size", 12)
 			normal_button.flat = false
 			_apply_action_fallback_icon_style(normal_button)
 
@@ -643,7 +666,7 @@ func rebuild_effect_bar() -> void:
 			icon_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 			icon_button.mouse_filter = Control.MOUSE_FILTER_STOP
 			icon_button.flat = false
-			icon_button.add_theme_font_size_override("font_size", 13)
+			icon_button.add_theme_font_size_override("font_size", 12)
 			icon_button.set_meta("hover_key", hover_key)
 
 			_apply_effect_icon_style(icon_button, entry)
@@ -668,10 +691,11 @@ func rebuild_effect_bar() -> void:
 		_hide_effect_tooltip()
 
 
-func set_hotbar_inventory(inventory) -> void:
+func set_hotbar_inventory(inventory, owner_unit = null) -> void:
 	# Hotbar は Inventory.hotbar_items を表示する。
 	# 通常インベントリ items の先頭9スロットではない。
 	hotbar_inventory = inventory
+	hotbar_owner_unit = owner_unit
 	refresh_hotbar_if_changed()
 
 
@@ -696,9 +720,40 @@ func rebuild_hotbar() -> void:
 
 	var slot_count: int = get_hotbar_slot_count()
 
+	var selected_quick_index: int = get_selected_quick_slot_index()
+	var show_selected_cursor: bool = hotbar_selected_cursor_enabled
+	if inventory_hotbar_edit_mode and not hotbar_selected_cursor_visible_in_inventory:
+		show_selected_cursor = false
+
+	if hotbar_show_special_hand_slots:
+		var hand_entry: Dictionary = _get_current_hand_display_entry()
+		var hand_tooltip: String = hotbar_hand_item_tooltip_prefix
+		if not _is_hotbar_entry_empty(hand_entry):
+			hand_tooltip = hotbar_hand_item_tooltip_prefix + "\n" + _build_hotbar_tooltip_text(-3, hand_entry)
+		else:
+			hand_tooltip = hotbar_hand_item_tooltip_prefix + "\n現在表示できる手持ちアイテムはありません。"
+
+		var hand_display_button: Button = _create_hotbar_display_slot_button(
+			-3,
+			hotbar_hand_display_empty_label,
+			hand_entry,
+			hand_tooltip
+		)
+		hotbar_container.add_child(hand_display_button)
+
+		var bare_button: Button = _create_hotbar_special_slot_button(
+			-2,
+			hotbar_bare_hand_label,
+			{},
+			show_selected_cursor and selected_quick_index == 0,
+			hotbar_bare_hand_tooltip
+		)
+		hotbar_container.add_child(bare_button)
+
 	for i in range(slot_count):
 		var entry: Dictionary = _get_hotbar_inventory_entry(i)
-		var slot_button: Button = _create_hotbar_slot_button(i, entry)
+		var quick_index: int = i + 1
+		var slot_button: Button = _create_hotbar_slot_button(i, entry, show_selected_cursor and selected_quick_index == quick_index)
 		hotbar_container.add_child(slot_button)
 
 	if inventory_hotbar_edit_mode:
@@ -720,10 +775,33 @@ func get_hotbar_slot_count() -> int:
 	return 9
 
 
+func get_selected_hotbar_index() -> int:
+	if hotbar_inventory != null and hotbar_inventory.has_method("get_selected_hotbar_index"):
+		return clampi(int(hotbar_inventory.get_selected_hotbar_index()), 0, get_hotbar_slot_count() - 1)
+
+	if hotbar_inventory != null and "selected_hotbar_index" in hotbar_inventory:
+		return clampi(int(hotbar_inventory.selected_hotbar_index), 0, get_hotbar_slot_count() - 1)
+
+	return 0
+
+
+func get_selected_quick_slot_index() -> int:
+	if hotbar_inventory != null and hotbar_inventory.has_method("get_selected_quick_slot_index"):
+		return clampi(int(hotbar_inventory.get_selected_quick_slot_index()), 0, get_hotbar_slot_count())
+
+	if hotbar_inventory != null and "selected_quick_slot_index" in hotbar_inventory:
+		return clampi(int(hotbar_inventory.selected_quick_slot_index), 0, get_hotbar_slot_count())
+
+	return get_selected_hotbar_index() + 1
+
+
 func _build_hotbar_snapshot_key() -> String:
 	var parts: Array[String] = []
 	var slot_count: int = get_hotbar_slot_count()
 	parts.append(str(slot_count))
+	parts.append("selected=%d" % get_selected_hotbar_index())
+	parts.append("quick=%d" % get_selected_quick_slot_index())
+	parts.append("hand_display=%s" % str(_get_current_hand_display_entry()))
 
 	for i in range(slot_count):
 		var entry: Dictionary = _get_hotbar_inventory_entry(i)
@@ -737,6 +815,52 @@ func _build_hotbar_snapshot_key() -> String:
 		parts.append("%d:%s:%d:%s" % [i, item_id, amount, instance_data])
 
 	return "|".join(parts)
+
+
+func _get_current_hand_display_entry() -> Dictionary:
+	# 表示専用の「手持ち表示」枠に出す内容。
+	# 現在は「実際にホットバーで選択中のアイテム」だけを表示する。
+	#
+	# - Unit側に get_current_hand_display_entry() があればそれを最優先で使う。
+	# - 素手選択中は空表示。
+	# - ホットバー選択中でも、そのスロットが空なら空表示。
+	# - right_hand装備は、素手/空スロット時の代替表示には使わない。
+	#
+	# 将来、インベントリから直接「手に持つ」アイテムを作る場合は
+	# Unit.get_current_hand_display_entry() 側で返せばHUD側は変更不要。
+	if hotbar_owner_unit != null and hotbar_owner_unit.has_method("get_current_hand_display_entry"):
+		var unit_entry: Dictionary = hotbar_owner_unit.get_current_hand_display_entry()
+		return unit_entry.duplicate(true)
+
+	if hotbar_inventory != null:
+		var quick_index: int = get_selected_quick_slot_index()
+		if quick_index <= 0:
+			return {}
+
+		var hotbar_index: int = quick_index - 1
+		var hotbar_entry: Dictionary = _get_hotbar_inventory_entry(hotbar_index)
+		if not _is_hotbar_entry_empty(hotbar_entry):
+			return hotbar_entry.duplicate(true)
+
+	return {}
+
+
+func _get_right_hand_display_entry() -> Dictionary:
+	if hotbar_owner_unit == null:
+		return {}
+
+	if hotbar_owner_unit.has_method("get_equipped_item_entry"):
+		var right_entry: Dictionary = hotbar_owner_unit.get_equipped_item_entry("right_hand")
+		if not _is_hotbar_entry_empty(right_entry):
+			return right_entry.duplicate(true)
+
+	return {}
+
+
+func _is_hotbar_entry_empty(entry: Dictionary) -> bool:
+	var item_id: String = String(entry.get("item_id", ""))
+	var amount: int = int(entry.get("amount", 0))
+	return item_id == "" or amount <= 0
 
 
 func _get_hotbar_inventory_entry(hotbar_index: int) -> Dictionary:
@@ -788,7 +912,35 @@ func _apply_hotbar_outer_background_style() -> void:
 	hotbar_panel_container.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 
 
-func _create_hotbar_slot_button(display_index: int, entry: Dictionary) -> Button:
+func _create_hotbar_display_slot_button(display_index: int, label_text: String, entry: Dictionary, tooltip_text: String) -> Button:
+	var slot_button: Button = _create_hotbar_slot_button(display_index, entry, false)
+	# 表示専用の手持ち枠も、通常ホットバーと同じサイズに揃える。
+	slot_button.custom_minimum_size = hotbar_slot_size
+	slot_button.set_meta("hotbar_index", display_index)
+	slot_button.mouse_default_cursor_shape = Control.CURSOR_ARROW
+
+	if _is_hotbar_entry_empty(entry):
+		slot_button.text = label_text
+
+	slot_button.tooltip_text = tooltip_text
+
+	# 表示専用なので、押しても何もしない。
+	# Button自体は無効化しない。無効化すると見た目やTooltipが弱くなるため。
+	return slot_button
+
+
+func _create_hotbar_special_slot_button(display_index: int, label_text: String, entry: Dictionary, selected: bool, tooltip_text: String) -> Button:
+	var slot_button: Button = _create_hotbar_slot_button(display_index, entry, selected)
+	slot_button.set_meta("hotbar_index", display_index)
+
+	if _is_hotbar_entry_empty(entry):
+		slot_button.text = label_text
+
+	slot_button.tooltip_text = tooltip_text
+	return slot_button
+
+
+func _create_hotbar_slot_button(display_index: int, entry: Dictionary, selected: bool = false) -> Button:
 	var slot_button: Button = Button.new()
 	slot_button.custom_minimum_size = hotbar_slot_size
 	slot_button.focus_mode = Control.FOCUS_NONE
@@ -831,7 +983,7 @@ func _create_hotbar_slot_button(display_index: int, entry: Dictionary) -> Button
 		amount_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		amount_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 		amount_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		amount_label.add_theme_font_size_override("font_size", 11)
+		amount_label.add_theme_font_size_override("font_size", 10)
 		amount_label.set_anchors_preset(Control.PRESET_FULL_RECT)
 		amount_label.offset_left = 0.0
 		amount_label.offset_top = 0.0
@@ -845,7 +997,65 @@ func _create_hotbar_slot_button(display_index: int, entry: Dictionary) -> Button
 	slot_button.gui_input.connect(_on_hotbar_slot_gui_input.bind(slot_button, tooltip_text))
 	slot_button.pressed.connect(_on_hotbar_slot_pressed.bind(display_index))
 
+	if selected:
+		_add_hotbar_selected_cursor_overlay(slot_button)
+
 	return slot_button
+
+
+func _add_hotbar_selected_cursor_overlay(button: Control) -> void:
+	if not hotbar_selected_cursor_enabled:
+		return
+	if button == null:
+		return
+
+	var shadow_panel: Panel = Panel.new()
+	shadow_panel.name = "SelectedShadow"
+	shadow_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shadow_panel.z_index = 98
+	shadow_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shadow_panel.offset_left = 0.0
+	shadow_panel.offset_top = 0.0
+	shadow_panel.offset_right = 0.0
+	shadow_panel.offset_bottom = 0.0
+
+	var shadow_style: StyleBoxFlat = StyleBoxFlat.new()
+	shadow_style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
+	shadow_style.border_width_left = max(1, hotbar_selected_cursor_shadow_width)
+	shadow_style.border_width_top = max(1, hotbar_selected_cursor_shadow_width)
+	shadow_style.border_width_right = max(1, hotbar_selected_cursor_shadow_width)
+	shadow_style.border_width_bottom = max(1, hotbar_selected_cursor_shadow_width)
+	shadow_style.border_color = hotbar_selected_cursor_shadow_color
+	shadow_style.corner_radius_top_left = 3
+	shadow_style.corner_radius_top_right = 3
+	shadow_style.corner_radius_bottom_left = 3
+	shadow_style.corner_radius_bottom_right = 3
+	shadow_panel.add_theme_stylebox_override("panel", shadow_style)
+	button.add_child(shadow_panel)
+
+	var cursor_panel: Panel = Panel.new()
+	cursor_panel.name = "SelectedCursor"
+	cursor_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cursor_panel.z_index = 99
+	cursor_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cursor_panel.offset_left = hotbar_selected_cursor_inset
+	cursor_panel.offset_top = hotbar_selected_cursor_inset
+	cursor_panel.offset_right = -hotbar_selected_cursor_inset
+	cursor_panel.offset_bottom = -hotbar_selected_cursor_inset
+
+	var cursor_style: StyleBoxFlat = StyleBoxFlat.new()
+	cursor_style.bg_color = Color(1.0, 0.95, 0.05, 0.07)
+	cursor_style.border_width_left = max(1, hotbar_selected_cursor_width)
+	cursor_style.border_width_top = max(1, hotbar_selected_cursor_width)
+	cursor_style.border_width_right = max(1, hotbar_selected_cursor_width)
+	cursor_style.border_width_bottom = max(1, hotbar_selected_cursor_width)
+	cursor_style.border_color = hotbar_selected_cursor_color
+	cursor_style.corner_radius_top_left = 3
+	cursor_style.corner_radius_top_right = 3
+	cursor_style.corner_radius_bottom_left = 3
+	cursor_style.corner_radius_bottom_right = 3
+	cursor_panel.add_theme_stylebox_override("panel", cursor_style)
+	button.add_child(cursor_panel)
 
 
 func _apply_inventory_mode_hotbar_slot_style(button: Button) -> void:
@@ -889,7 +1099,7 @@ func _apply_inventory_mode_hotbar_slot_style(button: Button) -> void:
 	button.add_theme_color_override("font_pressed_color", font_color)
 	button.add_theme_color_override("font_focus_color", font_color)
 	button.add_theme_color_override("font_disabled_color", font_color)
-	button.add_theme_font_size_override("font_size", 13)
+	button.add_theme_font_size_override("font_size", 12)
 
 
 func _apply_hotbar_slot_style(button: Button) -> void:
@@ -920,7 +1130,7 @@ func _apply_hotbar_slot_style(button: Button) -> void:
 	button.add_theme_stylebox_override("hover", hover_style)
 	button.add_theme_stylebox_override("pressed", pressed_style)
 	button.add_theme_stylebox_override("focus", hover_style)
-	button.add_theme_font_size_override("font_size", 13)
+	button.add_theme_font_size_override("font_size", 12)
 
 func _build_hotbar_fallback_item_text(item_id: String) -> String:
 	var display_name: String = ItemDatabase.get_display_name(item_id)

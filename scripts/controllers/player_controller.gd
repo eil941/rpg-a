@@ -12,6 +12,12 @@ var repeat_time: float = 0.0
 var is_holding_move: bool = false
 var first_move_done: bool = false
 
+# HUDホットバーの選択操作。
+# 数字キー1〜9とマウスホイールで選択枠を移動する。
+@export var enable_hotbar_keyboard_selection: bool = true
+@export var enable_hotbar_mouse_wheel_selection: bool = true
+@export var hotbar_mouse_wheel_up_selects_previous: bool = true
+
 @export var mouse_auto_move_max_search_tiles: int = 12000
 @export var mouse_auto_move_search_margin: int = 4
 
@@ -125,6 +131,10 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if handle_hotbar_selection_input(event):
+		get_viewport().set_input_as_handled()
+		return
+
 	# 自動移動中にキーボード/右クリックなど別操作をしたら、移動予約をキャンセルする。
 	# 左クリックだけは「別の目的地へ再指定」として扱うので、ここではキャンセルしない。
 	if should_cancel_mouse_auto_move_by_input(event):
@@ -179,6 +189,9 @@ func _physics_process(delta: float) -> void:
 		if is_dialog_open():
 			return
 		toggle_inventory_ui()
+		return
+
+	if handle_selected_hotbar_use_input():
 		return
 
 	if is_ui_locked():
@@ -606,7 +619,7 @@ func start_keyboard_attack_target_mode() -> void:
 	select_keyboard_target_index(keyboard_target_index, true)
 	mark_keyboard_target_visual_dirty()
 	if unit.has_method("notify_hud_log"):
-		unit.notify_hud_log("攻撃範囲表示中。矢印キーで対象変更、Enterで攻撃、WASDで移動、Q/待機/Escで終了")
+		unit.notify_hud_log("攻撃範囲表示中。矢印キーで対象変更、Enterで攻撃、Eで対象にアイテム使用、WASDで移動、Spaceで待機、Q/Escで終了")
 
 
 func handle_keyboard_target_mode_input() -> bool:
@@ -617,7 +630,22 @@ func handle_keyboard_target_mode_input() -> bool:
 		cancel_keyboard_target_mode(true)
 		return true
 
-	if Input.is_action_just_pressed("wait") or Input.is_action_just_pressed("inventory") or Input.is_action_just_pressed("status") or Input.is_action_just_pressed("ui_cancel"):
+	# 攻撃範囲表示モード中でも Space / wait は「待機」として処理し、
+	# 可視化モード自体は解除しない。
+	# モード解除は attack_mode 再押し / Esc / inventory / status に限定する。
+	if Input.is_action_just_pressed("wait"):
+		clear_move_hold()
+		clear_mouse_auto_navigation()
+		if _is_player_action_blocked():
+			return true
+		if unit != null and unit.has_method("wait_action"):
+			unit.wait_action()
+			_advance_player_turn_after_action()
+			refresh_keyboard_attack_mode_after_action()
+			return true
+		return true
+
+	if Input.is_action_just_pressed("inventory") or Input.is_action_just_pressed("status") or Input.is_action_just_pressed("ui_cancel"):
 		cancel_keyboard_target_mode(true)
 		return true
 
@@ -637,7 +665,11 @@ func handle_keyboard_target_mode_input() -> bool:
 		select_keyboard_target_by_direction(Vector2i.UP)
 		return true
 
-	if Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("ui_accept"):
+	if Input.is_action_just_pressed("inventory_use"):
+		confirm_keyboard_target_item_use()
+		return true
+
+	if Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("ui_accept"):
 		confirm_keyboard_target_attack()
 		return true
 
@@ -670,11 +702,18 @@ func get_keyboard_attack_candidates() -> Array:
 			if search_distance > select_radius:
 				continue
 
-		# カーソルと候補枠は、現在の武器で「今この位置から攻撃可能」な敵だけに出す。
+		# カーソルと候補枠は、現在の行動で「今この位置から実行可能」な対象だけに出す。
 		if not is_keyboard_target_in_current_attack_range(candidate):
 			continue
 
 		result.append(candidate)
+
+	# 対象指定アイテムを選択中は、自分自身も候補にできる。
+	# units_node の構造によってプレイヤーが列挙に入らない場合があるため、明示的に追加する。
+	if is_keyboard_using_target_item_action():
+		if unit != null and is_keyboard_target_candidate_valid(unit) and is_keyboard_target_in_current_attack_range(unit):
+			if not result.has(unit):
+				result.append(unit)
 
 	result.sort_custom(Callable(self, "_sort_keyboard_attack_candidates"))
 	return result
@@ -690,13 +729,17 @@ func is_keyboard_target_in_current_attack_range(candidate) -> bool:
 	var player_tile: Vector2i = get_player_tile_coords()
 	var candidate_tile: Vector2i = get_unit_tile_coords_for_mouse(candidate)
 
-	if not is_target_tile_in_attack_range_from_tile(player_tile, candidate_tile):
+	if not is_target_tile_in_keyboard_action_range_from_tile(player_tile, candidate_tile):
 		return false
 
-	# CombatManager 側の最終攻撃条件にも合わせる。
-	# これにより、死亡済み・敵対でない・状態異常で行動不能なども候補から外れる。
-	if CombatManager != null and CombatManager.has_method("can_attack"):
-		return CombatManager.can_attack(unit, candidate, true)
+	# CombatManager側の最終条件にも合わせる。
+	# ホットバー選択中アイテムが対象指定アイテムなら、その対象条件を使う。
+	# それ以外なら通常攻撃条件を使う。
+	if CombatManager != null:
+		if CombatManager.has_method("can_perform_selected_target_action"):
+			return CombatManager.can_perform_selected_target_action(unit, candidate)
+		if CombatManager.has_method("can_attack"):
+			return CombatManager.can_attack(unit, candidate, true)
 
 	return true
 
@@ -727,7 +770,7 @@ func is_keyboard_target_candidate_valid(candidate) -> bool:
 	if candidate.is_queued_for_deletion():
 		return false
 
-	if candidate == unit:
+	if candidate == unit and not is_keyboard_using_target_item_action():
 		return false
 
 	if not candidate.has_node("Stats"):
@@ -735,6 +778,12 @@ func is_keyboard_target_candidate_valid(candidate) -> bool:
 
 	if candidate.stats.hp <= 0:
 		return false
+
+	# 対象指定アイテムを選択中なら、敵対以外も候補になり得る。
+	# 最終的に選べるかは is_keyboard_target_in_current_attack_range()
+	# と CombatManager.can_perform_selected_target_action() で判定する。
+	if is_keyboard_using_target_item_action():
+		return true
 
 	if not Targeting.is_hostile(unit, candidate):
 		return false
@@ -744,14 +793,13 @@ func is_keyboard_target_candidate_valid(candidate) -> bool:
 	return true
 
 
-
 func refresh_keyboard_attack_mode_if_needed(force: bool) -> void:
 	if not keyboard_target_mode:
 		return
 
 	var player_tile: Vector2i = get_player_tile_coords()
-	var min_range: int = get_mouse_attack_min_range()
-	var max_range: int = get_mouse_attack_max_range()
+	var min_range: int = get_keyboard_current_action_min_range()
+	var max_range: int = get_keyboard_current_action_max_range()
 	var tile_changed: bool = player_tile != keyboard_target_last_player_tile
 	var range_changed: bool = min_range != keyboard_target_last_min_range or max_range != keyboard_target_last_max_range
 	var interval_elapsed: bool = keyboard_target_refresh_timer >= max(0.03, keyboard_attack_mode_refresh_interval)
@@ -818,9 +866,6 @@ func select_keyboard_target_index(index: int, announce: bool) -> void:
 	var target = get_selected_keyboard_target()
 	if target == null:
 		return
-
-	var target_tile: Vector2i = get_unit_tile_coords_for_mouse(target)
-	face_toward_tile_if_possible(target_tile)
 
 	if announce and unit != null and unit.has_method("notify_hud_log"):
 		unit.notify_hud_log("対象: %s" % String(target.name))
@@ -892,37 +937,104 @@ func confirm_keyboard_target_attack() -> void:
 	if unit != null:
 		if unit.is_moving or unit.repeat_timer > 0.0 or TimeManager.is_resolving_turn:
 			if unit.has_method("notify_hud_log"):
-				unit.notify_hud_log("移動/ターン処理が終わってから攻撃してください")
+				unit.notify_hud_log("移動/ターン処理が終わってから実行してください")
 			return
+
+	# 対象指定アイテムは、インベントリ内のアイテム使用と同じ inventory_use(E) で使う。
+	# Enter/attack は武器攻撃用として分ける。
+	if is_keyboard_using_target_item_action():
+		if unit != null and unit.has_method("notify_hud_log"):
+			unit.notify_hud_log("このアイテムは E キーで対象に使用します")
+		return
 
 	refresh_keyboard_attack_mode_if_needed(true)
 	var target = get_selected_keyboard_target()
 	if target == null:
 		if unit != null and unit.has_method("notify_hud_log"):
-			unit.notify_hud_log("攻撃範囲内に敵がいません")
+			unit.notify_hud_log("範囲内に対象がいません")
 		mark_keyboard_target_visual_dirty()
 		return
 
-	if not CombatManager.can_attack(unit, target, true):
-		if unit != null and unit.has_method("notify_hud_log"):
-			unit.notify_hud_log("その対象は攻撃できません")
-		refresh_keyboard_attack_candidates_preserving_target()
-		mark_keyboard_target_visual_dirty()
-		return
+	if CombatManager != null and CombatManager.has_method("can_perform_selected_target_action"):
+		if not CombatManager.can_perform_selected_target_action(unit, target):
+			if unit != null and unit.has_method("notify_hud_log"):
+				unit.notify_hud_log("その対象には実行できません")
+			refresh_keyboard_attack_candidates_preserving_target()
+			mark_keyboard_target_visual_dirty()
+			return
+	else:
+		if not CombatManager.can_attack(unit, target, true):
+			if unit != null and unit.has_method("notify_hud_log"):
+				unit.notify_hud_log("その対象は攻撃できません")
+			refresh_keyboard_attack_candidates_preserving_target()
+			mark_keyboard_target_visual_dirty()
+			return
 
 	var target_tile: Vector2i = get_unit_tile_coords_for_mouse(target)
 	face_toward_tile_if_possible(target_tile)
 
-	var acted: bool = CombatManager.perform_attack(unit, target, true)
+	var acted: bool = false
+	if CombatManager != null and CombatManager.has_method("perform_selected_target_action"):
+		acted = CombatManager.perform_selected_target_action(unit, target)
+	else:
+		acted = CombatManager.perform_attack(unit, target, true)
 
-	# 攻撃しても攻撃範囲表示モードは解除しない。
+	# 実行しても攻撃範囲表示モードは解除しない。
 	# 倒した敵・移動した敵・射程外になった敵を候補から外し、
-	# 範囲内に別の敵がいれば次の対象へカーソルを移す。
+	# 範囲内に別の対象がいれば次の対象へカーソルを移す。
 	if acted:
 		_advance_player_turn_after_action()
 		refresh_keyboard_attack_mode_after_action()
 	elif unit != null and unit.has_method("notify_hud_log"):
-		unit.notify_hud_log("攻撃に失敗した")
+		unit.notify_hud_log("実行に失敗した")
+		refresh_keyboard_attack_mode_after_action()
+
+
+func confirm_keyboard_target_item_use() -> void:
+	if unit != null:
+		if unit.is_moving or unit.repeat_timer > 0.0 or TimeManager.is_resolving_turn:
+			if unit.has_method("notify_hud_log"):
+				unit.notify_hud_log("移動/ターン処理が終わってから実行してください")
+			return
+
+	if not is_keyboard_using_target_item_action():
+		if unit != null and unit.has_method("notify_hud_log"):
+			unit.notify_hud_log("選択中のホットバーアイテムは対象に使用できません")
+		return
+
+	refresh_keyboard_attack_mode_if_needed(true)
+	var target = get_selected_keyboard_target()
+	if target == null:
+		if unit != null and unit.has_method("notify_hud_log"):
+			unit.notify_hud_log("範囲内に使用対象がいません")
+		mark_keyboard_target_visual_dirty()
+		return
+
+	if CombatManager == null or not CombatManager.has_method("can_use_selected_target_item"):
+		if unit != null and unit.has_method("notify_hud_log"):
+			unit.notify_hud_log("対象指定アイテム使用の処理が見つかりません")
+		return
+
+	if not CombatManager.can_use_selected_target_item(unit, target):
+		if unit != null and unit.has_method("notify_hud_log"):
+			unit.notify_hud_log("その対象にはこのアイテムを使えません")
+		refresh_keyboard_attack_candidates_preserving_target()
+		mark_keyboard_target_visual_dirty()
+		return
+
+	if target != unit:
+		var target_tile: Vector2i = get_unit_tile_coords_for_mouse(target)
+		face_toward_tile_if_possible(target_tile)
+
+	var acted: bool = CombatManager.perform_selected_target_item_use(unit, target)
+
+	# 使用しても攻撃範囲表示モードは解除しない。
+	# 対象が倒れた/射程外になった/アイテムが尽きた場合に合わせて候補を更新する。
+	if acted:
+		_advance_player_turn_after_action()
+		refresh_keyboard_attack_mode_after_action()
+	elif unit != null and unit.has_method("notify_hud_log"):
+		unit.notify_hud_log("アイテム使用に失敗した")
 		refresh_keyboard_attack_mode_after_action()
 
 
@@ -960,6 +1072,279 @@ func cancel_keyboard_target_mode(show_message: bool) -> void:
 	if show_message and unit != null and unit.has_method("notify_hud_log"):
 		unit.notify_hud_log("攻撃範囲表示を終了した")
 
+
+# =========================
+# Hotbar Selection Input
+# =========================
+
+func handle_hotbar_selection_input(event: InputEvent) -> bool:
+	if unit == null:
+		return false
+
+	# インベントリを開いている間は、HUDホットバー専用カーソルの操作をしない。
+	# この状態では InventoryUI 側のカーソル/操作を優先する。
+	if is_inventory_open():
+		return false
+
+	if is_ui_locked():
+		return false
+
+	if unit.is_transitioning:
+		return false
+
+	if event is InputEventKey:
+		return handle_hotbar_number_key(event as InputEventKey)
+
+	if event is InputEventMouseButton:
+		return handle_hotbar_mouse_wheel(event as InputEventMouseButton)
+
+	return false
+
+
+func handle_hotbar_number_key(event: InputEventKey) -> bool:
+	if not enable_hotbar_keyboard_selection:
+		return false
+
+	if event == null:
+		return false
+
+	if not event.pressed:
+		return false
+
+	if event.echo:
+		return false
+
+	var hotbar_index: int = get_hotbar_index_from_number_key(event)
+	if hotbar_index < 0:
+		return false
+
+	return select_hotbar_slot_from_controller(hotbar_index)
+
+
+func get_hotbar_index_from_number_key(event: InputEventKey) -> int:
+	if event == null:
+		return -1
+
+	# Input Mapを使いたい場合は hotbar_1〜hotbar_9 を登録しておけばそちらも使える。
+	for i in range(9):
+		var action_name: StringName = StringName("hotbar_%d" % (i + 1))
+		if _has_input_action(action_name) and Input.is_action_just_pressed(action_name):
+			return i
+
+	match event.keycode:
+		KEY_1:
+			return 0
+		KEY_2:
+			return 1
+		KEY_3:
+			return 2
+		KEY_4:
+			return 3
+		KEY_5:
+			return 4
+		KEY_6:
+			return 5
+		KEY_7:
+			return 6
+		KEY_8:
+			return 7
+		KEY_9:
+			return 8
+
+	# テンキー側。
+	match event.physical_keycode:
+		KEY_KP_1:
+			return 0
+		KEY_KP_2:
+			return 1
+		KEY_KP_3:
+			return 2
+		KEY_KP_4:
+			return 3
+		KEY_KP_5:
+			return 4
+		KEY_KP_6:
+			return 5
+		KEY_KP_7:
+			return 6
+		KEY_KP_8:
+			return 7
+		KEY_KP_9:
+			return 8
+
+	return -1
+
+
+func handle_hotbar_mouse_wheel(event: InputEventMouseButton) -> bool:
+	if not enable_hotbar_mouse_wheel_selection:
+		return false
+
+	if event == null:
+		return false
+
+	if not event.pressed:
+		return false
+
+	if event.button_index != MOUSE_BUTTON_WHEEL_UP and event.button_index != MOUSE_BUTTON_WHEEL_DOWN:
+		return false
+
+	var inv = get_player_inventory_for_hotbar_selection()
+	if inv == null:
+		return false
+
+	var changed: bool = false
+	if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+		if hotbar_mouse_wheel_up_selects_previous:
+			changed = select_previous_hotbar_slot_from_controller()
+		else:
+			changed = select_next_hotbar_slot_from_controller()
+	else:
+		if hotbar_mouse_wheel_up_selects_previous:
+			changed = select_next_hotbar_slot_from_controller()
+		else:
+			changed = select_previous_hotbar_slot_from_controller()
+
+	return changed
+
+
+func get_player_inventory_for_hotbar_selection():
+	if unit == null:
+		return null
+
+	if "inventory" in unit:
+		return unit.inventory
+
+	if unit.has_node("Inventory"):
+		return unit.get_node("Inventory")
+
+	return null
+
+
+func select_hotbar_slot_from_controller(index: int) -> bool:
+	var inv = get_player_inventory_for_hotbar_selection()
+	if inv == null:
+		return false
+
+	var changed: bool = false
+	if inv.has_method("select_hotbar_slot"):
+		changed = bool(inv.select_hotbar_slot(index))
+	elif "selected_hotbar_index" in inv:
+		var old_index: int = int(inv.selected_hotbar_index)
+		inv.selected_hotbar_index = index
+		if "selected_quick_slot_index" in inv:
+			inv.selected_quick_slot_index = index + 1
+		changed = old_index != int(inv.selected_hotbar_index)
+	else:
+		return false
+
+	notify_hud()
+	return true
+
+
+func select_next_hotbar_slot_from_controller() -> bool:
+	var inv = get_player_inventory_for_hotbar_selection()
+	if inv == null:
+		return false
+
+	var changed: bool = false
+	if inv.has_method("select_next_quick_slot"):
+		changed = bool(inv.select_next_quick_slot())
+	elif inv.has_method("select_next_hotbar_slot"):
+		changed = bool(inv.select_next_hotbar_slot())
+	elif inv.has_method("get_hotbar_slot_count") and "selected_hotbar_index" in inv:
+		var slot_count: int = max(1, int(inv.get_hotbar_slot_count()))
+		var old_index: int = int(inv.selected_hotbar_index)
+		inv.selected_hotbar_index = (old_index + 1) % slot_count
+		changed = old_index != int(inv.selected_hotbar_index)
+	else:
+		return false
+
+	notify_hud()
+	return true
+
+
+func select_previous_hotbar_slot_from_controller() -> bool:
+	var inv = get_player_inventory_for_hotbar_selection()
+	if inv == null:
+		return false
+
+	var changed: bool = false
+	if inv.has_method("select_previous_quick_slot"):
+		changed = bool(inv.select_previous_quick_slot())
+	elif inv.has_method("select_previous_hotbar_slot"):
+		changed = bool(inv.select_previous_hotbar_slot())
+	elif inv.has_method("get_hotbar_slot_count") and "selected_hotbar_index" in inv:
+		var slot_count: int = max(1, int(inv.get_hotbar_slot_count()))
+		var old_index: int = int(inv.selected_hotbar_index)
+		inv.selected_hotbar_index = (old_index - 1 + slot_count) % slot_count
+		changed = old_index != int(inv.selected_hotbar_index)
+	else:
+		return false
+
+	notify_hud()
+	return true
+
+
+
+
+func handle_selected_hotbar_use_input() -> bool:
+	if not _has_input_action(&"inventory_use"):
+		return false
+
+	if not Input.is_action_just_pressed("inventory_use"):
+		return false
+
+	# インベントリを開いている間の E は InventoryUI 側の操作に任せる。
+	if is_inventory_open():
+		return false
+
+	if is_ui_locked():
+		return false
+
+	if unit == null:
+		return false
+
+	if unit.is_transitioning:
+		return false
+
+	if unit.is_moving or unit.repeat_timer > 0.0:
+		return false
+
+	clear_move_hold()
+	clear_mouse_auto_navigation()
+
+	if _is_player_action_blocked():
+		return true
+
+	return use_selected_hotbar_item_from_controller()
+
+
+func use_selected_hotbar_item_from_controller() -> bool:
+	var inv = get_player_inventory_for_hotbar_selection()
+	if inv == null:
+		return false
+
+	var result: Dictionary = {}
+
+	if inv.has_method("use_selected_hotbar_item"):
+		result = inv.use_selected_hotbar_item()
+	elif inv.has_method("get_selected_hotbar_index") and inv.has_method("use_hotbar_item_at"):
+		var selected_index: int = int(inv.get_selected_hotbar_index())
+		result = inv.use_hotbar_item_at(selected_index)
+	elif "selected_hotbar_index" in inv and inv.has_method("use_hotbar_item_at"):
+		result = inv.use_hotbar_item_at(int(inv.selected_hotbar_index))
+	else:
+		return false
+
+	var message: String = String(result.get("message", ""))
+	if message != "" and unit != null and unit.has_method("notify_hud_log"):
+		unit.notify_hud_log(message)
+
+	# 成功/失敗どちらでもHUDは更新する。
+	# 空スロットや使用不可アイテムでも、選択枠と所持数表示の同期を保つため。
+	notify_hud()
+
+	return true
 
 # =========================
 # Mouse Map Input
@@ -1776,6 +2161,82 @@ func is_attack_target_in_current_range(target_unit, require_hostile: bool = true
 	return true
 
 
+func is_keyboard_using_target_item_action() -> bool:
+	if unit == null:
+		return false
+
+	if unit.has_method("is_selected_hotbar_target_item_action"):
+		return bool(unit.is_selected_hotbar_target_item_action())
+
+	return false
+
+
+func get_keyboard_current_action_min_range() -> int:
+	if unit != null and unit.has_method("get_current_action_min_range"):
+		return max(0, int(unit.get_current_action_min_range()))
+
+	if unit != null and unit.has_method("get_attack_min_range"):
+		return max(1, int(unit.get_attack_min_range()))
+
+	return 1
+
+
+func get_keyboard_current_action_max_range() -> int:
+	if unit != null and unit.has_method("get_current_action_max_range"):
+		return max(get_keyboard_current_action_min_range(), int(unit.get_current_action_max_range()))
+
+	if unit != null and unit.has_method("get_attack_max_range"):
+		return max(1, int(unit.get_attack_max_range()))
+
+	return 1
+
+
+func is_target_tile_in_keyboard_action_range_from_tile(source_tile: Vector2i, target_tile: Vector2i) -> bool:
+	var diff: Vector2i = target_tile - source_tile
+	var distance: int = abs(diff.x) + abs(diff.y)
+
+	# 対象指定アイテムで TARGET_SELF が許可されている場合、
+	# 自分自身は距離0でも候補にする。
+	# target_item_use_min_range が 1 のままだと、自分のマスが範囲外になって
+	# プレイヤーへカーソルが向かないため、ここだけ特別扱いする。
+	if distance == 0 and is_keyboard_target_item_self_candidate_allowed():
+		return true
+
+	var min_range: int = get_keyboard_current_action_min_range()
+	var max_range: int = get_keyboard_current_action_max_range()
+
+	if distance < min_range:
+		return false
+
+	if distance > max_range:
+		return false
+
+	return true
+
+
+func is_keyboard_target_item_self_candidate_allowed() -> bool:
+	if unit == null:
+		return false
+
+	if not is_keyboard_using_target_item_action():
+		return false
+
+	if not unit.has_method("get_selected_target_item_data"):
+		return false
+
+	var item_data: ItemData = unit.get_selected_target_item_data()
+	if item_data == null:
+		return false
+
+	if item_data.has_method("has_target_flag"):
+		return item_data.has_target_flag(ItemData.ItemTargetFlag.TARGET_SELF)
+
+	if item_data.has_method("can_use_on_self"):
+		return bool(item_data.can_use_on_self())
+
+	return false
+
+
 func is_target_tile_in_attack_range_from_tile(source_tile: Vector2i, target_tile: Vector2i) -> bool:
 	var diff: Vector2i = target_tile - source_tile
 	var distance: int = abs(diff.x) + abs(diff.y)
@@ -2351,14 +2812,14 @@ func get_keyboard_attack_range_tiles() -> Array[Vector2i]:
 		return result
 
 	var origin_tile: Vector2i = get_player_tile_coords()
-	var min_range: int = 1
-	var max_range: int = 1
+	var min_range: int = get_keyboard_current_action_min_range()
+	var max_range: int = get_keyboard_current_action_max_range()
 
-	if unit.has_method("get_attack_min_range"):
-		min_range = max(0, int(unit.get_attack_min_range()))
-
-	if unit.has_method("get_attack_max_range"):
-		max_range = max(min_range, int(unit.get_attack_max_range()))
+	# 自分自身を対象にできるアイテムを選択中は、
+	# プレイヤー自身のマスも範囲表示に含める。
+	if is_keyboard_target_item_self_candidate_allowed():
+		if is_keyboard_attack_range_tile_visible(origin_tile):
+			result.append(origin_tile)
 
 	for y in range(-max_range, max_range + 1):
 		for x in range(-max_range, max_range + 1):
@@ -2372,7 +2833,8 @@ func get_keyboard_attack_range_tiles() -> Array[Vector2i]:
 			if not is_keyboard_attack_range_tile_visible(tile):
 				continue
 
-			result.append(tile)
+			if not result.has(tile):
+				result.append(tile)
 
 	return result
 
@@ -2772,6 +3234,18 @@ func toggle_status_ui() -> void:
 			return
 
 		node = node.get_parent()
+
+
+func is_inventory_open() -> bool:
+	var node: Node = unit
+
+	while node != null:
+		if node.has_method("is_inventory_open"):
+			return node.is_inventory_open()
+
+		node = node.get_parent()
+
+	return false
 
 
 func is_trade_ui_open() -> bool:

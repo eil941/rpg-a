@@ -25,6 +25,6 @@ usable = true
 base_price = 220
 rarity = 6
 spawn_weight = 40
-use_flags = 2
+use_flags = 6
 target_flags = 4
 effects = Array[ExtResource("2_effect")]([SubResource("Resource_curse_orb_effect")])

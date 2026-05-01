@@ -21,6 +21,6 @@ category = "consumable"
 usable = true
 base_price = 130
 rarity = 3
-use_flags = 2
+use_flags = 6
 target_flags = 4
 effects = Array[ExtResource("2_itemeffect")]([SubResource("Resource_blind_sand")])

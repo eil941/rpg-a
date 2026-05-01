@@ -21,6 +21,6 @@ icon = ExtResource("2_eybqp")
 category = "consumable"
 usable = true
 base_price = 120
-use_flags = 2
+use_flags = 7
 target_flags = 4
 effects = Array[ExtResource("2_itemeffect")]([SubResource("Resource_frost_bottle")])

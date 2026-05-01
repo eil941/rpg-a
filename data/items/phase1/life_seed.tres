@@ -7,8 +7,8 @@
 [sub_resource type="Resource" id="Resource_life_seed"]
 script = ExtResource("2_itemeffect")
 effect_type = 9
-power_min = 10
-power_max = 10
+power_min = 10000
+power_max = 10000
 stat_name = &"max_hp"
 
 [resource]

@@ -120,25 +120,26 @@ func update_hud_hotbar() -> void:
 
 	var player = find_player()
 	if player == null:
-		game_hud.set_hotbar_inventory(null)
+		game_hud.set_hotbar_inventory(null, null)
 		return
 
 	if player.inventory == null:
-		game_hud.set_hotbar_inventory(null)
+		game_hud.set_hotbar_inventory(null, null)
 		return
 
-	game_hud.set_hotbar_inventory(player.inventory)
+	game_hud.set_hotbar_inventory(player.inventory, player)
 
 
 func _on_game_hud_hotbar_slot_pressed(hotbar_index: int) -> void:
-	# インベントリを開いている間は、HUDホットバーを収納スロットとして直接操作する。
-	# 左クリック: 持つ / 置く / 交換
+	# -3 = 手持ち表示専用, -2 = 素手, 0以降 = 通常ホットバー。
+	# インベントリを開いている間は、通常ホットバーだけ収納スロットとして直接操作する。
 	if inventory_ui != null and inventory_ui.visible:
-		if inventory_ui.has_method("handle_external_hotbar_slot_pressed"):
+		if hotbar_index >= 0 and inventory_ui.has_method("handle_external_hotbar_slot_pressed"):
 			if inventory_ui.handle_external_hotbar_slot_pressed(hotbar_index):
 				refresh_hud()
 				_refresh_inventory_ui_if_possible()
 				return
+		return
 
 	var player = find_player()
 	if player == null:
@@ -147,7 +148,27 @@ func _on_game_hud_hotbar_slot_pressed(hotbar_index: int) -> void:
 	if player.inventory == null:
 		return
 
+	# 手持ち表示枠は表示専用。クリックしても何もしない。
+	if hotbar_index == -3:
+		return
+
+	if hotbar_index == -2:
+		if player.inventory.has_method("select_bare_hand_slot"):
+			player.inventory.select_bare_hand_slot()
+		elif "selected_quick_slot_index" in player.inventory:
+			player.inventory.selected_quick_slot_index = 0
+		refresh_hud()
+		return
+
+	if player.inventory.has_method("select_hotbar_slot"):
+		player.inventory.select_hotbar_slot(hotbar_index)
+	elif "selected_hotbar_index" in player.inventory:
+		player.inventory.selected_hotbar_index = hotbar_index
+		if "selected_quick_slot_index" in player.inventory:
+			player.inventory.selected_quick_slot_index = hotbar_index + 1
+
 	if not player.inventory.has_method("use_hotbar_item_at"):
+		refresh_hud()
 		return
 
 	var result: Dictionary = player.inventory.use_hotbar_item_at(hotbar_index)

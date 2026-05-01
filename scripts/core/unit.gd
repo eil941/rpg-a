@@ -101,6 +101,11 @@ var unit_roles: int = 0
 # EnemyData / NpcData から受け取る。未設定なら従来通り「敵対化 + 逃げる」。
 @export var attacked_by_player_behavior: AttackedBehaviorData
 
+# ホットバー選択中の対象指定アイテムを他Unitに使う時の共通射程。
+# プレイヤー専用ではなく、将来AI/NPCも同じ値を使える。
+@export var target_item_use_min_range: int = 1
+@export var target_item_use_max_range: int = 5
+
 @export var can_offer_request: bool = false
 @export var can_trade: bool = false
 @export var can_receive_order: bool = false
@@ -353,18 +358,210 @@ func get_equipped_enchantments(slot_name: String) -> Array:
 	return []
 
 
+func _get_selected_hotbar_raw_entry() -> Dictionary:
+	if inventory == null:
+		return {}
+	if not inventory.has_method("is_selected_quick_slot_hotbar"):
+		return {}
+	if not inventory.is_selected_quick_slot_hotbar():
+		return {}
+
+	var hotbar_index: int = -1
+	if inventory.has_method("get_selected_quick_slot_hotbar_index"):
+		hotbar_index = int(inventory.get_selected_quick_slot_hotbar_index())
+	elif inventory.has_method("get_selected_hotbar_index"):
+		hotbar_index = int(inventory.get_selected_hotbar_index())
+
+	if hotbar_index < 0:
+		return {}
+	if not inventory.has_method("get_hotbar_item_data_at"):
+		return {}
+
+	var raw_entry: Variant = inventory.get_hotbar_item_data_at(hotbar_index)
+	if typeof(raw_entry) != TYPE_DICTIONARY:
+		return {}
+
+	return (raw_entry as Dictionary).duplicate(true)
+
+
+func _is_using_hotbar_hand_override_slot() -> bool:
+	# 「素」スロットでは通常の装備欄 right_hand / left_hand を使う。
+	# ホットバー1〜9でも、空スロットは「素」と同じ扱いにする。
+	# つまり、空ホットバー選択中は装備欄の武器を使う。
+	# ホットバーに何か入っている時だけ、装備欄の手持ち武器を一時的に無視し、
+	# ホットバー選択中のアイテムを手に持っているものとして扱う。
+	if not is_player_unit:
+		return false
+
+	var entry: Dictionary = _get_selected_hotbar_raw_entry()
+	return not _is_hand_display_entry_empty(entry)
+
+
+func _get_selected_hotbar_override_entry() -> Dictionary:
+	var entry: Dictionary = _get_selected_hotbar_raw_entry()
+	if _is_hand_display_entry_empty(entry):
+		return {}
+
+	return entry.duplicate(true)
+
+
+func get_selected_hotbar_target_action_entry() -> Dictionary:
+	if inventory == null:
+		return {}
+
+	if inventory.has_method("get_selected_hotbar_target_action_entry"):
+		var entry_value: Variant = inventory.get_selected_hotbar_target_action_entry()
+		if typeof(entry_value) == TYPE_DICTIONARY:
+			return (entry_value as Dictionary).duplicate(true)
+
+	return _get_selected_hotbar_raw_entry()
+
+
+func get_selected_target_item_data() -> ItemData:
+	var entry: Dictionary = get_selected_hotbar_target_action_entry()
+	var item_id: String = String(entry.get("item_id", ""))
+	if item_id == "":
+		return null
+
+	var item_resource = ItemDatabase.get_item_resource(item_id)
+	if item_resource is EquipmentData:
+		return null
+
+	if item_resource is ItemData:
+		var item_data: ItemData = item_resource as ItemData
+
+		# 攻撃範囲表示モード中の「E / inventory_use」は、
+		# 自分用アイテムも対象指定アイテムも、同じ「選択対象に使う」扱いにする。
+		# そのため USE_SELF + TARGET_SELF だけのアイテムもここで対象行動として扱う。
+		if item_data.has_method("can_use_on_self"):
+			if item_data.can_use_on_self():
+				return item_data
+
+		if item_data.has_method("can_throw_to_target"):
+			if item_data.can_throw_to_target():
+				return item_data
+
+		if item_data.has_method("can_use_on_other_unit"):
+			if item_data.can_use_on_other_unit():
+				return item_data
+
+	return null
+
+
+func is_selected_hotbar_target_item_action() -> bool:
+	return get_selected_target_item_data() != null
+
+
+func is_selected_hotbar_non_target_item_blocking_attack() -> bool:
+	var entry: Dictionary = _get_selected_hotbar_override_entry()
+	if _is_hand_display_entry_empty(entry):
+		return false
+
+	var equipment_resource: EquipmentData = _get_equipment_resource_from_entry(entry)
+	if _is_hand_equipment_resource(equipment_resource):
+		return false
+
+	if get_selected_target_item_data() != null:
+		return false
+
+	return true
+
+
+func consume_selected_hotbar_target_item(amount: int = 1) -> bool:
+	if inventory == null:
+		return false
+
+	if inventory.has_method("consume_selected_hotbar_item_for_target_action"):
+		return bool(inventory.consume_selected_hotbar_item_for_target_action(amount))
+
+	return false
+
+func _get_equipment_resource_from_entry(entry: Dictionary) -> EquipmentData:
+	var item_id: String = String(entry.get("item_id", ""))
+	if item_id == "":
+		return null
+	return ItemDatabase.get_equipment_resource(item_id)
+
+
+func _is_hand_equipment_resource(equipment_resource: EquipmentData) -> bool:
+	if equipment_resource == null:
+		return false
+	if equipment_resource.has_method("is_hand"):
+		return bool(equipment_resource.is_hand())
+	if equipment_resource.has_method("get_slot_name"):
+		return String(equipment_resource.get_slot_name()) == "hand"
+	return false
+
+
+func _get_selected_hotbar_hand_weapon_entry() -> Dictionary:
+	var entry: Dictionary = _get_selected_hotbar_override_entry()
+	if entry.is_empty():
+		return {}
+
+	var equipment_resource: EquipmentData = _get_equipment_resource_from_entry(entry)
+	if not _is_hand_equipment_resource(equipment_resource):
+		return {}
+
+	return entry
+
+
 func get_all_equipped_resources() -> Array[EquipmentData]:
 	var result: Array[EquipmentData] = []
+	var using_hotbar_override: bool = _is_using_hotbar_hand_override_slot()
 
 	for slot_name in equipment_slot_order:
+		# ホットバーに何か入っているスロットを選択中だけ、装備欄の手持ち武器を一時的に無視する。
+		# 空ホットバー選択中は「素」と同じ扱いなので、通常装備を有効にする。
+		# 防具・アクセサリなどは常に通常通り有効。
+		if using_hotbar_override and (slot_name == "right_hand" or slot_name == "left_hand"):
+			continue
+
 		var resource: EquipmentData = get_equipped_resource(slot_name)
 		if resource != null:
 			result.append(resource)
 
+	if using_hotbar_override:
+		var hotbar_weapon_entry: Dictionary = _get_selected_hotbar_hand_weapon_entry()
+		var hotbar_weapon: EquipmentData = _get_equipment_resource_from_entry(hotbar_weapon_entry)
+		if hotbar_weapon != null:
+			result.append(hotbar_weapon)
+
 	return result
 
 
+func get_current_hand_display_entry() -> Dictionary:
+	# HUD左端の「手持ち表示」枠に出す内容。
+	# 現在は「ホットバーで実際に選択しているアイテム」だけを表示する。
+	#
+	# - 素スロット選択中: 何も表示しない
+	#   ただし攻撃判定では、通常の装備欄 right_hand / left_hand を使う。
+	# - ホットバー選択中: そのホットバーにアイテムがある時だけ表示
+	# - ホットバーが空: 何も表示しない
+	#
+	# 将来、インベントリから直接「手に持つ」アイテムを作る場合は、
+	# ここで held_item_entry / carried_item_entry を最優先で返せばHUD側は変更しなくてよい。
+	return _get_selected_hotbar_override_entry()
+
+
+func _is_hand_display_entry_empty(entry: Dictionary) -> bool:
+	var item_id: String = String(entry.get("item_id", ""))
+	var amount: int = int(entry.get("amount", 0))
+	return item_id == "" or amount <= 0
+
+
 func get_main_weapon() -> EquipmentData:
+	# 素スロットは「ホットバーアイテムを何も持っていない」状態。
+	# そのため、通常の装備欄 right_hand / left_hand の武器を使う。
+	#
+	# ホットバー1〜9を選択中でも、空スロットは「素」と同じ扱い。
+	# 空スロットなら通常の装備欄 right_hand / left_hand の武器を使う。
+	# ホットバーに何か入っている場合だけ、装備欄の手持ち武器を無視し、
+	# ホットバー上の手装備だけを一時的な武器として扱う。
+	# ホットバーに消耗品など手装備ではないアイテムがある場合は、手持ち武器なしとして扱う。
+	if _is_using_hotbar_hand_override_slot():
+		var hotbar_weapon_entry: Dictionary = _get_selected_hotbar_hand_weapon_entry()
+		return _get_equipment_resource_from_entry(hotbar_weapon_entry)
+
 	var right_hand: EquipmentData = get_equipped_resource("right_hand")
 	if right_hand != null:
 		return right_hand
@@ -402,9 +599,16 @@ func apply_legacy_equipment_fields(source: Object) -> void:
 		}
 
 
-func _get_enchantment_stat_bonus(slot_name: String, stat_name: String) -> int:
+func _get_enchantment_stat_bonus_from_entry(entry: Dictionary, stat_name: String) -> int:
 	var total: int = 0
-	var enchantments: Array = get_equipped_enchantments(slot_name)
+	var instance_data: Variant = entry.get("instance_data", {})
+
+	if typeof(instance_data) != TYPE_DICTIONARY:
+		return total
+
+	var enchantments: Variant = (instance_data as Dictionary).get("enchantments", [])
+	if not (enchantments is Array):
+		return total
 
 	for raw_data in enchantments:
 		if typeof(raw_data) != TYPE_DICTIONARY:
@@ -425,10 +629,24 @@ func _get_enchantment_stat_bonus(slot_name: String, stat_name: String) -> int:
 	return total
 
 
+func _get_enchantment_stat_bonus(slot_name: String, stat_name: String) -> int:
+	return _get_enchantment_stat_bonus_from_entry(get_equipped_entry(slot_name), stat_name)
+
+
 func _get_total_enchantment_bonus(stat_name: String) -> int:
 	var total: int = 0
+	var using_hotbar_override: bool = _is_using_hotbar_hand_override_slot()
+
 	for slot_name in equipment_slot_order:
+		if using_hotbar_override and (slot_name == "right_hand" or slot_name == "left_hand"):
+			continue
 		total += _get_enchantment_stat_bonus(slot_name, stat_name)
+
+	if using_hotbar_override:
+		var hotbar_weapon_entry: Dictionary = _get_selected_hotbar_hand_weapon_entry()
+		if not hotbar_weapon_entry.is_empty():
+			total += _get_enchantment_stat_bonus_from_entry(hotbar_weapon_entry, stat_name)
+
 	return total
 
 
@@ -655,6 +873,28 @@ func get_attack_max_range() -> int:
 	if weapon != null:
 		return weapon.attack_max_range
 	return 1
+
+
+func get_target_item_use_min_range() -> int:
+	return max(0, int(target_item_use_min_range))
+
+
+func get_target_item_use_max_range() -> int:
+	return max(get_target_item_use_min_range(), int(target_item_use_max_range))
+
+
+func get_current_action_min_range() -> int:
+	if is_selected_hotbar_target_item_action():
+		return get_target_item_use_min_range()
+
+	return get_attack_min_range()
+
+
+func get_current_action_max_range() -> int:
+	if is_selected_hotbar_target_item_action():
+		return get_target_item_use_max_range()
+
+	return get_attack_max_range()
 
 
 func get_equipment_slot_order() -> Array:
@@ -1750,7 +1990,7 @@ func get_stats_data() -> Dictionary:
 	var data: Dictionary = stats.get_stats_data()
 	data["tile_x"] = get_current_tile_coords().x
 	data["tile_y"] = get_current_tile_coords().y
-	data["inventory"] = save_inventory_persistence_data() if inventory != null else []
+	data["inventory"] = save_inventory_persistence_data()
 	data["equipment"] = get_equipment_save_data()
 	data["faction"] = faction
 	data["override_combat_style"] = override_combat_style

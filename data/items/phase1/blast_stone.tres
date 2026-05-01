@@ -19,6 +19,6 @@ icon = ExtResource("2_dq3kp")
 category = "consumable"
 usable = true
 base_price = 140
-use_flags = 2
+use_flags = 6
 target_flags = 4
 effects = Array[ExtResource("2_itemeffect")]([SubResource("Resource_blast_stone")])

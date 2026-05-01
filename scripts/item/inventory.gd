@@ -27,6 +27,17 @@ class_name Inventory
 # 通常インベントリ items の先頭を表示するのではなく、
 # hotbar_items 自体にアイテムを収納する。
 @export var hotbar_slot_count: int = 9
+@export var selected_hotbar_index: int = 0
+
+# ホットバー左側の特殊枠を含めた選択位置。
+# 0 = 素手, 1以降 = 通常ホットバー。
+# 「手持ち装備」枠は表示専用なので、選択位置には含めない。
+@export var selected_quick_slot_index: int = 1
+
+const QUICK_SLOT_BARE_HAND: int = 0
+const QUICK_SLOT_HOTBAR_START: int = 1
+# 旧互換用。現在「手持ち装備」枠は表示専用なので、この値は選択に使わない。
+const QUICK_SLOT_HAND_ITEM: int = -1
 
 var items: Array[Dictionary] = []
 var hotbar_items: Array[Dictionary] = []
@@ -80,6 +91,8 @@ func initialize_empty_slots() -> void:
 
 	hotbar_items.clear()
 	ensure_hotbar_slot_count()
+	clamp_selected_hotbar_index()
+	clamp_selected_quick_slot_index()
 
 
 func ensure_slot_count() -> void:
@@ -307,6 +320,190 @@ func ensure_hotbar_slot_count() -> void:
 	if hotbar_items.size() > hotbar_slot_count:
 		hotbar_slot_count = hotbar_items.size()
 
+	clamp_selected_hotbar_index()
+	clamp_selected_quick_slot_index()
+
+
+func clamp_selected_hotbar_index() -> void:
+	if hotbar_slot_count <= 0:
+		selected_hotbar_index = 0
+		return
+
+	selected_hotbar_index = clampi(selected_hotbar_index, 0, hotbar_slot_count - 1)
+
+
+func get_selected_hotbar_index() -> int:
+	ensure_hotbar_slot_count()
+	return selected_hotbar_index
+
+
+func set_selected_hotbar_index(index: int) -> bool:
+	ensure_hotbar_slot_count()
+	if hotbar_slot_count <= 0:
+		selected_hotbar_index = 0
+		selected_quick_slot_index = QUICK_SLOT_BARE_HAND
+		return false
+
+	var new_index: int = clampi(index, 0, hotbar_slot_count - 1)
+	var changed: bool = new_index != selected_hotbar_index or selected_quick_slot_index != QUICK_SLOT_HOTBAR_START + new_index
+	selected_hotbar_index = new_index
+	selected_quick_slot_index = QUICK_SLOT_HOTBAR_START + new_index
+	clamp_selected_quick_slot_index()
+	return changed
+
+
+func select_hotbar_slot(index: int) -> bool:
+	return set_selected_hotbar_index(index)
+
+
+func get_quick_slot_count() -> int:
+	ensure_hotbar_slot_count()
+	return QUICK_SLOT_HOTBAR_START + max(0, hotbar_slot_count)
+
+
+func clamp_selected_quick_slot_index() -> void:
+	var count: int = QUICK_SLOT_HOTBAR_START + max(0, hotbar_slot_count)
+	if count <= 0:
+		selected_quick_slot_index = QUICK_SLOT_BARE_HAND
+		return
+
+	selected_quick_slot_index = clampi(selected_quick_slot_index, 0, count - 1)
+
+	if selected_quick_slot_index >= QUICK_SLOT_HOTBAR_START:
+		selected_hotbar_index = clampi(selected_quick_slot_index - QUICK_SLOT_HOTBAR_START, 0, max(0, hotbar_slot_count - 1))
+
+
+func get_selected_quick_slot_index() -> int:
+	ensure_hotbar_slot_count()
+	clamp_selected_quick_slot_index()
+	return selected_quick_slot_index
+
+
+func set_selected_quick_slot_index(index: int) -> bool:
+	ensure_hotbar_slot_count()
+	var old_index: int = selected_quick_slot_index
+	selected_quick_slot_index = index
+	clamp_selected_quick_slot_index()
+	return old_index != selected_quick_slot_index
+
+
+func select_quick_slot(index: int) -> bool:
+	return set_selected_quick_slot_index(index)
+
+
+func select_bare_hand_slot() -> bool:
+	return set_selected_quick_slot_index(QUICK_SLOT_BARE_HAND)
+
+
+func select_hand_item_slot() -> bool:
+	# 旧互換用。
+	# 現在「手持ち装備」枠は表示専用で、選択対象ではない。
+	# 呼ばれた場合は右手装備表示に近い意味として、素手スロットへ寄せる。
+	return select_bare_hand_slot()
+
+
+func select_next_quick_slot() -> bool:
+	ensure_hotbar_slot_count()
+	var count: int = QUICK_SLOT_HOTBAR_START + max(0, hotbar_slot_count)
+	if count <= 0:
+		return false
+	return set_selected_quick_slot_index((selected_quick_slot_index + 1) % count)
+
+
+func select_previous_quick_slot() -> bool:
+	ensure_hotbar_slot_count()
+	var count: int = QUICK_SLOT_HOTBAR_START + max(0, hotbar_slot_count)
+	if count <= 0:
+		return false
+	return set_selected_quick_slot_index((selected_quick_slot_index - 1 + count) % count)
+
+
+func select_next_hotbar_slot() -> bool:
+	return select_next_quick_slot()
+
+
+func select_previous_hotbar_slot() -> bool:
+	return select_previous_quick_slot()
+
+
+func is_selected_quick_slot_bare_hand() -> bool:
+	return get_selected_quick_slot_index() == QUICK_SLOT_BARE_HAND
+
+
+func is_selected_quick_slot_hand_item() -> bool:
+	# 旧互換用。現在「手持ち装備」枠は表示専用。
+	return false
+
+
+func is_selected_quick_slot_hotbar() -> bool:
+	return get_selected_quick_slot_index() >= QUICK_SLOT_HOTBAR_START
+
+
+func get_selected_quick_slot_kind() -> String:
+	var index: int = get_selected_quick_slot_index()
+	if index == QUICK_SLOT_BARE_HAND:
+		return "bare_hand"
+	return "hotbar"
+
+
+func get_selected_quick_slot_hotbar_index() -> int:
+	if not is_selected_quick_slot_hotbar():
+		return -1
+	return get_selected_quick_slot_index() - QUICK_SLOT_HOTBAR_START
+
+
+func get_selected_hotbar_item_data() -> Dictionary:
+	return get_hotbar_item_data_at(get_selected_hotbar_index())
+
+
+func get_selected_hotbar_target_action_entry() -> Dictionary:
+	if not is_selected_quick_slot_hotbar():
+		return {}
+
+	var hotbar_index: int = get_selected_quick_slot_hotbar_index()
+	if not is_valid_hotbar_index(hotbar_index):
+		return {}
+
+	return get_hotbar_item_data_at(hotbar_index)
+
+
+func consume_selected_hotbar_item_for_target_action(amount: int = 1) -> bool:
+	if amount <= 0:
+		return false
+
+	if not is_selected_quick_slot_hotbar():
+		return false
+
+	var hotbar_index: int = get_selected_quick_slot_hotbar_index()
+	if not is_valid_hotbar_index(hotbar_index):
+		return false
+
+	var entry: Dictionary = hotbar_items[hotbar_index]
+	var item_id: String = _get_entry_item_id(entry)
+	var current_amount: int = _get_entry_amount(entry)
+
+	if item_id == "" or current_amount <= 0:
+		return false
+
+	current_amount -= amount
+	if current_amount <= 0:
+		hotbar_items[hotbar_index] = _make_empty_slot()
+	else:
+		entry["amount"] = current_amount
+		hotbar_items[hotbar_index] = _normalize_entry(entry)
+
+	return true
+
+
+
+func use_selected_hotbar_item() -> Dictionary:
+	if not is_selected_quick_slot_hotbar():
+		return {
+			"success": false,
+			"message": "このスロットは使用アイテムではありません"
+		}
+	return use_hotbar_item_at(get_selected_quick_slot_hotbar_index())
+
 
 func is_valid_hotbar_index(index: int) -> bool:
 	ensure_hotbar_slot_count()
@@ -365,6 +562,9 @@ func get_all_hotbar_items() -> Array[Dictionary]:
 
 
 func use_hotbar_item_at(index: int) -> Dictionary:
+	if is_valid_hotbar_index(index):
+		set_selected_hotbar_index(index)
+
 	if not is_valid_hotbar_index(index):
 		return {
 			"success": false,
@@ -840,11 +1040,13 @@ func save_inventory_full_data() -> Dictionary:
 		hotbar_result.append(_normalize_entry(entry))
 
 	return {
-		"version": 2,
+		"version": 3,
 		"slot_columns": slot_columns,
 		"slot_rows": slot_rows,
 		"max_slots": max_slots,
 		"hotbar_slot_count": hotbar_slot_count,
+		"selected_hotbar_index": selected_hotbar_index,
+		"selected_quick_slot_index": selected_quick_slot_index,
 		"items": bag_result,
 		"hotbar_items": hotbar_result
 	}
@@ -869,6 +1071,8 @@ func load_inventory_data(data: Variant) -> void:
 
 		hotbar_items.clear()
 		ensure_hotbar_slot_count()
+		selected_quick_slot_index = QUICK_SLOT_HOTBAR_START + selected_hotbar_index
+		clamp_selected_quick_slot_index()
 		return
 
 	if typeof(data) != TYPE_DICTIONARY:
@@ -885,6 +1089,27 @@ func load_inventory_data(data: Variant) -> void:
 
 	if dict.has("hotbar_slot_count"):
 		hotbar_slot_count = max(0, int(dict.get("hotbar_slot_count", hotbar_slot_count)))
+
+	if dict.has("selected_hotbar_index"):
+		selected_hotbar_index = int(dict.get("selected_hotbar_index", selected_hotbar_index))
+
+	if dict.has("selected_quick_slot_index"):
+		var loaded_quick_index: int = int(dict.get("selected_quick_slot_index", selected_quick_slot_index))
+		var save_version: int = int(dict.get("version", 1))
+
+		# 旧版では 0=素手, 1=手持ち装備, 2以降=ホットバー だった。
+		# 現在は「手持ち装備」は表示専用なので、旧保存データをずらして読む。
+		if save_version <= 2:
+			if loaded_quick_index == 0:
+				selected_quick_slot_index = QUICK_SLOT_BARE_HAND
+			elif loaded_quick_index == 1:
+				selected_quick_slot_index = QUICK_SLOT_HOTBAR_START + selected_hotbar_index
+			else:
+				selected_quick_slot_index = max(QUICK_SLOT_HOTBAR_START, loaded_quick_index - 1)
+		else:
+			selected_quick_slot_index = loaded_quick_index
+	else:
+		selected_quick_slot_index = QUICK_SLOT_HOTBAR_START + selected_hotbar_index
 
 	_sync_max_slots_from_grid()
 
@@ -919,6 +1144,8 @@ func load_inventory_data(data: Variant) -> void:
 		if typeof(entry) != TYPE_DICTIONARY:
 			continue
 		hotbar_items[i] = _normalize_entry(entry)
+
+	clamp_selected_hotbar_index()
 
 func use_item_at(index: int) -> Dictionary:
 	if not is_valid_index(index):
