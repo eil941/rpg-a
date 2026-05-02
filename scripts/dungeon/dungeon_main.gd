@@ -32,13 +32,18 @@ extends Node2D
 @export var MAX_MAP_HEIGHT: int = 60
 
 @export var stairs_trigger_on_touch: bool = false
+@export var dungeon_tile_visual_config: DungeonTileVisualConfig
 
 const EVENT_RETURN_STAIRS_SOURCE_ID: int = 3
 const EVENT_NEXT_STAIRS_SOURCE_ID: int = 6
 
+const DUNGEON_VISUAL_KIND_DOWN: String = "DOWN"
+const DUNGEON_VISUAL_KIND_UP: String = "UP"
+
 var spawn_manager: UnitSpawnManager
 var map_generator: BaseDungeonGenerator
 var item_world_manager: ItemWorldManager
+var current_generator_theme_for_visual: String = "NATURAL"
 
 
 func _ready() -> void:
@@ -65,6 +70,7 @@ func _ready() -> void:
 	GlobalDungeon.current_generator_theme = generator_theme
 	GlobalDungeon.current_layout_generator_type = layout_generator_type
 	GlobalDungeon.current_generator_type = generator_theme
+	current_generator_theme_for_visual = generator_theme
 
 	var dungeon_info: Dictionary = WorldState.dungeon_data[GlobalDungeon.current_dungeon_id]
 	var difficulty: int = int(dungeon_info.get("difficulty", 50))
@@ -78,6 +84,7 @@ func _ready() -> void:
 	)
 
 	map_generator = create_map_generator(layout_generator_type, map_width, map_height)
+	map_generator.setup_visual_config(dungeon_tile_visual_config, generator_theme)
 
 	if WorldState.map_tile_data.has(map_id):
 		load_map_tiles()
@@ -542,9 +549,9 @@ func place_player_on_pending_stair() -> void:
 	var target_cell: Vector2i = Vector2i(-1, -1)
 
 	if stair_type == "NEXT":
-		target_cell = find_event_cell_by_source_id(EVENT_NEXT_STAIRS_SOURCE_ID)
+		target_cell = find_event_cell_by_visual_kind(DUNGEON_VISUAL_KIND_DOWN)
 	else:
-		target_cell = find_event_cell_by_source_id(EVENT_RETURN_STAIRS_SOURCE_ID)
+		target_cell = find_event_cell_by_visual_kind(DUNGEON_VISUAL_KIND_UP)
 
 	if target_cell.x == -1:
 		push_warning("DungeonMain: spawn stair not found. stair_type=" + stair_type)
@@ -561,6 +568,54 @@ func place_player_on_pending_stair() -> void:
 		player.reset_after_map_transition()
 
 
+func get_dungeon_event_visual(kind: String) -> Dictionary:
+	var normalized_kind: String = String(kind).strip_edges().replace("\"", "").to_upper()
+
+	if dungeon_tile_visual_config == null:
+		if normalized_kind == DUNGEON_VISUAL_KIND_DOWN:
+			return {
+				"source_id": EVENT_NEXT_STAIRS_SOURCE_ID,
+				"atlas_coords": Vector2i(0, 0),
+				"alternative_tile": 0
+			}
+
+		return {
+			"source_id": EVENT_RETURN_STAIRS_SOURCE_ID,
+			"atlas_coords": Vector2i(0, 0),
+			"alternative_tile": 0
+		}
+
+	return dungeon_tile_visual_config.get_tile(current_generator_theme_for_visual, normalized_kind)
+
+
+func event_cell_matches_visual(cell: Vector2i, visual: Dictionary) -> bool:
+	var source_id: int = int(visual.get("source_id", -1))
+	var atlas_coords: Vector2i = visual.get("atlas_coords", Vector2i.ZERO)
+	var alternative_tile: int = int(visual.get("alternative_tile", 0))
+
+	if event_layer.get_cell_source_id(cell) != source_id:
+		return false
+
+	if event_layer.get_cell_atlas_coords(cell) != atlas_coords:
+		return false
+
+	if event_layer.get_cell_alternative_tile(cell) != alternative_tile:
+		return false
+
+	return true
+
+
+func find_event_cell_by_visual_kind(kind: String) -> Vector2i:
+	var visual: Dictionary = get_dungeon_event_visual(kind)
+	var used_cells: Array = event_layer.get_used_cells()
+
+	for cell in used_cells:
+		if event_cell_matches_visual(cell, visual):
+			return cell
+
+	return Vector2i(-1, -1)
+
+
 func find_event_cell_by_source_id(source_id: int) -> Vector2i:
 	var used_cells: Array = event_layer.get_used_cells()
 
@@ -571,21 +626,27 @@ func find_event_cell_by_source_id(source_id: int) -> Vector2i:
 	return Vector2i(-1, -1)
 
 
+func is_event_cell_visual_kind(cell: Vector2i, kind: String) -> bool:
+	var visual: Dictionary = get_dungeon_event_visual(kind)
+	return event_cell_matches_visual(cell, visual)
+
+
 func try_use_dungeon_stairs_from_player_position() -> bool:
 	var current_cell: Vector2i = ground_layer.local_to_map(
 		ground_layer.to_local(player.global_position)
 	)
 
-	var event_source_id: int = event_layer.get_cell_source_id(current_cell)
+	var is_up_stairs: bool = is_event_cell_visual_kind(current_cell, DUNGEON_VISUAL_KIND_UP)
+	var is_down_stairs: bool = is_event_cell_visual_kind(current_cell, DUNGEON_VISUAL_KIND_DOWN)
 
-	if event_source_id == 3 or event_source_id == 6:
+	if is_up_stairs or is_down_stairs:
 		player.is_transitioning = true
 		player.is_moving = false
 		player.repeat_timer = 0.0
 		player.velocity = Vector2.ZERO
 		player.target_position = player.global_position
 
-	if event_source_id == 3:
+	if is_up_stairs:
 		if GlobalDungeon.current_floor <= 1:
 			save_all_units()
 			GlobalPlayerSpawn.has_next_tile = true
@@ -599,7 +660,7 @@ func try_use_dungeon_stairs_from_player_position() -> bool:
 			request_map_change("res://scenes/dungeon_main.tscn")
 			return true
 
-	if event_source_id == 6:
+	if is_down_stairs:
 		save_all_units()
 		GlobalDungeon.current_floor += 1
 		GlobalDungeon.pending_spawn_stair_type = "RETURN"

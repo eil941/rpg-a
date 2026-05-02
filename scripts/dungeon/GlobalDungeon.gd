@@ -17,6 +17,6 @@ var current_layout_generator_type: String = ""
 var return_field_map_id: String = ""
 var return_field_cell: Vector2i = Vector2i.ZERO
 
-# "RETURN" なら戻る階段(source_id=3)
-# "NEXT" なら進む階段(source_id=6)
+# "RETURN" なら上に戻る階段。実際のタイルは DungeonTileVisualConfig 側で決める。
+# "NEXT" なら下に進む階段。実際のタイルは DungeonTileVisualConfig 側で決める。
 var pending_spawn_stair_type: String = "RETURN"

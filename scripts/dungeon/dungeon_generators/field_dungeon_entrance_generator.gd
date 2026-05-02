@@ -13,7 +13,9 @@ func generate_map(
 	ground_layer: TileMapLayer,
 	wall_layer: TileMapLayer,
 	event_layer: TileMapLayer,
-	entrance_count: int
+	entrance_count: int,
+	dungeon_tile_visual_config: DungeonTileVisualConfig = null,
+	generator_theme: String = "NATURAL"
 ) -> Array:
 	var result: Array = []
 	var used_positions: Dictionary = {}
@@ -34,8 +36,13 @@ func generate_map(
 		var dungeon_id = map_id + "_dungeon_" + str(cell.x) + "_" + str(cell.y)
 
 		# フィールド上のダンジョン入口
-		#print("Duongeon : ",cell)
-		event_layer.set_cell(cell, 4, Vector2i(0, 0), 0)
+		var field_visual: Dictionary = _get_field_visual(dungeon_tile_visual_config, generator_theme)
+		event_layer.set_cell(
+			cell,
+			int(field_visual.get("source_id", 4)),
+			field_visual.get("atlas_coords", Vector2i(0, 0)),
+			int(field_visual.get("alternative_tile", 0))
+		)
 
 		result.append({
 			"x": cell.x,
@@ -90,3 +97,17 @@ func _is_walkable_cell(
 	
 func choose_dungeon_difficulty() -> int:
 	return randi_range(1, 100)
+
+
+func _get_field_visual(
+	dungeon_tile_visual_config: DungeonTileVisualConfig,
+	generator_theme: String
+) -> Dictionary:
+	if dungeon_tile_visual_config != null:
+		return dungeon_tile_visual_config.get_tile(generator_theme, DungeonTileVisualConfig.KIND_FIELD)
+
+	return {
+		"source_id": 4,
+		"atlas_coords": Vector2i(0, 0),
+		"alternative_tile": 0
+	}

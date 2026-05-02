@@ -78,26 +78,7 @@ func generate_map(
 
 			tile_result[next_pos_single.y][next_pos_single.x] = TILE_NEXT
 
-	for y in range(map_height):
-		for x in range(map_width):
-			var cell = Vector2i(x, y)
-			var tile = tile_result[y][x]
-
-			match tile:
-				TILE_WALL:
-					ground_layer.set_cell(cell, 6, Vector2i(1, 4), 0)
-					wall_layer.set_cell(cell, 5, Vector2i(0, 0), 0)
-
-				TILE_FLOOR:
-					ground_layer.set_cell(cell, 29, Vector2i(1, 4), 0)
-
-				TILE_RETURN:
-					ground_layer.set_cell(cell, 3, Vector2i(1, 4), 0)
-					event_layer.set_cell(cell, 3, Vector2i(0, 0), 0)
-
-				TILE_NEXT:
-					ground_layer.set_cell(cell, 6, Vector2i(1, 4), 0)
-					event_layer.set_cell(cell, 6, Vector2i(0, 0), 0)
+	draw_tile_result(ground_layer, wall_layer, event_layer)
 
 func _rooms_overlap(a: Rect2i, b: Rect2i) -> bool:
 	var expanded_a = Rect2i(

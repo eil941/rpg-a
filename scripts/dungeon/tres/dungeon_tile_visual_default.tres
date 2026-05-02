@@ -1,0 +1,6 @@
+[gd_resource type="Resource" script_class="DungeonTileVisualConfig" format=3 uid="uid://de00yg0kmyrvp"]
+
+[ext_resource type="Script" uid="uid://boqqo0eakjknc" path="res://scripts/dungeon/dungeon_tile_visual_config.gd" id="1_config"]
+
+[resource]
+script = ExtResource("1_config")
