@@ -25,6 +25,14 @@ extends Node2D
 
 @export var map_id: String = ""
 
+@export_group("Tile Visual Settings")
+@export var ground_tile_set_override: TileSet
+@export var wall_tile_set_override: TileSet
+@export var event_tile_set_override: TileSet
+@export var detail_tile_visual_config: MapTileVisualConfig
+@export var force_regenerate_map_tiles_on_ready: bool = false
+
+
 const MAP_WIDTH: int = 30
 const MAP_HEIGHT: int = 30
 
@@ -44,6 +52,8 @@ func _ready() -> void:
 		push_error("Main: GroundLayer / WallLayer / EventLayer の取得に失敗")
 		return
 
+	_apply_tile_set_overrides()
+
 	if GlobalDetailMap.current_detail_map_key != "":
 		map_id = GlobalDetailMap.current_detail_map_key
 
@@ -61,6 +71,9 @@ func _ready() -> void:
 
 	if use_generated_map:
 		map_generator = create_map_generator(generator_type)
+
+		if force_regenerate_map_tiles_on_ready and map_id != "":
+			WorldState.map_tile_data.erase(map_id)
 
 		if WorldState.map_tile_data.has(map_id):
 			load_map_tiles()
@@ -163,6 +176,16 @@ func _ready() -> void:
 	print("GlobalDetailMap.current_area_difficulty = ", GlobalDetailMap.current_area_difficulty)
 	if WorldState.field_detail_map_data.has(map_id):
 		print("saved area_difficulty = ", WorldState.field_detail_map_data[map_id].get("area_difficulty", null))
+
+
+
+func _apply_tile_set_overrides() -> void:
+	if ground_tile_set_override != null:
+		ground_layer.tile_set = ground_tile_set_override
+	if wall_tile_set_override != null:
+		wall_layer.tile_set = wall_tile_set_override
+	if event_tile_set_override != null:
+		event_layer.tile_set = event_tile_set_override
 
 
 func _log_entered_area_difficulty() -> void:
@@ -658,7 +681,8 @@ func create_map_generator(generator_type: String) -> BaseMapGenerator:
 				FLOOR_SOURCE_ID,
 				WALL_SOURCE_ID,
 				FLOOR_ATLAS_COORDS,
-				WALL_ATLAS_COORDS
+				WALL_ATLAS_COORDS,
+				detail_tile_visual_config
 			)
 
 		"SAND":
@@ -668,7 +692,8 @@ func create_map_generator(generator_type: String) -> BaseMapGenerator:
 				FLOOR_SOURCE_ID,
 				WALL_SOURCE_ID,
 				FLOOR_ATLAS_COORDS,
-				WALL_ATLAS_COORDS
+				WALL_ATLAS_COORDS,
+				detail_tile_visual_config
 			)
 
 		"FOREST":
@@ -678,7 +703,8 @@ func create_map_generator(generator_type: String) -> BaseMapGenerator:
 				FLOOR_SOURCE_ID,
 				WALL_SOURCE_ID,
 				FLOOR_ATLAS_COORDS,
-				WALL_ATLAS_COORDS
+				WALL_ATLAS_COORDS,
+				detail_tile_visual_config
 			)
 
 		"BEACH":
@@ -688,7 +714,8 @@ func create_map_generator(generator_type: String) -> BaseMapGenerator:
 				FLOOR_SOURCE_ID,
 				WALL_SOURCE_ID,
 				FLOOR_ATLAS_COORDS,
-				WALL_ATLAS_COORDS
+				WALL_ATLAS_COORDS,
+				detail_tile_visual_config
 			)
 
 		"SEA":
@@ -698,7 +725,8 @@ func create_map_generator(generator_type: String) -> BaseMapGenerator:
 				FLOOR_SOURCE_ID,
 				WALL_SOURCE_ID,
 				FLOOR_ATLAS_COORDS,
-				WALL_ATLAS_COORDS
+				WALL_ATLAS_COORDS,
+				detail_tile_visual_config
 			)
 
 	push_error("UNKNOWN GENERATOR TYPE: " + generator_type)

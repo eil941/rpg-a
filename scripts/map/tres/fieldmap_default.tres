@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="MapTileVisualConfig" format=3 uid="uid://b82lmh8q8kek7"]
+
+[ext_resource type="Script" uid="uid://c6l5our0vbfdn" path="res://scripts/map/map_tile_visual_config.gd" id="1_0m2qr"]
+
+[resource]
+script = ExtResource("1_0m2qr")
+metadata/_custom_type_script = "uid://c6l5our0vbfdn"

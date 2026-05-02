@@ -15,6 +15,14 @@ extends Node2D
 @export var min_area_difficulty: int = 1
 @export var max_area_difficulty: int = 5
 
+@export_group("Tile Visual Settings")
+@export var ground_tile_set_override: TileSet
+@export var wall_tile_set_override: TileSet
+@export var event_tile_set_override: TileSet
+@export var field_tile_visual_config: MapTileVisualConfig
+@export var force_regenerate_map_tiles_on_ready: bool = false
+
+
 const FLOOR_SOURCE_ID: int = 1
 const WALL_SOURCE_ID: int = 0
 const HIGHROCK_SOURCE_ID: int = 5
@@ -62,6 +70,8 @@ func _ready() -> void:
 		push_error("FiledMap: GroundLayer / WallLayer / EventLayer の取得に失敗")
 		return
 
+	_apply_tile_set_overrides()
+
 	player.map_id = map_id
 
 	if not WorldState.field_dungeon_entrances.has(map_id):
@@ -69,6 +79,9 @@ func _ready() -> void:
 
 	if not WorldState.field_special_places.has(map_id):
 		WorldState.field_special_places[map_id] = []
+
+	if force_regenerate_map_tiles_on_ready and map_id != "":
+		WorldState.map_tile_data.erase(map_id)
 
 	if WorldState.map_tile_data.has(map_id):
 		load_map_tiles()
@@ -80,7 +93,8 @@ func _ready() -> void:
 			WALL_SOURCE_ID,
 			FLOOR_ATLAS_COORDS,
 			WALL_ATLAS_COORDS,
-			world_seed
+			world_seed,
+			field_tile_visual_config
 		)
 		map_generator.generate_map(ground_layer, wall_layer, event_layer)
 
@@ -119,6 +133,16 @@ func _ready() -> void:
 		apply_special_places_to_event_layer(WorldState.field_special_places[map_id])
 
 	print("FIELDMAP READY END")
+
+
+
+func _apply_tile_set_overrides() -> void:
+	if ground_tile_set_override != null:
+		ground_layer.tile_set = ground_tile_set_override
+	if wall_tile_set_override != null:
+		wall_layer.tile_set = wall_tile_set_override
+	if event_tile_set_override != null:
+		event_layer.tile_set = event_tile_set_override
 
 
 func _roll_area_difficulty() -> int:

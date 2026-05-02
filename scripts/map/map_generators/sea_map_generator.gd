@@ -112,12 +112,12 @@ func generate_map(
 	# 5. 外周Wall
 	# =========================
 	for x in range(map_width):
-		event_layer.set_cell(Vector2i(x, 0),0, WALL_ATLAS_COORDS, 0)
-		event_layer.set_cell(Vector2i(x, map_height - 1), 0, WALL_ATLAS_COORDS, 0)
+		_set_config_cell(event_layer, Vector2i(x, 0), "detail_border_event", 0, WALL_ATLAS_COORDS, 0)
+		_set_config_cell(event_layer, Vector2i(x, map_height - 1), "detail_border_event", 0, WALL_ATLAS_COORDS, 0)
 
 	for y in range(map_height):
-		event_layer.set_cell(Vector2i(0, y), 0, WALL_ATLAS_COORDS, 0)
-		event_layer.set_cell(Vector2i(map_width - 1, y), 0, WALL_ATLAS_COORDS, 0)
+		_set_config_cell(event_layer, Vector2i(0, y), "detail_border_event", 0, WALL_ATLAS_COORDS, 0)
+		_set_config_cell(event_layer, Vector2i(map_width - 1, y), "detail_border_event", 0, WALL_ATLAS_COORDS, 0)
 	# =========================
 	# 6. 描画
 	# =========================
@@ -128,26 +128,26 @@ func generate_map(
 
 			match terrain:
 				TERRAIN_SEA_SHALLOW:
-					ground_layer.set_cell(cell, 58, Vector2i(1, 4), 0)
+					_set_config_cell(ground_layer, cell, "detail_sea_shallow", 58, Vector2i(1, 4), 0)
 
 				TERRAIN_SEA:
-					ground_layer.set_cell(cell, 57, Vector2i(1, 4), 0)
+					_set_config_cell(ground_layer, cell, "detail_sea", 57, Vector2i(1, 4), 0)
 
 				TERRAIN_SEA_DEEP:
-					ground_layer.set_cell(cell, 60, Vector2i(1, 4), 0)
+					_set_config_cell(ground_layer, cell, "detail_sea_deep", 60, Vector2i(1, 4), 0)
 
 				TERRAIN_SAND:
-					ground_layer.set_cell(cell, 45, Vector2i(1, 4), 0)
+					_set_config_cell(ground_layer, cell, "detail_sand", 45, Vector2i(1, 4), 0)
 
 				TERRAIN_GRASS:
-					ground_layer.set_cell(cell, 48, Vector2i(1, 4), 0)
+					_set_config_cell(ground_layer, cell, "detail_grass", 48, Vector2i(1, 4), 0)
 
 				TERRAIN_FOREST:
-					ground_layer.set_cell(cell, 42, Vector2i(1, 4), 0)
+					_set_config_cell(ground_layer, cell, "detail_forest", 42, Vector2i(1, 4), 0)
 
 				TERRAIN_ROCK:
-					ground_layer.set_cell(cell, 26, Vector2i(1, 4), 0)
-					wall_layer.set_cell(cell, 5, Vector2i(0, 0), 0)
+					_set_config_cell(ground_layer, cell, "detail_rock_ground", 26, Vector2i(1, 4), 0)
+					_set_config_cell(wall_layer, cell, "detail_rock_wall", 5, Vector2i(0, 0), 0)
 
 
 func get_walkable_tiles() -> Array[Vector2i]:

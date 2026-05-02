@@ -1,0 +1,61 @@
+[gd_resource type="Resource" script_class="MapTileVisualConfig" format=3 uid="uid://b82lmh8q8kek7"]
+
+[ext_resource type="Script" uid="uid://c6l5our0vbfdn" path="res://scripts/map/map_tile_visual_config.gd" id="1_0m2qr"]
+
+[resource]
+script = ExtResource("1_0m2qr")
+field_ocean_ground_source_id = 0
+field_ocean_ground_atlas_coords = Vector2i(6, 1)
+field_ocean_event_source_id = 0
+field_ocean_event_atlas_coords = Vector2i(6, 1)
+field_coast_ground_source_id = 9
+field_coast_ground_atlas_coords = Vector2i(4, 9)
+field_coast_event_source_id = 9
+field_coast_event_atlas_coords = Vector2i(4, 9)
+field_plains_ground_source_id = 1
+field_plains_ground_atlas_coords = Vector2i(6, 1)
+field_plains_event_source_id = 1
+field_plains_event_atlas_coords = Vector2i(6, 1)
+field_dry_plains_ground_source_id = 5
+field_dry_plains_ground_atlas_coords = Vector2i(6, 1)
+field_dry_plains_event_source_id = 4
+field_dry_plains_event_atlas_coords = Vector2i(6, 1)
+field_forest_ground_source_id = 1
+field_forest_ground_atlas_coords = Vector2i(6, 1)
+field_forest_event_source_id = 2
+field_forest_event_atlas_coords = Vector2i(0, 0)
+field_desert_ground_source_id = 3
+field_desert_ground_atlas_coords = Vector2i(6, 1)
+field_desert_event_source_id = 3
+field_desert_event_atlas_coords = Vector2i(6, 1)
+field_lake_ground_source_id = 10
+field_lake_ground_atlas_coords = Vector2i(5, 3)
+field_lake_event_source_id = 10
+field_lake_event_atlas_coords = Vector2i(5, 3)
+field_highland_grass_ground_source_id = 5
+field_highland_grass_ground_atlas_coords = Vector2i(6, 1)
+field_highland_grass_event_source_id = 5
+field_highland_grass_event_atlas_coords = Vector2i(6, 1)
+field_highland_forest_ground_source_id = 5
+field_highland_forest_ground_atlas_coords = Vector2i(6, 1)
+field_highland_forest_event_source_id = 9
+field_highland_forest_event_atlas_coords = Vector2i(8, 3)
+field_highland_rock_ground_source_id = 5
+field_highland_rock_ground_atlas_coords = Vector2i(6, 1)
+field_highland_rock_wall_source_id = 7
+field_highland_rock_wall_atlas_coords = Vector2i(0, 0)
+field_mountain_grass_ground_source_id = 5
+field_mountain_grass_ground_atlas_coords = Vector2i(6, 1)
+field_mountain_grass_event_source_id = 6
+field_mountain_grass_event_atlas_coords = Vector2i(0, 0)
+field_mountain_forest_ground_source_id = 5
+field_mountain_forest_ground_atlas_coords = Vector2i(6, 1)
+field_mountain_forest_event_source_id = 9
+field_mountain_forest_event_atlas_coords = Vector2i(12, 0)
+field_mountain_rock_ground_source_id = 5
+field_mountain_rock_ground_atlas_coords = Vector2i(6, 1)
+field_mountain_rock_wall_source_id = 8
+field_mountain_rock_wall_atlas_coords = Vector2i(0, 0)
+field_border_wall_source_id = 9
+field_border_wall_atlas_coords = Vector2i(15, 11)
+metadata/_custom_type_script = "uid://c6l5our0vbfdn"

@@ -19,77 +19,109 @@ const BIOME_LAKE: int = 7
 const BIOME_DRY_PLAINS: int = 8
 
 # =========================
-# biome visual settings
-# 値が同じでも意味ごとに分ける
+# Pipoya RPG World Tileset 32x32 / [A]_type3
+# TileSet atlas source_id order:
+# 0: pipo-map001_at-umi.png
+# 1: pipo-map001_at-kusa.png
+# 2: pipo-map001_at-mori.png
+# 3: pipo-map001_at-sabaku.png
+# 4: pipo-map001_at-miti.png
+# 5: pipo-map001_at-tuti.png
+# 6: pipo-map001_at-yama1.png
+# 7: pipo-map001_at-yama2.png
+# 8: pipo-map001_at-yama3.png
 # =========================
 
-const OCEAN_GROUND_SOURCE_ID: int = 87
-const OCEAN_GROUND_ATLAS_COORDS: Vector2i = Vector2i(0, 4)
-const OCEAN_EVENT_SOURCE_ID: int = 87
-const OCEAN_EVENT_ATLAS_COORDS: Vector2i = Vector2i(0, 4)
+const SRC_UMI: int = 0
+const SRC_KUSA: int = 1
+const SRC_MORI: int = 2
+const SRC_SABAKU: int = 3
+const SRC_MITI: int = 4
+const SRC_TUTI: int = 5
+const SRC_YAMA1: int = 6
+const SRC_YAMA2: int = 7
+const SRC_YAMA3: int = 8
 
-const COAST_GROUND_SOURCE_ID: int = 14
-const COAST_GROUND_ATLAS_COORDS: Vector2i = Vector2i(1, 0)
-const COAST_EVENT_SOURCE_ID: int = 14
-const COAST_EVENT_ATLAS_COORDS: Vector2i = Vector2i(1, 0)
+# 8x6 のオートタイル画像内で、単体表示に使いやすい塗りつぶしタイル。
+# 草・砂・水・土など、地面として敷くタイルに使います。
+const FILL_ATLAS_COORDS: Vector2i = Vector2i(3, 5)
 
-const PLAINS_GROUND_SOURCE_ID: int = 14
-const PLAINS_GROUND_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
-const PLAINS_EVENT_SOURCE_ID: int = 14
-const PLAINS_EVENT_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
+# 森は下地を草/土にして、上に森タイルを重ねます。
+const FOREST_OVERLAY_ATLAS_COORDS: Vector2i = Vector2i(6, 1)
 
-const DRY_PLAINS_GROUND_SOURCE_ID: int = 25
-const DRY_PLAINS_GROUND_ATLAS_COORDS: Vector2i = Vector2i(2, 0)
-const DRY_PLAINS_EVENT_SOURCE_ID: int = 25
-const DRY_PLAINS_EVENT_ATLAS_COORDS: Vector2i = Vector2i(2, 0)
+# 乾いた平原は下地を土にして、上に道/乾いた地面タイルを重ねます。
+const DRY_OVERLAY_ATLAS_COORDS: Vector2i = Vector2i(6, 1)
 
-const FOREST_GROUND_SOURCE_ID: int = 14
-const FOREST_GROUND_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
-const FOREST_EVENT_SOURCE_ID: int = 14
-const FOREST_EVENT_ATLAS_COORDS: Vector2i = Vector2i(5, 11)
+# 山は下地を土にして、上に山アイコンを重ねます。
+const MOUNTAIN_OVERLAY_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
 
-const DESERT_GROUND_SOURCE_ID: int = 25
-const DESERT_GROUND_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
-const DESERT_EVENT_SOURCE_ID: int = 25
-const DESERT_EVENT_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
+const OCEAN_GROUND_SOURCE_ID: int = SRC_UMI
+const OCEAN_GROUND_ATLAS_COORDS: Vector2i = FILL_ATLAS_COORDS
+const OCEAN_EVENT_SOURCE_ID: int = SRC_UMI
+const OCEAN_EVENT_ATLAS_COORDS: Vector2i = FILL_ATLAS_COORDS
 
-const HIGHLAND_GRASS_GROUND_SOURCE_ID: int = 73
-const HIGHLAND_GRASS_GROUND_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
-const HIGHLAND_GRASS_EVENT_SOURCE_ID: int = 73
-const HIGHLAND_GRASS_EVENT_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
+const COAST_GROUND_SOURCE_ID: int = SRC_SABAKU
+const COAST_GROUND_ATLAS_COORDS: Vector2i = FILL_ATLAS_COORDS
+const COAST_EVENT_SOURCE_ID: int = SRC_SABAKU
+const COAST_EVENT_ATLAS_COORDS: Vector2i = FILL_ATLAS_COORDS
 
-const HIGHLAND_FOREST_GROUND_SOURCE_ID: int = 59
-const HIGHLAND_FOREST_GROUND_ATLAS_COORDS: Vector2i = Vector2i(1, 0)
-const HIGHLAND_FOREST_EVENT_SOURCE_ID: int = 59
-const HIGHLAND_FOREST_EVENT_ATLAS_COORDS: Vector2i = Vector2i(7, 9)
+const PLAINS_GROUND_SOURCE_ID: int = SRC_KUSA
+const PLAINS_GROUND_ATLAS_COORDS: Vector2i = FILL_ATLAS_COORDS
+const PLAINS_EVENT_SOURCE_ID: int = SRC_KUSA
+const PLAINS_EVENT_ATLAS_COORDS: Vector2i = FILL_ATLAS_COORDS
 
-const HIGHLAND_ROCK_GROUND_SOURCE_ID: int = 59
-const HIGHLAND_ROCK_GROUND_ATLAS_COORDS: Vector2i = Vector2i(1, 6)
-const HIGHLAND_ROCK_WALL_SOURCE_ID: int = 59
-const HIGHLAND_ROCK_WALL_ATLAS_COORDS: Vector2i = Vector2i(1, 6)
+const DRY_PLAINS_GROUND_SOURCE_ID: int = SRC_TUTI
+const DRY_PLAINS_GROUND_ATLAS_COORDS: Vector2i = FILL_ATLAS_COORDS
+const DRY_PLAINS_EVENT_SOURCE_ID: int = SRC_MITI
+const DRY_PLAINS_EVENT_ATLAS_COORDS: Vector2i = DRY_OVERLAY_ATLAS_COORDS
 
-const MOUNTAIN_GRASS_GROUND_SOURCE_ID: int = 58
-const MOUNTAIN_GRASS_GROUND_ATLAS_COORDS: Vector2i = Vector2i(2, 0)
-const MOUNTAIN_GRASS_EVENT_SOURCE_ID: int = 58
-const MOUNTAIN_GRASS_EVENT_ATLAS_COORDS: Vector2i = Vector2i(2, 0)
+const FOREST_GROUND_SOURCE_ID: int = SRC_KUSA
+const FOREST_GROUND_ATLAS_COORDS: Vector2i = FILL_ATLAS_COORDS
+const FOREST_EVENT_SOURCE_ID: int = SRC_MORI
+const FOREST_EVENT_ATLAS_COORDS: Vector2i = FOREST_OVERLAY_ATLAS_COORDS
 
-const MOUNTAIN_FOREST_GROUND_SOURCE_ID: int = 58
-const MOUNTAIN_FOREST_GROUND_ATLAS_COORDS: Vector2i = Vector2i(2, 0)
-const MOUNTAIN_FOREST_EVENT_SOURCE_ID: int = 14
-const MOUNTAIN_FOREST_EVENT_ATLAS_COORDS: Vector2i = Vector2i(1, 1)
+const DESERT_GROUND_SOURCE_ID: int = SRC_SABAKU
+const DESERT_GROUND_ATLAS_COORDS: Vector2i = FILL_ATLAS_COORDS
+const DESERT_EVENT_SOURCE_ID: int = SRC_SABAKU
+const DESERT_EVENT_ATLAS_COORDS: Vector2i = FILL_ATLAS_COORDS
 
-const MOUNTAIN_ROCK_GROUND_SOURCE_ID: int = 58
-const MOUNTAIN_ROCK_GROUND_ATLAS_COORDS: Vector2i = Vector2i(1, 5)
-const MOUNTAIN_ROCK_WALL_SOURCE_ID: int = 58
-const MOUNTAIN_ROCK_WALL_ATLAS_COORDS: Vector2i = Vector2i(1, 5)
+const HIGHLAND_GRASS_GROUND_SOURCE_ID: int = SRC_TUTI
+const HIGHLAND_GRASS_GROUND_ATLAS_COORDS: Vector2i = FILL_ATLAS_COORDS
+const HIGHLAND_GRASS_EVENT_SOURCE_ID: int = SRC_TUTI
+const HIGHLAND_GRASS_EVENT_ATLAS_COORDS: Vector2i = FILL_ATLAS_COORDS
 
-const LAKE_GROUND_SOURCE_ID: int = 15
-const LAKE_GROUND_ATLAS_COORDS: Vector2i = Vector2i(2, 4)
-const LAKE_EVENT_SOURCE_ID: int = 15
-const LAKE_EVENT_ATLAS_COORDS: Vector2i = Vector2i(2, 4)
+const HIGHLAND_FOREST_GROUND_SOURCE_ID: int = SRC_TUTI
+const HIGHLAND_FOREST_GROUND_ATLAS_COORDS: Vector2i = FILL_ATLAS_COORDS
+const HIGHLAND_FOREST_EVENT_SOURCE_ID: int = SRC_MORI
+const HIGHLAND_FOREST_EVENT_ATLAS_COORDS: Vector2i = FOREST_OVERLAY_ATLAS_COORDS
 
-const BORDER_WALL_SOURCE_ID: int = 86
-const BORDER_WALL_ATLAS_COORDS: Vector2i = Vector2i(0, 4)
+const HIGHLAND_ROCK_GROUND_SOURCE_ID: int = SRC_TUTI
+const HIGHLAND_ROCK_GROUND_ATLAS_COORDS: Vector2i = FILL_ATLAS_COORDS
+const HIGHLAND_ROCK_WALL_SOURCE_ID: int = SRC_YAMA2
+const HIGHLAND_ROCK_WALL_ATLAS_COORDS: Vector2i = MOUNTAIN_OVERLAY_ATLAS_COORDS
+
+const MOUNTAIN_GRASS_GROUND_SOURCE_ID: int = SRC_TUTI
+const MOUNTAIN_GRASS_GROUND_ATLAS_COORDS: Vector2i = FILL_ATLAS_COORDS
+const MOUNTAIN_GRASS_EVENT_SOURCE_ID: int = SRC_YAMA1
+const MOUNTAIN_GRASS_EVENT_ATLAS_COORDS: Vector2i = MOUNTAIN_OVERLAY_ATLAS_COORDS
+
+const MOUNTAIN_FOREST_GROUND_SOURCE_ID: int = SRC_TUTI
+const MOUNTAIN_FOREST_GROUND_ATLAS_COORDS: Vector2i = FILL_ATLAS_COORDS
+const MOUNTAIN_FOREST_EVENT_SOURCE_ID: int = SRC_MORI
+const MOUNTAIN_FOREST_EVENT_ATLAS_COORDS: Vector2i = FOREST_OVERLAY_ATLAS_COORDS
+
+const MOUNTAIN_ROCK_GROUND_SOURCE_ID: int = SRC_TUTI
+const MOUNTAIN_ROCK_GROUND_ATLAS_COORDS: Vector2i = FILL_ATLAS_COORDS
+const MOUNTAIN_ROCK_WALL_SOURCE_ID: int = SRC_YAMA3
+const MOUNTAIN_ROCK_WALL_ATLAS_COORDS: Vector2i = MOUNTAIN_OVERLAY_ATLAS_COORDS
+
+const LAKE_GROUND_SOURCE_ID: int = SRC_UMI
+const LAKE_GROUND_ATLAS_COORDS: Vector2i = FILL_ATLAS_COORDS
+const LAKE_EVENT_SOURCE_ID: int = SRC_UMI
+const LAKE_EVENT_ATLAS_COORDS: Vector2i = FILL_ATLAS_COORDS
+
+const BORDER_WALL_SOURCE_ID: int = SRC_YAMA3
+const BORDER_WALL_ATLAS_COORDS: Vector2i = MOUNTAIN_OVERLAY_ATLAS_COORDS
 
 var terrain_result: Array = []
 var biome_result: Array = []
@@ -103,7 +135,8 @@ func _init(
 	p_wall_source_id: int,
 	p_floor_atlas_coords: Vector2i,
 	p_wall_atlas_coords: Vector2i,
-	p_world_seed: int = 0
+	p_world_seed: int = 0,
+	p_tile_visual_config: MapTileVisualConfig = null
 ) -> void:
 	super(
 		p_map_width,
@@ -111,7 +144,8 @@ func _init(
 		p_floor_source_id,
 		p_wall_source_id,
 		p_floor_atlas_coords,
-		p_wall_atlas_coords
+		p_wall_atlas_coords,
+		p_tile_visual_config
 	)
 	world_seed = p_world_seed
 
@@ -393,64 +427,64 @@ func generate_map(
 
 			match biome:
 				BIOME_OCEAN:
-					ground_layer.set_cell(cell, OCEAN_GROUND_SOURCE_ID, OCEAN_GROUND_ATLAS_COORDS, 0)
-					event_layer.set_cell(cell, OCEAN_EVENT_SOURCE_ID, OCEAN_EVENT_ATLAS_COORDS, 0)
+					_set_config_cell(ground_layer, cell, "field_ocean_ground", OCEAN_GROUND_SOURCE_ID, OCEAN_GROUND_ATLAS_COORDS, 0)
+					_set_config_cell(event_layer, cell, "field_ocean_event", OCEAN_EVENT_SOURCE_ID, OCEAN_EVENT_ATLAS_COORDS, 0)
 
 				BIOME_COAST:
-					ground_layer.set_cell(cell, COAST_GROUND_SOURCE_ID, COAST_GROUND_ATLAS_COORDS, 0)
-					event_layer.set_cell(cell, COAST_EVENT_SOURCE_ID, COAST_EVENT_ATLAS_COORDS, 0)
+					_set_config_cell(ground_layer, cell, "field_coast_ground", COAST_GROUND_SOURCE_ID, COAST_GROUND_ATLAS_COORDS, 0)
+					_set_config_cell(event_layer, cell, "field_coast_event", COAST_EVENT_SOURCE_ID, COAST_EVENT_ATLAS_COORDS, 0)
 
 				BIOME_PLAINS:
-					ground_layer.set_cell(cell, PLAINS_GROUND_SOURCE_ID, PLAINS_GROUND_ATLAS_COORDS, 0)
-					event_layer.set_cell(cell, PLAINS_EVENT_SOURCE_ID, PLAINS_EVENT_ATLAS_COORDS, 0)
+					_set_config_cell(ground_layer, cell, "field_plains_ground", PLAINS_GROUND_SOURCE_ID, PLAINS_GROUND_ATLAS_COORDS, 0)
+					_set_config_cell(event_layer, cell, "field_plains_event", PLAINS_EVENT_SOURCE_ID, PLAINS_EVENT_ATLAS_COORDS, 0)
 
 				BIOME_DRY_PLAINS:
-					ground_layer.set_cell(cell, DRY_PLAINS_GROUND_SOURCE_ID, DRY_PLAINS_GROUND_ATLAS_COORDS, 0)
-					event_layer.set_cell(cell, DRY_PLAINS_EVENT_SOURCE_ID, DRY_PLAINS_EVENT_ATLAS_COORDS, 0)
+					_set_config_cell(ground_layer, cell, "field_dry_plains_ground", DRY_PLAINS_GROUND_SOURCE_ID, DRY_PLAINS_GROUND_ATLAS_COORDS, 0)
+					_set_config_cell(event_layer, cell, "field_dry_plains_event", DRY_PLAINS_EVENT_SOURCE_ID, DRY_PLAINS_EVENT_ATLAS_COORDS, 0)
 
 				BIOME_FOREST:
-					ground_layer.set_cell(cell, FOREST_GROUND_SOURCE_ID, FOREST_GROUND_ATLAS_COORDS, 0)
-					event_layer.set_cell(cell, FOREST_EVENT_SOURCE_ID, FOREST_EVENT_ATLAS_COORDS, 0)
+					_set_config_cell(ground_layer, cell, "field_forest_ground", FOREST_GROUND_SOURCE_ID, FOREST_GROUND_ATLAS_COORDS, 0)
+					_set_config_cell(event_layer, cell, "field_forest_event", FOREST_EVENT_SOURCE_ID, FOREST_EVENT_ATLAS_COORDS, 0)
 
 				BIOME_DESERT:
-					ground_layer.set_cell(cell, DESERT_GROUND_SOURCE_ID, DESERT_GROUND_ATLAS_COORDS, 0)
-					event_layer.set_cell(cell, DESERT_EVENT_SOURCE_ID, DESERT_EVENT_ATLAS_COORDS, 0)
+					_set_config_cell(ground_layer, cell, "field_desert_ground", DESERT_GROUND_SOURCE_ID, DESERT_GROUND_ATLAS_COORDS, 0)
+					_set_config_cell(event_layer, cell, "field_desert_event", DESERT_EVENT_SOURCE_ID, DESERT_EVENT_ATLAS_COORDS, 0)
 
 				BIOME_HIGHLAND:
 					var terrain_highland: int = terrain_result[y][x]
 					if terrain_highland == TERRAIN_ROCK:
-						ground_layer.set_cell(cell, HIGHLAND_ROCK_GROUND_SOURCE_ID, HIGHLAND_ROCK_GROUND_ATLAS_COORDS, 0)
-						wall_layer.set_cell(cell, HIGHLAND_ROCK_WALL_SOURCE_ID, HIGHLAND_ROCK_WALL_ATLAS_COORDS, 0)
+						_set_config_cell(ground_layer, cell, "field_highland_rock_ground", HIGHLAND_ROCK_GROUND_SOURCE_ID, HIGHLAND_ROCK_GROUND_ATLAS_COORDS, 0)
+						_set_config_cell(wall_layer, cell, "field_highland_rock_wall", HIGHLAND_ROCK_WALL_SOURCE_ID, HIGHLAND_ROCK_WALL_ATLAS_COORDS, 0)
 					elif terrain_highland == TERRAIN_FOREST:
-						ground_layer.set_cell(cell, HIGHLAND_FOREST_GROUND_SOURCE_ID, HIGHLAND_FOREST_GROUND_ATLAS_COORDS, 0)
-						event_layer.set_cell(cell, HIGHLAND_FOREST_EVENT_SOURCE_ID, HIGHLAND_FOREST_EVENT_ATLAS_COORDS, 0)
+						_set_config_cell(ground_layer, cell, "field_highland_forest_ground", HIGHLAND_FOREST_GROUND_SOURCE_ID, HIGHLAND_FOREST_GROUND_ATLAS_COORDS, 0)
+						_set_config_cell(event_layer, cell, "field_highland_forest_event", HIGHLAND_FOREST_EVENT_SOURCE_ID, HIGHLAND_FOREST_EVENT_ATLAS_COORDS, 0)
 					else:
-						ground_layer.set_cell(cell, HIGHLAND_GRASS_GROUND_SOURCE_ID, HIGHLAND_GRASS_GROUND_ATLAS_COORDS, 0)
-						event_layer.set_cell(cell, HIGHLAND_GRASS_EVENT_SOURCE_ID, HIGHLAND_GRASS_EVENT_ATLAS_COORDS, 0)
+						_set_config_cell(ground_layer, cell, "field_highland_grass_ground", HIGHLAND_GRASS_GROUND_SOURCE_ID, HIGHLAND_GRASS_GROUND_ATLAS_COORDS, 0)
+						_set_config_cell(event_layer, cell, "field_highland_grass_event", HIGHLAND_GRASS_EVENT_SOURCE_ID, HIGHLAND_GRASS_EVENT_ATLAS_COORDS, 0)
 
 				BIOME_MOUNTAIN:
 					var terrain_mountain: int = terrain_result[y][x]
 					if terrain_mountain == TERRAIN_ROCK:
-						ground_layer.set_cell(cell, MOUNTAIN_ROCK_GROUND_SOURCE_ID, MOUNTAIN_ROCK_GROUND_ATLAS_COORDS, 0)
-						wall_layer.set_cell(cell, MOUNTAIN_ROCK_WALL_SOURCE_ID, MOUNTAIN_ROCK_WALL_ATLAS_COORDS, 0)
+						_set_config_cell(ground_layer, cell, "field_mountain_rock_ground", MOUNTAIN_ROCK_GROUND_SOURCE_ID, MOUNTAIN_ROCK_GROUND_ATLAS_COORDS, 0)
+						_set_config_cell(wall_layer, cell, "field_mountain_rock_wall", MOUNTAIN_ROCK_WALL_SOURCE_ID, MOUNTAIN_ROCK_WALL_ATLAS_COORDS, 0)
 					elif terrain_mountain == TERRAIN_FOREST:
-						ground_layer.set_cell(cell, MOUNTAIN_FOREST_GROUND_SOURCE_ID, MOUNTAIN_FOREST_GROUND_ATLAS_COORDS, 0)
-						event_layer.set_cell(cell, MOUNTAIN_FOREST_EVENT_SOURCE_ID, MOUNTAIN_FOREST_EVENT_ATLAS_COORDS, 0)
+						_set_config_cell(ground_layer, cell, "field_mountain_forest_ground", MOUNTAIN_FOREST_GROUND_SOURCE_ID, MOUNTAIN_FOREST_GROUND_ATLAS_COORDS, 0)
+						_set_config_cell(event_layer, cell, "field_mountain_forest_event", MOUNTAIN_FOREST_EVENT_SOURCE_ID, MOUNTAIN_FOREST_EVENT_ATLAS_COORDS, 0)
 					else:
-						ground_layer.set_cell(cell, MOUNTAIN_GRASS_GROUND_SOURCE_ID, MOUNTAIN_GRASS_GROUND_ATLAS_COORDS, 0)
-						event_layer.set_cell(cell, MOUNTAIN_GRASS_EVENT_SOURCE_ID, MOUNTAIN_GRASS_EVENT_ATLAS_COORDS, 0)
+						_set_config_cell(ground_layer, cell, "field_mountain_grass_ground", MOUNTAIN_GRASS_GROUND_SOURCE_ID, MOUNTAIN_GRASS_GROUND_ATLAS_COORDS, 0)
+						_set_config_cell(event_layer, cell, "field_mountain_grass_event", MOUNTAIN_GRASS_EVENT_SOURCE_ID, MOUNTAIN_GRASS_EVENT_ATLAS_COORDS, 0)
 
 				BIOME_LAKE:
-					ground_layer.set_cell(cell, LAKE_GROUND_SOURCE_ID, LAKE_GROUND_ATLAS_COORDS, 0)
-					event_layer.set_cell(cell, LAKE_EVENT_SOURCE_ID, LAKE_EVENT_ATLAS_COORDS, 0)
+					_set_config_cell(ground_layer, cell, "field_lake_ground", LAKE_GROUND_SOURCE_ID, LAKE_GROUND_ATLAS_COORDS, 0)
+					_set_config_cell(event_layer, cell, "field_lake_event", LAKE_EVENT_SOURCE_ID, LAKE_EVENT_ATLAS_COORDS, 0)
 
 	for x in range(map_width):
-		wall_layer.set_cell(Vector2i(x, 0), BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
-		wall_layer.set_cell(Vector2i(x, map_height - 1), BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
+		_set_config_cell(wall_layer, Vector2i(x, 0), "field_border_wall", BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
+		_set_config_cell(wall_layer, Vector2i(x, map_height - 1), "field_border_wall", BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
 
 	for y in range(map_height):
-		wall_layer.set_cell(Vector2i(0, y), BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
-		wall_layer.set_cell(Vector2i(map_width - 1, y), BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
+		_set_config_cell(wall_layer, Vector2i(0, y), "field_border_wall", BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
+		_set_config_cell(wall_layer, Vector2i(map_width - 1, y), "field_border_wall", BORDER_WALL_SOURCE_ID, BORDER_WALL_ATLAS_COORDS, 0)
 
 
 func get_walkable_tiles() -> Array[Vector2i]:
