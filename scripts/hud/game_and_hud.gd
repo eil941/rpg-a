@@ -39,8 +39,10 @@ var last_stamina_condition_key: String = "__unset__"
 func _ready() -> void:
 	_setup_blind_overlay()
 	_connect_hud_action_buttons()
-
-	load_map_by_path("res://scenes/field_map.tscn")
+	
+	#ここで初期シーンを決めている
+	#load_map_by_path("res://scenes/field_map.tscn")
+	load_map_by_path("res://scenes/npc_debug_map_special_reworked.tscn")
 	refresh_hud()
 	_sync_hud_inventory_edit_mode(true)
 

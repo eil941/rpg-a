@@ -46,28 +46,7 @@ const HIGHROCK_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
 
 
 const SPECIAL_PLACE_TILE_MAP: Dictionary = {
-	"start_1": {"source_id": 14, "atlas_coords": Vector2i(0, 0)},
-
-	"town_1": {"source_id": 15, "atlas_coords": Vector2i(1, 0)},
-	"town_2": {"source_id": 16, "atlas_coords": Vector2i(2, 0)},
-
-	"village_1": {"source_id": 17, "atlas_coords": Vector2i(0, 1)},
-	"village_2": {"source_id": 18, "atlas_coords": Vector2i(1, 1)},
-	"village_3": {"source_id": 19, "atlas_coords": Vector2i(2, 1)},
-	"village_4": {"source_id": 20, "atlas_coords": Vector2i(3, 1)},
-	"village_5": {"source_id": 21, "atlas_coords": Vector2i(4, 1)},
-
-	"castle_1": {"source_id": 22, "atlas_coords": Vector2i(0, 2)},
-	"castle_2": {"source_id": 23, "atlas_coords": Vector2i(1, 2)},
-
-	"unique_dungeon_1": {"source_id": 24, "atlas_coords": Vector2i(0, 3)},
-	"unique_dungeon_2": {"source_id": 25, "atlas_coords": Vector2i(1, 3)},
-	"unique_dungeon_3": {"source_id": 26, "atlas_coords": Vector2i(2, 3)},
-	"unique_dungeon_4": {"source_id": 27, "atlas_coords": Vector2i(3, 3)},
-
-	"special_map_1": {"source_id": 28, "atlas_coords": Vector2i(0, 4)},
-	"special_map_2": {"source_id": 29, "atlas_coords": Vector2i(1, 4)},
-	"special_map_3": {"source_id": 30, "atlas_coords": Vector2i(2, 4)}
+	"special_map_1": {"source_id": 11, "atlas_coords": Vector2i(1, 0)},
 }
 
 var map_generator: PlainMapGenerator
@@ -153,6 +132,8 @@ func _ready() -> void:
 	if WorldState.field_special_places.has(map_id):
 		print("[DEBUG][FiledMap] final field_special_places[map_id] = ", WorldState.field_special_places[map_id])
 		apply_special_places_to_event_layer(WorldState.field_special_places[map_id])
+
+	_resolve_pending_unique_map_return_if_needed()
 
 	print("FIELDMAP READY END")
 
@@ -275,6 +256,158 @@ func _build_detail_map_key(cell: Vector2i) -> String:
 	return "field_%d_%d" % [cell.x, cell.y]
 
 
+func _build_unique_detail_map_key(unique_map_id: String, cell: Vector2i) -> String:
+	if WorldState.has_method("make_unique_detail_map_id"):
+		return WorldState.make_unique_detail_map_id(unique_map_id, cell)
+
+	var safe_id: String = unique_map_id.strip_edges().to_lower()
+	safe_id = safe_id.replace(" ", "_")
+	safe_id = safe_id.replace("-", "_")
+	safe_id = safe_id.replace("/", "_")
+	if safe_id == "":
+		safe_id = "unknown"
+
+	return "unique_%s_field_%d_%d" % [safe_id, cell.x, cell.y]
+
+
+func _request_map_change(scene_path: String) -> bool:
+	var node: Node = self
+
+	while node != null:
+		if node.has_method("load_map_by_path"):
+			node.load_map_by_path(scene_path)
+			return true
+		node = node.get_parent()
+
+	var error: Error = get_tree().change_scene_to_file(scene_path)
+	return error == OK
+
+
+func _resolve_pending_unique_map_return_if_needed() -> void:
+	if not ("pending_resolve_return_from_unique_map" in GlobalDetailMap):
+		return
+
+	if not GlobalDetailMap.pending_resolve_return_from_unique_map:
+		return
+
+	print("[DEBUG][FiledMap] resolve pending unique map return")	
+	print("[DEBUG][FiledMap] pending unique_map_id = ", GlobalDetailMap.pending_return_unique_map_id)
+	print("[DEBUG][FiledMap] pending scene_path = ", GlobalDetailMap.pending_return_unique_scene_path)
+
+	var place: Dictionary = _find_special_place_for_pending_unique_map_return()
+	if place.is_empty():
+		push_warning("[FiledMap] pending unique map return を解決できませんでした")
+		return
+
+	var return_cell: Vector2i = Vector2i(
+		int(place.get("x", 0)),
+		int(place.get("y", 0))
+	)
+
+	GlobalDetailMap.from_field_tile = return_cell
+	if GlobalDetailMap.has_method("clear_pending_unique_map_return"):
+		GlobalDetailMap.clear_pending_unique_map_return()
+
+	_place_player_on_field_tile(return_cell)
+
+	print("[DEBUG][FiledMap] resolved unique map return tile = ", return_cell)
+
+
+func _find_special_place_for_pending_unique_map_return() -> Dictionary:
+	if not WorldState.field_special_places.has(map_id):
+		return {}
+
+	var pending_unique_map_id: String = String(GlobalDetailMap.pending_return_unique_map_id).strip_edges()
+	var pending_scene_path: String = String(GlobalDetailMap.pending_return_unique_scene_path).strip_edges()
+	var places: Array = WorldState.field_special_places[map_id]
+
+	# 1. unique_map_id 優先。
+	for raw_place in places:
+		if typeof(raw_place) != TYPE_DICTIONARY:
+			continue
+
+		var place: Dictionary = raw_place
+		var place_unique_map_id: String = String(place.get("unique_map_id", "")).strip_edges()
+		if place_unique_map_id == "":
+			place_unique_map_id = String(place.get("place_id", "")).strip_edges()
+
+		if pending_unique_map_id != "" and place_unique_map_id == pending_unique_map_id:
+			return place
+
+	# 2. TileSet custom data の enter_scene で逆引き。
+	for raw_place in places:
+		if typeof(raw_place) != TYPE_DICTIONARY:
+			continue
+
+		var place: Dictionary = raw_place
+		var cell: Vector2i = Vector2i(
+			int(place.get("x", 0)),
+			int(place.get("y", 0))
+		)
+
+		var enter_scene_from_tile: String = _get_event_tile_enter_scene_at_cell(cell)
+		if pending_scene_path != "" and enter_scene_from_tile == pending_scene_path:
+			return place
+
+		# 互換用。基本はTileSet custom dataを使う。
+		var enter_scene_from_place: String = String(place.get("enter_scene", "")).strip_edges()
+		if pending_scene_path != "" and enter_scene_from_place == pending_scene_path:
+			return place
+
+		var scene_path_from_place: String = String(place.get("scene_path", "")).strip_edges()
+		if pending_scene_path != "" and scene_path_from_place == pending_scene_path:
+			return place
+
+	return {}
+
+
+func _get_event_tile_enter_scene_at_cell(cell: Vector2i) -> String:
+	var tile_data: TileData = event_layer.get_cell_tile_data(cell)
+	if tile_data == null:
+		return ""
+
+	var raw_enter_scene: Variant = tile_data.get_custom_data("enter_scene")
+	if raw_enter_scene == null:
+		return ""
+
+	return String(raw_enter_scene).strip_edges()
+
+
+func _get_event_tile_spawn_tile_at_cell(cell: Vector2i, fallback: Vector2i) -> Vector2i:
+	var tile_data: TileData = event_layer.get_cell_tile_data(cell)
+	if tile_data == null:
+		return fallback
+
+	var spawn_x_data: Variant = tile_data.get_custom_data("spawn_x")
+	var spawn_y_data: Variant = tile_data.get_custom_data("spawn_y")
+
+	if spawn_x_data == null or spawn_y_data == null:
+		return fallback
+
+	return Vector2i(int(spawn_x_data), int(spawn_y_data))
+
+
+func _place_player_on_field_tile(cell: Vector2i) -> void:
+	if player == null:
+		return
+
+	var target_pos: Vector2 = ground_layer.to_global(
+		ground_layer.map_to_local(cell)
+	)
+
+	player.global_position = target_pos
+	player.target_position = target_pos
+	player.start_tile = cell
+	player.is_moving = false
+	player.is_transitioning = false
+
+	PlayerData.map_positions[map_id] = cell
+	GlobalPlayerSpawn.has_next_tile = false
+	GlobalPlayerSpawn.next_tile = cell
+
+	print("[DEBUG][FiledMap] player placed on field tile = ", cell)
+
+
 func _get_special_place_generator_type(place: Dictionary) -> String:
 	var generator_type: String = str(place.get("detail_generator", ""))
 	if generator_type == "":
@@ -368,51 +501,146 @@ func try_enter_special_place_from_player_position() -> bool:
 		print("[DEBUG][FiledMap] place is empty -> return false")
 		return false
 
-	if not place.has("enter_scene"):
-		print("[DEBUG][FiledMap] place has no enter_scene -> return false")
+	var tile_data: TileData = event_layer.get_cell_tile_data(current_cell)
+	if tile_data == null:
+		print("[DEBUG][FiledMap] tile_data is null -> return false")
 		return false
 
-	var enter_scene: String = str(place.get("enter_scene", ""))
+	var can_enter_data: Variant = tile_data.get_custom_data("can_enter")
+	if not (can_enter_data is bool and bool(can_enter_data)):
+		print("[DEBUG][FiledMap] can_enter is false -> return false")
+		return false
+
+	# 移動先はTileSet custom dataを最優先する。
+	# FieldMap側は unique_map_id だけを持ち、二重設定を避ける。
+	var enter_scene: String = _get_event_tile_enter_scene_at_cell(current_cell)
+	if enter_scene == "":
+		# 互換用。基本はTileSet custom dataを使う。
+		enter_scene = String(place.get("enter_scene", "")).strip_edges()
+	if enter_scene == "":
+		enter_scene = String(place.get("scene_path", "")).strip_edges()
+
 	print("[DEBUG][FiledMap] enter_scene = ", enter_scene)
 
 	if enter_scene == "":
 		print("[DEBUG][FiledMap] enter_scene is empty -> return false")
 		return false
 
-	var place_difficulty: int = get_special_place_difficulty_at_cell(current_cell)
-	var generator_type: String = _get_special_place_generator_type(place)
-	var detail_map_key: String = _build_detail_map_key(current_cell)
+	var entry_spawn_tile: Vector2i = _get_event_tile_spawn_tile_at_cell(current_cell, Vector2i(5, 8))
 
+	var unique_map_id: String = String(place.get("unique_map_id", "")).strip_edges()
+	if unique_map_id == "":
+		unique_map_id = String(place.get("place_id", "")).strip_edges()
+	if unique_map_id == "":
+		unique_map_id = "unknown_unique_map"
+
+	var place_for_instance: Dictionary = place.duplicate(true)
+	place_for_instance["unique_map_id"] = unique_map_id
+	place_for_instance["enter_scene"] = enter_scene
+	place_for_instance["scene_path"] = enter_scene
+	place_for_instance["entry_spawn_tile"] = entry_spawn_tile
+	place_for_instance["return_spawn_tile"] = current_cell
+	place_for_instance["return_scene_path"] = "res://scenes/field_map.tscn"
+
+	var instance: Dictionary = {}
+	if WorldState.has_method("ensure_unique_map_instance"):
+		instance = WorldState.ensure_unique_map_instance(map_id, current_cell, place_for_instance)
+	else:
+		instance = {
+			"instance_id": "field_%d_%d_%s" % [current_cell.x, current_cell.y, unique_map_id],
+			"unique_map_id": unique_map_id,
+			"scene_path": enter_scene,
+			"enter_scene": enter_scene,
+			"map_id": _build_unique_detail_map_key(unique_map_id, current_cell),
+			"return_field_map_id": map_id,
+			"return_scene_path": "res://scenes/field_map.tscn",
+			"return_field_tile": current_cell,
+			"return_spawn_tile": current_cell,
+			"entry_spawn_tile": entry_spawn_tile,
+			"area_difficulty": int(place.get("difficulty", 0)),
+			"place_type": String(place.get("type", "")),
+			"place_id": String(place.get("place_id", ""))
+		}
+
+	if instance.is_empty():
+		print("[DEBUG][FiledMap] unique map instance is empty -> return false")
+		return false
+
+	var detail_map_key: String = String(instance.get("map_id", "")).strip_edges()
+	if detail_map_key == "":
+		detail_map_key = _build_unique_detail_map_key(unique_map_id, current_cell)
+
+	var place_difficulty: int = int(instance.get("area_difficulty", get_special_place_difficulty_at_cell(current_cell)))
+
+	var generator_type: String = _get_special_place_generator_type(place)
+	if generator_type == "":
+		generator_type = "SPECIAL"
+
+	print("[DEBUG][FiledMap] unique instance = ", instance)
 	print("[DEBUG][FiledMap] detail_map_key = ", detail_map_key)
 	print("[DEBUG][FiledMap] generator_type = ", generator_type)
 	print("[DEBUG][FiledMap] place_difficulty = ", place_difficulty)
+	print("[DEBUG][FiledMap] entry_spawn_tile = ", entry_spawn_tile)
 
 	GlobalDetailMap.current_detail_map_key = detail_map_key
 	GlobalDetailMap.current_generator_type = generator_type
 	GlobalDetailMap.from_field_tile = current_cell
 	GlobalDetailMap.current_area_difficulty = place_difficulty
 
-	print("[DEBUG][FiledMap] GlobalDetailMap.current_detail_map_key = ", GlobalDetailMap.current_detail_map_key)
-	print("[DEBUG][FiledMap] GlobalDetailMap.current_generator_type = ", GlobalDetailMap.current_generator_type)
-	print("[DEBUG][FiledMap] GlobalDetailMap.from_field_tile = ", GlobalDetailMap.from_field_tile)
-	print("[DEBUG][FiledMap] GlobalDetailMap.current_area_difficulty = ", GlobalDetailMap.current_area_difficulty)
+	GlobalDetailMap.current_unique_map_instance_id = String(instance.get("instance_id", ""))
+	GlobalDetailMap.current_unique_map_id = String(instance.get("unique_map_id", ""))
+	GlobalDetailMap.current_return_scene_path = String(instance.get("return_scene_path", "res://scenes/field_map.tscn"))
+	GlobalDetailMap.current_return_field_map_id = String(instance.get("return_field_map_id", map_id))
 
-	get_tree().change_scene_to_file(enter_scene)
-	return true
+	if not WorldState.field_detail_map_data.has(detail_map_key):
+		WorldState.field_detail_map_data[detail_map_key] = {
+			"generator_type": generator_type,
+			"area_difficulty": place_difficulty,
+			"is_unique_map_instance": true,
+			"unique_map_instance_id": String(instance.get("instance_id", "")),
+			"unique_map_id": String(instance.get("unique_map_id", "")),
+			"return_field_tile": current_cell
+		}
+
+	if player != null:
+		PlayerData.last_map_id = map_id
+		PlayerData.last_tile = current_cell
+		player.is_transitioning = true
+
+	save_all_units()
+
+	GlobalPlayerSpawn.has_next_tile = true
+	GlobalPlayerSpawn.next_tile = entry_spawn_tile
+
+	print("[DEBUG][FiledMap] GlobalDetailMap.current_detail_map_key = ", GlobalDetailMap.current_detail_map_key)
+	print("[DEBUG][FiledMap] GlobalDetailMap.from_field_tile = ", GlobalDetailMap.from_field_tile)
+	print("[DEBUG][FiledMap] GlobalPlayerSpawn.next_tile = ", GlobalPlayerSpawn.next_tile)
+
+	return _request_map_change(enter_scene)
 
 
 func apply_special_places_to_event_layer(places: Array) -> void:
-	for place in places:
-		var cell: Vector2i = Vector2i(place["x"], place["y"])
-		var place_id: String = place["place_id"]
+	for raw_place in places:
+		if typeof(raw_place) != TYPE_DICTIONARY:
+			continue
+
+		var place: Dictionary = raw_place
+		if not place.has("x") or not place.has("y"):
+			continue
+
+		var cell: Vector2i = Vector2i(int(place["x"]), int(place["y"]))
+		var place_id: String = String(place.get("place_id", ""))
 
 		if not SPECIAL_PLACE_TILE_MAP.has(place_id):
+			print("[DEBUG][FiledMap] no visual tile for special place place_id=", place_id)
 			continue
 
 		var tile_info: Dictionary = SPECIAL_PLACE_TILE_MAP[place_id]
-		var source_id: int = tile_info["source_id"]
+		var source_id: int = int(tile_info["source_id"])
 		var atlas_coords: Vector2i = tile_info["atlas_coords"]
 
+		# このタイルの移動先は、置かれたTileSet custom dataのenter_sceneを読む。
+		# ここでは見た目タイルを置くだけ。
 		event_layer.set_cell(cell, source_id, atlas_coords, 0)
 
 

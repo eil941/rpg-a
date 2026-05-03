@@ -7,6 +7,9 @@ enum SpawnMode {
 }
 
 @export var map_id: String = ""
+@export var unique_map_id: String = ""
+@export var entry_spawn_tile: Vector2i = Vector2i(5, 8)
+
 @export var unit_scene: PackedScene
 @export var spawn_mode: SpawnMode = SpawnMode.FIXED
 @export var unit_data_list: Array[SpecialMapUnitEntry] = []
@@ -18,9 +21,15 @@ enum SpawnMode {
 var _spawn_serial: int = 0
 
 
+func _enter_tree() -> void:
+	_apply_runtime_map_id()
+
+
 func _ready() -> void:
+	_apply_runtime_map_id()
+
 	if unit_scene == null:
-		unit_scene = load("res://scenes/unit.tscn") as PackedScene
+		unit_scene = load("res://scenes/npc1.tscn") as PackedScene
 
 	if unit_scene == null:
 		push_error("SpecialMapMain: unit_scene が設定されていません")
@@ -32,7 +41,47 @@ func _ready() -> void:
 		SpawnMode.RANDOM_TOTAL:
 			_spawn_random_total_units()
 
+	_apply_map_id_to_existing_units()
 	refresh_hud()
+
+
+func _apply_runtime_map_id() -> void:
+	if GlobalDetailMap != null and GlobalDetailMap.current_detail_map_key != "":
+		map_id = GlobalDetailMap.current_detail_map_key
+		return
+
+	if map_id == "" and unique_map_id != "":
+		map_id = "debug_" + unique_map_id
+
+
+func _apply_map_id_to_existing_units() -> void:
+	var units_node: Node = get_node_or_null("Units")
+	if units_node == null:
+		return
+
+	for child in units_node.get_children():
+		if child == null:
+			continue
+		if "map_id" in child:
+			child.map_id = map_id
+
+
+func prepare_return_to_field_map_from_unique_map() -> void:
+	var own_unique_map_id: String = unique_map_id.strip_edges()
+	if own_unique_map_id == "":
+		own_unique_map_id = name
+
+	var own_scene_path: String = scene_file_path.strip_edges()
+
+	if GlobalDetailMap.has_method("begin_pending_unique_map_return"):
+		GlobalDetailMap.begin_pending_unique_map_return(
+			own_unique_map_id,
+			own_scene_path
+		)
+
+	print("[DEBUG][SpecialMapMain] pending unique map return")
+	print("[DEBUG][SpecialMapMain] unique_map_id = ", own_unique_map_id)
+	print("[DEBUG][SpecialMapMain] scene_path = ", own_scene_path)
 
 
 # =========================================================
@@ -139,12 +188,20 @@ func _spawn_one_unit(units_node: Node, entry: SpecialMapUnitEntry, tile: Vector2
 	unit.start_tile = tile
 	unit.unit_id = _make_spawned_unit_id(entry)
 
+	if "map_id" in unit:
+		unit.map_id = map_id
+
+	if "is_player_unit" in unit:
+		unit.is_player_unit = false
+
 	match entry.spawn_kind:
 		SpecialMapUnitEntry.SpawnKind.ENEMY:
-			unit.enemy_data_to_apply = entry.enemy_data
+			if "enemy_data_to_apply" in unit:
+				unit.enemy_data_to_apply = entry.enemy_data
 
 		SpecialMapUnitEntry.SpawnKind.NPC:
-			unit.npc_data_to_apply = entry.npc_data
+			if "npc_data_to_apply" in unit:
+				unit.npc_data_to_apply = entry.npc_data
 
 	units_node.add_child(unit)
 

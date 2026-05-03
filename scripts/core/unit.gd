@@ -1816,10 +1816,45 @@ func try_move(dir: Vector2) -> bool:
 				generator_type = "plain"
 
 			var return_to_field_map: bool = next_scene == "res://scenes/field_map.tscn"
+			var should_use_next_tile: bool = true
 
 			if return_to_field_map:
-				spawn_x = GlobalDetailMap.from_field_tile.x
-				spawn_y = GlobalDetailMap.from_field_tile.y
+				print("[DEBUG][Unit][scene_transfer] return_to_field_map")
+				print("[DEBUG][Unit][scene_transfer] GlobalDetailMap.from_field_tile = ", GlobalDetailMap.from_field_tile)
+				print("[DEBUG][Unit][scene_transfer] map_root = ", map_root)
+
+				if GlobalDetailMap.from_field_tile != Vector2i.ZERO:
+					spawn_x = GlobalDetailMap.from_field_tile.x
+					spawn_y = GlobalDetailMap.from_field_tile.y
+				else:
+					if map_root != null and map_root.has_method("prepare_return_to_field_map_from_unique_map"):
+						map_root.prepare_return_to_field_map_from_unique_map()
+					elif GlobalDetailMap.has_method("begin_pending_unique_map_return"):
+						var pending_unique_map_id: String = ""
+						var pending_scene_path: String = ""
+
+						if map_root != null:
+							var unique_value = map_root.get("unique_map_id")
+							if unique_value != null:
+								pending_unique_map_id = String(unique_value).strip_edges()
+
+							pending_scene_path = String(map_root.scene_file_path).strip_edges()
+
+						GlobalDetailMap.begin_pending_unique_map_return(
+							pending_unique_map_id,
+							pending_scene_path
+						)
+
+					if "pending_resolve_return_from_unique_map" in GlobalDetailMap:
+						print("[DEBUG][Unit][scene_transfer] pending_resolve_return_from_unique_map = ", GlobalDetailMap.pending_resolve_return_from_unique_map)
+					if "pending_return_unique_map_id" in GlobalDetailMap:
+						print("[DEBUG][Unit][scene_transfer] pending_return_unique_map_id = ", GlobalDetailMap.pending_return_unique_map_id)
+					if "pending_return_unique_scene_path" in GlobalDetailMap:
+						print("[DEBUG][Unit][scene_transfer] pending_return_unique_scene_path = ", GlobalDetailMap.pending_return_unique_scene_path)
+
+					# ここで (0,0) を next_tile に入れない。
+					# field_map 側の _resolve_pending_unique_map_return_if_needed() に配置を任せる。
+					should_use_next_tile = false
 			else:
 				GlobalDetailMap.current_detail_map_key = detail_map_key
 				GlobalDetailMap.current_generator_type = String(generator_type)
@@ -1842,8 +1877,10 @@ func try_move(dir: Vector2) -> bool:
 				map_root.save_all_units()
 
 			is_transitioning = true
-			GlobalPlayerSpawn.has_next_tile = true
-			GlobalPlayerSpawn.next_tile = Vector2i(spawn_x, spawn_y)
+			GlobalPlayerSpawn.has_next_tile = should_use_next_tile
+			if should_use_next_tile:
+				GlobalPlayerSpawn.next_tile = Vector2i(spawn_x, spawn_y)
+
 			notify_hud_log(next_scene + "へ移動")
 			request_map_change(next_scene)
 			return true
@@ -1858,6 +1895,11 @@ func try_interact_transition() -> void:
 	if map_root != null and map_root.has_method("try_use_dungeon_stairs_from_player_position"):
 		if map_root.try_use_dungeon_stairs_from_player_position():
 			print("STAIRS TRANSITION HANDLED")
+			return
+
+	if map_root != null and map_root.has_method("try_enter_special_place_from_player_position"):
+		if map_root.try_enter_special_place_from_player_position():
+			print("SPECIAL PLACE TRANSITION HANDLED")
 			return
 
 	var tile_data = get_current_tile_data()
@@ -1924,10 +1966,32 @@ func try_interact_transition() -> void:
 		generator_type = "plain"
 
 	var return_to_field_map: bool = next_scene == "res://scenes/field_map.tscn"
+	var should_use_next_tile: bool = true
 
 	if return_to_field_map:
-		spawn_x = GlobalDetailMap.from_field_tile.x
-		spawn_y = GlobalDetailMap.from_field_tile.y
+		if GlobalDetailMap.from_field_tile != Vector2i.ZERO:
+			spawn_x = GlobalDetailMap.from_field_tile.x
+			spawn_y = GlobalDetailMap.from_field_tile.y
+		else:
+			# ゲーム開始地点が固有マップの場合、まだfieldmap上の戻り座標がない。
+			# field_map側で、TileSet custom dataのenter_sceneとunique_map_idから逆引きする。
+			if map_root != null and map_root.has_method("prepare_return_to_field_map_from_unique_map"):
+				map_root.prepare_return_to_field_map_from_unique_map()
+			elif GlobalDetailMap.has_method("begin_pending_unique_map_return"):
+				var pending_unique_map_id: String = ""
+				if map_root != null and "unique_map_id" in map_root:
+					pending_unique_map_id = String(map_root.unique_map_id)
+
+				var pending_scene_path: String = ""
+				if map_root != null:
+					pending_scene_path = String(map_root.scene_file_path)
+
+				GlobalDetailMap.begin_pending_unique_map_return(
+					pending_unique_map_id,
+					pending_scene_path
+				)
+
+			should_use_next_tile = false
 	else:
 		var detail_config: Dictionary = {}
 
@@ -1955,11 +2019,12 @@ func try_interact_transition() -> void:
 
 	print("INTERACT TRANSFER next_scene=", next_scene)
 	print("INTERACT TRANSFER spawn_x=", spawn_x, " spawn_y=", spawn_y)
-	print("INTERACT TRANSFER set next_tile=", Vector2i(spawn_x, spawn_y))
+	print("INTERACT TRANSFER should_use_next_tile=", should_use_next_tile)
 
 	is_transitioning = true
-	GlobalPlayerSpawn.has_next_tile = true
-	GlobalPlayerSpawn.next_tile = Vector2i(spawn_x, spawn_y)
+	GlobalPlayerSpawn.has_next_tile = should_use_next_tile
+	if should_use_next_tile:
+		GlobalPlayerSpawn.next_tile = Vector2i(spawn_x, spawn_y)
 
 	notify_hud_log(next_scene + "へ移動")
 	request_map_change(next_scene)

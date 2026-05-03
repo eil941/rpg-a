@@ -20,6 +20,7 @@ metadata/_custom_type_script = "uid://lpmjqo6rh2c2"
 [node name="npc_debug_map" type="Node2D" unique_id=1202522057]
 script = ExtResource("1_imv15")
 map_id = "for debug"
+unique_map_id = "npc_debug_map_special_reworked"
 unit_scene = ExtResource("3_k21mc")
 unit_data_list = Array[ExtResource("2_eebdd")]([SubResource("Resource_kaf6g")])
 

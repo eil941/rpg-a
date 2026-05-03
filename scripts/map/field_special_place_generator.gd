@@ -44,14 +44,16 @@ func generate_all_places() -> Array:
 	var results: Array = []
 	var placed_points: Array = []
 
+	# FieldMap側では place_id / unique_map_id だけを持つ。
+	# 実際の移動先 enter_scene / spawn_x / spawn_y は、
+	# EventLayerで使うTileSetのcustom dataから読む。
 	var start_place: Dictionary = generate_one_place(
 		"start",
 		[BIOME_PLAINS, BIOME_FOREST],
 		8,
 		0,
 		placed_points,
-		6,
-		"res://scenes/start_map.tscn"
+		6
 	)
 	if not start_place.is_empty():
 		results.append(start_place)
@@ -60,8 +62,8 @@ func generate_all_places() -> Array:
 	var towns: Array = generate_places(
 		"town",
 		[
-			{"place_id": "town_1", "enter_scene": "res://scenes/town_1.tscn"},
-			{"place_id": "town_2", "enter_scene": "res://scenes/town_2.tscn"}
+			{"place_id": "town_1", "unique_map_id": "town_1"},
+			{"place_id": "town_2", "unique_map_id": "town_2"}
 		],
 		[BIOME_PLAINS],
 		24,
@@ -75,11 +77,11 @@ func generate_all_places() -> Array:
 	var villages: Array = generate_places(
 		"village",
 		[
-			{"place_id": "village_1", "enter_scene": "res://scenes/village_1.tscn"},
-			{"place_id": "village_2", "enter_scene": "res://scenes/village_2.tscn"},
-			{"place_id": "village_3", "enter_scene": "res://scenes/village_3.tscn"},
-			{"place_id": "village_4", "enter_scene": "res://scenes/village_4.tscn"},
-			{"place_id": "village_5", "enter_scene": "res://scenes/village_5.tscn"}
+			{"place_id": "village_1", "unique_map_id": "village_1"},
+			{"place_id": "village_2", "unique_map_id": "village_2"},
+			{"place_id": "village_3", "unique_map_id": "village_3"},
+			{"place_id": "village_4", "unique_map_id": "village_4"},
+			{"place_id": "village_5", "unique_map_id": "village_5"}
 		],
 		[BIOME_PLAINS, BIOME_FOREST],
 		14,
@@ -93,8 +95,8 @@ func generate_all_places() -> Array:
 	var castles: Array = generate_places(
 		"castle",
 		[
-			{"place_id": "castle_1", "enter_scene": "res://scenes/castle_1.tscn"},
-			{"place_id": "castle_2", "enter_scene": "res://scenes/castle_2.tscn"}
+			{"place_id": "castle_1", "unique_map_id": "castle_1"},
+			{"place_id": "castle_2", "unique_map_id": "castle_2"}
 		],
 		[BIOME_HIGHLAND, BIOME_MOUNTAIN],
 		28,
@@ -108,10 +110,10 @@ func generate_all_places() -> Array:
 	var unique_dungeons: Array = generate_places(
 		"unique_dungeon",
 		[
-			{"place_id": "unique_dungeon_1", "enter_scene": "res://scenes/unique_dungeon_1.tscn"},
-			{"place_id": "unique_dungeon_2", "enter_scene": "res://scenes/unique_dungeon_2.tscn"},
-			{"place_id": "unique_dungeon_3", "enter_scene": "res://scenes/unique_dungeon_3.tscn"},
-			{"place_id": "unique_dungeon_4", "enter_scene": "res://scenes/unique_dungeon_4.tscn"}
+			{"place_id": "unique_dungeon_1", "unique_map_id": "unique_dungeon_1"},
+			{"place_id": "unique_dungeon_2", "unique_map_id": "unique_dungeon_2"},
+			{"place_id": "unique_dungeon_3", "unique_map_id": "unique_dungeon_3"},
+			{"place_id": "unique_dungeon_4", "unique_map_id": "unique_dungeon_4"}
 		],
 		[BIOME_MOUNTAIN, BIOME_DESERT, BIOME_FOREST],
 		18,
@@ -125,9 +127,18 @@ func generate_all_places() -> Array:
 	var special_maps: Array = generate_places(
 		"special_map",
 		[
-			{"place_id": "special_map_1", "enter_scene": "res://scenes/special_map_1.tscn"},
-			{"place_id": "special_map_2", "enter_scene": "res://scenes/special_map_2.tscn"},
-			{"place_id": "special_map_3", "enter_scene": "res://scenes/special_map_3.tscn"}
+			{
+				"place_id": "special_map_1",
+				"unique_map_id": "npc_debug_map_special_reworked"
+			},
+			{
+				"place_id": "special_map_2",
+				"unique_map_id": "special_map_2"
+			},
+			{
+				"place_id": "special_map_3",
+				"unique_map_id": "special_map_3"
+			}
 		],
 		[BIOME_DESERT, BIOME_LAKE, BIOME_FOREST, BIOME_HIGHLAND],
 		20,
@@ -180,15 +191,30 @@ func generate_places(
 
 		var selected: Dictionary = candidates[selected_index]
 		var selected_point: Vector2i = selected["pos"]
+		var place_id: String = String(place_def.get("place_id", ""))
+		if place_id == "":
+			continue
+
+		var unique_map_id: String = String(place_def.get("unique_map_id", place_id)).strip_edges()
+		if unique_map_id == "":
+			unique_map_id = place_id
 
 		var place: Dictionary = {
 			"type": place_type,
-			"place_id": place_def["place_id"],
+			"place_id": place_id,
+			"unique_map_id": unique_map_id,
 			"x": selected_point.x,
 			"y": selected_point.y,
-			"biome": biome_result[selected_point.y][selected_point.x],
-			"enter_scene": place_def["enter_scene"]
+			"biome": biome_result[selected_point.y][selected_point.x]
 		}
+
+		# 互換用。基本はTileSet custom dataのenter_sceneを使う。
+		if place_def.has("enter_scene"):
+			place["enter_scene"] = String(place_def.get("enter_scene", ""))
+		if place_def.has("scene_path"):
+			place["scene_path"] = String(place_def.get("scene_path", ""))
+		if place_def.has("entry_spawn_tile"):
+			place["entry_spawn_tile"] = place_def.get("entry_spawn_tile")
 
 		results.append(place)
 		local_points.append(selected_point)
@@ -227,15 +253,22 @@ func generate_one_place(
 
 	var selected: Dictionary = filtered[0]
 	var pos: Vector2i = selected["pos"]
+	var place_id: String = place_type + "_1"
 
-	return {
+	var place: Dictionary = {
 		"type": place_type,
-		"place_id": place_type + "_1",
+		"place_id": place_id,
+		"unique_map_id": place_id,
 		"x": pos.x,
 		"y": pos.y,
-		"biome": biome_result[pos.y][pos.x],
-		"enter_scene": enter_scene
+		"biome": biome_result[pos.y][pos.x]
 	}
+
+	# 互換用。基本はTileSet custom dataのenter_sceneを使う。
+	if enter_scene.strip_edges() != "":
+		place["enter_scene"] = enter_scene
+
+	return place
 
 
 func _collect_candidates(allowed_biomes: Array, margin: int) -> Array:
