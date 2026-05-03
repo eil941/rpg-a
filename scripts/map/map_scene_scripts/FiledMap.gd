@@ -22,6 +22,19 @@ extends Node2D
 @export var field_tile_visual_config: MapTileVisualConfig
 @export var force_regenerate_map_tiles_on_ready: bool = false
 
+@export_group("Dungeon Entrance Settings")
+@export var dungeon_tile_visual_config: DungeonTileVisualConfig
+@export_range(0, 1000, 1) var dungeon_entrance_count: int = 300
+@export var natural_dungeon_weight: int = 40
+@export var fortified_dungeon_weight: int = 15
+@export var ruined_dungeon_weight: int = 25
+@export var artificial_dungeon_weight: int = 10
+@export var chaotic_dungeon_weight: int = 10
+@export var min_dungeon_floor_count: int = 3
+@export var max_dungeon_floor_count: int = 6
+@export var min_dungeon_difficulty: int = 1
+@export var max_dungeon_difficulty: int = 100
+
 
 const FLOOR_SOURCE_ID: int = 1
 const WALL_SOURCE_ID: int = 0
@@ -31,7 +44,6 @@ const FLOOR_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
 const WALL_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
 const HIGHROCK_ATLAS_COORDS: Vector2i = Vector2i(0, 0)
 
-@export var dungeon_entrance_count: int = 300
 
 const SPECIAL_PLACE_TILE_MAP: Dictionary = {
 	"start_1": {"source_id": 14, "atlas_coords": Vector2i(0, 0)},
@@ -85,6 +97,7 @@ func _ready() -> void:
 
 	if WorldState.map_tile_data.has(map_id):
 		load_map_tiles()
+		_redraw_dungeon_entrances_from_state()
 	else:
 		map_generator = PlainMapGenerator.new(
 			MAP_WIDTH,
@@ -98,7 +111,16 @@ func _ready() -> void:
 		)
 		map_generator.generate_map(ground_layer, wall_layer, event_layer)
 
-		dungeon_entrance_generator = FieldDungeonEntranceGenerator.new(MAP_WIDTH, MAP_HEIGHT)
+		dungeon_entrance_generator = FieldDungeonEntranceGenerator.new(
+			MAP_WIDTH,
+			MAP_HEIGHT,
+			dungeon_tile_visual_config,
+			_build_dungeon_theme_weights(),
+			min_dungeon_floor_count,
+			max_dungeon_floor_count,
+			min_dungeon_difficulty,
+			max_dungeon_difficulty
+		)
 		var entrances: Array = dungeon_entrance_generator.generate_map(
 			map_id,
 			ground_layer,
@@ -134,6 +156,63 @@ func _ready() -> void:
 
 	print("FIELDMAP READY END")
 
+
+
+func _non_negative_weight(value: int) -> int:
+	if value < 0:
+		return 0
+	return value
+
+
+func _build_dungeon_theme_weights() -> Dictionary:
+	return {
+		"NATURAL": _non_negative_weight(natural_dungeon_weight),
+		"FORTIFIED": _non_negative_weight(fortified_dungeon_weight),
+		"RUINED": _non_negative_weight(ruined_dungeon_weight),
+		"ARTIFICIAL": _non_negative_weight(artificial_dungeon_weight),
+		"CHAOTIC": _non_negative_weight(chaotic_dungeon_weight)
+	}
+
+
+func _get_dungeon_field_visual(generator_theme: String) -> Dictionary:
+	var fallback: Dictionary = {
+		"source_id": 4,
+		"atlas_coords": Vector2i(0, 0),
+		"alternative_tile": 0
+	}
+
+	if dungeon_tile_visual_config == null:
+		return fallback
+
+	if not dungeon_tile_visual_config.has_method("get_tile"):
+		return fallback
+
+	var theme: String = String(generator_theme).strip_edges().replace("\"", "").to_upper()
+	var visual: Dictionary = dungeon_tile_visual_config.get_tile(theme, "FIELD")
+	return visual
+
+
+func _redraw_dungeon_entrances_from_state() -> void:
+	if not WorldState.field_dungeon_entrances.has(map_id):
+		return
+
+	var entrances: Array = WorldState.field_dungeon_entrances[map_id]
+
+	for entrance in entrances:
+		var cell: Vector2i = Vector2i(int(entrance.get("x", 0)), int(entrance.get("y", 0)))
+		var dungeon_id: String = String(entrance.get("dungeon_id", ""))
+		var generator_theme: String = String(entrance.get("generator_theme", "NATURAL"))
+
+		if dungeon_id != "" and WorldState.dungeon_data.has(dungeon_id):
+			var dungeon_info: Dictionary = WorldState.dungeon_data[dungeon_id]
+			generator_theme = String(dungeon_info.get("generator_theme", generator_theme))
+
+		var visual: Dictionary = _get_dungeon_field_visual(generator_theme)
+		var source_id: int = int(visual.get("source_id", 4))
+		var atlas_coords: Vector2i = visual.get("atlas_coords", Vector2i(0, 0))
+		var alternative_tile: int = int(visual.get("alternative_tile", 0))
+
+		event_layer.set_cell(cell, source_id, atlas_coords, alternative_tile)
 
 
 func _apply_tile_set_overrides() -> void:

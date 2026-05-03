@@ -10,6 +10,7 @@
 [node name="FieldMap" type="Node2D" unique_id=1202522057]
 script = ExtResource("1_bf576")
 map_id = "FieldMap"
+world_seed = 123456000
 ground_tile_set_override = ExtResource("4_bbcss")
 wall_tile_set_override = ExtResource("4_bbcss")
 event_tile_set_override = ExtResource("4_bbcss")

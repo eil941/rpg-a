@@ -4,3 +4,10 @@
 
 [resource]
 script = ExtResource("1_config")
+natural_field_source_id = 11
+natural_field_atlas_coords = Vector2i(7, 0)
+natural_down_source_id = 2
+natural_floor_source_id = 1
+natural_floor_atlas_coords = Vector2i(6, 1)
+natural_wall_source_id = 0
+natural_wall_atlas_coords = Vector2i(6, 1)

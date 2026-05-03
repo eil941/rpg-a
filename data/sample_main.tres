@@ -1,0 +1,17 @@
+[gd_resource type="TileSet" format=3 uid="uid://d4mupxsowlsk1"]
+
+[resource]
+tile_size = Vector2i(32, 32)
+physics_layer_0/collision_layer = 1
+custom_data_layer_0/name = "can_enter"
+custom_data_layer_0/type = 1
+custom_data_layer_1/name = "enter_scene"
+custom_data_layer_1/type = 4
+custom_data_layer_2/name = "scene_transfer"
+custom_data_layer_2/type = 1
+custom_data_layer_3/name = "spawn_x"
+custom_data_layer_3/type = 2
+custom_data_layer_4/name = "spawn_y"
+custom_data_layer_4/type = 0
+custom_data_layer_5/name = "detail_generator"
+custom_data_layer_5/type = 4
