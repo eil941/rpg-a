@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dwi5ci3inhm12"
-path="res://.godot/imported/goblin.png-a87b82a52872b9e179693346217508cd.ctex"
+uid="uid://gddimk1vcir"
+path="res://.godot/imported/m_snowtown.png-10d2c5d57f1049d33b1a32588026d827.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sample/goblin.png"
-dest_files=["res://.godot/imported/goblin.png-a87b82a52872b9e179693346217508cd.ctex"]
+source_file="res://assets/ねくら/maps/nekura_map/m_snowtown.png"
+dest_files=["res://.godot/imported/m_snowtown.png-10d2c5d57f1049d33b1a32588026d827.ctex"]
 
 [params]
 

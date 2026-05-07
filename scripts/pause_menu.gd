@@ -1,0 +1,140 @@
+extends CanvasLayer
+class_name PauseMenu
+
+@export_file("*.tscn") var title_scene_path: String = "res://scenes/TitleScreen.tscn"
+@export var pause_game_when_open: bool = true
+
+@onready var root_panel: Control = $RootPanel
+@onready var status_label: Label = $RootPanel/CenterContainer/PanelContainer/VBoxContainer/StatusLabel
+@onready var settings_button: Button = $RootPanel/CenterContainer/PanelContainer/VBoxContainer/SettingsButton
+@onready var save_button: Button = $RootPanel/CenterContainer/PanelContainer/VBoxContainer/SaveButton
+@onready var title_button: Button = $RootPanel/CenterContainer/PanelContainer/VBoxContainer/TitleButton
+@onready var quit_button: Button = $RootPanel/CenterContainer/PanelContainer/VBoxContainer/QuitButton
+@onready var close_button: Button = $RootPanel/CenterContainer/PanelContainer/VBoxContainer/CloseButton
+
+
+func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	visible = false
+
+	settings_button.pressed.connect(_on_settings_pressed)
+	save_button.pressed.connect(_on_save_pressed)
+	title_button.pressed.connect(_on_title_pressed)
+	quit_button.pressed.connect(_on_quit_pressed)
+	close_button.pressed.connect(close_menu)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey:
+		var key_event: InputEventKey = event
+		if key_event.pressed and not key_event.echo and key_event.keycode == KEY_ESCAPE:
+			toggle_menu()
+			get_viewport().set_input_as_handled()
+
+
+func toggle_menu() -> void:
+	if visible:
+		close_menu()
+	else:
+		open_menu()
+
+
+func open_menu() -> void:
+	visible = true
+	status_label.text = ""
+	if pause_game_when_open:
+		get_tree().paused = true
+	close_button.grab_focus()
+
+
+func close_menu() -> void:
+	visible = false
+	if pause_game_when_open:
+		get_tree().paused = false
+
+
+func _on_settings_pressed() -> void:
+	status_label.text = "設定はまだ未実装です。後で音量・キー設定を追加します。"
+
+
+func _on_save_pressed() -> void:
+	var saved: bool = _request_save()
+	if saved:
+		status_label.text = "セーブしました。"
+	else:
+		status_label.text = "仮セーブ処理を呼びました。必要なら後でSaveManagerに接続してください。"
+
+
+func _on_title_pressed() -> void:
+	_request_save()
+	get_tree().paused = false
+
+	if title_scene_path.strip_edges() == "":
+		push_warning("PauseMenu: title_scene_path が空です")
+		return
+
+	var error: Error = get_tree().change_scene_to_file(title_scene_path)
+	if error != OK:
+		push_error("PauseMenu: タイトル画面へ戻れませんでした: " + title_scene_path)
+
+
+func _on_quit_pressed() -> void:
+	_request_save()
+	get_tree().paused = false
+	get_tree().quit()
+
+
+func _request_save() -> bool:
+	var did_save: bool = false
+
+	var current_map: Node = _find_current_map()
+	if current_map != null and current_map.has_method("save_all_units"):
+		current_map.save_all_units()
+		did_save = true
+
+	var game_root: Node = _find_parent_with_method("save_all_units")
+	if game_root != null:
+		game_root.save_all_units()
+		did_save = true
+
+	var save_manager: Node = get_node_or_null("/root/SaveManager")
+	if save_manager != null:
+		if save_manager.has_method("save_current_game"):
+			save_manager.save_current_game()
+			did_save = true
+		elif save_manager.has_method("save_game"):
+			save_manager.save_game()
+			did_save = true
+		elif save_manager.has_method("save"):
+			save_manager.save()
+			did_save = true
+
+	return did_save
+
+
+func _find_current_map() -> Node:
+	var node: Node = self
+
+	while node != null:
+		var value: Variant = node.get("current_map")
+		if value != null and value is Node:
+			return value
+
+		var container: Node = node.get_node_or_null("CurrentMapContainer")
+		if container != null and container.get_child_count() > 0:
+			return container.get_child(0)
+
+		node = node.get_parent()
+
+	return null
+
+
+func _find_parent_with_method(method_name: String) -> Node:
+	var node: Node = get_parent()
+
+	while node != null:
+		if node.has_method(method_name):
+			return node
+		node = node.get_parent()
+
+	return null

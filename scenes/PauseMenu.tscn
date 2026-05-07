@@ -1,0 +1,82 @@
+[gd_scene format=3 uid="uid://cjy7gb5qx74e6"]
+
+[ext_resource type="Script" uid="uid://c8y48kgkaa6jr" path="res://scripts/pause_menu.gd" id="1_jvnd5"]
+
+[node name="PauseMenu" type="CanvasLayer" unique_id=652763097]
+process_mode = 3
+script = ExtResource("1_jvnd5")
+
+[node name="RootPanel" type="Control" parent="." unique_id=238664151]
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Backdrop" type="ColorRect" parent="RootPanel" unique_id=790961250]
+process_mode = 3
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.55)
+
+[node name="CenterContainer" type="CenterContainer" parent="RootPanel" unique_id=130957229]
+process_mode = 3
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="RootPanel/CenterContainer" unique_id=849206791]
+process_mode = 3
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="RootPanel/CenterContainer/PanelContainer" unique_id=1250967412]
+process_mode = 3
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TitleLabel" type="Label" parent="RootPanel/CenterContainer/PanelContainer/VBoxContainer" unique_id=1271350890]
+process_mode = 3
+layout_mode = 2
+text = "メニュー"
+horizontal_alignment = 1
+
+[node name="SettingsButton" type="Button" parent="RootPanel/CenterContainer/PanelContainer/VBoxContainer" unique_id=1927051926]
+process_mode = 3
+layout_mode = 2
+text = "設定"
+
+[node name="SaveButton" type="Button" parent="RootPanel/CenterContainer/PanelContainer/VBoxContainer" unique_id=1417776098]
+process_mode = 3
+layout_mode = 2
+text = "セーブ"
+
+[node name="TitleButton" type="Button" parent="RootPanel/CenterContainer/PanelContainer/VBoxContainer" unique_id=397160892]
+process_mode = 3
+layout_mode = 2
+text = "タイトルに戻る"
+
+[node name="QuitButton" type="Button" parent="RootPanel/CenterContainer/PanelContainer/VBoxContainer" unique_id=419583430]
+process_mode = 3
+layout_mode = 2
+text = "ゲームをやめる"
+
+[node name="CloseButton" type="Button" parent="RootPanel/CenterContainer/PanelContainer/VBoxContainer" unique_id=1010546204]
+process_mode = 3
+layout_mode = 2
+text = "閉じる"
+
+[node name="StatusLabel" type="Label" parent="RootPanel/CenterContainer/PanelContainer/VBoxContainer" unique_id=1287733487]
+process_mode = 3
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 2

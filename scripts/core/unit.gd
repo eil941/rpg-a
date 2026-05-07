@@ -4,7 +4,7 @@ extends CharacterBody2D
 @export var move_speed: float = 220.0
 @export var repeat_delay: float = 0.0
 
-@export var start_tile: Vector2i = Vector2i(1, 1)
+@export var start_tile: Vector2i = Vector2i(32, 15)
 @export var can_trigger_scene_transition: bool = false
 
 @export var can_bump_attack: bool = false

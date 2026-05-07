@@ -1,0 +1,53 @@
+[gd_scene format=3 uid="uid://qobx4mi0rirt"]
+
+[ext_resource type="Script" uid="uid://b2p2ay64el5t4" path="res://scripts/title_screen.gd" id="1_qyuap"]
+
+[node name="TitleScreen" type="Control" unique_id=1934447154]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_qyuap")
+game_scene_path = "uid://bef175ivp2tvt"
+first_map_scene_path = "uid://gujqwi5kfjxi"
+
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=1570591874]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer" unique_id=410849424]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/VBoxContainer" unique_id=1013594049]
+layout_mode = 2
+text = "RPG-A Prototype"
+horizontal_alignment = 1
+
+[node name="NewGameButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1302091411]
+layout_mode = 2
+text = "はじめから"
+
+[node name="ContinueButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=924703137]
+layout_mode = 2
+text = "つづきから（仮）"
+
+[node name="OptionsButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=132315711]
+layout_mode = 2
+text = "設定（未実装）"
+
+[node name="QuitButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1689435418]
+layout_mode = 2
+text = "終了"
+
+[node name="InfoLabel" type="Label" parent="CenterContainer/VBoxContainer" unique_id=568007320]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3
