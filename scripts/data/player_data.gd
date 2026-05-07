@@ -41,3 +41,39 @@ var effect_runtimes_data: Array = []
 var last_effect_update_time: float = 0.0
 
 var debug_start_items_applied: bool = false
+
+func reset_for_new_game() -> void:
+	max_hp = 2000
+	hp = 2000
+	attack = 10
+	defense = 200
+	speed = 120.0
+
+	extended_stats_data.clear()
+	skills_data.clear()
+
+	current_map_id = ""
+	current_tile = Vector2i.ZERO
+	last_map_id = ""
+	last_tile = Vector2i.ZERO
+	map_positions.clear()
+
+	inventory_data = []
+
+	equipment_data = {
+		"right_hand": {},
+		"left_hand": {},
+		"head": {},
+		"body": {},
+		"hands": {},
+		"waist": {},
+		"feet": {},
+		"accessory_1": {},
+		"accessory_2": {},
+		"accessory_3": {},
+		"accessory_4": {}
+	}
+
+	effect_runtimes_data.clear()
+	last_effect_update_time = 0.0
+	debug_start_items_applied = false

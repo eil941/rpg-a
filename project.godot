@@ -31,6 +31,7 @@ FactionManager="*uid://tnpaulqn0liv"
 DialogueManager="*uid://c81rxd3gqb7ju"
 QuestManager="*uid://bfxdhrrq2qmym"
 QuestBoardManager="*uid://da0bhir7lhkbh"
+SaveManager="*uid://d34oivyae48v7"
 
 [editor_plugins]
 

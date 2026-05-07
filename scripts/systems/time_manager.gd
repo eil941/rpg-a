@@ -16,6 +16,9 @@ func advance_time(units_node: Node, player_speed: float) -> void:
 	var elapsed_seconds = SECONDS_PER_DAY / player_speed
 	world_time_seconds += elapsed_seconds
 
+	if WorldState != null and WorldState.has_method("update_monthly_reset_pending"):
+		WorldState.update_monthly_reset_pending(get_month_index())
+
 	#print_current_time()
 
 	for unit in units_node.get_children():
@@ -161,3 +164,13 @@ func get_time_string() -> String:
 
 #func print_current_time() -> void:
 	#print(get_time_string(), " / ", get_time_of_day())
+
+func get_month_index() -> int:
+	# 30日 = 1ヶ月として扱う。
+	# get_day() は1始まりなので、Day 1〜30 が month_index 0。
+	return int((get_day() - 1) / 30)
+
+
+func reset_time() -> void:
+	world_time_seconds = 0.0
+	is_resolving_turn = false

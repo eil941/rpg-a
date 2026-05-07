@@ -7,6 +7,9 @@ extends Node
 
 var current_map: Node = null
 var trade_return_context: Dictionary = {}
+var _restore_player_position_after_next_map_load: bool = false
+
+@export_file("*.tscn") var default_start_map_scene_path: String = "res://scenes/npc_debug_map_special_reworked.tscn"
 
 var hud_refresh_interval: float = 0.2
 var hud_refresh_timer: float = 0.0
@@ -40,9 +43,7 @@ func _ready() -> void:
 	_setup_blind_overlay()
 	_connect_hud_action_buttons()
 	
-	#ここで初期シーンを決めている
-	#load_map_by_path("res://scenes/field_map.tscn")
-	load_map_by_path("res://scenes/npc_debug_map_special_reworked.tscn")
+	_load_initial_map_from_save_manager()
 	refresh_hud()
 	_sync_hud_inventory_edit_mode(true)
 
@@ -68,6 +69,7 @@ func _process(delta: float) -> void:
 	update_hud_player_status()
 	update_hud_effects()
 	update_hud_hotbar()
+	_check_monthly_reset_for_current_map()
 
 
 func _connect_hud_action_buttons() -> void:
@@ -218,6 +220,8 @@ func load_map_by_path(scene_path: String) -> void:
 
 
 func load_map(map_scene: PackedScene) -> void:
+	var previous_map_id: String = _get_current_map_id()
+
 	if hallucination_active:
 		_restore_hallucination_visuals()
 		_force_restore_remaining_hallucination_nodes()
@@ -231,14 +235,185 @@ func load_map(map_scene: PackedScene) -> void:
 	current_map = map_scene.instantiate()
 	current_map_container.add_child(current_map)
 
+	if _restore_player_position_after_next_map_load:
+		_restore_player_position_after_next_map_load = false
+		call_deferred("_restore_player_position_after_loaded_map_ready")
+
+	if previous_map_id != "" and WorldState != null and WorldState.has_method("apply_deferred_reset_for_left_map"):
+		WorldState.apply_deferred_reset_for_left_map(previous_map_id)
+
 	_configure_blind_overlay_layer()
 	_resize_blind_overlay_to_viewport()
 
 	refresh_hud()
 	_update_world_status_visuals(0.0)
+	_check_monthly_reset_for_current_map()
 
 	if _player_has_status(&"hallucination"):
 		_activate_hallucination()
+
+
+func _load_initial_map_from_save_manager() -> void:
+	var scene_path: String = ""
+
+	if SaveManager != null and SaveManager.has_pending_loaded_game():
+		scene_path = SaveManager.consume_pending_loaded_map_scene_path()
+		_restore_player_position_after_next_map_load = true
+
+	if scene_path.strip_edges() == "":
+		scene_path = default_start_map_scene_path
+
+	load_map_by_path(scene_path)
+
+
+func _get_current_map_id() -> String:
+	if current_map == null:
+		return ""
+
+	var map_id_value: Variant = current_map.get("map_id")
+	if map_id_value == null:
+		return ""
+
+	return String(map_id_value)
+
+
+func _restore_player_position_after_loaded_map_ready() -> void:
+	# ロード時専用の位置補正。
+	# Unit._ready() は map_id が確定する前に動くことがあり、
+	# その場合 PlayerData.map_positions の保存位置ではなく start_tile / 入口タイルに置かれる。
+	# そのため、マップを追加した次フレームで、保存済みタイルへ明示的に置き直す。
+	await get_tree().process_frame
+
+	if current_map == null:
+		return
+
+	var player = find_player()
+	if player == null:
+		print("[GameAndHud] restore loaded player position skipped: player not found")
+		return
+
+	var restore_info: Dictionary = _get_loaded_player_restore_info(player)
+	if restore_info.is_empty():
+		print("[GameAndHud] restore loaded player position skipped: no saved tile")
+		return
+
+	var restore_map_id: String = String(restore_info.get("map_id", "")).strip_edges()
+	var restore_tile: Vector2i = restore_info.get("tile", Vector2i.ZERO)
+
+	var ground_layer: TileMapLayer = current_map.get_node_or_null("GroundLayer") as TileMapLayer
+	if ground_layer == null:
+		print("[GameAndHud] restore loaded player position skipped: GroundLayer not found")
+		return
+
+	var target_pos: Vector2 = ground_layer.to_global(
+		ground_layer.map_to_local(restore_tile)
+	)
+
+	player.global_position = target_pos
+
+	if "target_position" in player:
+		player.target_position = target_pos
+
+	if "start_tile" in player:
+		player.start_tile = restore_tile
+
+	if "map_id" in player and restore_map_id != "":
+		player.map_id = restore_map_id
+
+	if "is_moving" in player:
+		player.is_moving = false
+
+	if "is_transitioning" in player:
+		player.is_transitioning = false
+
+	if "velocity" in player:
+		player.velocity = Vector2.ZERO
+
+	PlayerData.current_map_id = restore_map_id
+	PlayerData.current_tile = restore_tile
+	PlayerData.last_map_id = restore_map_id
+	PlayerData.last_tile = restore_tile
+
+	if restore_map_id != "":
+		PlayerData.map_positions[restore_map_id] = restore_tile
+
+	print("[GameAndHud] restored loaded player position map_id=", restore_map_id, " tile=", restore_tile)
+
+
+func _get_loaded_player_restore_info(player: Node) -> Dictionary:
+	var candidate_map_ids: Array[String] = []
+
+	_append_unique_string(candidate_map_ids, _get_current_map_id())
+
+	if player != null:
+		var player_map_id_value: Variant = player.get("map_id")
+		if player_map_id_value != null:
+			_append_unique_string(candidate_map_ids, String(player_map_id_value))
+
+	_append_unique_string(candidate_map_ids, PlayerData.current_map_id)
+	_append_unique_string(candidate_map_ids, PlayerData.last_map_id)
+
+	for candidate_map_id in candidate_map_ids:
+		if candidate_map_id == "":
+			continue
+
+		if PlayerData.map_positions.has(candidate_map_id):
+			return {
+				"map_id": candidate_map_id,
+				"tile": PlayerData.map_positions[candidate_map_id]
+			}
+
+	if PlayerData.current_map_id != "":
+		return {
+			"map_id": PlayerData.current_map_id,
+			"tile": PlayerData.current_tile
+		}
+
+	if PlayerData.last_map_id != "":
+		return {
+			"map_id": PlayerData.last_map_id,
+			"tile": PlayerData.last_tile
+		}
+
+	return {}
+
+
+func _append_unique_string(values: Array[String], value: String) -> void:
+	var clean_value: String = value.strip_edges()
+	if clean_value == "":
+		return
+
+	if values.has(clean_value):
+		return
+
+	values.append(clean_value)
+
+
+func _check_monthly_reset_for_current_map() -> void:
+	if TimeManager == null:
+		return
+
+	if WorldState == null:
+		return
+
+	if not TimeManager.has_method("get_month_index"):
+		return
+
+	if not WorldState.has_method("should_run_monthly_reset"):
+		return
+
+	var current_month_index: int = TimeManager.get_month_index()
+
+	if WorldState.has_method("update_monthly_reset_pending"):
+		WorldState.update_monthly_reset_pending(current_month_index)
+
+	if not WorldState.should_run_monthly_reset(current_month_index):
+		return
+
+	var active_map_id: String = _get_current_map_id()
+
+	if WorldState.has_method("run_monthly_world_reset"):
+		WorldState.run_monthly_world_reset(active_map_id, current_month_index)
 
 
 func refresh_hud() -> void:

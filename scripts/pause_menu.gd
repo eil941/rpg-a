@@ -24,7 +24,7 @@ func _ready() -> void:
 	close_button.pressed.connect(close_menu)
 
 
-func _unhandled_input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:
 	if event is InputEventKey:
 		var key_event: InputEventKey = event
 		if key_event.pressed and not key_event.echo and key_event.keycode == KEY_ESCAPE:
@@ -58,15 +58,24 @@ func _on_settings_pressed() -> void:
 
 
 func _on_save_pressed() -> void:
-	var saved: bool = _request_save()
+	if SaveManager == null:
+		status_label.text = "SaveManager がありません。"
+		return
+
+	var current_map: Node = _find_current_map()
+	var saved: bool = SaveManager.save_current_game(current_map)
+
 	if saved:
 		status_label.text = "セーブしました。"
 	else:
-		status_label.text = "仮セーブ処理を呼びました。必要なら後でSaveManagerに接続してください。"
+		status_label.text = "セーブに失敗しました。"
 
 
 func _on_title_pressed() -> void:
-	_request_save()
+	if SaveManager != null:
+		var current_map: Node = _find_current_map()
+		SaveManager.save_current_game(current_map)
+
 	get_tree().paused = false
 
 	if title_scene_path.strip_edges() == "":
@@ -79,37 +88,12 @@ func _on_title_pressed() -> void:
 
 
 func _on_quit_pressed() -> void:
-	_request_save()
+	if SaveManager != null:
+		var current_map: Node = _find_current_map()
+		SaveManager.save_current_game(current_map)
+
 	get_tree().paused = false
 	get_tree().quit()
-
-
-func _request_save() -> bool:
-	var did_save: bool = false
-
-	var current_map: Node = _find_current_map()
-	if current_map != null and current_map.has_method("save_all_units"):
-		current_map.save_all_units()
-		did_save = true
-
-	var game_root: Node = _find_parent_with_method("save_all_units")
-	if game_root != null:
-		game_root.save_all_units()
-		did_save = true
-
-	var save_manager: Node = get_node_or_null("/root/SaveManager")
-	if save_manager != null:
-		if save_manager.has_method("save_current_game"):
-			save_manager.save_current_game()
-			did_save = true
-		elif save_manager.has_method("save_game"):
-			save_manager.save_game()
-			did_save = true
-		elif save_manager.has_method("save"):
-			save_manager.save()
-			did_save = true
-
-	return did_save
 
 
 func _find_current_map() -> Node:
@@ -124,17 +108,6 @@ func _find_current_map() -> Node:
 		if container != null and container.get_child_count() > 0:
 			return container.get_child(0)
 
-		node = node.get_parent()
-
-	return null
-
-
-func _find_parent_with_method(method_name: String) -> Node:
-	var node: Node = get_parent()
-
-	while node != null:
-		if node.has_method(method_name):
-			return node
 		node = node.get_parent()
 
 	return null
