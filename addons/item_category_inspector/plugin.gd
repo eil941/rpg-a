@@ -133,14 +133,12 @@ class CategoryInspectorPlugin extends EditorInspectorPlugin:
 			var editor := CategoryEditorProperty.new()
 			editor.setup(name)
 			add_property_editor(name, editor)
-			print("Item Category Inspector: override ItemData.category")
 			return true
 
 		if script_path == LOOT_CATEGORY_ENTRY_SCRIPT_PATH and name == "item_type":
 			var editor := CategoryEditorProperty.new()
 			editor.setup(name)
 			add_property_editor(name, editor)
-			print("Item Category Inspector: override LootCategoryEntry.item_type")
 			return true
 
 		return false
@@ -152,11 +150,9 @@ var inspector_plugin: CategoryInspectorPlugin = null
 func _enter_tree() -> void:
 	inspector_plugin = CategoryInspectorPlugin.new()
 	add_inspector_plugin(inspector_plugin)
-	print("Item Category Inspector: enabled")
 
 
 func _exit_tree() -> void:
 	if inspector_plugin != null:
 		remove_inspector_plugin(inspector_plugin)
 		inspector_plugin = null
-	print("Item Category Inspector: disabled")

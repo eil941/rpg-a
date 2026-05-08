@@ -36,14 +36,12 @@ func _parse_property(
 		var editor: EditorProperty = ItemCategoryEditorPropertyScript.new()
 		editor.setup(name)
 		add_property_editor(name, editor)
-		print("Item Category Inspector: override ItemData.category")
 		return true
 
 	if object.get_script() == LootCategoryEntryScript and name == "item_type":
 		var editor: EditorProperty = ItemCategoryEditorPropertyScript.new()
 		editor.setup(name)
 		add_property_editor(name, editor)
-		print("Item Category Inspector: override LootCategoryEntry.item_type")
 		return true
 
 	return false

@@ -113,7 +113,6 @@ func generate_map(
 		used_positions[key] = true
 		placed += 1
 
-	print("generated and placed dungeon entrances = ", result)
 	return result
 
 

@@ -177,6 +177,7 @@ var last_monthly_reset_month_index: int = -1
 var monthly_reset_pending: bool = false
 var deferred_reset_map_ids: Dictionary = {}
 var deferred_reset_dungeons: bool = false
+var should_regenerate_field_dungeons: bool = false
 
 
 func reset_for_new_game() -> void:
@@ -203,6 +204,7 @@ func reset_for_new_game() -> void:
 	monthly_reset_pending = false
 	deferred_reset_map_ids.clear()
 	deferred_reset_dungeons = false
+	should_regenerate_field_dungeons = false
 
 
 func update_monthly_reset_pending(current_month_index: int) -> void:
@@ -435,3 +437,9 @@ func _clear_dungeon_global_data() -> void:
 	dungeon_floor_data.clear()
 	dungeon_data.clear()
 	field_dungeon_entrances.clear()
+
+	# FieldMap本体や固有マップ配置は維持し、
+	# 次にFieldMapを開いた時にダンジョン入口だけ再抽選する。
+	should_regenerate_field_dungeons = true
+
+	print("[WorldState] dungeon global data cleared. Field dungeons will be regenerated.")

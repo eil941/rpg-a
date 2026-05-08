@@ -24,7 +24,8 @@ const WORLD_STATE_PROPS: Array[String] = [
 	"last_monthly_reset_month_index",
 	"monthly_reset_pending",
 	"deferred_reset_map_ids",
-	"deferred_reset_dungeons"
+	"deferred_reset_dungeons",
+	"should_regenerate_field_dungeons"
 ]
 
 const PLAYER_DATA_PROPS: Array[String] = [

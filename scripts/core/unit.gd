@@ -188,9 +188,6 @@ var runtime_crit_rate_flat: int = 0
 
 
 func _ready() -> void:
-	print("UNIT READY name=", name)
-	print("UNIT has Inventory =", has_node("Inventory"))
-	print("UNIT children = ", get_children().map(func(c): return c.name))
 
 	if not is_in_group("units"):
 		add_to_group("units")
@@ -1003,11 +1000,9 @@ func apply_debug_start_items_if_needed() -> void:
 		return
 
 	if PlayerData.debug_start_items_applied:
-		print("DEBUG START ITEMS SKIP: already applied")
 		return
 
 	if inventory == null:
-		print("DEBUG START ITEMS SKIP: inventory is null")
 		return
 
 	for entry in DebugSettings.debug_player_start_items:
@@ -1033,7 +1028,6 @@ func apply_debug_start_items_if_needed() -> void:
 
 	PlayerData.inventory_data = save_inventory_persistence_data()
 	PlayerData.debug_start_items_applied = true
-	print("DEBUG START ITEMS APPLIED")
 
 
 func apply_initial_inventory_from_data(initial_inventory_items: Array) -> void:

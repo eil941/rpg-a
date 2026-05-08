@@ -166,9 +166,10 @@ func get_time_string() -> String:
 	#print(get_time_string(), " / ", get_time_of_day())
 
 func get_month_index() -> int:
+	# マップのリセット間隔を指定している
 	# 30日 = 1ヶ月として扱う。
 	# get_day() は1始まりなので、Day 1〜30 が month_index 0。
-	return int((get_day() - 1) / 30)
+	return int((get_day() - 1) / 1)
 
 
 func reset_time() -> void:

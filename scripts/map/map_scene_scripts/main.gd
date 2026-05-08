@@ -62,9 +62,6 @@ func _ready() -> void:
 	var generator_type: String = get_effective_generator_type()
 	var use_generated_map: bool = is_valid_generator_type(generator_type)
 
-	print("MAIN map_id = ", map_id)
-	print("MAIN generator_type = [", generator_type, "]")
-	print("MAIN use_generated_map = ", use_generated_map)
 
 	_ensure_detail_map_config(generator_type)
 	_log_entered_area_difficulty()
@@ -117,17 +114,12 @@ func _ready() -> void:
 		current_npc_spawn_count = int(npc_pool_info.get("count", 0))
 		current_npc_data_list = npc_pool_info.get("pool", [])
 
-	print("spawn_context = ", spawn_context)
-	print("current_enemy_spawn_count = ", current_enemy_spawn_count)
-	print("current_npc_spawn_count = ", current_npc_spawn_count)
-	print("current_enemy_data_list size = ", current_enemy_data_list.size())
-	print("current_npc_data_list size = ", current_npc_data_list.size())
 
 	if WorldState.map_enemy_spawns.has(map_id):
-		print("LOAD ENEMIES map_id=", map_id)
+		
 		spawn_manager.spawn_saved_enemies(enemy_unit_scene, current_enemy_data_list)
 	elif current_enemy_spawn_count > 0:
-		print("SPAWN RANDOM ENEMIES map_id=", map_id)
+		
 		spawn_manager.spawn_random_enemies(
 			enemy_unit_scene,
 			current_enemy_data_list,
@@ -137,10 +129,10 @@ func _ready() -> void:
 		print("SKIP ENEMY SPAWN map_id=", map_id)
 
 	if WorldState.map_npc_spawns.has(map_id):
-		print("LOAD NPCS map_id=", map_id)
+		
 		spawn_manager.spawn_saved_npcs(npc_unit_scene, current_npc_data_list)
 	elif current_npc_spawn_count > 0:
-		print("SPAWN RANDOM NPCS map_id=", map_id)
+		
 		spawn_manager.spawn_random_npcs(
 			npc_unit_scene,
 			current_npc_data_list,
@@ -258,10 +250,10 @@ func _build_enemy_spawn_pool(context: Dictionary, all_enemy_data: Array[EnemyDat
 	var selected_rule: SpawnRuleData = _get_best_matching_spawn_rule("ENEMY", context)
 
 	if selected_rule != null:
-		print("enemy special rule selected = ", selected_rule.rule_id)
+		
 		return _build_enemy_spawn_pool_from_rule(context, all_enemy_data, selected_rule)
 
-	print("enemy special rule selected = null -> use normal spawn")
+	
 	return _build_normal_enemy_spawn_pool(context, all_enemy_data)
 
 
@@ -372,14 +364,13 @@ func _build_npc_spawn_pool(context: Dictionary) -> Dictionary:
 	var total_spawn_count: int = 0
 
 	if selected_rule == null:
-		print("npc selected rule = null")
+		
 		return {
 			"count": 0,
 			"pool": pool
 		}
 
-	print("npc selected rule = ", selected_rule.rule_id, " max_spawn_count=", selected_rule.max_spawn_count, " weight=", selected_rule.weight)
-
+	
 	total_spawn_count = max(0, selected_rule.max_spawn_count)
 
 	for data in npc_data_list:
@@ -414,7 +405,7 @@ func _get_best_matching_spawn_rule(spawn_kind: String, context: Dictionary) -> S
 		if rule == null:
 			continue
 		if _rule_requires_distance_filter(rule):
-			print("SKIP RULE (distance handled by field difficulty): ", rule.rule_id)
+			
 			continue
 		candidates.append(rule)
 
@@ -594,12 +585,12 @@ func collect_walkable_tiles_from_existing_map() -> Array[Vector2i]:
 
 		result.append(cell)
 
-	print("EXISTING MAP walkable_tiles size = ", result.size())
+	
 	return result
 
 
 func save_all_units() -> void:
-	print("save_all_units called")
+	
 
 	if not has_node("Units"):
 		print("Units node not found")
@@ -671,7 +662,7 @@ func load_map_tiles() -> void:
 
 func create_map_generator(generator_type: String) -> BaseMapGenerator:
 	generator_type = generator_type.strip_edges().replace("\"", "").to_upper()
-	print("normalized=[" + generator_type + "]")
+	
 
 	match generator_type:
 		"GRASS":
@@ -729,5 +720,5 @@ func create_map_generator(generator_type: String) -> BaseMapGenerator:
 				detail_tile_visual_config
 			)
 
-	push_error("UNKNOWN GENERATOR TYPE: " + generator_type)
+	
 	return null
