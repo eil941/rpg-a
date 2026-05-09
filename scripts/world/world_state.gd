@@ -169,10 +169,11 @@ func _sanitize_id(value: String) -> String:
 # =========================
 # Monthly reset / regeneration
 # =========================
-# 30日ごとのリセット用。
-# - 詳細マップ・ダンジョンはロードでは消さない
-# - 月次リセット時に消す
-# - プレイヤーがそのマップ内にいる場合は、出るまでリセットを保留する
+# マップリセット用。
+# - TimeManager 側の指定間隔に到達した時点では monthly_reset_pending を立てるだけ
+# - 詳細マップ・ダンジョン・固有マップ内では実データを消さない
+# - プレイヤーが FieldMap に戻ったタイミングでだけ実リセットする
+# - FieldMap本体、固有マップ配置、プレイヤー情報、クエスト情報は消さない
 var last_monthly_reset_month_index: int = -1
 var monthly_reset_pending: bool = false
 var deferred_reset_map_ids: Dictionary = {}
@@ -232,6 +233,10 @@ func mark_monthly_reset_done(current_month_index: int) -> void:
 	monthly_reset_pending = false
 
 
+func is_field_map_id(target_map_id: String) -> bool:
+	return target_map_id == "FieldMap"
+
+
 func is_regenerable_detail_map_id(target_map_id: String) -> bool:
 	if target_map_id == "":
 		return false
@@ -285,41 +290,54 @@ func run_monthly_world_reset(active_map_id: String, current_month_index: int) ->
 	if not should_run_monthly_reset(current_month_index):
 		return
 
-	print("[WorldState] monthly reset start active_map_id=", active_map_id, " month=", current_month_index)
+	# 重要:
+	# リセット指定タイミングに到達しても、詳細マップ・ダンジョン・固有マップ内では
+	# 実データを消さない。ここで消すと、ダンジョン階層移動中に
+	# dungeon_data / dungeon_floor_data が消えてクラッシュする。
+	#
+	# 実リセットは FieldMap に戻った後だけ行う。
+	if not is_field_map_id(active_map_id):
+		monthly_reset_pending = true
+		print("[WorldState] monthly reset pending until FieldMap. active_map_id=", active_map_id, " month=", current_month_index)
+		return
+
+	print("[WorldState] monthly reset start on FieldMap month=", current_month_index)
 
 	var reset_map_ids: Array[String] = _collect_regenerable_map_ids()
 
 	for target_map_id in reset_map_ids:
-		if target_map_id == active_map_id:
-			deferred_reset_map_ids[target_map_id] = true
-			print("[WorldState] defer reset active map=", target_map_id)
-			continue
-
 		clear_regenerable_map_data(target_map_id)
 
-	if _should_reset_dungeon_global_data(active_map_id):
-		_clear_dungeon_global_data()
-	else:
-		deferred_reset_dungeons = true
-		print("[WorldState] defer dungeon global reset active_map_id=", active_map_id)
+	# ダンジョン関連データも FieldMap に戻ってから初めて消す。
+	# これにより、ダンジョン内で日付を跨いでも階層移動中にデータが消えない。
+	_clear_dungeon_global_data()
+
+	deferred_reset_map_ids.clear()
+	deferred_reset_dungeons = false
 
 	mark_monthly_reset_done(current_month_index)
-	print("[WorldState] monthly reset done month=", current_month_index)
+	print("[WorldState] monthly reset done on FieldMap month=", current_month_index)
 
 
 func apply_deferred_reset_for_left_map(left_map_id: String) -> void:
 	if left_map_id == "":
 		return
 
+	# 旧仕様/古いセーブデータ互換用。
+	# 新仕様では、通常は deferred_reset_map_ids を新規追加しない。
+	# 実リセットは FieldMap 上の run_monthly_world_reset() でまとめて行う。
 	if deferred_reset_map_ids.has(left_map_id):
 		clear_regenerable_map_data(left_map_id)
 		deferred_reset_map_ids.erase(left_map_id)
 		print("[WorldState] deferred map reset applied left_map_id=", left_map_id)
 
+	# ここで dungeon_data を消してはいけない。
+	# ダンジョン floor_3 -> floor_4 のような階層移動でも left_map_id は dungeon 関連になるため、
+	# ここで _clear_dungeon_global_data() を呼ぶと次階層生成に必要な dungeon_data が消える。
+	#
+	# ダンジョン全体リセットは、FieldMap に戻った後の run_monthly_world_reset() だけで行う。
 	if deferred_reset_dungeons and is_dungeon_related_map_id(left_map_id):
-		_clear_dungeon_global_data()
-		deferred_reset_dungeons = false
-		print("[WorldState] deferred dungeon global reset applied")
+		print("[WorldState] deferred dungeon reset kept pending until FieldMap. left_map_id=", left_map_id)
 
 
 func clear_regenerable_map_data(target_map_id: String) -> void:

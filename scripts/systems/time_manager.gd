@@ -2,6 +2,11 @@ extends Node
 
 const SECONDS_PER_DAY := 24.0 * 60.0 * 60.0
 
+# デバッグ用のマップリセット間隔。
+# 1 = 1日ごとにリセット予約。
+# 本番で30日ごとに戻す場合は 30 にする。
+const DAYS_PER_RESET: int = 1
+
 var world_time_seconds: float = 0.0
 var is_resolving_turn: bool = false
 
@@ -166,10 +171,11 @@ func get_time_string() -> String:
 	#print(get_time_string(), " / ", get_time_of_day())
 
 func get_month_index() -> int:
-	# マップのリセット間隔を指定している
-	# 30日 = 1ヶ月として扱う。
-	# get_day() は1始まりなので、Day 1〜30 が month_index 0。
-	return int((get_day() - 1) / 1)
+	# マップリセット用の期間番号。
+	# get_day() は1始まりなので、DAYS_PER_RESET=1なら
+	# Day 1 -> 0, Day 2 -> 1, Day 3 -> 2。
+	# DAYS_PER_RESET=30なら Day 1〜30 -> 0, Day 31〜60 -> 1。
+	return int((get_day() - 1) / DAYS_PER_RESET)
 
 
 func reset_time() -> void:

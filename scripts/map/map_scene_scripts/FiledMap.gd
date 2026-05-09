@@ -134,6 +134,10 @@ func _ready() -> void:
 
 	_resolve_pending_unique_map_return_if_needed()
 
+	# FieldMapに戻った後で月次/日次リセット予約がある場合、
+	# FieldMap側で実リセットとダンジョン入口再生成を完結させる。
+	call_deferred("_after_field_map_ready")
+
 
 
 
@@ -154,6 +158,48 @@ func _build_dungeon_theme_weights() -> Dictionary:
 
 
 
+func _process(_delta: float) -> void:
+	# FieldMap表示中に GameAndHud / TimeManager 側でリセットが確定し、
+	# 後から should_regenerate_field_dungeons が true になった場合を拾う。
+	# フラグが false の時は即returnするだけなので負荷は軽い。
+	if map_id != "FieldMap":
+		return
+
+	if WorldState == null:
+		return
+
+	if not WorldState.should_regenerate_field_dungeons:
+		return
+
+	_regenerate_field_dungeon_entrances_if_requested()
+
+
+func _after_field_map_ready() -> void:
+	if map_id != "FieldMap":
+		return
+
+	_apply_pending_world_reset_on_field_map()
+	_regenerate_field_dungeon_entrances_if_requested()
+
+
+func _apply_pending_world_reset_on_field_map() -> void:
+	if WorldState == null:
+		return
+
+	if TimeManager == null:
+		return
+
+	var current_reset_index: int = TimeManager.get_month_index()
+
+	if not WorldState.should_run_monthly_reset(current_reset_index):
+		return
+
+	# 実データ削除は FieldMap 上だけで行う。
+	# ダンジョン内・詳細マップ内では WorldState 側が pending のまま保持する。
+	WorldState.run_monthly_world_reset(map_id, current_reset_index)
+
+
+
 func _regenerate_field_dungeon_entrances_if_requested() -> void:
 	if not ("should_regenerate_field_dungeons" in WorldState):
 		return
@@ -161,10 +207,9 @@ func _regenerate_field_dungeon_entrances_if_requested() -> void:
 	if not WorldState.should_regenerate_field_dungeons:
 		return
 
-	if map_id == "":
+	if map_id != "FieldMap":
 		return
 
-	
 	_clear_dungeon_entrance_tiles_from_event_layer()
 
 	WorldState.field_dungeon_entrances[map_id] = []
@@ -190,6 +235,8 @@ func _regenerate_field_dungeon_entrances_if_requested() -> void:
 
 	WorldState.field_dungeon_entrances[map_id] = entrances
 	WorldState.should_regenerate_field_dungeons = false
+
+	print("[FiledMap] regenerated field dungeon entrances count=", entrances.size())
 
 	save_map_tiles()
 
