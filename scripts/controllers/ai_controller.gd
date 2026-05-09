@@ -96,6 +96,11 @@ func can_act() -> bool:
 	if unit.stats.hp <= 0:
 		return false
 
+	if is_action_blocked_by_status():
+		if DebugSettings.debug_ai_turn:
+			print("[AI STATUS BLOCK] unit=", unit.name, " sleep=", _has_status_effect(&"sleep"), " paralysis=", _has_status_effect(&"paralysis"))
+		return false
+
 	return true
 
 
@@ -401,7 +406,56 @@ func execute_move_candidate(data: Dictionary, context: Dictionary) -> bool:
 	if dir == Vector2.ZERO:
 		return false
 
-	return unit.try_move(dir)
+	var actual_dir: Vector2 = _get_effective_move_direction(dir)
+
+	if DebugSettings.debug_ai_turn and actual_dir != dir:
+		print("[AI STATUS CONFUSION] unit=", unit.name, " requested_dir=", dir, " actual_dir=", actual_dir)
+
+	return unit.try_move(actual_dir)
+
+
+func is_action_blocked_by_status() -> bool:
+	if unit == null:
+		return true
+
+	if _has_status_effect(&"sleep"):
+		return true
+
+	if _has_status_effect(&"paralysis"):
+		return true
+
+	if unit.has_method("is_action_blocked_by_status"):
+		if unit.is_action_blocked_by_status():
+			return true
+
+	return false
+
+
+func _has_status_effect(status_id: StringName) -> bool:
+	if unit == null:
+		return false
+
+	if not unit.has_method("has_status_effect"):
+		return false
+
+	return unit.has_status_effect(status_id)
+
+
+func _get_effective_move_direction(dir: Vector2) -> Vector2:
+	if unit == null:
+		return dir
+
+	if not _has_status_effect(&"confusion"):
+		return dir
+
+	var random_dirs: Array[Vector2] = [
+		Vector2.RIGHT,
+		Vector2.LEFT,
+		Vector2.DOWN,
+		Vector2.UP
+	]
+
+	return random_dirs[rng.randi_range(0, random_dirs.size() - 1)]
 
 
 func get_candidate_steps_toward_target(target) -> Array[Vector2]:

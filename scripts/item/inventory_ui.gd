@@ -47,6 +47,10 @@ const SIZE_SHRINK_BEGIN_VALUE: int = 0
 @export var slot_scene: PackedScene
 @export var ui_config: InventoryUIConfig
 @export var tooltip_delay: float = 0.5
+@export var tooltip_min_width: float = 180.0
+@export var tooltip_max_width: float = 360.0
+@export var tooltip_screen_margin: float = 12.0
+@export var tooltip_slot_offset: Vector2 = Vector2(12.0, 0.0)
 @export var hold_repeat_initial_delay: float = 0.35
 @export var hold_repeat_interval: float = 0.08
 @export var allow_world_drop_from_inventory_ui: bool = true
@@ -176,6 +180,7 @@ func _ready() -> void:
 			trade_back_button.pressed.connect(_on_trade_back_button_pressed)
 
 	tooltip_panel.hide()
+	setup_tooltip_layout()
 	held_item_preview.hide()
 	ensure_mouse_passthrough_for_float_panels()
 	setup_inventory_overlay_mouse_passthrough()
@@ -3503,6 +3508,137 @@ func _get_slot_display_name(slot_name: String) -> String:
 			return slot_name
 
 
+func setup_tooltip_layout() -> void:
+	if tooltip_panel == null:
+		return
+
+	tooltip_panel.custom_minimum_size = Vector2.ZERO
+	tooltip_panel.size = Vector2.ZERO
+
+	_configure_tooltip_label(tooltip_name_label)
+	_configure_tooltip_label(tooltip_desc_label)
+	_configure_tooltip_label(tooltip_meta_label)
+
+
+func _configure_tooltip_label(label: Label) -> void:
+	if label == null:
+		return
+
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.clip_text = false
+	label.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	label.custom_minimum_size = Vector2.ZERO
+	label.size = Vector2.ZERO
+	label.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	label.size_flags_vertical = SIZE_SHRINK_BEGIN_VALUE
+
+
+func _prepare_tooltip_panel_size() -> Vector2:
+	setup_tooltip_layout()
+
+	var content_width: float = _calculate_tooltip_content_width()
+	content_width = clamp(content_width, tooltip_min_width, tooltip_max_width)
+
+	tooltip_panel.hide()
+	tooltip_panel.custom_minimum_size = Vector2.ZERO
+	tooltip_panel.size = Vector2.ZERO
+
+	_apply_tooltip_content_width(content_width)
+
+	# 非表示状態のまま reset_size() すると、初回ホバー時に
+	# Containerの古い/過大なサイズを拾うことがある。
+	# いったん画面外に表示して、レイアウト計算後のサイズを取る。
+	tooltip_panel.global_position = Vector2(-100000.0, -100000.0)
+	tooltip_panel.show()
+	tooltip_panel.reset_size()
+
+	await get_tree().process_frame
+
+	var panel_size: Vector2 = tooltip_panel.size
+	var minimum_size: Vector2 = tooltip_panel.get_combined_minimum_size()
+
+	if panel_size.x <= 0.0 or panel_size.y <= 0.0:
+		panel_size = minimum_size
+
+	if panel_size.x > tooltip_max_width + 80.0:
+		tooltip_panel.custom_minimum_size = Vector2(tooltip_max_width, 0.0)
+		tooltip_panel.size = Vector2.ZERO
+		tooltip_panel.reset_size()
+		await get_tree().process_frame
+		panel_size = tooltip_panel.size
+
+	return panel_size
+
+
+func _apply_tooltip_content_width(content_width: float) -> void:
+	var label_width: float = max(tooltip_min_width, content_width)
+
+	_set_tooltip_label_width(tooltip_name_label, label_width)
+	_set_tooltip_label_width(tooltip_desc_label, label_width)
+	_set_tooltip_label_width(tooltip_meta_label, label_width)
+
+
+func _set_tooltip_label_width(label: Label, width: float) -> void:
+	if label == null:
+		return
+
+	label.custom_minimum_size = Vector2(width, 0.0)
+	label.size = Vector2(width, 0.0)
+
+
+func _calculate_tooltip_content_width() -> float:
+	var width: float = 0.0
+
+	width = max(width, _get_label_text_natural_width(tooltip_name_label))
+	width = max(width, _get_label_text_natural_width(tooltip_desc_label))
+	width = max(width, _get_label_text_natural_width(tooltip_meta_label))
+
+	return width
+
+
+func _get_label_text_natural_width(label: Label) -> float:
+	if label == null:
+		return tooltip_min_width
+
+	var font: Font = label.get_theme_font("font")
+	var font_size: int = label.get_theme_font_size("font_size")
+	var max_line_width: float = 0.0
+	var lines: PackedStringArray = label.text.split("\n")
+
+	for line in lines:
+		var line_width: float = 0.0
+		if font != null:
+			line_width = font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x
+		else:
+			line_width = float(line.length() * max(8, font_size))
+
+		max_line_width = max(max_line_width, line_width)
+
+	return max_line_width + 8.0
+
+
+func _position_tooltip_near_slot(slot_rect: Rect2, panel_size: Vector2) -> void:
+	var viewport_rect: Rect2 = get_viewport().get_visible_rect()
+	var screen_margin: float = max(0.0, tooltip_screen_margin)
+
+	var target_x: float = slot_rect.position.x + slot_rect.size.x + tooltip_slot_offset.x
+	var target_y: float = slot_rect.position.y + tooltip_slot_offset.y
+
+	if target_x + panel_size.x > viewport_rect.position.x + viewport_rect.size.x - screen_margin:
+		target_x = slot_rect.position.x - panel_size.x - tooltip_slot_offset.x
+
+	if target_x < viewport_rect.position.x + screen_margin:
+		target_x = viewport_rect.position.x + screen_margin
+
+	if target_y + panel_size.y > viewport_rect.position.y + viewport_rect.size.y - screen_margin:
+		target_y = viewport_rect.position.y + viewport_rect.size.y - panel_size.y - screen_margin
+
+	if target_y < viewport_rect.position.y + screen_margin:
+		target_y = viewport_rect.position.y + screen_margin
+
+	tooltip_panel.global_position = Vector2(target_x, target_y)
+
+
 func build_enchantment_tooltip_lines(entry: Dictionary) -> Array[String]:
 	var lines: Array[String] = []
 	var instance_data: Variant = entry.get("instance_data", {})
@@ -3677,27 +3813,10 @@ func show_tooltip_for_selected() -> void:
 		hide_tooltip()
 		return
 
-	var slot_rect = slot.get_global_rect()
+	var slot_rect: Rect2 = slot.get_global_rect()
+	var panel_size: Vector2 = await _prepare_tooltip_panel_size()
 
-	tooltip_panel.reset_size()
-	await get_tree().process_frame
-
-	var panel_size: Vector2 = tooltip_panel.size
-	var viewport_rect: Rect2 = get_viewport().get_visible_rect()
-
-	var target_x: float = slot_rect.position.x + slot_rect.size.x + 12.0
-	var target_y: float = slot_rect.position.y
-
-	if target_x + panel_size.x > viewport_rect.position.x + viewport_rect.size.x:
-		target_x = slot_rect.position.x - panel_size.x - 12.0
-
-	if target_y + panel_size.y > viewport_rect.position.y + viewport_rect.size.y:
-		target_y = viewport_rect.position.y + viewport_rect.size.y - panel_size.y - 12.0
-
-	if target_y < viewport_rect.position.y + 12.0:
-		target_y = viewport_rect.position.y + 12.0
-
-	tooltip_panel.global_position = Vector2(target_x, target_y)
+	_position_tooltip_near_slot(slot_rect, panel_size)
 	tooltip_panel.show()
 
 
@@ -3943,6 +4062,20 @@ func get_selected_slot_node():
 func hide_tooltip() -> void:
 	if tooltip_panel != null:
 		tooltip_panel.hide()
+		tooltip_panel.custom_minimum_size = Vector2.ZERO
+		tooltip_panel.size = Vector2.ZERO
+
+		if tooltip_name_label != null:
+			tooltip_name_label.custom_minimum_size = Vector2.ZERO
+			tooltip_name_label.size = Vector2.ZERO
+
+		if tooltip_desc_label != null:
+			tooltip_desc_label.custom_minimum_size = Vector2.ZERO
+			tooltip_desc_label.size = Vector2.ZERO
+
+		if tooltip_meta_label != null:
+			tooltip_meta_label.custom_minimum_size = Vector2.ZERO
+			tooltip_meta_label.size = Vector2.ZERO
 
 
 func _on_tooltip_timer_timeout() -> void:

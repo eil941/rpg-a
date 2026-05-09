@@ -76,6 +76,7 @@ static func apply_item_effects(user, target, item_data: ItemData, use_flag_overr
 		return false
 
 	var applied_any: bool = false
+	var applied_sleep: bool = false
 
 	print("[ITEM EFFECT] apply_item_effects item_id=", item_data.item_id, " effect_count=", item_data.effects.size())
 
@@ -84,13 +85,22 @@ static func apply_item_effects(user, target, item_data: ItemData, use_flag_overr
 			continue
 
 		print("[ITEM EFFECT] try effect_type=", effect.get_effect_type_name())
+
 		if apply_single_effect(user, target, item_data, effect, use_flag_override):
 			applied_any = true
+
+			if effect.effect_type == ItemEffectData.EffectType.APPLY_STATUS and effect.status_id == &"sleep":
+				applied_sleep = true
+
 			print("[ITEM EFFECT] success effect_type=", effect.get_effect_type_name())
 		else:
 			print("[ITEM EFFECT] failed effect_type=", effect.get_effect_type_name())
 
-	if applied_any:
+	# 重要:
+	# 通常は、眠っている対象に攻撃・アイテム効果が当たったら起こす。
+	# ただし sleep_orb のように「今から sleep を付与する効果」では、
+	# 直後に起こすと、付与した sleep を即解除してしまう。
+	if applied_any and not applied_sleep:
 		_wake_sleep_target_if_needed(user, target)
 
 	return applied_any
@@ -359,7 +369,7 @@ static func _apply_modifier(user, target, item_data: ItemData, effect: ItemEffec
 	if not target.has_method("add_status_effect_runtime"):
 		return false
 
-	var runtime := UnitEffectRuntime.new()
+	var runtime: UnitEffectRuntime = UnitEffectRuntime.new()
 	runtime.source_item_id = item_data.item_id
 	runtime.effect_type = ItemEffectData.EffectType.APPLY_MODIFIER
 	runtime.modifier_kind = effect.modifier_kind

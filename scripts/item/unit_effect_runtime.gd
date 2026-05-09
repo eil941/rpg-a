@@ -20,6 +20,15 @@ var remaining_duration: float = 0.0
 var tick_interval_seconds: float = 0.0
 var tick_accumulator_seconds: float = 0.0
 
+# 攻撃範囲表示モードなどの「対象指定アイテム使用」で状態異常を付与した時、
+# 付与した同じ行動内の TimeManager.advance_time() で、
+# いきなりduration減少・tick発動しないようにするためのフラグ。
+#
+# 通常のインベントリ / ホットバー自己使用ルートは今の挙動を維持するため、
+# Unit.add_status_effect_runtime() では自動でtrueにしない。
+# CombatManager側の対象指定アイテム使用ルートで、新規追加されたruntimeだけtrueにする。
+var skip_next_time_advance: bool = false
+
 var extra_data: Dictionary = {}
 
 
@@ -57,6 +66,13 @@ func matches_modifier(target_modifier_kind: int, target_stat_name: StringName) -
 
 func advance_time(elapsed_seconds: float) -> void:
 	if elapsed_seconds <= 0.0:
+		return
+
+	# 付与直後の同じ行動内で時間経過が走る場合だけ、1回分をスキップする。
+	# これにより、炎上・凍結・毒などは「付与ターンに即発動」せず、
+	# 次の行動終了時からduration減少・tick発動する。
+	if skip_next_time_advance:
+		skip_next_time_advance = false
 		return
 
 	var effective_elapsed: float = elapsed_seconds
@@ -115,7 +131,7 @@ func get_remaining_time_text() -> String:
 
 
 func duplicate_runtime() -> UnitEffectRuntime:
-	var copy := UnitEffectRuntime.new()
+	var copy: UnitEffectRuntime = UnitEffectRuntime.new()
 
 	copy.source_item_id = source_item_id
 	copy.source_unit_id = source_unit_id
@@ -135,6 +151,7 @@ func duplicate_runtime() -> UnitEffectRuntime:
 
 	copy.tick_interval_seconds = tick_interval_seconds
 	copy.tick_accumulator_seconds = tick_accumulator_seconds
+	copy.skip_next_time_advance = skip_next_time_advance
 
 	copy.extra_data = extra_data.duplicate(true)
 
@@ -156,5 +173,6 @@ func to_debug_dictionary() -> Dictionary:
 		"remaining_duration": remaining_duration,
 		"tick_interval_seconds": tick_interval_seconds,
 		"tick_accumulator_seconds": tick_accumulator_seconds,
+		"skip_next_time_advance": skip_next_time_advance,
 		"extra_data": extra_data
 	}

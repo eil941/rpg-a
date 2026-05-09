@@ -427,13 +427,10 @@ func get_selected_target_item_data() -> ItemData:
 	if item_resource is ItemData:
 		var item_data: ItemData = item_resource as ItemData
 
-		# 攻撃範囲表示モード中の「E / inventory_use」は、
-		# 自分用アイテムも対象指定アイテムも、同じ「選択対象に使う」扱いにする。
-		# そのため USE_SELF + TARGET_SELF だけのアイテムもここで対象行動として扱う。
-		if item_data.has_method("can_use_on_self"):
-			if item_data.can_use_on_self():
-				return item_data
-
+		# 自分に使うアイテムはここでは扱わない。
+		# インベントリ / ホットバーの self-use ルート
+		# Inventory.use_item_at() / Inventory.use_hotbar_item_at() を正規ルートにする。
+		# ここでは、敵・味方・他Unit・投擲など「対象指定が必要なアイテム」だけ返す。
 		if item_data.has_method("can_throw_to_target"):
 			if item_data.can_throw_to_target():
 				return item_data
@@ -3230,6 +3227,30 @@ func has_status_effect(status_id: StringName) -> bool:
 
 
 
+func get_active_effect_runtimes_snapshot() -> Array:
+	var result: Array = []
+
+	for runtime in active_effect_runtimes:
+		if runtime == null:
+			continue
+
+		result.append(runtime)
+
+	return result
+
+
+func mark_new_effect_runtimes_to_skip_next_time_advance(before_runtimes: Array) -> void:
+	for runtime in active_effect_runtimes:
+		if runtime == null:
+			continue
+
+		if before_runtimes.has(runtime):
+			continue
+
+		runtime.skip_next_time_advance = true
+
+
+
 func advance_effect_runtimes(elapsed_seconds: float) -> void:
 	if elapsed_seconds <= 0.0:
 		return
@@ -3753,6 +3774,7 @@ func get_effect_runtimes_save_data() -> Array:
 			"remaining_duration": runtime.remaining_duration,
 			"tick_interval_seconds": runtime.tick_interval_seconds,
 			"tick_accumulator_seconds": runtime.tick_accumulator_seconds,
+			"skip_next_time_advance": runtime.skip_next_time_advance,
 			"extra_data": runtime.extra_data.duplicate(true)
 		})
 
@@ -3766,7 +3788,7 @@ func load_effect_runtimes_save_data(data_list: Array) -> void:
 		if typeof(entry) != TYPE_DICTIONARY:
 			continue
 
-		var runtime := UnitEffectRuntime.new()
+		var runtime: UnitEffectRuntime = UnitEffectRuntime.new()
 		runtime.source_item_id = String(entry.get("source_item_id", ""))
 		runtime.source_unit_id = String(entry.get("source_unit_id", ""))
 		runtime.effect_type = int(entry.get("effect_type", ItemEffectData.EffectType.NONE))
@@ -3780,6 +3802,7 @@ func load_effect_runtimes_save_data(data_list: Array) -> void:
 		runtime.remaining_duration = float(entry.get("remaining_duration", 0.0))
 		runtime.tick_interval_seconds = float(entry.get("tick_interval_seconds", 0.0))
 		runtime.tick_accumulator_seconds = float(entry.get("tick_accumulator_seconds", 0.0))
+		runtime.skip_next_time_advance = bool(entry.get("skip_next_time_advance", false))
 
 		var extra_value: Variant = entry.get("extra_data", {})
 		if typeof(extra_value) == TYPE_DICTIONARY:
@@ -3809,6 +3832,10 @@ func apply_offscreen_effect_elapsed(elapsed_seconds: float) -> void:
 
 	for runtime in active_effect_runtimes:
 		if runtime == null:
+			continue
+
+		if runtime.skip_next_time_advance:
+			runtime.skip_next_time_advance = false
 			continue
 
 		var effective_elapsed: float = elapsed_seconds

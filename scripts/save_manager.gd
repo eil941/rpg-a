@@ -24,8 +24,7 @@ const WORLD_STATE_PROPS: Array[String] = [
 	"last_monthly_reset_month_index",
 	"monthly_reset_pending",
 	"deferred_reset_map_ids",
-	"deferred_reset_dungeons",
-	"should_regenerate_field_dungeons"
+	"deferred_reset_dungeons"
 ]
 
 const PLAYER_DATA_PROPS: Array[String] = [
@@ -74,6 +73,9 @@ var pending_loaded_game: bool = false
 var pending_loaded_map_scene_path: String = ""
 var pending_loaded_map_id: String = ""
 
+var debug_print_non_player_units_on_save: bool = true
+var debug_print_non_player_units_limit: int = 50
+
 
 func has_save_file(save_path: String = DEFAULT_SAVE_PATH) -> bool:
 	return FileAccess.file_exists(save_path)
@@ -94,6 +96,9 @@ func save_current_game(current_map: Node = null, save_path: String = DEFAULT_SAV
 
 	if current_map != null and current_map.has_method("save_all_units"):
 		current_map.save_all_units()
+
+	if debug_print_non_player_units_on_save:
+		_debug_print_non_player_units_on_map(current_map)
 
 	_save_current_player_position_to_player_data(current_map)
 
@@ -292,6 +297,278 @@ func _save_current_player_position_to_player_data(current_map: Node) -> void:
 	PlayerData.map_positions[current_map_id] = current_tile
 
 	print("[SaveManager] saved current player tile map_id=", current_map_id, " tile=", current_tile)
+
+
+func debug_print_current_map_non_player_units() -> void:
+	var current_map: Node = _find_current_map_from_tree()
+	_debug_print_non_player_units_on_map(current_map)
+
+
+func _debug_print_non_player_units_on_map(current_map: Node) -> void:
+	if current_map == null:
+		print("[UNIT DEBUG] current_map is null")
+		return
+
+	var map_id: String = _get_object_string_property(current_map, "map_id", "")
+	var units_node: Node = current_map.get_node_or_null("Units")
+
+	if units_node == null:
+		print("[UNIT DEBUG] map_id=", map_id, " Units node not found")
+		return
+
+	var printed_count: int = 0
+	var total_non_player_count: int = 0
+
+	print("[UNIT DEBUG] ===== non-player units on map start =====")
+	print("[UNIT DEBUG] map_id=", map_id, " units_node=", units_node)
+
+	for child in units_node.get_children():
+		if child == null:
+			continue
+
+		var is_player_unit: bool = _get_object_bool_property(child, "is_player_unit", false)
+		if is_player_unit:
+			continue
+
+		total_non_player_count += 1
+
+		if printed_count >= debug_print_non_player_units_limit:
+			continue
+
+		printed_count += 1
+		_debug_print_one_non_player_unit(child, map_id)
+
+	print("[UNIT DEBUG] non_player_count=", total_non_player_count, " printed=", printed_count)
+	print("[UNIT DEBUG] ===== non-player units on map end =====")
+
+
+func _debug_print_one_non_player_unit(unit: Node, fallback_map_id: String) -> void:
+	var unit_id: String = _get_object_string_property(unit, "unit_id", unit.name)
+	var unit_name: String = _get_unit_debug_name(unit)
+	var unit_map_id: String = _get_object_string_property(unit, "map_id", fallback_map_id)
+	var tile_text: String = _get_unit_tile_text(unit)
+	var hp_text: String = _get_unit_hp_text(unit)
+	var status_texts: Array[String] = _collect_unit_status_debug_texts(unit)
+	var saved_state_text: String = _get_saved_unit_state_debug_text(unit_id)
+
+	print("[UNIT DEBUG] unit_id=", unit_id)
+	print("             name=", unit_name, " map_id=", unit_map_id, " tile=", tile_text)
+	print("             hp=", hp_text)
+	print("             runtime_status=", status_texts)
+	print("             saved_state=", saved_state_text)
+
+
+func _get_unit_debug_name(unit: Node) -> String:
+	var display_name: String = _get_object_string_property(unit, "display_name", "")
+	if display_name != "":
+		return display_name
+
+	var unit_name: String = _get_object_string_property(unit, "unit_name", "")
+	if unit_name != "":
+		return unit_name
+
+	var character_name: String = _get_object_string_property(unit, "character_name", "")
+	if character_name != "":
+		return character_name
+
+	return unit.name
+
+
+func _get_unit_tile_text(unit: Node) -> String:
+	if unit.has_method("get_current_tile_coords"):
+		var value: Variant = unit.call("get_current_tile_coords")
+		if typeof(value) == TYPE_VECTOR2I:
+			return str(value)
+
+	var start_tile_value: Variant = _get_object_property(unit, "start_tile", null)
+	if typeof(start_tile_value) == TYPE_VECTOR2I:
+		return str(start_tile_value)
+
+	return "unknown"
+
+
+func _get_unit_hp_text(unit: Node) -> String:
+	var hp_text: String = _get_first_number_text_from_unit_or_stats(
+		unit,
+		["hp", "current_hp"],
+		"?"
+	)
+
+	var max_hp_text: String = _get_first_number_text_from_unit_or_stats(
+		unit,
+		["max_hp", "maximum_hp"],
+		"?"
+	)
+
+	return hp_text + " / " + max_hp_text
+
+
+func _get_first_number_text_from_unit_or_stats(unit: Node, property_names: Array[String], fallback: String) -> String:
+	for property_name in property_names:
+		var value: Variant = _get_object_property(unit, property_name, null)
+		if typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT:
+			return str(value)
+
+	var stats_node: Node = unit.get_node_or_null("Stats")
+	if stats_node != null:
+		for property_name in property_names:
+			var value_from_stats: Variant = _get_object_property(stats_node, property_name, null)
+			if typeof(value_from_stats) == TYPE_INT or typeof(value_from_stats) == TYPE_FLOAT:
+				return str(value_from_stats)
+
+	return fallback
+
+
+func _collect_unit_status_debug_texts(unit: Node) -> Array[String]:
+	var result: Array[String] = []
+
+	var property_names: Array[String] = [
+		"effect_runtimes_data",
+		"effect_runtimes",
+		"active_effects",
+		"status_effects",
+		"active_statuses",
+		"status_ailments",
+		"status_tags",
+		"buffs",
+		"debuffs"
+	]
+
+	for property_name in property_names:
+		var value: Variant = _get_object_property(unit, property_name, null)
+		if _variant_has_debug_content(value):
+			result.append(property_name + "=" + _short_variant_string(value, 400))
+
+	var child_nodes: Array[Node] = unit.get_children()
+	for child in child_nodes:
+		if child == null:
+			continue
+
+		var child_name_lower: String = String(child.name).to_lower()
+		if child_name_lower.find("effect") == -1 and child_name_lower.find("status") == -1:
+			continue
+
+		for property_name in property_names:
+			var child_value: Variant = _get_object_property(child, property_name, null)
+			if _variant_has_debug_content(child_value):
+				result.append(str(child.name) + "." + property_name + "=" + _short_variant_string(child_value, 400))
+
+	if unit.has_method("get_effect_runtimes_save_data"):
+		var method_value: Variant = unit.call("get_effect_runtimes_save_data")
+		if _variant_has_debug_content(method_value):
+			result.append("get_effect_runtimes_save_data()=" + _short_variant_string(method_value, 400))
+
+	if unit.has_method("get_status_debug_data"):
+		var status_debug_value: Variant = unit.call("get_status_debug_data")
+		if _variant_has_debug_content(status_debug_value):
+			result.append("get_status_debug_data()=" + _short_variant_string(status_debug_value, 400))
+
+	return result
+
+
+func _get_saved_unit_state_debug_text(unit_id: String) -> String:
+	if WorldState == null:
+		return "WorldState=null"
+
+	if not WorldState.unit_states.has(unit_id):
+		return "not saved"
+
+	var saved_state_value: Variant = WorldState.unit_states[unit_id]
+	if typeof(saved_state_value) != TYPE_DICTIONARY:
+		return _short_variant_string(saved_state_value, 400)
+
+	var saved_state: Dictionary = saved_state_value
+	var parts: Array[String] = []
+
+	if saved_state.has("hp"):
+		parts.append("hp=" + str(saved_state["hp"]))
+
+	if saved_state.has("current_hp"):
+		parts.append("current_hp=" + str(saved_state["current_hp"]))
+
+	if saved_state.has("tile"):
+		parts.append("tile=" + str(saved_state["tile"]))
+
+	if saved_state.has("current_tile"):
+		parts.append("current_tile=" + str(saved_state["current_tile"]))
+
+	var status_keys: Array[String] = [
+		"effect_runtimes_data",
+		"effect_runtimes",
+		"active_effects",
+		"status_effects",
+		"active_statuses",
+		"status_ailments",
+		"status_tags",
+		"buffs",
+		"debuffs"
+	]
+
+	for status_key in status_keys:
+		if saved_state.has(status_key):
+			parts.append(status_key + "=" + _short_variant_string(saved_state[status_key], 400))
+
+	parts.append("keys=" + str(saved_state.keys()))
+
+	return "{ " + ", ".join(parts) + " }"
+
+
+func _variant_has_debug_content(value: Variant) -> bool:
+	match typeof(value):
+		TYPE_NIL:
+			return false
+		TYPE_ARRAY:
+			var array_value: Array = value
+			return not array_value.is_empty()
+		TYPE_DICTIONARY:
+			var dictionary_value: Dictionary = value
+			return not dictionary_value.is_empty()
+		TYPE_STRING:
+			var string_value: String = value
+			return string_value.strip_edges() != ""
+		TYPE_STRING_NAME:
+			var string_name_value: StringName = value
+			return String(string_name_value).strip_edges() != ""
+		_:
+			return true
+
+
+func _short_variant_string(value: Variant, max_length: int) -> String:
+	var text: String = str(value)
+
+	if text.length() <= max_length:
+		return text
+
+	return text.substr(0, max_length) + "...[truncated]"
+
+
+func _get_object_string_property(target: Object, property_name: String, fallback: String) -> String:
+	var value: Variant = _get_object_property(target, property_name, null)
+	if value == null:
+		return fallback
+
+	return String(value).strip_edges()
+
+
+func _get_object_bool_property(target: Object, property_name: String, fallback: bool) -> bool:
+	var value: Variant = _get_object_property(target, property_name, null)
+	if value == null:
+		return fallback
+
+	if typeof(value) == TYPE_BOOL:
+		return bool(value)
+
+	return fallback
+
+
+func _get_object_property(target: Object, property_name: String, fallback: Variant) -> Variant:
+	if target == null:
+		return fallback
+
+	if not _object_has_property(target, property_name):
+		return fallback
+
+	return target.get(property_name)
 
 
 func _snapshot_optional_autoload(autoload_name: String, props: Array[String]) -> Dictionary:

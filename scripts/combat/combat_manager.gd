@@ -236,16 +236,68 @@ func perform_selected_target_item_use(user, target) -> bool:
 		_refresh_hud_status(user, target)
 		return consumed
 
+	var before_target_effect_runtimes: Array = _snapshot_target_effect_runtimes(target)
 	var applied: bool = ItemEffectManager.apply_item_effect(user, target, item_data)
 
 	if applied:
-		_wake_up_target_if_needed(target)
+		_mark_new_target_effect_runtimes_to_skip_same_action(target, before_target_effect_runtimes)
+
+		if _should_wake_sleep_after_target_item_use(item_data):
+			_wake_up_target_if_needed(target)
+
 		_log_attack_message(user, target, "%s は %s に %s を使った" % [user.name, target.name, item_name])
 	else:
 		_log_attack_message(user, target, "%s は %s に %s を使ったが、効果がなかった" % [user.name, target.name, item_name])
 
 	_refresh_hud_status(user, target)
 	return consumed or applied
+
+
+func _snapshot_target_effect_runtimes(target) -> Array:
+	if target == null:
+		return []
+
+	if target.has_method("get_active_effect_runtimes_snapshot"):
+		return target.get_active_effect_runtimes_snapshot()
+
+	return []
+
+
+func _mark_new_target_effect_runtimes_to_skip_same_action(target, before_runtimes: Array) -> void:
+	if target == null:
+		return
+
+	if target.has_method("mark_new_effect_runtimes_to_skip_next_time_advance"):
+		target.mark_new_effect_runtimes_to_skip_next_time_advance(before_runtimes)
+
+
+
+func _should_wake_sleep_after_target_item_use(item_data: ItemData) -> bool:
+	if item_data == null:
+		return false
+
+	var has_damage_effect: bool = false
+	var applies_sleep: bool = false
+
+	for effect in item_data.effects:
+		if effect == null:
+			continue
+
+		if effect.effect_type == ItemEffectData.EffectType.DEAL_DAMAGE:
+			has_damage_effect = true
+
+		if effect.effect_type == ItemEffectData.EffectType.APPLY_STATUS and effect.status_id == &"sleep":
+			applies_sleep = true
+
+	# sleepを付与するアイテムは、直後に起こさない。
+	if applies_sleep:
+		return false
+
+	# ダメージを与えるアイテムは、眠っている対象を起こす。
+	if has_damage_effect:
+		return true
+
+	return false
 
 
 func _consume_selected_target_item(user) -> bool:
