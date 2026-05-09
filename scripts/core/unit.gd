@@ -170,6 +170,7 @@ var walk_frame_index: int = -1
 var active_effect_runtimes: Array[UnitEffectRuntime] = []
 var last_effect_update_time: float = 0.0
 var starvation_damage_accumulator: float = 0.0
+var death_handled: bool = false
 
 var runtime_attack_multiplier: float = 1.0
 var runtime_defense_multiplier: float = 1.0
@@ -2208,6 +2209,7 @@ func load_persistent_stats() -> void:
 	if unit_id != "" and WorldState.unit_states.has(unit_id):
 		print("LOAD unit_id=", unit_id, " hp=", WorldState.unit_states[unit_id]["hp"])
 		apply_stats_data(WorldState.unit_states[unit_id])
+		check_death("load")
 func apply_enemy_data(enemy_data: EnemyData) -> void:
 	if enemy_data == null:
 		return
@@ -2318,11 +2320,36 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 		)
 
 
-func handle_death() -> void:
+func check_death(cause: String = "") -> bool:
+	if stats == null:
+		return false
+
+	if not _stats_has_property(stats, "hp"):
+		return false
+
+	if int(stats.hp) > 0:
+		return false
+
+	handle_death(cause)
+	return true
+
+
+func handle_death(cause: String = "") -> void:
+	if death_handled:
+		return
+
+	death_handled = true
+
+	if stats != null and _stats_has_property(stats, "hp"):
+		stats.hp = min(int(stats.hp), 0)
+
 	drop_inventory_items_on_death_if_needed()
 
 	if is_player_unit:
-		print("プレイヤー死亡")
+		print("プレイヤー死亡 cause=", cause)
+		save_persistent_stats()
+		notify_hud_player_status_refresh()
+		notify_hud_effects_refresh()
 		return
 
 	if unit_id != "":
@@ -2330,7 +2357,47 @@ func handle_death() -> void:
 		data["is_dead"] = true
 		WorldState.unit_states[unit_id] = data
 
+	_mark_spawn_data_dead()
+
+	print("[DEATH] unit=", name, " unit_id=", unit_id, " map_id=", map_id, " cause=", cause)
+
 	queue_free()
+
+
+func _mark_spawn_data_dead() -> void:
+	if map_id == "":
+		return
+
+	if unit_id == "":
+		return
+
+	_mark_spawn_data_dead_in_dictionary(WorldState.map_enemy_spawns)
+	_mark_spawn_data_dead_in_dictionary(WorldState.map_npc_spawns)
+
+
+func _mark_spawn_data_dead_in_dictionary(spawn_dictionary: Dictionary) -> void:
+	if not spawn_dictionary.has(map_id):
+		return
+
+	var spawns_value: Variant = spawn_dictionary[map_id]
+	if typeof(spawns_value) != TYPE_ARRAY:
+		return
+
+	var spawns: Array = spawns_value
+
+	for index in range(spawns.size()):
+		var spawn_value: Variant = spawns[index]
+		if typeof(spawn_value) != TYPE_DICTIONARY:
+			continue
+
+		var spawn_data: Dictionary = spawn_value
+		if String(spawn_data.get("unit_id", "")) != unit_id:
+			continue
+
+		spawn_data["is_dead"] = true
+		spawns[index] = spawn_data
+		spawn_dictionary[map_id] = spawns
+		return
 
 
 func drop_inventory_items_on_death_if_needed() -> void:
@@ -2982,6 +3049,8 @@ func _apply_hunger_starvation_damage(elapsed_seconds: float) -> void:
 	else:
 		stats.hp = max(0, int(stats.hp) - damage_value)
 
+	check_death("starvation")
+
 	if _should_print_hunger_output():
 		print("[HUNGER] ", name, " / 餓死ダメージ ", damage_value, " / ", _get_hunger_status_text())
 
@@ -3329,6 +3398,8 @@ func _apply_runtime_damage(stats_node, status_label: String, damage_value: int) 
 
 	print("[STATUS TICK] unit=", name, " status=", status_label, " damage=", damage_value, " hp=", stats_node.hp)
 
+	check_death("status_" + status_label)
+
 	notify_hud_player_status_refresh()
 	notify_hud_effects_refresh()
 
@@ -3340,24 +3411,18 @@ func _apply_runtime_tick(runtime: UnitEffectRuntime, stats_node) -> void:
 		return
 
 	if runtime.status_id == &"poison":
-		if _stats_has_property(stats_node, "hp"):
-			var damage_value: int = max(1, runtime.status_power)
-			stats_node.hp = max(0, int(stats_node.hp) - damage_value)
-			print("[STATUS TICK] unit=", name, " status=poison damage=", damage_value, " hp=", stats_node.hp)
+		var damage_value: int = max(1, runtime.status_power)
+		_apply_runtime_damage(stats_node, "poison", damage_value)
 		return
 
 	if runtime.status_id == &"burning":
-		if _stats_has_property(stats_node, "hp"):
-			var damage_value: int = max(1, runtime.status_power)
-			stats_node.hp = max(0, int(stats_node.hp) - damage_value)
-			print("[STATUS TICK] unit=", name, " status=burning damage=", damage_value, " hp=", stats_node.hp)
+		var damage_value: int = max(1, runtime.status_power)
+		_apply_runtime_damage(stats_node, "burning", damage_value)
 		return
 
 	if runtime.status_id == &"frostbite":
-		if _stats_has_property(stats_node, "hp"):
-			var damage_value: int = max(1, runtime.status_power)
-			stats_node.hp = max(0, int(stats_node.hp) - damage_value)
-			print("[STATUS TICK] unit=", name, " status=frostbite damage=", damage_value, " hp=", stats_node.hp)
+		var damage_value: int = max(1, runtime.status_power)
+		_apply_runtime_damage(stats_node, "frostbite", damage_value)
 		return
 
 
@@ -3863,6 +3928,9 @@ func apply_offscreen_effect_elapsed(elapsed_seconds: float) -> void:
 				var damage_per_tick: int = max(1, runtime.status_power)
 				var total_damage: int = damage_per_tick * tick_count
 				stats_node.hp = max(0, int(stats_node.hp) - total_damage)
+				print("[STATUS OFFSCREEN TICK] unit=", name, " status=", String(runtime.status_id), " damage=", total_damage, " hp=", stats_node.hp)
+				if check_death("offscreen_status_" + String(runtime.status_id)):
+					break
 
 	var removed_count: int = remove_expired_effect_runtimes()
 	if not active_effect_runtimes.is_empty() or removed_count > 0:

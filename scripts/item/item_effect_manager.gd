@@ -405,6 +405,9 @@ static func _apply_deal_damage(user, target, effect: ItemEffectData) -> bool:
 
 	print("[ITEM EFFECT] damage=", damage_value, " target_hp=", stats.hp)
 
+	if target.has_method("check_death"):
+		target.check_death("item_effect_damage")
+
 	if target.has_method("notify_hud_player_status_refresh"):
 		target.notify_hud_player_status_refresh()
 	if target.has_method("notify_hud_effects_refresh"):

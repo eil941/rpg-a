@@ -432,7 +432,13 @@ func perform_attack(attacker, target, require_hostile: bool = true) -> bool:
 		damage = 1
 
 	target.stats.take_damage(damage)
-	_wake_up_target_if_needed(target)
+
+	var target_died: bool = false
+	if target.has_method("check_death"):
+		target_died = target.check_death("attack")
+
+	if not target_died:
+		_wake_up_target_if_needed(target)
 
 	if force_hostile_after_attack and is_instance_valid(target):
 		_save_forced_hostility_state(target)
