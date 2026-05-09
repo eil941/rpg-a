@@ -1,0 +1,77 @@
+[gd_scene format=3 uid="uid://dsfcaariwwc4b"]
+
+[ext_resource type="Script" uid="uid://bwci4ttcf3kh3" path="res://scripts/death_menu.gd" id="1_okyhj"]
+
+[node name="DeathMenu" type="CanvasLayer" unique_id=776892600]
+process_mode = 3
+layer = 100
+script = ExtResource("1_okyhj")
+title_scene_path = "uid://qobx4mi0rirt"
+
+[node name="RootPanel" type="Control" parent="." unique_id=217486534]
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="DimBackground" type="ColorRect" parent="RootPanel" unique_id=1584384581]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.68)
+
+[node name="CenterContainer" type="CenterContainer" parent="RootPanel" unique_id=1980452774]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="RootPanel/CenterContainer" unique_id=909423291]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="RootPanel/CenterContainer/PanelContainer" unique_id=1659121327]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TitleLabel" type="Label" parent="RootPanel/CenterContainer/PanelContainer/VBoxContainer" unique_id=247440863]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "死亡しました"
+horizontal_alignment = 1
+
+[node name="CauseLabel" type="Label" parent="RootPanel/CenterContainer/PanelContainer/VBoxContainer" unique_id=694717970]
+layout_mode = 2
+text = "前回のセーブ地点から再開するか、はじめからやり直してください。"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="StatusLabel" type="Label" parent="RootPanel/CenterContainer/PanelContainer/VBoxContainer" unique_id=2002437714]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="ContinueButton" type="Button" parent="RootPanel/CenterContainer/PanelContainer/VBoxContainer" unique_id=1391686996]
+layout_mode = 2
+text = "前回セーブから再開"
+
+[node name="NewGameButton" type="Button" parent="RootPanel/CenterContainer/PanelContainer/VBoxContainer" unique_id=87519410]
+layout_mode = 2
+text = "はじめから"
+
+[node name="TitleButton" type="Button" parent="RootPanel/CenterContainer/PanelContainer/VBoxContainer" unique_id=1791959949]
+layout_mode = 2
+text = "タイトルへ戻る"
+
+[node name="QuitButton" type="Button" parent="RootPanel/CenterContainer/PanelContainer/VBoxContainer" unique_id=1135305953]
+layout_mode = 2
+text = "ゲーム終了"

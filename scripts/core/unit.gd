@@ -2347,9 +2347,9 @@ func handle_death(cause: String = "") -> void:
 
 	if is_player_unit:
 		print("プレイヤー死亡 cause=", cause)
-		save_persistent_stats()
 		notify_hud_player_status_refresh()
 		notify_hud_effects_refresh()
+		_notify_player_death(cause)
 		return
 
 	if unit_id != "":
@@ -2362,6 +2362,20 @@ func handle_death(cause: String = "") -> void:
 	print("[DEATH] unit=", name, " unit_id=", unit_id, " map_id=", map_id, " cause=", cause)
 
 	queue_free()
+
+
+func _notify_player_death(cause: String = "") -> void:
+	var node: Node = self
+
+	while node != null:
+		if node.has_method("on_player_death"):
+			node.call("on_player_death", cause)
+			return
+
+		node = node.get_parent()
+
+	print("[DEATH] player death notify target not found cause=", cause)
+
 
 
 func _mark_spawn_data_dead() -> void:

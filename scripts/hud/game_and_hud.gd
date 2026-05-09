@@ -8,8 +8,13 @@ extends Node
 var current_map: Node = null
 var trade_return_context: Dictionary = {}
 var _restore_player_position_after_next_map_load: bool = false
+var player_is_dead: bool = false
+var death_menu_instance: CanvasLayer = null
 
 @export_file("*.tscn") var default_start_map_scene_path: String = "res://scenes/npc_debug_map_special_reworked.tscn"
+@export_file("*.tscn") var death_menu_scene_path: String = "res://scenes/DeathMenu.tscn"
+@export_file("*.tscn") var title_scene_path: String = "res://scenes/TitleScreen.tscn"
+@export_file("*.tscn") var game_scene_path: String = "res://scenes/game_and_hud.tscn"
 
 var hud_refresh_interval: float = 0.2
 var hud_refresh_timer: float = 0.0
@@ -40,6 +45,7 @@ var last_stamina_condition_key: String = "__unset__"
 
 
 func _ready() -> void:
+	player_is_dead = false
 	_setup_blind_overlay()
 	_connect_hud_action_buttons()
 	
@@ -251,6 +257,47 @@ func load_map(map_scene: PackedScene) -> void:
 
 	if _player_has_status(&"hallucination"):
 		_activate_hallucination()
+
+
+func on_player_death(cause: String = "") -> void:
+	if player_is_dead:
+		return
+
+	player_is_dead = true
+	_show_death_menu(cause)
+
+
+func _show_death_menu(cause: String = "") -> void:
+	if death_menu_instance != null and is_instance_valid(death_menu_instance):
+		if death_menu_instance.has_method("set_death_cause"):
+			death_menu_instance.call("set_death_cause", cause)
+
+		death_menu_instance.show()
+		get_tree().paused = true
+		return
+
+	if death_menu_scene_path.strip_edges() == "":
+		push_warning("GameAndHud: death_menu_scene_path が空です")
+		get_tree().paused = true
+		return
+
+	var scene: PackedScene = load(death_menu_scene_path)
+	if scene == null:
+		push_error("GameAndHud: DeathMenu を読み込めません: " + death_menu_scene_path)
+		get_tree().paused = true
+		return
+
+	var instance: Node = scene.instantiate()
+	death_menu_instance = instance as CanvasLayer
+	add_child(instance)
+
+	if instance.has_method("set_context_paths"):
+		instance.call("set_context_paths", game_scene_path, title_scene_path, default_start_map_scene_path)
+
+	if instance.has_method("set_death_cause"):
+		instance.call("set_death_cause", cause)
+
+	get_tree().paused = true
 
 
 func _load_initial_map_from_save_manager() -> void:
