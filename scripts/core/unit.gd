@@ -1,5 +1,7 @@
 extends CharacterBody2D
 
+const UNIT_RENDER_Z_INDEX: int = 100
+
 @export var tile_size: int = 32
 @export var move_speed: float = 220.0
 @export var repeat_delay: float = 0.0
@@ -189,6 +191,8 @@ var runtime_crit_rate_flat: int = 0
 
 
 func _ready() -> void:
+	z_as_relative = false
+	z_index = UNIT_RENDER_Z_INDEX
 
 	if not is_in_group("units"):
 		add_to_group("units")

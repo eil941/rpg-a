@@ -2748,7 +2748,7 @@ func ensure_keyboard_target_visual_nodes() -> void:
 	# GroundLayer.map_to_local(tile) の座標で描く。
 	keyboard_target_visual_root = Node2D.new()
 	keyboard_target_visual_root.name = "KeyboardTargetHighlights"
-	keyboard_target_visual_root.z_index = 100000
+	keyboard_target_visual_root.z_index = 10
 	keyboard_target_visual_root.z_as_relative = false
 	parent_node.add_child(keyboard_target_visual_root)
 
@@ -2874,7 +2874,7 @@ func _add_keyboard_target_tile_fill(tile: Vector2i, color: Color) -> void:
 
 	var polygon: Polygon2D = Polygon2D.new()
 	polygon.color = color
-	polygon.z_index = 5000
+	polygon.z_index = 20
 	polygon.z_as_relative = false
 
 	var tile_size: float = float(get_unit_tile_size())
@@ -2899,7 +2899,7 @@ func _add_keyboard_target_tile_highlight(tile: Vector2i, color: Color, width: fl
 	line.width = width
 	line.default_color = color
 	line.closed = true
-	line.z_index = 5010
+	line.z_index = 21
 	line.z_as_relative = false
 
 	var tile_size: float = float(get_unit_tile_size())
