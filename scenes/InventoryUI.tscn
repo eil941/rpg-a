@@ -73,7 +73,7 @@ grow_vertical = 2
 
 [node name="MainHBox" type="HBoxContainer" parent="Root/Overlay/CenterContainer" unique_id=1002978702]
 layout_mode = 2
-theme_override_constants/separation = 20
+theme_override_constants/separation = 22
 
 [node name="TradePanel" type="PanelContainer" parent="Root/Overlay/CenterContainer/MainHBox" unique_id=446927415]
 visible = false
@@ -156,12 +156,12 @@ size_flags_horizontal = 3
 text = "Inventory"
 
 [node name="CloseButton" type="Button" parent="Root/Overlay/CenterContainer/MainHBox/InventoryPanel/MarginContainer/LeftVBox/TitleRow" unique_id=111700008]
-custom_minimum_size = Vector2(22, 22)
+custom_minimum_size = Vector2(24.444, 24.444)
 layout_mode = 2
 tooltip_text = "閉じる"
 focus_mode = 0
 theme_override_constants/h_separation = 0
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 14
 text = "×"
 
 [node name="SlotGrid" type="GridContainer" parent="Root/Overlay/CenterContainer/MainHBox/InventoryPanel/MarginContainer/LeftVBox" unique_id=691147632]
@@ -173,7 +173,7 @@ theme_override_constants/v_separation = 0
 columns = 5
 
 [node name="EquipmentPanel" type="PanelContainer" parent="Root/Overlay/CenterContainer/MainHBox" unique_id=2067664630]
-custom_minimum_size = Vector2(150, 0)
+custom_minimum_size = Vector2(166.667, 0.0)
 layout_mode = 2
 size_flags_vertical = 0
 theme_override_styles/panel = SubResource("StyleBoxFlat_equipment_panel")
@@ -209,16 +209,16 @@ theme_override_constants/separation = 3
 
 [node name="TooltipPanel" type="PanelContainer" parent="Root/Overlay" unique_id=1843808890]
 visible = false
-custom_minimum_size = Vector2(260, 96)
+custom_minimum_size = Vector2(288.889, 106.667)
 layout_mode = 0
 theme_override_styles/panel = SubResource("StyleBoxFlat_tooltip")
 
 [node name="MarginContainer" type="MarginContainer" parent="Root/Overlay/TooltipPanel" unique_id=1916794113]
 layout_mode = 2
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 8
+theme_override_constants/margin_left = 9
+theme_override_constants/margin_top = 9
+theme_override_constants/margin_right = 9
+theme_override_constants/margin_bottom = 9
 
 [node name="TooltipVBox" type="VBoxContainer" parent="Root/Overlay/TooltipPanel/MarginContainer" unique_id=151444161]
 layout_mode = 2
@@ -245,16 +245,16 @@ mouse_filter = 2
 
 [node name="Icon" type="TextureRect" parent="Root/Overlay/HeldItemPreview" unique_id=1486467899]
 layout_mode = 0
-offset_right = 48.0
-offset_bottom = 48.0
+offset_right = 53.333
+offset_bottom = 53.333
 stretch_mode = 5
 
 [node name="AmountLabel" type="Label" parent="Root/Overlay/HeldItemPreview" unique_id=1078016152]
 layout_mode = 0
-offset_left = 18.0
-offset_top = 26.0
-offset_right = 60.0
-offset_bottom = 48.0
+offset_left = 20.0
+offset_top = 28.889
+offset_right = 66.667
+offset_bottom = 53.333
 text = "x1"
 horizontal_alignment = 2
 vertical_alignment = 2

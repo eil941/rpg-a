@@ -15,11 +15,15 @@ var current_selected_index: int = 0
 var base_action_panel_bottom_y: float = 0.0
 var base_action_panel_height: float = 0.0
 
-const ACTION_BUTTON_HEIGHT: float = 44.0
-const ACTION_PANEL_PADDING_TOP: float = 12.0
-const ACTION_PANEL_PADDING_BOTTOM: float = 12.0
+# 1280x720向けに、選択肢ボタンを少し小さめに調整
+const ACTION_BUTTON_HEIGHT: float = 36.0
+const ACTION_PANEL_PADDING_TOP: float = 8.0
+const ACTION_PANEL_PADDING_BOTTOM: float = 8.0
 const ACTION_PANEL_SIDE_PADDING: float = 12.0
-const FALLBACK_BUTTON_SEPARATION: int = 8
+const FALLBACK_BUTTON_SEPARATION: int = 5
+
+# テキスト欄の下端を「ボタン枠の少し上」にするための余白
+const TEXT_TO_ACTION_PANEL_GAP: float = 12.0
 
 
 func _ready() -> void:
@@ -94,7 +98,7 @@ func set_actions(actions: Array) -> void:
 	clear_action_buttons()
 
 	for action in actions:
-		var button := Button.new()
+		var button: Button = Button.new()
 		button.focus_mode = Control.FOCUS_NONE
 		button.toggle_mode = true
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -115,7 +119,7 @@ func set_actions(actions: Array) -> void:
 
 
 func move_selection(delta: int) -> void:
-	var count := action_list.get_child_count()
+	var count: int = action_list.get_child_count()
 	if count <= 0:
 		current_selected_index = 0
 		return
@@ -125,23 +129,23 @@ func move_selection(delta: int) -> void:
 
 
 func confirm_selection() -> void:
-	var count := action_list.get_child_count()
+	var count: int = action_list.get_child_count()
 	if count <= 0:
 		return
 
 	if current_selected_index < 0 or current_selected_index >= count:
 		current_selected_index = 0
 
-	var button = action_list.get_child(current_selected_index)
+	var button: Node = action_list.get_child(current_selected_index)
 	if button == null:
 		return
 
-	var action_id := String(button.get_meta("action_id", ""))
+	var action_id: String = String(button.get_meta("action_id", ""))
 	DialogueManager.on_action_selected(action_id)
 
 
 func refresh_action_selection() -> void:
-	var count := action_list.get_child_count()
+	var count: int = action_list.get_child_count()
 	if count <= 0:
 		current_selected_index = 0
 		return
@@ -150,20 +154,20 @@ func refresh_action_selection() -> void:
 		current_selected_index = 0
 
 	for i in range(count):
-		var button = action_list.get_child(i)
+		var button: Node = action_list.get_child(i)
 		if button is Button:
 			button.button_pressed = (i == current_selected_index)
 
 
 func clear_action_buttons() -> void:
-	var children := action_list.get_children()
+	var children: Array[Node] = action_list.get_children()
 	for child in children:
 		action_list.remove_child(child)
 		child.queue_free()
 
 
 func _on_action_button_pressed(button: Button) -> void:
-	var count := action_list.get_child_count()
+	var count: int = action_list.get_child_count()
 	for i in range(count):
 		if action_list.get_child(i) == button:
 			current_selected_index = i
@@ -177,21 +181,21 @@ func adjust_action_layout() -> void:
 	if base_action_panel_bottom_y == 0.0:
 		_cache_base_layout()
 
-	var count := action_list.get_child_count()
-	var separation := _get_action_list_separation()
+	var count: int = action_list.get_child_count()
+	var separation: int = _get_action_list_separation()
 
-	var buttons_height := count * ACTION_BUTTON_HEIGHT
-	var gaps_height := maxi(0, count - 1) * separation
-	var list_needed_height := buttons_height + gaps_height
+	var buttons_height: float = count * ACTION_BUTTON_HEIGHT
+	var gaps_height: int = maxi(0, count - 1) * separation
+	var list_needed_height: float = buttons_height + gaps_height
 
-	var panel_needed_height := list_needed_height + ACTION_PANEL_PADDING_TOP + ACTION_PANEL_PADDING_BOTTOM
-	var new_panel_height := maxf(base_action_panel_height, panel_needed_height)
+	var panel_needed_height: float = list_needed_height + ACTION_PANEL_PADDING_TOP + ACTION_PANEL_PADDING_BOTTOM
+	var new_panel_height: float = panel_needed_height
 
 	action_panel.custom_minimum_size.y = new_panel_height
 	action_panel.size.y = new_panel_height
 	action_panel.position.y = base_action_panel_bottom_y - new_panel_height
 
-	var new_list_width := maxf(0.0, action_panel.size.x - ACTION_PANEL_SIDE_PADDING * 2.0)
+	var new_list_width: float = maxf(0.0, action_panel.size.x - ACTION_PANEL_SIDE_PADDING * 2.0)
 	action_list.custom_minimum_size = Vector2(new_list_width, list_needed_height)
 	action_list.size = Vector2(new_list_width, list_needed_height)
 	action_list.position = Vector2(
@@ -199,9 +203,19 @@ func adjust_action_layout() -> void:
 		new_panel_height - ACTION_PANEL_PADDING_BOTTOM - list_needed_height
 	)
 
+	adjust_top_text_layout()
+
+
+func adjust_top_text_layout() -> void:
+	var text_bottom_y: float = action_panel.position.y - TEXT_TO_ACTION_PANEL_GAP
+	var new_text_height: float = maxf(0.0, text_bottom_y - top_text_label.position.y)
+
+	top_text_label.custom_minimum_size.y = new_text_height
+	top_text_label.size.y = new_text_height
+
 
 func _get_action_list_separation() -> int:
-	var separation := 0
+	var separation: int = 0
 
 	if action_list != null:
 		separation = action_list.get_theme_constant("separation")

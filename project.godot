@@ -33,9 +33,19 @@ QuestManager="*uid://bfxdhrrq2qmym"
 QuestBoardManager="*uid://da0bhir7lhkbh"
 SaveManager="*uid://d34oivyae48v7"
 
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+
 [editor_plugins]
 
 enabled=PackedStringArray()
+
+[gui]
+
+theme/custom_font="uid://5gqrik4wwu6l"
 
 [input]
 
