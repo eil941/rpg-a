@@ -1,11 +1,16 @@
 extends Node
 
-const SECONDS_PER_DAY := 24.0 * 60.0 * 60.0
+const SECONDS_PER_DAY: float = 24.0 * 60.0 * 60.0
 
-# デバッグ用のマップリセット間隔。
+# デバッグ用のマップ/ダンジョン/詳細マップのリセット間隔。
 # 1 = 1日ごとにリセット予約。
 # 本番で30日ごとに戻す場合は 30 にする。
 const DAYS_PER_RESET: int = 1
+
+# NPC用のリセット間隔。
+# 商人の在庫・NPC生成依頼など、NPC関連だけを別周期で更新したい時に使う。
+# 例: 1 = 毎日, 7 = 7日ごと, 30 = 30日ごと
+const NPC_DAYS_PER_RESET: int = 1
 
 var world_time_seconds: float = 0.0
 var is_resolving_turn: bool = false
@@ -18,11 +23,21 @@ func advance_time(units_node: Node, player_speed: float) -> void:
 	if units_node == null:
 		return
 
-	var elapsed_seconds = SECONDS_PER_DAY / player_speed
+	var elapsed_seconds: float = SECONDS_PER_DAY / player_speed
 	world_time_seconds += elapsed_seconds
 
-	if WorldState != null and WorldState.has_method("update_monthly_reset_pending"):
-		WorldState.update_monthly_reset_pending(get_month_index())
+	if WorldState != null:
+		if WorldState.has_method("update_monthly_reset_pending"):
+			WorldState.update_monthly_reset_pending(get_month_index())
+
+		if WorldState.has_method("update_npc_reset_pending"):
+			WorldState.update_npc_reset_pending(get_npc_reset_index())
+
+		# NPC/クエスト/商人在庫リセットはリアルタイムで実行する。
+		# マップ/ダンジョン/詳細マップリセットは pending のまま FieldMap 側で処理するが、
+		# クエストリセットだけは表示・受注状態に直結するので、時間が進んだ瞬間に適用する。
+		if WorldState.has_method("run_npc_reset_if_needed"):
+			WorldState.run_npc_reset_if_needed(get_npc_reset_index())
 
 	#print_current_time()
 
@@ -146,12 +161,12 @@ func get_hour() -> int:
 
 
 func get_minute() -> int:
-	var remain = get_day_seconds() - float(get_hour()) * 3600.0
+	var remain: float = get_day_seconds() - float(get_hour()) * 3600.0
 	return int(remain / 60.0)
 
 
 func get_time_of_day() -> String:
-	var hour = get_hour()
+	var hour: int = get_hour()
 
 	if hour >= 6 and hour < 12:
 		return "朝"
@@ -176,6 +191,12 @@ func get_month_index() -> int:
 	# Day 1 -> 0, Day 2 -> 1, Day 3 -> 2。
 	# DAYS_PER_RESET=30なら Day 1〜30 -> 0, Day 31〜60 -> 1。
 	return int((get_day() - 1) / DAYS_PER_RESET)
+
+
+func get_npc_reset_index() -> int:
+	# NPCリセット用の期間番号。
+	# get_month_index() とは独立した周期にする。
+	return int((get_day() - 1) / NPC_DAYS_PER_RESET)
 
 
 func reset_time() -> void:

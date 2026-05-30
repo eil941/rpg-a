@@ -25,6 +25,7 @@ extends Node2D
 @export_group("Dungeon Entrance Settings")
 @export var dungeon_tile_visual_config: DungeonTileVisualConfig
 @export_range(0, 1000, 1) var dungeon_entrance_count: int = 300
+@export var regenerate_dungeon_entrances_while_field_map_loaded: bool = false
 @export var natural_dungeon_weight: int = 40
 @export var fortified_dungeon_weight: int = 15
 @export var ruined_dungeon_weight: int = 25
@@ -159,9 +160,11 @@ func _build_dungeon_theme_weights() -> Dictionary:
 
 
 func _process(_delta: float) -> void:
-	# FieldMap表示中に GameAndHud / TimeManager 側でリセットが確定し、
-	# 後から should_regenerate_field_dungeons が true になった場合を拾う。
-	# フラグが false の時は即returnするだけなので負荷は軽い。
+	# OFF: FieldMap表示中には再配置しない。次にFieldMapを読み込んだ時だけ再配置する。
+	# ON : FieldMap表示中でも、リセット予約が立ったら即再配置する。
+	if not regenerate_dungeon_entrances_while_field_map_loaded:
+		return
+
 	if map_id != "FieldMap":
 		return
 
@@ -179,8 +182,26 @@ func _after_field_map_ready() -> void:
 		return
 
 	_apply_pending_world_reset_on_field_map()
+	_apply_pending_npc_reset_on_field_map()
 	_regenerate_field_dungeon_entrances_if_requested()
 
+
+
+func _apply_pending_npc_reset_on_field_map() -> void:
+	if WorldState == null:
+		return
+
+	if TimeManager == null:
+		return
+
+	if not TimeManager.has_method("get_npc_reset_index"):
+		return
+
+	if not WorldState.has_method("run_npc_reset_if_needed"):
+		return
+
+	var current_npc_reset_index: int = TimeManager.get_npc_reset_index()
+	WorldState.run_npc_reset_if_needed(current_npc_reset_index)
 
 func _apply_pending_world_reset_on_field_map() -> void:
 	if WorldState == null:
@@ -209,6 +230,13 @@ func _regenerate_field_dungeon_entrances_if_requested() -> void:
 
 	if map_id != "FieldMap":
 		return
+
+	# 入口再配置は通常、FieldMapを読み込んだ時だけ行う。
+	# regenerate_dungeon_entrances_while_field_map_loaded が ON の時だけ、
+	# FieldMap表示中の _process からもここへ来る。
+	# WorldState側に実削除用関数がある場合は、ここで初めて古いダンジョン情報を消す。
+	if WorldState.has_method("clear_field_dungeon_global_data_for_regeneration"):
+		WorldState.clear_field_dungeon_global_data_for_regeneration()
 
 	_clear_dungeon_entrance_tiles_from_event_layer()
 

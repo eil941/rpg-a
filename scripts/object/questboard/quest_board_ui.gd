@@ -432,15 +432,20 @@ func _execute_selected_action() -> void:
 	var quest: QuestData = entry.get("quest", null)
 	var giver_unit = entry.get("giver_unit", null)
 
-	if quest == null or giver_unit == null:
+	if quest == null:
 		return
 
 	var can_complete: bool = bool(entry.get("can_complete", false))
 	var can_accept: bool = bool(entry.get("can_accept", false))
 
+	# 完了報告は quest_id と player_unit があれば可能。
+	# リセット後にNPCが再生成/未ロードで giver_unit が null でも、
+	# quest_active_data から表示された受注中クエストは完了できるようにする。
 	if can_complete:
 		QuestManager.complete_quest_from_board(quest.quest_id, giver_unit, current_player_unit)
 	elif can_accept:
+		if giver_unit == null:
+			return
 		QuestManager.accept_quest_from_board(quest, giver_unit, current_player_unit)
 
 	reload_entries()

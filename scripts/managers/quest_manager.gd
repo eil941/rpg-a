@@ -96,6 +96,163 @@ func _should_hide_quest_for_unit(quest_id: String) -> bool:
 	return false
 
 
+
+func _is_unit_quest_generation_blocked(unit) -> bool:
+	if unit == null:
+		return false
+
+	if WorldState == null:
+		return false
+
+	var block_keys: Array[String] = _build_unit_quest_generation_block_keys(unit)
+	if block_keys.is_empty():
+		return false
+
+	if WorldState.has_method("is_any_npc_quest_generation_key_blocked_until_reset"):
+		if WorldState.is_any_npc_quest_generation_key_blocked_until_reset(block_keys):
+			return true
+	else:
+		for block_key in block_keys:
+			if WorldState.has_method("is_npc_quest_generation_blocked_until_reset"):
+				if WorldState.is_npc_quest_generation_blocked_until_reset(block_key):
+					return true
+
+	# 保険:
+	# ブロック辞書が何らかの理由で一致しなくても、
+	# 次のNPCリセット前に同じNPCの generated__ 失敗履歴が残っているなら新規生成しない。
+	return _has_failed_generated_quest_from_same_unit(unit, block_keys)
+
+
+func _block_quest_giver_generation_until_reset(data: Dictionary) -> void:
+	if WorldState == null:
+		return
+
+	var block_keys: Array[String] = _build_quest_giver_block_keys_from_data(data)
+	if block_keys.is_empty():
+		return
+
+	if WorldState.has_method("block_npc_quest_generation_keys_until_reset"):
+		WorldState.block_npc_quest_generation_keys_until_reset(block_keys)
+		return
+
+	if WorldState.has_method("block_npc_quest_generation_until_reset"):
+		for block_key in block_keys:
+			WorldState.block_npc_quest_generation_until_reset(block_key)
+
+
+func _build_unit_quest_generation_block_keys(unit) -> Array[String]:
+	var result: Array[String] = []
+
+	if unit == null:
+		return result
+
+	var unit_key: String = _get_unit_offer_key(unit)
+	_append_unique_string(result, unit_key)
+
+	var map_id: String = ""
+	if "map_id" in unit:
+		map_id = String(unit.map_id).strip_edges()
+
+	if map_id == "":
+		map_id = _guess_map_id_from_unit_id(unit_key)
+
+	var display_name: String = _get_unit_display_name(unit).strip_edges()
+
+	if map_id != "" and display_name != "":
+		_append_unique_string(result, _make_npc_display_block_key(map_id, display_name))
+
+	# map_idが取れない場合の最後の保険。
+	# 同名NPCが大量にいるなら避けたいが、「即時再生成」を止める優先。
+	if display_name != "":
+		_append_unique_string(result, _make_npc_display_block_key("", display_name))
+
+	return result
+
+
+func _build_quest_giver_block_keys_from_data(data: Dictionary) -> Array[String]:
+	var result: Array[String] = []
+
+	if data.is_empty():
+		return result
+
+	var giver_unit_id: String = String(data.get("giver_unit_id", "")).strip_edges()
+	_append_unique_string(result, giver_unit_id)
+
+	var quest_id: String = String(data.get("quest_id", "")).strip_edges()
+	if quest_id.begins_with("generated__"):
+		var quest_unit_key: String = _get_unit_key_from_generated_quest_id(quest_id)
+		_append_unique_string(result, quest_unit_key)
+
+	var giver_map_id: String = _guess_map_id_from_unit_id(giver_unit_id)
+	var giver_display_name: String = String(data.get("giver_display_name", "")).strip_edges()
+
+	if giver_map_id != "" and giver_display_name != "":
+		_append_unique_string(result, _make_npc_display_block_key(giver_map_id, giver_display_name))
+
+	if giver_display_name != "":
+		_append_unique_string(result, _make_npc_display_block_key("", giver_display_name))
+
+	return result
+
+
+func _has_failed_generated_quest_from_same_unit(unit, unit_block_keys: Array[String]) -> bool:
+	if unit == null:
+		return false
+
+	if WorldState == null:
+		return false
+
+	if WorldState.quest_failed_data == null:
+		return false
+
+	for quest_id_value in WorldState.quest_failed_data.keys():
+		var quest_id: String = String(quest_id_value)
+		if not quest_id.begins_with("generated__"):
+			continue
+
+		var data_value: Variant = WorldState.quest_failed_data.get(quest_id_value, {})
+		if typeof(data_value) != TYPE_DICTIONARY:
+			continue
+
+		var failed_keys: Array[String] = _build_quest_giver_block_keys_from_data(data_value)
+		if _has_any_shared_string(unit_block_keys, failed_keys):
+			return true
+
+	return false
+
+
+func _make_npc_display_block_key(map_id: String, display_name: String) -> String:
+	map_id = map_id.strip_edges()
+	display_name = display_name.strip_edges()
+
+	if display_name == "":
+		return ""
+
+	if map_id == "":
+		return "npc_display::" + display_name
+
+	return "npc_display::" + map_id + "::" + display_name
+
+
+func _append_unique_string(target: Array[String], value: String) -> void:
+	value = value.strip_edges()
+	if value == "":
+		return
+
+	if target.has(value):
+		return
+
+	target.append(value)
+
+
+func _has_any_shared_string(left: Array[String], right: Array[String]) -> bool:
+	for value in left:
+		if right.has(value):
+			return true
+
+	return false
+
+
 func get_unit_offer_quests(unit) -> Array:
 	_ensure_state_containers()
 
@@ -103,6 +260,20 @@ func get_unit_offer_quests(unit) -> Array:
 	if unit == null:
 		return result
 
+	# 最優先:
+	# このNPCが出した受注中クエストがあるなら、それだけを返す。
+	# リセットでNPCの未受注生成クエストが更新されても、
+	# 受注中クエストの表示・完了報告を壊さないため。
+	var active_quests: Array = _get_active_quests_for_unit(unit)
+	if not active_quests.is_empty():
+		return active_quests
+
+	# 失敗/辞退後は、次にNPCリセットが完了するまで新しい依頼を出さない。
+	if _is_unit_quest_generation_blocked(unit):
+		return result
+
+	# 1人のNPCが扱うクエストは1つまで。
+	# 固定クエストがある場合は、最初に表示可能な1件だけを返す。
 	if "offered_quests" in unit:
 		for raw_quest in unit.offered_quests:
 			var fixed_quest: QuestData = raw_quest as QuestData
@@ -113,7 +284,9 @@ func get_unit_offer_quests(unit) -> Array:
 				continue
 
 			result.append(fixed_quest)
+			return result
 
+	# 固定クエストがない場合だけ、生成クエストを1件返す。
 	if "use_generated_quests" in unit and bool(unit.use_generated_quests):
 		var generated: Array = get_or_create_generated_unit_quests(unit)
 		for raw_generated in generated:
@@ -125,8 +298,200 @@ func get_unit_offer_quests(unit) -> Array:
 				continue
 
 			result.append(generated_quest)
+			return result
 
 	return result
+
+
+func _get_active_quests_for_unit(unit) -> Array:
+	var result: Array = []
+
+	if unit == null:
+		return result
+
+	var unit_key: String = _get_unit_offer_key(unit)
+	if unit_key == "":
+		return result
+
+	# まずは unit_id の完全一致で探す。
+	_append_active_quests_for_unit_key(result, unit_key)
+
+	if not result.is_empty():
+		return result
+
+	# 保険:
+	# リセット後にNPCが再生成され、unit_id が変わってしまった場合でも、
+	# 同じマップ・同じ表示名のNPCなら受注中クエストを優先表示する。
+	# これにより「受注中データは残っているのにNPC会話では新規クエストが出る」
+	# 状態を防ぐ。
+	_append_active_quests_for_probable_same_unit(result, unit)
+
+	return result
+
+
+func _append_active_quests_for_unit_key(result: Array, unit_key: String) -> void:
+	if unit_key == "":
+		return
+
+	for quest_id_value in WorldState.quest_active_data.keys():
+		var quest_id: String = String(quest_id_value)
+		if quest_id == "":
+			continue
+
+		if _quest_list_has_id(result, quest_id):
+			continue
+
+		var data_value: Variant = WorldState.quest_active_data.get(quest_id_value, {})
+		if typeof(data_value) != TYPE_DICTIONARY:
+			continue
+
+		var data: Dictionary = data_value
+		var giver_unit_id: String = String(data.get("giver_unit_id", ""))
+
+		if giver_unit_id != unit_key:
+			continue
+
+		var active_quest: QuestData = _build_quest_data_from_active_data(data)
+		if active_quest == null:
+			continue
+
+		result.append(active_quest)
+
+
+func _append_active_quests_for_probable_same_unit(result: Array, unit) -> void:
+	if unit == null:
+		return
+
+	var current_display_name: String = _get_unit_display_name(unit)
+	var current_map_id: String = ""
+	var current_unit_id: String = ""
+
+	if "map_id" in unit:
+		current_map_id = String(unit.map_id)
+
+	if "unit_id" in unit:
+		current_unit_id = String(unit.unit_id)
+
+	if current_display_name == "" or current_map_id == "":
+		return
+
+	for quest_id_value in WorldState.quest_active_data.keys():
+		var quest_id: String = String(quest_id_value)
+		if quest_id == "":
+			continue
+
+		if _quest_list_has_id(result, quest_id):
+			continue
+
+		var data_value: Variant = WorldState.quest_active_data.get(quest_id_value, {})
+		if typeof(data_value) != TYPE_DICTIONARY:
+			continue
+
+		var data: Dictionary = data_value
+		var giver_display_name: String = String(data.get("giver_display_name", ""))
+		var giver_unit_id: String = String(data.get("giver_unit_id", ""))
+
+		if giver_display_name == "":
+			continue
+
+		if giver_display_name != current_display_name:
+			continue
+
+		var giver_map_id: String = _guess_map_id_from_unit_id(giver_unit_id)
+		if giver_map_id != "" and giver_map_id != current_map_id:
+			continue
+
+		var active_quest: QuestData = _build_quest_data_from_active_data(data)
+		if active_quest == null:
+			continue
+
+		result.append(active_quest)
+
+
+
+func _get_unit_key_from_generated_quest_id(quest_id: String) -> String:
+	# QuestManager._make_generated_quest_id()
+	# generated__%s__%s__%d
+	# parts[0] = "generated"
+	# parts[1] = unit_key
+	# parts[2] = template_quest_id
+	# parts[3] = index
+	var parts: PackedStringArray = quest_id.split("__")
+	if parts.size() < 4:
+		return ""
+
+	return String(parts[1])
+
+
+func _guess_map_id_from_unit_id(unit_id: String) -> String:
+	if unit_id == "":
+		return ""
+
+	if unit_id.begins_with("field_"):
+		var parts: PackedStringArray = unit_id.split("_")
+		if parts.size() >= 3:
+			return "%s_%s_%s" % [parts[0], parts[1], parts[2]]
+
+	var npc_marker: int = unit_id.find("_npc_")
+	if npc_marker > 0:
+		return unit_id.substr(0, npc_marker)
+
+	var enemy_marker: int = unit_id.find("_enemy_")
+	if enemy_marker > 0:
+		return unit_id.substr(0, enemy_marker)
+
+	return ""
+
+
+func _quest_list_has_id(quests: Array, quest_id: String) -> bool:
+	if quest_id == "":
+		return false
+
+	for raw_quest in quests:
+		var quest: QuestData = raw_quest as QuestData
+		if quest == null:
+			continue
+
+		if quest.quest_id == quest_id:
+			return true
+
+	return false
+
+
+func _build_quest_data_from_active_data(data: Dictionary) -> QuestData:
+	if data.is_empty():
+		return null
+
+	var quest_id: String = String(data.get("quest_id", ""))
+	if quest_id == "":
+		return null
+
+	var quest: QuestData = QuestData.new()
+	quest.quest_id = quest_id
+	quest.title = String(data.get("title", quest_id))
+	quest.description = String(data.get("description", ""))
+	quest.objective_type = int(data.get("objective_type", QuestData.ObjectiveType.NONE))
+	quest.objective_item_id = String(data.get("objective_item_id", ""))
+	quest.objective_item_amount = int(data.get("objective_item_amount", 1))
+	quest.reward_gold = int(data.get("reward_gold", 0))
+
+	var reward_item_ids_value: Variant = data.get("reward_item_ids", [])
+	if reward_item_ids_value is Array:
+		quest.reward_item_ids = (reward_item_ids_value as Array).duplicate()
+
+	var reward_item_amounts_value: Variant = data.get("reward_item_amounts", [])
+	if reward_item_amounts_value is Array:
+		quest.reward_item_amounts = (reward_item_amounts_value as Array).duplicate()
+
+	var accepted_at: float = float(data.get("accepted_at", -1.0))
+	var deadline_at: float = float(data.get("deadline_at", -1.0))
+	if accepted_at >= 0.0 and deadline_at > accepted_at:
+		quest.time_limit_seconds = deadline_at - accepted_at
+	else:
+		quest.time_limit_seconds = 0.0
+
+	return quest
+
 
 
 func get_or_create_generated_unit_quests(unit) -> Array:
@@ -139,6 +504,11 @@ func get_or_create_generated_unit_quests(unit) -> Array:
 	var unit_id: String = _get_unit_offer_key(unit)
 	if unit_id == "":
 		return result
+
+	# 失敗/辞退後は、次にNPCリセットが完了するまで再生成しない。
+	if WorldState.has_method("is_npc_quest_generation_blocked_until_reset"):
+		if WorldState.is_npc_quest_generation_blocked_until_reset(unit_id):
+			return result
 
 	if WorldState.unit_generated_quests.has(unit_id):
 		var saved_list_variant: Variant = WorldState.unit_generated_quests[unit_id]
@@ -193,6 +563,12 @@ func _generate_unit_quests(unit) -> Array:
 
 	if "quest_offer_count_max" in unit:
 		max_count = max(min_count, int(unit.quest_offer_count_max))
+
+	# 仕様:
+	# 1人のNPCが生成するクエストは1つまで。
+	# インスペクターで2以上にしていても、生成数は最大1に丸める。
+	min_count = min(min_count, 1)
+	max_count = min(max_count, 1)
 
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.randomize()
@@ -445,7 +821,32 @@ func can_accept_quest(quest: QuestData, giver_unit) -> bool:
 		return false
 	if not can_accept_more_quests():
 		return false
+
+	# 1人のNPCが受け持つクエストは1つまで。
+	# 同じNPCから別のクエストを既に受注している場合は、新規受注させない。
+	if giver_unit != null:
+		var giver_unit_id: String = _get_unit_offer_key(giver_unit)
+		if giver_unit_id != "" and _has_active_quest_from_unit(giver_unit_id):
+			return false
+
 	return true
+
+
+func _has_active_quest_from_unit(giver_unit_id: String) -> bool:
+	if giver_unit_id == "":
+		return false
+
+	for quest_id_value in WorldState.quest_active_data.keys():
+		var data_value: Variant = WorldState.quest_active_data.get(quest_id_value, {})
+		if typeof(data_value) != TYPE_DICTIONARY:
+			continue
+
+		var data: Dictionary = data_value
+		if String(data.get("giver_unit_id", "")) == giver_unit_id:
+			return true
+
+	return false
+
 
 
 func can_show_board_quest(quest: QuestData, giver_unit) -> bool:
@@ -548,6 +949,8 @@ func abandon_quest(quest_id: String) -> Dictionary:
 	var data: Dictionary = get_active_quest_data(quest_id)
 	data["failed_reason"] = "abandoned"
 	data["failed_at"] = float(TimeManager.world_time_seconds)
+
+	_block_quest_giver_generation_until_reset(data)
 
 	WorldState.quest_active_data.erase(quest_id)
 	WorldState.quest_failed_data[quest_id] = data
@@ -778,6 +1181,8 @@ func fail_quest(quest_id: String) -> void:
 		return
 
 	var data: Dictionary = get_active_quest_data(quest_id)
+	_block_quest_giver_generation_until_reset(data)
+
 	WorldState.quest_active_data.erase(quest_id)
 	WorldState.quest_failed_data[quest_id] = data
 
@@ -989,7 +1394,114 @@ func get_board_quests(linked_unit_ids: Array[String], player_unit) -> Array:
 				"can_complete": can_complete_flag
 			})
 
+	# 保険:
+	# NPC側の生成クエストリストがリセットされても、受注中クエストは
+	# quest_active_data から必ずボードに戻す。
+	_append_active_board_quests_not_in_result(result, linked_unit_ids, target_units, player_unit)
+
 	return result
+
+
+func _append_active_board_quests_not_in_result(
+	result: Array,
+	linked_unit_ids: Array[String],
+	target_units: Array,
+	player_unit
+) -> void:
+	var allowed_unit_ids: Dictionary = {}
+
+	for unit in target_units:
+		if unit == null:
+			continue
+		if "unit_id" in unit:
+			var unit_id: String = String(unit.unit_id)
+			if unit_id != "":
+				allowed_unit_ids[unit_id] = true
+
+	for linked_unit_id in linked_unit_ids:
+		if linked_unit_id != "":
+			allowed_unit_ids[String(linked_unit_id)] = true
+
+	# linked_unit_ids が空で target_units が空の場合は、
+	# どのNPCの掲示板か判断できないので、他マップの依頼を混ぜない。
+	if allowed_unit_ids.is_empty():
+		return
+
+	for quest_id_value in WorldState.quest_active_data.keys():
+		var quest_id: String = String(quest_id_value)
+		if quest_id == "":
+			continue
+
+		if _board_result_has_quest_id(result, quest_id):
+			continue
+
+		var data_value: Variant = WorldState.quest_active_data.get(quest_id_value, {})
+		if typeof(data_value) != TYPE_DICTIONARY:
+			continue
+
+		var data: Dictionary = data_value
+		var giver_unit_id: String = String(data.get("giver_unit_id", ""))
+
+		var giver_unit = _find_unit_by_id(giver_unit_id)
+
+		# 通常は現在の掲示板が扱うNPCだけを表示する。
+		# ただし、リセット後にNPCが再生成/未ロードで見つからない場合は、
+		# active quest を消さずに表示する。完了報告は giver_unit が null でも可能にする。
+		if not allowed_unit_ids.has(giver_unit_id) and giver_unit != null:
+			continue
+
+		var quest: QuestData = _build_quest_data_from_active_data(data)
+		if quest == null:
+			continue
+
+		var giver_name: String = String(data.get("giver_display_name", giver_unit_id))
+		var giver_portrait = data.get("giver_portrait", null)
+
+		if giver_unit != null:
+			giver_name = _get_unit_display_name(giver_unit)
+			giver_portrait = _get_unit_portrait(giver_unit)
+
+		var can_complete_flag: bool = can_complete_quest(quest_id, player_unit)
+		var state_text: String = "報告可能" if can_complete_flag else "進行中"
+
+		result.append({
+			"giver_unit": giver_unit,
+			"giver_unit_id": giver_unit_id,
+			"giver_name": giver_name,
+			"giver_portrait": giver_portrait,
+			"quest": quest,
+			"quest_title": quest.title,
+			"detail_text": _build_board_detail_text(quest, player_unit),
+			"progress_text": _build_board_progress_text(quest, player_unit),
+			"reward_text": _build_board_reward_text(quest),
+			"remaining_time_text": _build_active_remaining_time_text(quest_id),
+			"state_text": state_text,
+			"can_accept": false,
+			"can_complete": can_complete_flag
+		})
+
+
+func _board_result_has_quest_id(result: Array, quest_id: String) -> bool:
+	for entry_value in result:
+		if typeof(entry_value) != TYPE_DICTIONARY:
+			continue
+
+		var entry: Dictionary = entry_value
+		var quest_value: Variant = entry.get("quest", null)
+		var quest: QuestData = quest_value as QuestData
+		if quest != null and quest.quest_id == quest_id:
+			return true
+
+	return false
+
+
+func _build_active_remaining_time_text(quest_id: String) -> String:
+	var remaining_seconds: float = get_remaining_seconds(quest_id)
+	if remaining_seconds < 0.0:
+		return "制限時間: なし"
+
+	return "残り時間: %s" % format_seconds_to_limit_text(remaining_seconds)
+
 
 
 func _find_unit_by_id(unit_id: String):
@@ -1078,6 +1590,9 @@ func _build_board_reward_text(quest: QuestData) -> String:
 func _build_board_time_limit_text(quest: QuestData) -> String:
 	if quest == null:
 		return ""
+
+	if has_active_quest(quest.quest_id):
+		return _build_active_remaining_time_text(quest.quest_id)
 
 	if float(quest.time_limit_seconds) <= 0.0:
 		return "制限時間: なし"
