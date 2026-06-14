@@ -1,0 +1,33 @@
+effect_id	effect_type	value_mode	resource_type	power_min	power_max	percent_value	status_id	status_power	modifier_kind	stat_name	stat_flat	stat_percent	duration_type	duration_value	teleport_mode	teleport_min_range	teleport_max_range	warp_point_id	grant_item_id	grant_item_amount	grant_currency_amount	skill_id	recipe_id	identify_all	document_text	spawn_object_id	curse_status_pool	curse_status_power_overrides
+potion_restore_hp	restore_resource	flat	hp	500	500	0.0		0			0	0.0	none	0.0	random	0	999			1	0			false				
+apple_restore_hunger	restore_resource	flat	hunger	10	10	0.0		0			0	0.0	none	0.0	random	0	999			1	0			false				
+healing_potion_restore_hp	restore_resource	flat	hp	30	30	0.0		0			0	0.0	none	0.0	random	0	999			1	0			false				
+mushroom_bad_poison	apply_status	flat		0	0	0.0	poison	1			0	0.0	time	3600.0	random	0	999			1	0			false				
+paralysis_cure_potion_cure_paralysis	cure_status	flat		0	0	0.0	paralysis	0			0	0.0	none	0.0	random	0	999			1	0			false				
+poison_cure_potion_cure_poison	cure_status	flat		0	0	0.0	poison	0			0	0.0	none	0.0	random	0	999			1	0			false				
+potion_of_strength_attack_buff	apply_modifier	flat		0	0	0.0		0	buff	attack	0	0.2	time	7200.0	random	0	999			1	0			false				
+teleport_stone_teleport	teleport	flat		0	0	0.0		0			0	0.0	none	0.0	random	3	999			1	0			false				
+fire_bottle_burning	apply_status	flat		0	0	0.0	burning	5			0	0.0	time	10.0	random	0	999			1	0			false				
+frost_bottle_frostbite	apply_status	flat		0	0	0.0	frostbite	2			0	0.0	time	10.0	random	0	999			1	0			false				
+sleep_orb_sleep	apply_status	flat		0	0	0.0	sleep	0			0	0.0	time	5000.0	random	0	999			1	0			false				
+confusion_mushroom_confusion	apply_status	flat		0	0	0.0	confusion	0			0	0.0	time	12.0	random	0	999			1	0			false				
+softening_powder_defense_debuff	apply_modifier	flat		0	0	0.0		0	debuff	defense	0	0.25	time	15.0	random	0	999			1	0			false				
+slow_slime_speed_debuff	apply_modifier	flat		0	0	0.0		0	debuff	speed	0	0.25	time	15.0	random	0	999			1	0			false				
+blur_powder_accuracy_debuff	apply_modifier	flat		0	0	0.0		0	debuff	accuracy	100	0.0	time	15.0	random	0	999			1	0			false				
+snare_smoke_evasion_debuff	apply_modifier	flat		0	0	0.0		0	debuff	evasion	80	0.0	time	15.0	random	0	999			1	0			false				
+calm_breaker_crit_rate_debuff	apply_modifier	flat		0	0	0.0		0	debuff	crit_rate	80	0.0	time	15.0	random	0	999			1	0			false				
+blast_stone_damage	deal_damage	flat		25	40	0.0		0			0	0.0	none	0.0	random	0	999			1	0			false				
+guard_tonic_defense_buff	apply_modifier	flat		0	0	0.0		0	buff	defense	0	0.3	time	20.0	random	0	999			1	0			false				
+swift_tonic_speed_buff	apply_modifier	flat		0	0	0.0		0	buff	speed	0	0.25	time	20.0	random	0	999			1	0			false				
+focus_tonic_accuracy_buff	apply_modifier	flat		0	0	0.0		0	buff	accuracy	100	0.0	time	20.0	random	0	999			1	0			false				
+dodge_tonic_evasion_buff	apply_modifier	flat		0	0	0.0		0	buff	evasion	80	0.0	time	20.0	random	0	999			1	0			false				
+crit_oil_crit_rate_buff	apply_modifier	flat		0	0	0.0		0	buff	crit_rate	100	0.0	time	20.0	random	0	999			1	0			false				
+life_seed_max_hp_growth	permanent_stat_growth	flat		10000	10000	0.0		0		max_hp	0	0.0	none	0.0	random	0	999			1	0			false				
+small_gold_pouch_grant_currency	grant_currency	flat		0	0	0.0		0			0	0.0	none	0.0	random	0	999			1	0			false				
+supply_bag_grant_item	grant_item	flat		0	0	0.0		0			0	0.0	none	0.0	random	0	999			1	0			false				
+blind_sand_blind	apply_status	flat		0	0	0.0	blind	0			0	0.0	time	5000.0	random	0	999			1	0			false				
+hallucination_powder_hallucination	apply_status	flat		0	0	0.0	hallucination	0			0	0.0	time	5000.0	random	0	999			1	0			false				
+curse_orb_curse	apply_status	flat		0	0	0.0	curse	0			0	0.0	time	5.0	random	0	999			1	0			false			poison|blind|confusion|burning|hallucination|frostbite|paralysis	2|0|0|2
+bread_restore_hunger	restore_resource	flat	hunger	12	18	0.0		0			0	0.0	none	0.0	random	0	999			1	0			false				
+meat_skewer_restore_hunger	restore_resource	flat	hunger	22	30	0.0		0			0	0.0	none	0.0	random	0	999			1	0			false				
+travel_ration_restore_hunger	restore_resource	flat	hunger	35	45	0.0		0			0	0.0	none	0.0	random	0	999			1	0			false				

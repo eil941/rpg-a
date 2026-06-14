@@ -17,6 +17,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 
+GameData="*uid://cpm7dq4tu0u70"
 GlobalPlayerSpawn="*uid://vehm76n68upe"
 TimeManager="*uid://bf1d2iytj41gt"
 Targeting="*uid://q7geo2aysgdg"

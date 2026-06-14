@@ -1,21 +1,24 @@
 extends Node
 class_name ItemSpawnRuleDatabase
 
-static var ITEM_SPAWN_RULES: Array[ItemSpawnRuleData] = [
-	#preload("res://data/items/spawn_rules/natural_rule.tres"),
-	#preload("res://data/items/spawn_rules/fortified_rule.tres"),
-	#preload("res://data/items/spawn_rules/ruined_rule.tres"),
-	#preload("res://data/items/spawn_rules/artificial_rule.tres"),
-	#preload("res://data/items/spawn_rules/chaotic_rule.tres"),
-	#preload("res://data/items/spawn_rules/detail_forest_rule.tres"),
-	#preload("res://data/items/spawn_rules/detail_plains_rule.tres"),
-	#preload("res://data/items/spawn_rules/detail_ruins_rule.tres"),
-	#preload("res://data/items/spawn_rules/detail_cave_rule.tres"),
-	#preload("res://data/items/spawn_rules/detail_default_rule.tres"),
-	
-	preload("res://data/items/spawn_rules/dungeon_default_rule.tres"),
-	preload("res://data/items/spawn_rules/detail_default_rule.tres")
-]
+
+static func _get_all_rules() -> Array[ItemSpawnRuleData]:
+	var result: Array[ItemSpawnRuleData] = []
+
+	if GameData == null:
+		return result
+
+	if not GameData.has_method("get_all_item_spawn_rules"):
+		return result
+
+	for raw_rule in GameData.get_all_item_spawn_rules():
+		var rule: ItemSpawnRuleData = raw_rule as ItemSpawnRuleData
+		if rule == null:
+			continue
+		result.append(rule)
+
+	return result
+
 
 # =========================================
 # デバッグ用レポート状態
@@ -32,7 +35,7 @@ static var _debug_report_actual_category_counts: Dictionary = {}
 static func get_matching_rule(spawn_context: Dictionary) -> ItemSpawnRuleData:
 	var fallback_rule: ItemSpawnRuleData = null
 
-	for rule in ITEM_SPAWN_RULES:
+	for rule in _get_all_rules():
 		if rule == null:
 			continue
 

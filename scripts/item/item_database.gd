@@ -1,74 +1,31 @@
 extends Node
 class_name ItemDatabase
 
-const EQUIPMENT_ENCHANT_CHANCE: float = 0.1
-
-static var ITEM_RESOURCES = {
-	# items
-	"gold": preload("res://data/items/gold.tres"),
-	"potion": preload("res://data/items/potion.tres"),
-	"wood": preload("res://data/items/wood.tres"),
-	"apple": preload("res://data/items/apple.tres"),
-	
-	"healing_potion": preload("res://data/items/healing_potion.tres"),
-	"mushroom_bad": preload("res://data/items/mushroom_bad.tres"),
-	"paralysis_cure_potion": preload("res://data/items/paralysis_cure_potion.tres"),
-	"potion_of_strength": preload("res://data/items/potion_of_strength.tres"),
-	"teleport_stone": preload("res://data/items/teleport_stone.tres"),
-	"poison_cure_potion": preload("res://data/items/poison_cure_potion.tres"),
-
-	# phase1 items
-	"fire_bottle": preload("res://data/items/phase1/fire_bottle.tres"),
-	"frost_bottle": preload("res://data/items/phase1/frost_bottle.tres"),
-	"sleep_orb": preload("res://data/items/phase1/sleep_orb.tres"),
-	"confusion_mushroom": preload("res://data/items/phase1/confusion_mushroom.tres"),
-	"softening_powder": preload("res://data/items/phase1/softening_powder.tres"),
-	"slow_slime": preload("res://data/items/phase1/slow_slime.tres"),
-	"blur_powder": preload("res://data/items/phase1/blur_powder.tres"),
-	"snare_smoke": preload("res://data/items/phase1/snare_smoke.tres"),
-	"calm_breaker": preload("res://data/items/phase1/calm_breaker.tres"),
-	"blast_stone": preload("res://data/items/phase1/blast_stone.tres"),
-	"guard_tonic": preload("res://data/items/phase1/guard_tonic.tres"),
-	"swift_tonic": preload("res://data/items/phase1/swift_tonic.tres"),
-	"focus_tonic": preload("res://data/items/phase1/focus_tonic.tres"),
-	"dodge_tonic": preload("res://data/items/phase1/dodge_tonic.tres"),
-	"crit_oil": preload("res://data/items/phase1/crit_oil.tres"),
-	"life_seed": preload("res://data/items/phase1/life_seed.tres"),
-	
-	# phase2 items
-	"small_gold_pouch":preload("res://data/items/phase2/small_gold_pouch.tres"),
-	"supply_bag":preload("res://data/items/phase2/supply_bag.tres"),
-	
-	# phase3 items
-	"blind_sand": preload("res://data/items/phase3/blind_sand.tres"),
-	"hallucination_powder": preload("res://data/items/phase3/hallucination_powder.tres"),
-	"curse_orb":preload("res://data/items/phase3/curse_orb.tres"),
-	
-	#food関連のサンプル
-	"bread":preload("res://data/items/food/bread.tres"),
-	"meat_skewer":preload("res://data/items/food/meat_skewer.tres"),
-	"travel_ration":preload("res://data/items/food/travel_ration.tres"),
-
-	# equipment
-	"knife": preload("res://data/equipment/weapons/knife.tres"),
-	"bow": preload("res://data/equipment/weapons/bow.tres"),
-	"cloth_armor": preload("res://data/equipment/armor/cloth_armor.tres"),
-	"power_ring": preload("res://data/equipment/accessories/power_ring.tres")
-}
-
+#エンチャント確率
+const EQUIPMENT_ENCHANT_CHANCE: float = 1.1
 
 static func has_item(item_id: String) -> bool:
-	return ITEM_RESOURCES.has(item_id)
+	return exists(item_id)
 
 
 static func exists(item_id: String) -> bool:
-	return ITEM_RESOURCES.has(item_id)
+	if item_id == "":
+		return false
+
+	if GameData == null:
+		return false
+
+	return GameData.has_item(item_id)
 
 
 static func get_item_resource(item_id: String):
 	if item_id == "":
 		return null
-	return ITEM_RESOURCES.get(item_id, null)
+
+	if GameData == null:
+		return null
+
+	return GameData.get_item(item_id)
 
 
 static func get_item_data(item_id: String):
@@ -79,6 +36,7 @@ static func get_display_name(item_id: String) -> String:
 	var data = get_item_resource(item_id)
 	if data == null:
 		return item_id
+
 	return String(data.display_name)
 
 
@@ -86,6 +44,7 @@ static func get_description(item_id: String) -> String:
 	var data = get_item_resource(item_id)
 	if data == null:
 		return ""
+
 	return String(data.description)
 
 
@@ -93,6 +52,7 @@ static func get_item_icon(item_id: String) -> Texture2D:
 	var data = get_item_resource(item_id)
 	if data == null:
 		return null
+
 	return data.icon
 
 
@@ -100,7 +60,36 @@ static func get_max_stack(item_id: String) -> int:
 	var data = get_item_resource(item_id)
 	if data == null:
 		return 99
+
 	return int(data.max_stack)
+
+
+static func get_rarity(item_id: String) -> int:
+	var data = get_item_resource(item_id)
+	if data == null:
+		return 1
+
+	if data.has_method("get_rarity_value"):
+		return int(data.get_rarity_value())
+
+	if "rarity" in data:
+		return clampi(int(data.rarity), 1, 10)
+
+	return 1
+
+
+static func get_spawn_weight(item_id: String) -> int:
+	var data = get_item_resource(item_id)
+	if data == null:
+		return 0
+
+	if data.has_method("get_spawn_weight_value"):
+		return int(data.get_spawn_weight_value())
+
+	if "spawn_weight" in data:
+		return max(0, int(data.spawn_weight))
+
+	return 100
 
 
 static func get_item_type(item_id: String) -> String:
@@ -110,6 +99,9 @@ static func get_item_type(item_id: String) -> String:
 
 	if data is EquipmentData:
 		return String(ItemCategories.EQUIPMENT)
+
+	if "category" in data:
+		return ItemCategories.normalize(String(data.category))
 
 	if data.has_method("get_item_type_name"):
 		return ItemCategories.normalize(String(data.get_item_type_name()))
@@ -121,9 +113,11 @@ static func get_item_ids_by_type(item_type: String) -> Array[String]:
 	var result: Array[String] = []
 	var normalized_type: String = ItemCategories.normalize(item_type)
 
-	for item_id in ITEM_RESOURCES.keys():
-		if get_item_type(String(item_id)) == normalized_type:
-			result.append(String(item_id))
+	for item_id in _get_item_resource_keys():
+		var id_text: String = String(item_id)
+
+		if get_item_type(id_text) == normalized_type:
+			result.append(id_text)
 
 	return result
 
@@ -135,7 +129,7 @@ static func get_item_ids_by_types(item_types: Array[String]) -> Array[String]:
 	for item_type in item_types:
 		normalized_types.append(ItemCategories.normalize(String(item_type)))
 
-	for item_id in ITEM_RESOURCES.keys():
+	for item_id in _get_item_resource_keys():
 		var id_text: String = String(item_id)
 		var type_text: String = get_item_type(id_text)
 
@@ -186,6 +180,7 @@ static func is_usable(item_id: String) -> bool:
 	var data = get_item_resource(item_id)
 	if data == null:
 		return false
+
 	return bool(data.usable)
 
 
@@ -209,6 +204,7 @@ static func get_equipment_resource(item_id: String):
 	var data = get_item_resource(item_id)
 	if data is EquipmentData:
 		return data
+
 	return null
 
 
@@ -311,6 +307,7 @@ static func get_effect_summary_text(item_id: String) -> String:
 	var lines: Array[String] = get_effect_summary_lines(item_id)
 	if lines.is_empty():
 		return ""
+
 	return "\n".join(lines)
 
 
@@ -327,6 +324,7 @@ static func _build_restore_resource_text(effect: ItemEffectData) -> String:
 		_:
 			if effect.power_min == effect.power_max:
 				return resource_name + "回復 " + str(effect.power_min)
+
 			return resource_name + "回復 " + str(effect.power_min) + "〜" + str(effect.power_max)
 
 
@@ -346,6 +344,7 @@ static func _build_modifier_text(effect: ItemEffectData) -> String:
 		value_text = "0"
 
 	var duration_text: String = ""
+
 	match effect.duration_type:
 		ItemEffectData.DurationType.TIME:
 			duration_text = " / " + str(int(round(effect.duration_value))) + "秒"
@@ -360,6 +359,7 @@ static func _build_modifier_text(effect: ItemEffectData) -> String:
 static func _build_damage_text(effect: ItemEffectData) -> String:
 	if effect.power_min == effect.power_max:
 		return "ダメージ " + str(effect.power_min)
+
 	return "ダメージ " + str(effect.power_min) + "〜" + str(effect.power_max)
 
 
@@ -387,6 +387,7 @@ static func _get_resource_display_name(resource_type: int) -> String:
 			return "スタミナ"
 		ItemEffectData.ResourceType.HUNGER:
 			return "空腹度"
+
 	return "リソース"
 
 
@@ -410,6 +411,7 @@ static func _get_status_display_name(status_id: StringName) -> String:
 			return "幻覚"
 		"curse":
 			return "呪い"
+
 	return String(status_id)
 
 
@@ -449,6 +451,7 @@ static func _get_stat_display_name(stat_name: StringName) -> String:
 			return "感覚"
 		"charm":
 			return "魅力"
+
 	return String(stat_name)
 
 
@@ -497,6 +500,7 @@ static func get_entry_display_name(entry: Dictionary) -> String:
 		return base_name
 
 	var enchant_id: String = String(first_data.get("id", ""))
+
 	match enchant_id:
 		"atk_up_small":
 			return "鋭い" + base_name
@@ -538,6 +542,7 @@ static func build_random_equipment_entry(item_id: String, rng: RandomNumberGener
 
 	var enchant_roll: float = rng.randf()
 	_debug_enchant_log("[ENCHANT][ItemDatabase] roll item_id=%s roll=%s chance=%s" % [item_id, str(enchant_roll), str(EQUIPMENT_ENCHANT_CHANCE)])
+
 	if enchant_roll >= EQUIPMENT_ENCHANT_CHANCE:
 		_debug_enchant_log("[ENCHANT][ItemDatabase] no enchant item_id=%s" % item_id)
 		return entry
@@ -545,6 +550,7 @@ static func build_random_equipment_entry(item_id: String, rng: RandomNumberGener
 	var slot_name: String = equipment_resource.get_slot_name()
 	var candidate_ids: Array[String] = EnchantmentDatabase.get_candidate_enchantment_ids_for_slot(slot_name)
 	_debug_enchant_log("[ENCHANT][ItemDatabase] candidates item_id=%s slot=%s candidate_ids=%s" % [item_id, slot_name, str(candidate_ids)])
+
 	if candidate_ids.is_empty():
 		_debug_enchant_log("[ENCHANT][ItemDatabase] no candidates item_id=%s slot=%s" % [item_id, slot_name])
 		return entry
@@ -574,6 +580,7 @@ static func build_random_equipment_entry(item_id: String, rng: RandomNumberGener
 	entry["instance_data"] = {
 		"enchantments": enchantments
 	}
+
 	_debug_enchant_log("[ENCHANT][ItemDatabase] BUILD RANDOM EQUIPMENT ENTRY = %s" % str(entry))
 	return entry
 
@@ -596,11 +603,11 @@ static func get_sell_price(item_id: String) -> int:
 	var base_price: int = get_base_price(item_id)
 	return max(0, int(float(base_price) / 2.0))
 
-	
+
 static func get_all_item_ids() -> Array[String]:
 	var result: Array[String] = []
 
-	for item_id in ITEM_RESOURCES.keys():
+	for item_id in _get_item_resource_keys():
 		result.append(String(item_id))
 
 	return result
@@ -609,9 +616,10 @@ static func get_all_item_ids() -> Array[String]:
 static func get_spawnable_item_ids() -> Array[String]:
 	var result: Array[String] = []
 
-	for item_id in ITEM_RESOURCES.keys():
+	for item_id in _get_item_resource_keys():
 		var id_text: String = String(item_id)
 		var data = get_item_resource(id_text)
+
 		if data == null:
 			continue
 
@@ -621,31 +629,16 @@ static func get_spawnable_item_ids() -> Array[String]:
 	return result
 
 
-static func get_rarity(item_id: String) -> int:
-	var data = get_item_resource(item_id)
-	if data == null:
-		return 1
+static func _get_item_resource_keys() -> Array:
+	var result: Array = []
 
-	if data is ItemData:
-		return data.get_rarity_value()
+	if GameData == null:
+		return result
 
-	if data is EquipmentData:
-		if "rarity" in data:
-			return clampi(int(data.rarity), 1, 10)
+	for item in GameData.get_all_items():
+		if item == null:
+			continue
 
-	return 1
+		result.append(String(item.item_id))
 
-
-static func get_spawn_weight(item_id: String) -> int:
-	var data = get_item_resource(item_id)
-	if data == null:
-		return 0
-
-	if data is ItemData:
-		return data.get_spawn_weight_value()
-
-	if data is EquipmentData:
-		if "spawn_weight" in data:
-			return max(0, int(data.spawn_weight))
-
-	return 100
+	return result

@@ -1,69 +1,54 @@
 extends Node
 class_name EnemyDatabase
 
+
 static func get_all_enemy_data() -> Array[EnemyData]:
-	return [
-		preload("res://data/test/bat_data.tres"),
-		preload("res://data/test/orc_data.tres"),
-		preload("res://data/test/slime_data.tres"),
-		preload("res://data/unit/unit_data/enemy/bat1_data.tres"),
-		preload("res://data/unit/unit_data/enemy/bat2_data.tres"),
-		preload("res://data/unit/unit_data/enemy/bat3_data.tres"),
-		preload("res://data/unit/unit_data/enemy/bat4_data.tres"),
-		
-		preload("res://data/unit/unit_data/enemy/block1_data.tres"),
-		preload("res://data/unit/unit_data/enemy/block2_data.tres"),
-		preload("res://data/unit/unit_data/enemy/block3_data.tres"),
-		preload("res://data/unit/unit_data/enemy/block4_data.tres"),
-		
-		preload("res://data/unit/unit_data/enemy/carrot1_data.tres"),
-		preload("res://data/unit/unit_data/enemy/carrot2_data.tres"),
-		preload("res://data/unit/unit_data/enemy/carrot3_data.tres"),
-		preload("res://data/unit/unit_data/enemy/carrot4_data.tres"),
-		
-		preload("res://data/unit/unit_data/enemy/drop1_data.tres"),
-		preload("res://data/unit/unit_data/enemy/drop2_data.tres"),
-		preload("res://data/unit/unit_data/enemy/drop3_data.tres"),
-		preload("res://data/unit/unit_data/enemy/drop4_data.tres"),
-		
-		preload("res://data/unit/unit_data/enemy/ghost1_data.tres"),
-		preload("res://data/unit/unit_data/enemy/ghost2_data.tres"),
-		preload("res://data/unit/unit_data/enemy/ghost3_data.tres"),
-		preload("res://data/unit/unit_data/enemy/ghost4_data.tres"),
-		
-		preload("res://data/unit/unit_data/enemy/madhand1_data.tres"),
-		preload("res://data/unit/unit_data/enemy/madhand2_data.tres"),
-		preload("res://data/unit/unit_data/enemy/madhand3_data.tres"),
-		preload("res://data/unit/unit_data/enemy/madhand4_data.tres"),
-		
-		preload("res://data/unit/unit_data/enemy/slime1_data.tres"),
-		preload("res://data/unit/unit_data/enemy/slime2_data.tres"),
-		preload("res://data/unit/unit_data/enemy/slime3_data.tres"),
-		preload("res://data/unit/unit_data/enemy/slime4_data.tres"),
-		
-		preload("res://data/unit/unit_data/enemy/soul1_data.tres"),
-		preload("res://data/unit/unit_data/enemy/soul2_data.tres"),
-		preload("res://data/unit/unit_data/enemy/soul3_data.tres"),
-		preload("res://data/unit/unit_data/enemy/soul4_data.tres"),
-		
-		preload("res://data/unit/unit_data/enemy/stump1_data.tres"),
-		preload("res://data/unit/unit_data/enemy/stump2_data.tres"),
-		preload("res://data/unit/unit_data/enemy/stump3_data.tres"),
-		preload("res://data/unit/unit_data/enemy/stump4_data.tres")
-	]
+	var result: Array[EnemyData] = []
+
+	if GameData == null:
+		return result
+
+	if not GameData.has_method("get_all_enemies"):
+		return result
+
+	for raw_enemy in GameData.get_all_enemies():
+		var enemy: EnemyData = raw_enemy as EnemyData
+		if enemy == null:
+			continue
+		result.append(enemy)
+
+	return result
 
 
 static func get_enemy_data_by_id(enemy_type_id: String) -> EnemyData:
-	var all_data: Array[EnemyData] = get_all_enemy_data()
+	if enemy_type_id == "":
+		return null
 
-	for data in all_data:
-		if data == null:
-			continue
-		if data.enemy_type_id == enemy_type_id:
-			return data
+	if GameData == null:
+		return null
+
+	if GameData.has_method("get_enemy"):
+		return GameData.get_enemy(enemy_type_id)
 
 	return null
 
 
+static func get_enemy(enemy_type_id: String) -> EnemyData:
+	return get_enemy_data_by_id(enemy_type_id)
+
+
+static func exists(enemy_type_id: String) -> bool:
+	return has_enemy(enemy_type_id)
+
+
 static func has_enemy(enemy_type_id: String) -> bool:
+	if enemy_type_id == "":
+		return false
+
+	if GameData == null:
+		return false
+
+	if GameData.has_method("has_enemy"):
+		return GameData.has_enemy(enemy_type_id)
+
 	return get_enemy_data_by_id(enemy_type_id) != null

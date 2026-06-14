@@ -1,13 +1,23 @@
 extends Node
 class_name SpawnRuleDatabase
 
+
 static func get_all_rules() -> Array[SpawnRuleData]:
-	return [
-		#preload("res://data/unit/spawn_rule/spawn_rule_grass_easy.tres"),
-		#preload("res://data/unit/spawn_rule/spawn_rule_grass_hard.tres"),
-		#preload("res://data/unit/spawn_rule/spawn_rule_sand_enemy.tres"),
-		preload("res://data/unit/spawn_rule/spawn_rule_forest_enemy.tres")
-	]
+	var result: Array[SpawnRuleData] = []
+
+	if GameData == null:
+		return result
+
+	if not GameData.has_method("get_all_unit_spawn_rules"):
+		return result
+
+	for raw_rule in GameData.get_all_unit_spawn_rules():
+		var rule: SpawnRuleData = raw_rule as SpawnRuleData
+		if rule == null:
+			continue
+		result.append(rule)
+
+	return result
 
 
 static func get_matching_rules(
@@ -18,9 +28,8 @@ static func get_matching_rules(
 ) -> Array[SpawnRuleData]:
 	var results: Array[SpawnRuleData] = []
 	var normalized_generator_type: String = String(generator_type).strip_edges().replace("\"", "").to_upper()
-	var rules: Array[SpawnRuleData] = get_all_rules()
 
-	for rule in rules:
+	for rule in get_all_rules():
 		if rule == null:
 			continue
 		if not rule.enabled:

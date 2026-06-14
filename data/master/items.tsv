@@ -1,0 +1,39 @@
+item_id	display_name	description	category	icon_path	max_stack	usable	base_price	can_sell	rarity	spawn_weight	use_flags	target_flags
+gold	G	この世界の通貨	misc	res://assets/items/gold.png	99999999	false	1	false	1	100	0	0
+potion	potion		consumable	res://assets/items/potion.png	99	true	100	true	10	100	5	15
+wood	wood		material	res://assets/items/wood.png	99	false	10	true	9	100	0	0
+apple	apple		consumable	res://assets/items/apple.png	99	true	50	true	1	100	1	1
+healing_potion	回復ポーション	HPを30回復する。自分で飲むことも、敵味方問わず投げて使うこともできる。	consumable	res://assets/items/sample/healing_potion.png	20	true	120	true	2	100	5	15
+mushroom_bad	怪しいキノコ	食べると毒状態になる危険なキノコ。	consumable	res://assets/items/sample/mushroom_bad.png	20	true	25	true	3	100	1	1
+paralysis_cure_potion	麻痺回復ポーション	麻痺状態を解除する。	consumable	res://assets/items/sample/paralysis_cure_potion.png	20	true	150	true	4	100	1	1
+poison_cure_potion	解毒薬	毒状態を解除する。	consumable	res://assets/items/sample/poison_cure_potion.png	20	true	150	true	4	100	1	1
+potion_of_strength	力のポーション	2時間のあいだ攻撃力を20%上昇させる。自分で飲むことも、敵味方問わず投げて使うこともできる。	consumable	res://assets/items/sample/potion_of_strength.png	20	true	220	true	5	100	5	15
+teleport_stone	テレポートの石	使用するとランダムな位置へ転移する不思議な石。	consumable	res://assets/items/sample/teleport_stone.png	10	true	300	true	8	100	9	1
+fire_bottle	火炎瓶	敵1体を炎上させる。	consumable	res://assets/items/sample/fire_bottle.png	99	true	120	true	1	100	7	5
+frost_bottle	氷結瓶	敵1体を凍傷状態にする。	consumable	res://assets/items/sample/frost_bottle.png	99	true	120	true	1	100	7	4
+sleep_orb	眠り玉	敵1体を眠らせる。	consumable	res://assets/items/sample/sleep_orb.png	99	true	110	true	1	100	3	4
+confusion_mushroom	混乱茸	敵1体を混乱させる。	consumable	res://assets/items/sample/confusion_mushroom.png	99	true	130	true	1	100	2	4
+softening_powder	軟化粉	敵1体の防御を下げる。	consumable	res://assets/player_back_1.png	99	true	90	true	1	100	2	4
+slow_slime	鈍足粘液	敵1体の速度を下げる。	consumable	res://assets/items/sample/slow_slime.png	99	true	95	true	1	100	2	4
+blur_powder	目くらまし粉	敵1体の命中を下げる。	consumable	res://assets/items/sample/blur_powder.png	99	true	100	true	1	100	6	4
+snare_smoke	足絡み煙	敵1体の回避を下げる。	consumable	res://assets/items/sample/softening_powder.png	99	true	100	true	1	100	2	4
+calm_breaker	冷静崩し	敵1体の会心率を下げる。	consumable	res://assets/items/sample/calm_breaker.png	99	true	110	true	1	100	6	4
+blast_stone	爆裂石	敵1体に直接ダメージを与える。	consumable	res://assets/items/sample/blast_stone.png	99	true	140	true	1	100	6	4
+guard_tonic	守りの薬	しばらく防御が上がる。	consumable	res://assets/items/sample/guard_tonic.png	99	true	100	true	1	100	1	1
+swift_tonic	俊足の薬	しばらく速度が上がる。	consumable	res://assets/items/sample/swift_tonic.png	99	true	100	true	1	100	1	1
+focus_tonic	集中薬	しばらく命中が上がる。	consumable	res://assets/items/sample/focus_tonic.png	99	true	110	true	1	100	1	1
+dodge_tonic	身かわしの薬	しばらく回避が上がる。	consumable	res://assets/items/sample/dodge_tonic.png	99	true	110	true	1	100	7	1
+crit_oil	会心油	しばらく会心率が上がる。	consumable	res://assets/items/sample/crit_oil.png	99	true	120	true	1	100	7	1
+life_seed	命の木の実	最大HPが恒久的に増加する。	consumable	res://assets/items/sample/life_seed.png	99	true	250	true	1	100	1	1
+small_gold_pouch	小金袋	使うと金貨をランダムに入手する。	consumable	res://assets/items/sample/small_gold_pouch.png	20	true	140	true	3	100	1	1
+supply_bag	補給袋	使うと補給品をランダムに入手する。	consumable	res://assets/items/sample/supply_bag.png	20	true	180	true	4	100	1	1
+blind_sand	目潰し砂	敵1体を盲目にする。プレイヤーなら周囲以外が見えなくなる。	consumable	res://assets/items/sample/blind_sand.png	99	true	130	true	3	100	6	4
+hallucination_powder	幻惑粉	敵1体を幻覚状態にする。見た目だけが大きく乱れる。	consumable	res://assets/items/sample/hallucination_powder.png	99	true	150	true	4	100	6	4
+curse_orb	呪い玉	敵1体に呪いを与え、複数の状態異常をランダムで付与する。	consumable	res://assets/wall.png	20	true	220	true	6	40	6	4
+bread	パン	手軽に食べられるパン。空腹を少し回復する。	consumable	res://assets/items/sample/bread.png	20	true	18	true	1	120	2	1
+meat_skewer	串焼き肉	しっかり腹にたまる串焼き。空腹を中程度回復する。	consumable	res://assets/items/sample/meat_skewer.png	10	true	42	true	2	70	2	1
+travel_ration	携帯食料	保存性の高い携帯食。空腹を大きく回復する。	consumable	res://assets/items/sample/travel_ration.png	10	true	65	true	2	55	2	1
+knife	Knife	ナイフ	equipment	res://assets/items/knife.png	1	false	34	true	1	100	0	0
+bow	bow	弓	equipment	res://assets/items/bow.png	1	false	23	true	1	100	0	0
+cloth_armor	Cloth Armor	防具	equipment	res://assets/items/armor.png	1	false	56	true	1	100	0	0
+power_ring	Power Ring	指輪	equipment	res://assets/items/ring.png	1	false	15	true	1	100	0	0

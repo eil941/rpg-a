@@ -173,7 +173,7 @@ theme_override_constants/v_separation = 0
 columns = 5
 
 [node name="EquipmentPanel" type="PanelContainer" parent="Root/Overlay/CenterContainer/MainHBox" unique_id=2067664630]
-custom_minimum_size = Vector2(166.667, 0.0)
+custom_minimum_size = Vector2(166.667, 0)
 layout_mode = 2
 size_flags_vertical = 0
 theme_override_styles/panel = SubResource("StyleBoxFlat_equipment_panel")

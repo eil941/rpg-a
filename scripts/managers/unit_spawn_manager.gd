@@ -262,6 +262,20 @@ func generate_random_shop_inventory_from_data(data) -> Array:
 	return result
 
 
+
+
+func clear_runtime_state_for_new_random_unit(unit_id: String) -> void:
+	if unit_id == "":
+		return
+
+	# ランダム再生成された個体に、同じ unit_id の古いクエスト・ショップ・HP等を引き継がせない。
+	if WorldState.unit_states != null:
+		WorldState.unit_states.erase(unit_id)
+
+	if WorldState.unit_generated_quests != null:
+		WorldState.unit_generated_quests.erase(unit_id)
+
+
 func apply_generated_shop_inventory_if_needed(unit: Node, data) -> void:
 	if unit == null:
 		return
@@ -438,6 +452,9 @@ func spawn_npc_random(
 		npc.unit_id = unique_unit_id
 		npc.map_id = map_id
 
+		# 新規ランダム生成なので、同じ unit_id に残っていた古いクエスト/ショップ/HPなどを消す。
+		clear_runtime_state_for_new_random_unit(unique_unit_id)
+
 		print("SPAWN RANDOM NPC ASSIGNED unit_id=", npc.unit_id, " map_id=", npc.map_id, " npc_type=", npc_data.npc_type_id)
 
 		ensure_inventory_node(npc)
@@ -446,7 +463,6 @@ func spawn_npc_random(
 
 		units_node.add_child(npc)
 		npc.apply_npc_data(npc_data)
-		apply_generated_shop_inventory_if_needed(npc, npc_data)
 
 		used_tiles.append(tile)
 
@@ -515,4 +531,3 @@ func spawn_saved_npcs(npc_unit_scene: PackedScene, npc_data_list: Array[NpcData]
 
 		units_node.add_child(npc)
 		npc.apply_npc_data(npc_data)
-		apply_generated_shop_inventory_if_needed(npc, npc_data)

@@ -140,31 +140,17 @@ func _block_quest_giver_generation_until_reset(data: Dictionary) -> void:
 			WorldState.block_npc_quest_generation_until_reset(block_key)
 
 
+
 func _build_unit_quest_generation_block_keys(unit) -> Array[String]:
 	var result: Array[String] = []
 
 	if unit == null:
 		return result
 
+	# 生成ブロックもNPC個体単位にする。
+	# 表示名キーを使うと、同名NPCのクエストが同期してしまう。
 	var unit_key: String = _get_unit_offer_key(unit)
 	_append_unique_string(result, unit_key)
-
-	var map_id: String = ""
-	if "map_id" in unit:
-		map_id = String(unit.map_id).strip_edges()
-
-	if map_id == "":
-		map_id = _guess_map_id_from_unit_id(unit_key)
-
-	var display_name: String = _get_unit_display_name(unit).strip_edges()
-
-	if map_id != "" and display_name != "":
-		_append_unique_string(result, _make_npc_display_block_key(map_id, display_name))
-
-	# map_idが取れない場合の最後の保険。
-	# 同名NPCが大量にいるなら避けたいが、「即時再生成」を止める優先。
-	if display_name != "":
-		_append_unique_string(result, _make_npc_display_block_key("", display_name))
 
 	return result
 
@@ -183,17 +169,7 @@ func _build_quest_giver_block_keys_from_data(data: Dictionary) -> Array[String]:
 		var quest_unit_key: String = _get_unit_key_from_generated_quest_id(quest_id)
 		_append_unique_string(result, quest_unit_key)
 
-	var giver_map_id: String = _guess_map_id_from_unit_id(giver_unit_id)
-	var giver_display_name: String = String(data.get("giver_display_name", "")).strip_edges()
-
-	if giver_map_id != "" and giver_display_name != "":
-		_append_unique_string(result, _make_npc_display_block_key(giver_map_id, giver_display_name))
-
-	if giver_display_name != "":
-		_append_unique_string(result, _make_npc_display_block_key("", giver_display_name))
-
 	return result
-
 
 func _has_failed_generated_quest_from_same_unit(unit, unit_block_keys: Array[String]) -> bool:
 	if unit == null:
@@ -303,6 +279,7 @@ func get_unit_offer_quests(unit) -> Array:
 	return result
 
 
+
 func _get_active_quests_for_unit(unit) -> Array:
 	var result: Array = []
 
@@ -313,21 +290,11 @@ func _get_active_quests_for_unit(unit) -> Array:
 	if unit_key == "":
 		return result
 
-	# まずは unit_id の完全一致で探す。
+	# クエストはNPC個体単位で管理する。
+	# 同じ表示名 / 同じ npc_type_id のNPCでも、unit_id が違えば別NPCとして扱う。
 	_append_active_quests_for_unit_key(result, unit_key)
 
-	if not result.is_empty():
-		return result
-
-	# 保険:
-	# リセット後にNPCが再生成され、unit_id が変わってしまった場合でも、
-	# 同じマップ・同じ表示名のNPCなら受注中クエストを優先表示する。
-	# これにより「受注中データは残っているのにNPC会話では新規クエストが出る」
-	# 状態を防ぐ。
-	_append_active_quests_for_probable_same_unit(result, unit)
-
 	return result
-
 
 func _append_active_quests_for_unit_key(result: Array, unit_key: String) -> void:
 	if unit_key == "":
@@ -550,6 +517,25 @@ func refresh_generated_unit_quests(unit) -> void:
 	WorldState.unit_generated_quests.erase(unit_id)
 
 
+
+func _create_unit_quest_rng(unit) -> RandomNumberGenerator:
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.randomize()
+
+	var seed_text: String = _get_unit_offer_key(unit)
+	if seed_text == "":
+		seed_text = "instance_%s" % str(unit.get_instance_id())
+
+	# 同じフレーム内に複数NPCを生成しても、unit_idごとに乱数が分かれるようにする。
+	# 同名 / 同種NPCでも同じクエスト内容になりにくくする。
+	var mixed_seed: int = hash(seed_text + "::" + str(Time.get_ticks_usec()) + "::" + str(rng.randi()))
+	if mixed_seed < 0:
+		mixed_seed = -mixed_seed
+
+	rng.seed = mixed_seed
+	return rng
+
+
 func _generate_unit_quests(unit) -> Array:
 	var result: Array = []
 	if unit == null:
@@ -570,8 +556,7 @@ func _generate_unit_quests(unit) -> Array:
 	min_count = min(min_count, 1)
 	max_count = min(max_count, 1)
 
-	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
-	rng.randomize()
+	var rng: RandomNumberGenerator = _create_unit_quest_rng(unit)
 
 	var offer_count: int = min_count
 	if max_count > min_count:
@@ -585,7 +570,7 @@ func _generate_unit_quests(unit) -> Array:
 	if filtered_templates.is_empty():
 		return result
 
-	var picked_templates: Array = _pick_weighted_templates(filtered_templates, offer_count)
+	var picked_templates: Array = _pick_weighted_templates(filtered_templates, offer_count, rng)
 
 	var index: int = 0
 	for raw_template in picked_templates:
@@ -593,7 +578,7 @@ func _generate_unit_quests(unit) -> Array:
 		if template == null:
 			continue
 
-		var generated_quest: QuestData = _make_generated_quest_from_template(template, unit, index)
+		var generated_quest: QuestData = _make_generated_quest_from_template(template, unit, index, rng)
 		if generated_quest != null:
 			result.append(generated_quest)
 
@@ -630,13 +615,10 @@ func _filter_templates_for_unit(unit, templates: Array) -> Array:
 	return result
 
 
-func _pick_weighted_templates(templates: Array, pick_count: int) -> Array:
+func _pick_weighted_templates(templates: Array, pick_count: int, rng: RandomNumberGenerator) -> Array:
 	var result: Array = []
 	if templates.is_empty() or pick_count <= 0:
 		return result
-
-	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
-	rng.randomize()
 
 	var remaining: Array = templates.duplicate()
 
@@ -675,11 +657,11 @@ func _pick_weighted_templates(templates: Array, pick_count: int) -> Array:
 	return result
 
 
-func _make_generated_quest_from_template(template: QuestData, unit, index: int) -> QuestData:
+func _make_generated_quest_from_template(template: QuestData, unit, index: int, rng: RandomNumberGenerator) -> QuestData:
 	if template == null:
 		return null
 
-	var rolled_objective: Dictionary = _roll_objective_data(template)
+	var rolled_objective: Dictionary = _roll_objective_data(template, rng)
 	var rolled_item_id: String = String(rolled_objective.get("item_id", ""))
 	var rolled_amount: int = int(rolled_objective.get("amount", 1))
 	var rolled_category: String = String(rolled_objective.get("category", ""))
@@ -687,7 +669,7 @@ func _make_generated_quest_from_template(template: QuestData, unit, index: int) 
 	if rolled_item_id == "" or rolled_amount <= 0:
 		return null
 
-	var rolled_reward: Dictionary = _roll_reward_data(template, rolled_item_id, rolled_amount)
+	var rolled_reward: Dictionary = _roll_reward_data(template, rolled_item_id, rolled_amount, rng)
 	var rolled_reward_gold: int = int(rolled_reward.get("reward_gold", 0))
 
 	var quest: QuestData = QuestData.new()
@@ -961,10 +943,7 @@ func abandon_quest(quest_id: String) -> Dictionary:
 	}
 
 
-func _roll_objective_data(quest: QuestData) -> Dictionary:
-	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
-	rng.randomize()
-
+func _roll_objective_data(quest: QuestData, rng: RandomNumberGenerator) -> Dictionary:
 	var item_id: String = ""
 	var category: String = ""
 	var amount: int = max(1, quest.objective_item_amount)
@@ -1067,10 +1046,7 @@ func _build_final_text(template_text: String, fallback_text: String, item_id: St
 	return base_text
 
 
-func _roll_reward_data(quest: QuestData, item_id: String, amount: int) -> Dictionary:
-	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
-	rng.randomize()
-
+func _roll_reward_data(quest: QuestData, item_id: String, amount: int, rng: RandomNumberGenerator) -> Dictionary:
 	var total_reward_gold: int = max(0, quest.reward_gold)
 
 	if quest.random_reward_use_sell_price:

@@ -1,11 +1,23 @@
 extends Node
 class_name DungeonSpawnRuleDatabase
 
+
 static func get_all_rules() -> Array[DungeonSpawnRuleData]:
-	return [
-		# ここに特殊ダンジョン用ルールを追加
-		# preload("res://data/unit/dungeon_spawn_rule/dungeon_rule_fortified_floor_5.tres"),
-	]
+	var result: Array[DungeonSpawnRuleData] = []
+
+	if GameData == null:
+		return result
+
+	if not GameData.has_method("get_all_dungeon_spawn_rules"):
+		return result
+
+	for raw_rule in GameData.get_all_dungeon_spawn_rules():
+		var rule: DungeonSpawnRuleData = raw_rule as DungeonSpawnRuleData
+		if rule == null:
+			continue
+		result.append(rule)
+
+	return result
 
 
 static func get_matching_rules(

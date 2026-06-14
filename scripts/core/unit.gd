@@ -2842,6 +2842,8 @@ func _is_party_member_unit() -> bool:
 func _is_food_item_id(item_id: String) -> bool:
 	if item_id == "":
 		return false
+	if ItemDatabase == null:
+		return false
 	if not ItemDatabase.exists(item_id):
 		return false
 
@@ -2849,9 +2851,14 @@ func _is_food_item_id(item_id: String) -> bool:
 	if item_res == null:
 		return false
 
-	for info in item_res.get_property_list():
-		if String(info.get("name", "")) == "category":
-			return String(item_res.get("category")).strip_edges().to_lower() == "food"
+	# TSV専用化後は ItemCategories に food が無いため、
+	# 「foodカテゴリ」ではなく「空腹度(HUNGER)を回復する効果を持つか」で食料判定する。
+	if "effects" in item_res and item_res.effects is Array:
+		for effect in item_res.effects:
+			if effect == null:
+				continue
+			if effect.effect_type == ItemEffectData.EffectType.RESTORE_RESOURCE and effect.resource_type == ItemEffectData.ResourceType.HUNGER:
+				return true
 
 	return false
 
@@ -2883,9 +2890,7 @@ func _get_all_food_item_ids() -> Array[String]:
 	if ItemDatabase == null:
 		return result
 
-	var resources_dict: Dictionary = ItemDatabase.ITEM_RESOURCES
-	for raw_item_id in resources_dict.keys():
-		var item_id: String = String(raw_item_id)
+	for item_id in ItemDatabase.get_all_item_ids():
 		if item_id == "":
 			continue
 		if _is_food_item_id(item_id):

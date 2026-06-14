@@ -1257,11 +1257,11 @@ func _collect_item_database_icons_for_hallucination() -> void:
 	if ItemDatabase == null:
 		return
 
-	var resources_dict: Dictionary = ItemDatabase.ITEM_RESOURCES
-	for item_id in resources_dict.keys():
-		var item_res = resources_dict[item_id]
+	for item_id in ItemDatabase.get_all_item_ids():
+		var item_res = ItemDatabase.get_item_resource(item_id)
 		if item_res == null:
 			continue
+
 		if not _object_has_property(item_res, "icon"):
 			continue
 

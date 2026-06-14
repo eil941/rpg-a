@@ -98,11 +98,28 @@ func _ready() -> void:
 	var enemy_type_ids: Array = floor_data.get("enemy_type_ids", [])
 	var npc_type_ids: Array = floor_data.get("npc_type_ids", [])
 
-	var current_enemy_data_list: Array[EnemyData] = filter_enemy_data_by_ids(enemy_type_ids)
-	var current_npc_data_list: Array[NpcData] = npc_data_list
-
 	current_enemy_spawn_count = int(floor_data.get("enemy_spawn_count", enemy_spawn_count))
 	current_npc_spawn_count = int(floor_data.get("npc_spawn_count", npc_spawn_count))
+
+	# 古い保存済みフロアデータに enemy_spawn_count=0 / enemy_type_ids=[] が残っている場合、
+	# そのままだと敵が出ないため、現在の難易度・テーマから再計算する。
+	if current_enemy_spawn_count <= 0 or enemy_type_ids.is_empty():
+		var repaired_enemy_config: Dictionary = choose_enemy_config_for_floor(
+			GlobalDungeon.current_floor,
+			difficulty,
+			generator_theme,
+			layout_generator_type
+		)
+		current_enemy_spawn_count = int(repaired_enemy_config.get("enemy_spawn_count", 0))
+		enemy_type_ids = repaired_enemy_config.get("enemy_type_ids", [])
+		floor_data["enemy_spawn_count"] = current_enemy_spawn_count
+		floor_data["enemy_type_ids"] = enemy_type_ids
+		floor_data["selected_rule_id"] = String(repaired_enemy_config.get("selected_rule_id", ""))
+		WorldState.dungeon_floor_data[map_id] = floor_data
+		print("[DUNGEON ENEMY REPAIR] map_id=", map_id, " spawn_count=", current_enemy_spawn_count, " enemy_type_ids_size=", enemy_type_ids.size())
+
+	var current_enemy_data_list: Array[EnemyData] = filter_enemy_data_by_ids(enemy_type_ids)
+	var current_npc_data_list: Array[NpcData] = npc_data_list
 
 	if npc_type_ids.size() > 0:
 		current_npc_data_list = filter_npc_data_by_ids(npc_type_ids)
@@ -115,6 +132,10 @@ func _ready() -> void:
 		map_id,
 		walkable_tiles
 	)
+
+	if WorldState.map_enemy_spawns.has(map_id) and WorldState.map_enemy_spawns.get(map_id, []).is_empty():
+		print("[DUNGEON ENEMY REPAIR] empty saved enemy spawns removed: ", map_id)
+		WorldState.map_enemy_spawns.erase(map_id)
 
 	if WorldState.map_enemy_spawns.has(map_id):
 		spawn_manager.spawn_saved_enemies(enemy_unit_scene, current_enemy_data_list)
@@ -301,6 +322,7 @@ func _build_normal_enemy_config_for_floor(context: Dictionary) -> Dictionary:
 	var spawn_count: int = _get_default_dungeon_enemy_spawn_count(context)
 
 	if weighted_enemy_ids.is_empty():
+		print("[DUNGEON ENEMY] normal candidates empty. strict difficulty range kept.")
 		return {
 			"enemy_spawn_count": 0,
 			"enemy_type_ids": []
@@ -340,6 +362,7 @@ func _build_weighted_enemy_type_ids_for_normal_spawn(context: Dictionary) -> Arr
 			result.append(enemy_id)
 
 	return result
+
 
 
 func _is_dungeon_enemy_allowed_for_normal_spawn(data: EnemyData, context: Dictionary) -> bool:
