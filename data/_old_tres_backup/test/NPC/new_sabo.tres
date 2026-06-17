@@ -3,12 +3,12 @@
 [ext_resource type="Resource" uid="uid://d2vbfb7uxelhe" path="res://data/santa_animation_profile.tres" id="1_flbg5"]
 [ext_resource type="Script" uid="uid://d2fpnidhgej4x" path="res://scripts/data/attacked_behavior_data.gd" id="2_d388q"]
 [ext_resource type="Script" uid="uid://bgt8humnn3jqj" path="res://scripts/data/npc_data.gd" id="2_n2gxl"]
-[ext_resource type="Resource" uid="uid://cdm2mir87ku47" path="res://data/equipment/accessories/power_ring.tres" id="3_afp3o"]
+[ext_resource type="Resource" uid="uid://cdm2mir87ku47" path="res://data/_old_tres_backup/equipment/accessories/power_ring.tres" id="3_afp3o"]
 [ext_resource type="Script" uid="uid://0c32in4pchg3" path="res://scripts/data/loot_category_entry.gd" id="3_jwrdb"]
 [ext_resource type="Texture2D" uid="uid://cu2ogfvyg8oai" path="res://assets/npc1.png" id="3_n2gxl"]
 [ext_resource type="Script" uid="uid://cr6yrijgbiw5e" path="res://scripts/data/initial_inventory_entry.gd" id="3_sltxy"]
-[ext_resource type="Resource" uid="uid://dt288tmg782b" path="res://data/equipment/armor/cloth_armor.tres" id="4_k1uv4"]
-[ext_resource type="Resource" uid="uid://gxh453poc5a6" path="res://data/equipment/weapons/bow.tres" id="5_hhsvn"]
+[ext_resource type="Resource" uid="uid://dt288tmg782b" path="res://data/_old_tres_backup/equipment/armor/cloth_armor.tres" id="4_k1uv4"]
+[ext_resource type="Resource" uid="uid://gxh453poc5a6" path="res://data/_old_tres_backup/equipment/weapons/bow.tres" id="5_hhsvn"]
 
 [sub_resource type="Resource" id="Resource_id2ul"]
 script = ExtResource("2_d388q")
