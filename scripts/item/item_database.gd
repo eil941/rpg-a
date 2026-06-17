@@ -162,6 +162,10 @@ static func get_random_item_id_by_category(category: String, rng: RandomNumberGe
 
 static func get_category_display_name(category: String) -> String:
 	var normalized: String = ItemCategories.normalize(category)
+	var category_data := ItemCategories.get_category_data(normalized)
+	var display_name := String(category_data.get("display_name", "")).strip_edges()
+	if display_name != "":
+		return display_name
 
 	match normalized:
 		String(ItemCategories.CONSUMABLE):

@@ -22,6 +22,7 @@ from openpyxl import load_workbook
 
 # 「実際に .tres を置き換えたもの」だけを出力対象にする
 SHEET_TO_TSV = {
+    "item_categories": "item_categories.tsv",
     "items": "items.tsv",
     "equipment": "equipment.tsv",
     "item_effects": "item_effects.tsv",

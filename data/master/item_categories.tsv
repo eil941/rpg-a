@@ -1,0 +1,9 @@
+category_id	display_name	sort_order	show_in_inventory	default_usable	default_can_sell	default_max_stack	description
+material	素材	10	true	false	true	99	クラフトや収集に使う素材カテゴリ。
+consumable	消耗品	20	true	true	true	99	使用すると効果を発揮する消耗品カテゴリ。
+equipment	装備品	30	true	false	true	1	武器、防具、アクセサリなどの装備カテゴリ。
+misc	その他	900	true	false	true	99	他のカテゴリに当てはまらない汎用カテゴリ。
+quest	クエスト	100	true	false	false	1	クエスト進行に関わるアイテムカテゴリ。
+key_item	キーアイテム	110	true	false	false	1	売却や消費を想定しない重要アイテムカテゴリ。
+tool	道具	120	true	false	true	1	探索やクラフトなどで使う道具カテゴリ。
+craft_material	クラフト素材	130	true	false	true	99	クラフト用途を明示した素材カテゴリ。

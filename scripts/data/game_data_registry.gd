@@ -1,5 +1,50 @@
 extends Node
 
+const DEFAULT_ITEM_CATEGORY_ID: String = "misc"
+const BUILTIN_ITEM_CATEGORY_FALLBACKS: Array[Dictionary] = [
+	{
+		"category_id": "material",
+		"display_name": "素材",
+		"sort_order": 10,
+		"show_in_inventory": true,
+		"default_usable": false,
+		"default_can_sell": true,
+		"default_max_stack": 99,
+		"description": "クラフトや収集に使う素材カテゴリ。"
+	},
+	{
+		"category_id": "consumable",
+		"display_name": "消耗品",
+		"sort_order": 20,
+		"show_in_inventory": true,
+		"default_usable": true,
+		"default_can_sell": true,
+		"default_max_stack": 99,
+		"description": "使用すると効果を発揮する消耗品カテゴリ。"
+	},
+	{
+		"category_id": "equipment",
+		"display_name": "装備品",
+		"sort_order": 30,
+		"show_in_inventory": true,
+		"default_usable": false,
+		"default_can_sell": true,
+		"default_max_stack": 1,
+		"description": "武器、防具、アクセサリなどの装備カテゴリ。"
+	},
+	{
+		"category_id": "misc",
+		"display_name": "その他",
+		"sort_order": 900,
+		"show_in_inventory": true,
+		"default_usable": false,
+		"default_can_sell": true,
+		"default_max_stack": 99,
+		"description": "他のカテゴリに当てはまらない汎用カテゴリ。"
+	}
+]
+
+var item_categories: Dictionary = {}
 var items: Dictionary = {}
 var effects: Dictionary = {}
 var quests: Dictionary = {}
@@ -12,6 +57,7 @@ var unit_spawn_rules: Dictionary = {}
 var item_effect_links: Dictionary = {}
 
 var item_spawn_rules: Array[ItemSpawnRuleData] = []
+var _warned_unknown_item_categories: Dictionary = {}
 
 
 func _ready() -> void:
@@ -20,6 +66,7 @@ func _ready() -> void:
 
 
 func load_all() -> void:
+	item_categories.clear()
 	items.clear()
 	effects.clear()
 	quests.clear()
@@ -30,7 +77,9 @@ func load_all() -> void:
 	item_spawn_rules.clear()
 	dungeon_spawn_rules.clear()
 	unit_spawn_rules.clear()
+	_warned_unknown_item_categories.clear()
 
+	_load_item_categories()
 	_load_items()
 	_load_equipment()
 	_load_item_effects()
@@ -58,6 +107,52 @@ func has_item(item_id: String) -> bool:
 
 func get_all_items() -> Array:
 	return items.values()
+
+
+func get_item_category(category_id: String) -> Dictionary:
+	var normalized_id := _normalize_item_category_id(category_id)
+	if normalized_id == "":
+		normalized_id = DEFAULT_ITEM_CATEGORY_ID
+
+	if item_categories.has(normalized_id):
+		return item_categories[normalized_id].duplicate(true)
+
+	_warn_unknown_item_category(category_id, "get_item_category")
+
+	if item_categories.has(DEFAULT_ITEM_CATEGORY_ID):
+		return item_categories[DEFAULT_ITEM_CATEGORY_ID].duplicate(true)
+
+	return _make_item_category_entry(
+		DEFAULT_ITEM_CATEGORY_ID,
+		"その他",
+		900,
+		true,
+		false,
+		true,
+		99,
+		"他のカテゴリに当てはまらない汎用カテゴリ。"
+	)
+
+
+func get_all_item_categories() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+
+	for category in item_categories.values():
+		if typeof(category) != TYPE_DICTIONARY:
+			continue
+
+		result.append(category.duplicate(true))
+
+	result.sort_custom(Callable(self, "_sort_item_category_entries"))
+	return result
+
+
+func has_item_category(category_id: String) -> bool:
+	var normalized_id := _normalize_item_category_id(category_id)
+	if normalized_id == "":
+		return false
+
+	return item_categories.has(normalized_id)
 
 
 func get_all_quests() -> Array[QuestData]:
@@ -239,6 +334,13 @@ func _load_tsv(path: String) -> Array[Dictionary]:
 
 	return rows
 
+
+func _load_optional_tsv(path: String) -> Array[Dictionary]:
+	if not FileAccess.file_exists(path):
+		return []
+
+	return _load_tsv(path)
+
 # ============================================================
 # 型変換
 # ============================================================
@@ -356,6 +458,96 @@ func _load_resource_or_null(path: String):
 	return resource
 
 
+func _normalize_item_category_id(category_id: String) -> String:
+	return category_id.strip_edges().to_lower()
+
+
+func _sort_item_category_entries(a: Dictionary, b: Dictionary) -> bool:
+	var order_a := int(a.get("sort_order", 0))
+	var order_b := int(b.get("sort_order", 0))
+
+	if order_a == order_b:
+		return String(a.get("category_id", "")) < String(b.get("category_id", ""))
+
+	return order_a < order_b
+
+
+func _make_item_category_entry(
+	category_id: String,
+	display_name: String,
+	sort_order: int,
+	show_in_inventory: bool,
+	default_usable: bool,
+	default_can_sell: bool,
+	default_max_stack: int,
+	description: String
+) -> Dictionary:
+	return {
+		"category_id": category_id,
+		"display_name": display_name,
+		"sort_order": sort_order,
+		"show_in_inventory": show_in_inventory,
+		"default_usable": default_usable,
+		"default_can_sell": default_can_sell,
+		"default_max_stack": default_max_stack,
+		"description": description
+	}
+
+
+func _register_item_category(category: Dictionary) -> void:
+	var category_id := _normalize_item_category_id(String(category.get("category_id", "")))
+	if category_id == "":
+		push_warning("item category_id is empty")
+		return
+
+	if item_categories.has(category_id):
+		push_warning("duplicate item category_id: " + category_id)
+		return
+
+	var entry := category.duplicate(true)
+	entry["category_id"] = category_id
+	item_categories[category_id] = entry
+
+
+func _ensure_builtin_item_category_fallbacks() -> void:
+	for fallback in BUILTIN_ITEM_CATEGORY_FALLBACKS:
+		var category_id := _normalize_item_category_id(String(fallback.get("category_id", "")))
+		if category_id == "" or item_categories.has(category_id):
+			continue
+
+		item_categories[category_id] = fallback.duplicate(true)
+
+
+func _warn_unknown_item_category(category_id: String, context: String = "") -> void:
+	var normalized_id := _normalize_item_category_id(category_id)
+	if normalized_id == "":
+		normalized_id = "<empty>"
+
+	var key := context + ":" + normalized_id
+	if _warned_unknown_item_categories.has(key):
+		return
+
+	_warned_unknown_item_categories[key] = true
+
+	var context_text := ""
+	if context != "":
+		context_text = " (" + context + ")"
+
+	push_warning("unknown item category" + context_text + ": " + category_id + " -> " + DEFAULT_ITEM_CATEGORY_ID)
+
+
+func _normalize_loaded_item_category(category_id: String, item_id: String) -> String:
+	var normalized_id := _normalize_item_category_id(category_id)
+	if normalized_id == "":
+		return DEFAULT_ITEM_CATEGORY_ID
+
+	if has_item_category(normalized_id):
+		return normalized_id
+
+	_warn_unknown_item_category(category_id, "items.tsv item_id=" + item_id)
+	return DEFAULT_ITEM_CATEGORY_ID
+
+
 func _split_texture_array(value: String) -> Array[Texture2D]:
 	var result: Array[Texture2D] = []
 
@@ -438,6 +630,33 @@ func _split_loot_categories(value: String) -> Array[LootCategoryEntry]:
 # ItemData
 # ============================================================
 
+func _load_item_categories() -> void:
+	var rows := _load_optional_tsv("res://data/master/item_categories.tsv")
+
+	for row in rows:
+		var category_id := _normalize_item_category_id(_get_string(row, "category_id"))
+		if category_id == "":
+			push_warning("item_categories.tsv has empty category_id")
+			continue
+
+		var display_name := _get_string(row, "display_name", category_id).strip_edges()
+		if display_name == "":
+			display_name = category_id
+
+		_register_item_category(_make_item_category_entry(
+			category_id,
+			display_name,
+			_to_int(_get_string(row, "sort_order"), 0),
+			_to_bool(_get_string(row, "show_in_inventory", "true")),
+			_to_bool(_get_string(row, "default_usable", "false")),
+			_to_bool(_get_string(row, "default_can_sell", "true")),
+			_to_int(_get_string(row, "default_max_stack"), 99),
+			_get_string(row, "description")
+		))
+
+	_ensure_builtin_item_category_fallbacks()
+
+
 func _load_items() -> void:
 	var rows := _load_tsv("res://data/master/items.tsv")
 
@@ -447,11 +666,12 @@ func _load_items() -> void:
 		item.item_id = _get_string(row, "item_id")
 		item.display_name = _get_string(row, "display_name")
 		item.description = _get_string(row, "description")
-		item.category = _get_string(row, "category")
+		item.category = _normalize_loaded_item_category(_get_string(row, "category"), item.item_id)
 		item.max_stack = _to_int(_get_string(row, "max_stack"), 99)
 		item.usable = _to_bool(_get_string(row, "usable", "false"))
 		item.base_price = _to_int(_get_string(row, "base_price"), 0)
 		item.can_sell = _to_bool(_get_string(row, "can_sell", "true"))
+		# TODO: Apply item category default_usable/default_can_sell/default_max_stack when item fields are intentionally left blank.
 		item.rarity = _to_int(_get_string(row, "rarity"), 1)
 		item.spawn_weight = _to_int(_get_string(row, "spawn_weight"), 100)
 		item.use_flags = _to_int(_get_string(row, "use_flags"), 0)
@@ -1375,6 +1595,9 @@ func _validate_items() -> void:
 		if item.item_id == "":
 			push_error("item has empty item_id")
 
+		if item.category != "" and not has_item_category(item.category):
+			_warn_unknown_item_category(item.category, "validate item_id=" + String(item_id))
+
 		if item.icon == null and item.category != "":
 			push_warning("item icon is null: " + String(item_id))
 
@@ -1422,6 +1645,7 @@ func debug_print_loaded_data() -> void:
 	print("[GameData] item_spawn_rules: ", item_spawn_rules.size())
 	print("[GameData] dungeon_spawn_rules: ", dungeon_spawn_rules.size())
 	print("[GameData] unit_spawn_rules: ", unit_spawn_rules.size())
+	print("[GameData] item_categories: ", item_categories.size())
 
 	print("---------- Items ----------")
 	for item_id in items.keys():
