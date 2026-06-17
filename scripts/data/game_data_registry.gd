@@ -45,6 +45,7 @@ const BUILTIN_ITEM_CATEGORY_FALLBACKS: Array[Dictionary] = [
 ]
 
 var item_categories: Dictionary = {}
+var _item_category_ids_from_tsv: Dictionary = {}
 var items: Dictionary = {}
 var effects: Dictionary = {}
 var quests: Dictionary = {}
@@ -67,6 +68,7 @@ func _ready() -> void:
 
 func load_all() -> void:
 	item_categories.clear()
+	_item_category_ids_from_tsv.clear()
 	items.clear()
 	effects.clear()
 	quests.clear()
@@ -494,7 +496,7 @@ func _make_item_category_entry(
 	}
 
 
-func _register_item_category(category: Dictionary) -> void:
+func _register_item_category(category: Dictionary, from_tsv: bool = false) -> void:
 	var category_id := _normalize_item_category_id(String(category.get("category_id", "")))
 	if category_id == "":
 		push_warning("item category_id is empty")
@@ -507,6 +509,9 @@ func _register_item_category(category: Dictionary) -> void:
 	var entry := category.duplicate(true)
 	entry["category_id"] = category_id
 	item_categories[category_id] = entry
+
+	if from_tsv:
+		_item_category_ids_from_tsv[category_id] = true
 
 
 func _ensure_builtin_item_category_fallbacks() -> void:
@@ -546,6 +551,30 @@ func _normalize_loaded_item_category(category_id: String, item_id: String) -> St
 
 	_warn_unknown_item_category(category_id, "items.tsv item_id=" + item_id)
 	return DEFAULT_ITEM_CATEGORY_ID
+
+
+func _get_item_category_defaults_for_item(category_id: String) -> Dictionary:
+	var defaults := {
+		"default_max_stack": 99,
+		"default_usable": false,
+		"default_can_sell": true
+	}
+
+	var normalized_id := _normalize_item_category_id(category_id)
+	if normalized_id == "":
+		return defaults
+
+	if not _item_category_ids_from_tsv.has(normalized_id):
+		return defaults
+
+	var category := item_categories.get(normalized_id, {})
+	if typeof(category) != TYPE_DICTIONARY:
+		return defaults
+
+	defaults["default_max_stack"] = int(category.get("default_max_stack", defaults["default_max_stack"]))
+	defaults["default_usable"] = bool(category.get("default_usable", defaults["default_usable"]))
+	defaults["default_can_sell"] = bool(category.get("default_can_sell", defaults["default_can_sell"]))
+	return defaults
 
 
 func _split_texture_array(value: String) -> Array[Texture2D]:
@@ -652,7 +681,7 @@ func _load_item_categories() -> void:
 			_to_bool(_get_string(row, "default_can_sell", "true")),
 			_to_int(_get_string(row, "default_max_stack"), 99),
 			_get_string(row, "description")
-		))
+		), true)
 
 	_ensure_builtin_item_category_fallbacks()
 
@@ -666,12 +695,25 @@ func _load_items() -> void:
 		item.item_id = _get_string(row, "item_id")
 		item.display_name = _get_string(row, "display_name")
 		item.description = _get_string(row, "description")
-		item.category = _normalize_loaded_item_category(_get_string(row, "category"), item.item_id)
-		item.max_stack = _to_int(_get_string(row, "max_stack"), 99)
-		item.usable = _to_bool(_get_string(row, "usable", "false"))
+		var category_text := _get_string(row, "category")
+		item.category = _normalize_loaded_item_category(category_text, item.item_id)
+		var category_defaults := _get_item_category_defaults_for_item(category_text)
+		var max_stack_text := _get_string(row, "max_stack")
+		if max_stack_text.strip_edges() == "":
+			item.max_stack = int(category_defaults.get("default_max_stack", 99))
+		else:
+			item.max_stack = _to_int(max_stack_text, 99)
+		var usable_text := _get_string(row, "usable")
+		if usable_text.strip_edges() == "":
+			item.usable = bool(category_defaults.get("default_usable", false))
+		else:
+			item.usable = _to_bool(usable_text)
 		item.base_price = _to_int(_get_string(row, "base_price"), 0)
-		item.can_sell = _to_bool(_get_string(row, "can_sell", "true"))
-		# TODO: Apply item category default_usable/default_can_sell/default_max_stack when item fields are intentionally left blank.
+		var can_sell_text := _get_string(row, "can_sell")
+		if can_sell_text.strip_edges() == "":
+			item.can_sell = bool(category_defaults.get("default_can_sell", true))
+		else:
+			item.can_sell = _to_bool(can_sell_text)
 		item.rarity = _to_int(_get_string(row, "rarity"), 1)
 		item.spawn_weight = _to_int(_get_string(row, "spawn_weight"), 100)
 		item.use_flags = _to_int(_get_string(row, "use_flags"), 0)
