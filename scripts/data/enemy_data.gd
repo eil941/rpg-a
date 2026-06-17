@@ -34,6 +34,8 @@ enum AIMoveStyle {
 @export_enum("PLAYER", "NPC", "ENEMY")
 var faction: String = "ENEMY"
 
+@export var race: String = "UNKNOWN"
+
 @export var max_hp: int = 10
 @export var attack: int = 1
 @export var defense: int = 0

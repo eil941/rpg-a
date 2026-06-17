@@ -1,6 +1,9 @@
 extends Node
 
 const DEFAULT_ITEM_CATEGORY_ID: String = "misc"
+const DEFAULT_UNIT_RACE_ID: String = "UNKNOWN"
+const DEFAULT_UNIT_FACTION_ID: String = "NEUTRAL"
+const DEFAULT_FACTION_RELATION: String = "NEUTRAL"
 const BUILTIN_ITEM_CATEGORY_FALLBACKS: Array[Dictionary] = [
 	{
 		"category_id": "material",
@@ -43,9 +46,64 @@ const BUILTIN_ITEM_CATEGORY_FALLBACKS: Array[Dictionary] = [
 		"description": "他のカテゴリに当てはまらない汎用カテゴリ。"
 	}
 ]
+const BUILTIN_UNIT_RACE_FALLBACKS: Array[Dictionary] = [
+	{
+		"race_id": "UNKNOWN",
+		"display_name": "不明",
+		"sort_order": 0,
+		"description": "未設定または未定義の種族"
+	}
+]
+const BUILTIN_UNIT_FACTION_FALLBACKS: Array[Dictionary] = [
+	{
+		"faction_id": "PLAYER",
+		"display_name": "プレイヤー",
+		"sort_order": 10,
+		"description": "プレイヤー陣営"
+	},
+	{
+		"faction_id": "NPC",
+		"display_name": "NPC",
+		"sort_order": 20,
+		"description": "既存NPC陣営"
+	},
+	{
+		"faction_id": "ENEMY",
+		"display_name": "敵",
+		"sort_order": 30,
+		"description": "既存敵陣営"
+	},
+	{
+		"faction_id": "NEUTRAL",
+		"display_name": "中立",
+		"sort_order": 40,
+		"description": "中立陣営"
+	}
+]
+const BUILTIN_FACTION_RELATION_FALLBACKS: Array[Dictionary] = [
+	{"from_faction": "PLAYER", "to_faction": "PLAYER", "relation": "FRIENDLY"},
+	{"from_faction": "PLAYER", "to_faction": "NPC", "relation": "FRIENDLY"},
+	{"from_faction": "PLAYER", "to_faction": "ENEMY", "relation": "HOSTILE"},
+	{"from_faction": "PLAYER", "to_faction": "NEUTRAL", "relation": "NEUTRAL"},
+	{"from_faction": "NPC", "to_faction": "PLAYER", "relation": "FRIENDLY"},
+	{"from_faction": "NPC", "to_faction": "NPC", "relation": "FRIENDLY"},
+	{"from_faction": "NPC", "to_faction": "ENEMY", "relation": "HOSTILE"},
+	{"from_faction": "NPC", "to_faction": "NEUTRAL", "relation": "NEUTRAL"},
+	{"from_faction": "ENEMY", "to_faction": "PLAYER", "relation": "HOSTILE"},
+	{"from_faction": "ENEMY", "to_faction": "NPC", "relation": "HOSTILE"},
+	{"from_faction": "ENEMY", "to_faction": "ENEMY", "relation": "FRIENDLY"},
+	{"from_faction": "ENEMY", "to_faction": "NEUTRAL", "relation": "NEUTRAL"},
+	{"from_faction": "NEUTRAL", "to_faction": "PLAYER", "relation": "NEUTRAL"},
+	{"from_faction": "NEUTRAL", "to_faction": "NPC", "relation": "NEUTRAL"},
+	{"from_faction": "NEUTRAL", "to_faction": "ENEMY", "relation": "NEUTRAL"},
+	{"from_faction": "NEUTRAL", "to_faction": "NEUTRAL", "relation": "FRIENDLY"}
+]
 
 var item_categories: Dictionary = {}
 var _item_category_ids_from_tsv: Dictionary = {}
+var unit_races: Dictionary = {}
+var unit_factions: Dictionary = {}
+var faction_relations: Dictionary = {}
 var items: Dictionary = {}
 var effects: Dictionary = {}
 var quests: Dictionary = {}
@@ -59,6 +117,9 @@ var item_effect_links: Dictionary = {}
 
 var item_spawn_rules: Array[ItemSpawnRuleData] = []
 var _warned_unknown_item_categories: Dictionary = {}
+var _warned_unknown_unit_races: Dictionary = {}
+var _warned_unknown_unit_factions: Dictionary = {}
+var _warned_missing_faction_relations: Dictionary = {}
 
 
 func _ready() -> void:
@@ -69,6 +130,9 @@ func _ready() -> void:
 func load_all() -> void:
 	item_categories.clear()
 	_item_category_ids_from_tsv.clear()
+	unit_races.clear()
+	unit_factions.clear()
+	faction_relations.clear()
 	items.clear()
 	effects.clear()
 	quests.clear()
@@ -80,6 +144,9 @@ func load_all() -> void:
 	dungeon_spawn_rules.clear()
 	unit_spawn_rules.clear()
 	_warned_unknown_item_categories.clear()
+	_warned_unknown_unit_races.clear()
+	_warned_unknown_unit_factions.clear()
+	_warned_missing_faction_relations.clear()
 
 	_load_item_categories()
 	_load_items()
@@ -90,6 +157,9 @@ func load_all() -> void:
 	_load_enchantments()
 	_load_dungeon_spawn_rules()
 	_load_unit_spawn_rules()
+	_load_unit_races()
+	_load_unit_factions()
+	_load_faction_relations()
 	_load_enemies()
 	_load_npcs()
 	_load_quests()
@@ -155,6 +225,108 @@ func has_item_category(category_id: String) -> bool:
 		return false
 
 	return item_categories.has(normalized_id)
+
+
+func get_unit_race(race_id: String) -> Dictionary:
+	var normalized_id := _normalize_unit_race_id(race_id)
+	if normalized_id == "":
+		normalized_id = DEFAULT_UNIT_RACE_ID
+
+	if unit_races.has(normalized_id):
+		return unit_races[normalized_id].duplicate(true)
+
+	_warn_unknown_unit_race(race_id, "get_unit_race")
+
+	if unit_races.has(DEFAULT_UNIT_RACE_ID):
+		return unit_races[DEFAULT_UNIT_RACE_ID].duplicate(true)
+
+	return _make_unit_race_entry(
+		DEFAULT_UNIT_RACE_ID,
+		"不明",
+		0,
+		"未設定または未定義の種族"
+	)
+
+
+func get_all_unit_races() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+
+	for race in unit_races.values():
+		if typeof(race) != TYPE_DICTIONARY:
+			continue
+
+		result.append(race.duplicate(true))
+
+	result.sort_custom(Callable(self, "_sort_unit_race_entries"))
+	return result
+
+
+func has_unit_race(race_id: String) -> bool:
+	var normalized_id := _normalize_unit_race_id(race_id)
+	if normalized_id == "":
+		return false
+
+	return unit_races.has(normalized_id)
+
+
+func get_unit_faction(faction_id: String) -> Dictionary:
+	var normalized_id := _normalize_unit_faction_id(faction_id)
+	if normalized_id == "":
+		normalized_id = DEFAULT_UNIT_FACTION_ID
+
+	if unit_factions.has(normalized_id):
+		return unit_factions[normalized_id].duplicate(true)
+
+	_warn_unknown_unit_faction(faction_id, "get_unit_faction")
+
+	if unit_factions.has(DEFAULT_UNIT_FACTION_ID):
+		return unit_factions[DEFAULT_UNIT_FACTION_ID].duplicate(true)
+
+	return _make_unit_faction_entry(
+		DEFAULT_UNIT_FACTION_ID,
+		"中立",
+		40,
+		"中立陣営"
+	)
+
+
+func get_all_unit_factions() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+
+	for faction in unit_factions.values():
+		if typeof(faction) != TYPE_DICTIONARY:
+			continue
+
+		result.append(faction.duplicate(true))
+
+	result.sort_custom(Callable(self, "_sort_unit_faction_entries"))
+	return result
+
+
+func has_unit_faction(faction_id: String) -> bool:
+	var normalized_id := _normalize_unit_faction_id(faction_id)
+	if normalized_id == "":
+		return false
+
+	return unit_factions.has(normalized_id)
+
+
+func get_faction_relation(from_faction: String, to_faction: String) -> String:
+	var from_id := _normalize_loaded_unit_faction(from_faction, "faction_relations.tsv from_faction")
+	var to_id := _normalize_loaded_unit_faction(to_faction, "faction_relations.tsv to_faction")
+
+	var row_value: Variant = faction_relations.get(from_id, {})
+	if typeof(row_value) != TYPE_DICTIONARY:
+		_warn_missing_faction_relation(from_id, to_id)
+		return DEFAULT_FACTION_RELATION
+
+	var row: Dictionary = row_value
+	var relation := _normalize_faction_relation_text(String(row.get(to_id, "")))
+	if relation == "":
+		_warn_missing_faction_relation(from_id, to_id)
+		return DEFAULT_FACTION_RELATION
+
+	return relation
 
 
 func get_all_quests() -> Array[QuestData]:
@@ -464,12 +636,49 @@ func _normalize_item_category_id(category_id: String) -> String:
 	return category_id.strip_edges().to_lower()
 
 
+func _normalize_unit_race_id(race_id: String) -> String:
+	return race_id.strip_edges().to_upper()
+
+
+func _normalize_unit_faction_id(faction_id: String) -> String:
+	return faction_id.strip_edges().to_upper()
+
+
+func _normalize_faction_relation_text(relation: String) -> String:
+	var normalized := relation.strip_edges().to_upper()
+	match normalized:
+		"FRIENDLY", "NEUTRAL", "HOSTILE":
+			return normalized
+		_:
+			return ""
+
+
 func _sort_item_category_entries(a: Dictionary, b: Dictionary) -> bool:
 	var order_a := int(a.get("sort_order", 0))
 	var order_b := int(b.get("sort_order", 0))
 
 	if order_a == order_b:
 		return String(a.get("category_id", "")) < String(b.get("category_id", ""))
+
+	return order_a < order_b
+
+
+func _sort_unit_race_entries(a: Dictionary, b: Dictionary) -> bool:
+	var order_a := int(a.get("sort_order", 0))
+	var order_b := int(b.get("sort_order", 0))
+
+	if order_a == order_b:
+		return String(a.get("race_id", "")) < String(b.get("race_id", ""))
+
+	return order_a < order_b
+
+
+func _sort_unit_faction_entries(a: Dictionary, b: Dictionary) -> bool:
+	var order_a := int(a.get("sort_order", 0))
+	var order_b := int(b.get("sort_order", 0))
+
+	if order_a == order_b:
+		return String(a.get("faction_id", "")) < String(b.get("faction_id", ""))
 
 	return order_a < order_b
 
@@ -496,6 +705,34 @@ func _make_item_category_entry(
 	}
 
 
+func _make_unit_race_entry(
+	race_id: String,
+	display_name: String,
+	sort_order: int,
+	description: String
+) -> Dictionary:
+	return {
+		"race_id": race_id,
+		"display_name": display_name,
+		"sort_order": sort_order,
+		"description": description
+	}
+
+
+func _make_unit_faction_entry(
+	faction_id: String,
+	display_name: String,
+	sort_order: int,
+	description: String
+) -> Dictionary:
+	return {
+		"faction_id": faction_id,
+		"display_name": display_name,
+		"sort_order": sort_order,
+		"description": description
+	}
+
+
 func _register_item_category(category: Dictionary, from_tsv: bool = false) -> void:
 	var category_id := _normalize_item_category_id(String(category.get("category_id", "")))
 	if category_id == "":
@@ -514,6 +751,56 @@ func _register_item_category(category: Dictionary, from_tsv: bool = false) -> vo
 		_item_category_ids_from_tsv[category_id] = true
 
 
+func _register_unit_race(race: Dictionary) -> void:
+	var race_id := _normalize_unit_race_id(String(race.get("race_id", "")))
+	if race_id == "":
+		push_warning("unit race_id is empty")
+		return
+
+	if unit_races.has(race_id):
+		push_warning("duplicate unit race_id: " + race_id)
+		return
+
+	var entry := race.duplicate(true)
+	entry["race_id"] = race_id
+	unit_races[race_id] = entry
+
+
+func _register_unit_faction(faction: Dictionary) -> void:
+	var faction_id := _normalize_unit_faction_id(String(faction.get("faction_id", "")))
+	if faction_id == "":
+		push_warning("unit faction_id is empty")
+		return
+
+	if unit_factions.has(faction_id):
+		push_warning("duplicate unit faction_id: " + faction_id)
+		return
+
+	var entry := faction.duplicate(true)
+	entry["faction_id"] = faction_id
+	unit_factions[faction_id] = entry
+
+
+func _set_faction_relation(from_faction: String, to_faction: String, relation: String) -> void:
+	var from_id := _normalize_loaded_unit_faction(from_faction, "faction_relations.tsv from_faction")
+	var to_id := _normalize_loaded_unit_faction(to_faction, "faction_relations.tsv to_faction")
+	var relation_text := _normalize_faction_relation_text(relation)
+	if relation_text == "":
+		push_warning("unknown faction relation: " + relation + " from=" + from_id + " to=" + to_id + " -> " + DEFAULT_FACTION_RELATION)
+		relation_text = DEFAULT_FACTION_RELATION
+
+	if not faction_relations.has(from_id):
+		faction_relations[from_id] = {}
+
+	var row_value: Variant = faction_relations[from_id]
+	if typeof(row_value) != TYPE_DICTIONARY:
+		row_value = {}
+		faction_relations[from_id] = row_value
+
+	var row: Dictionary = row_value
+	row[to_id] = relation_text
+
+
 func _ensure_builtin_item_category_fallbacks() -> void:
 	for fallback in BUILTIN_ITEM_CATEGORY_FALLBACKS:
 		var category_id := _normalize_item_category_id(String(fallback.get("category_id", "")))
@@ -521,6 +808,41 @@ func _ensure_builtin_item_category_fallbacks() -> void:
 			continue
 
 		item_categories[category_id] = fallback.duplicate(true)
+
+
+func _ensure_builtin_unit_race_fallbacks() -> void:
+	for fallback in BUILTIN_UNIT_RACE_FALLBACKS:
+		var race_id := _normalize_unit_race_id(String(fallback.get("race_id", "")))
+		if race_id == "" or unit_races.has(race_id):
+			continue
+
+		unit_races[race_id] = fallback.duplicate(true)
+
+
+func _ensure_builtin_unit_faction_fallbacks() -> void:
+	for fallback in BUILTIN_UNIT_FACTION_FALLBACKS:
+		var faction_id := _normalize_unit_faction_id(String(fallback.get("faction_id", "")))
+		if faction_id == "" or unit_factions.has(faction_id):
+			continue
+
+		unit_factions[faction_id] = fallback.duplicate(true)
+
+
+func _ensure_builtin_faction_relation_fallbacks() -> void:
+	for fallback in BUILTIN_FACTION_RELATION_FALLBACKS:
+		var from_id := _normalize_unit_faction_id(String(fallback.get("from_faction", "")))
+		var to_id := _normalize_unit_faction_id(String(fallback.get("to_faction", "")))
+		var relation := _normalize_faction_relation_text(String(fallback.get("relation", "")))
+		if from_id == "" or to_id == "" or relation == "":
+			continue
+
+		var row_value: Variant = faction_relations.get(from_id, {})
+		if typeof(row_value) == TYPE_DICTIONARY:
+			var row: Dictionary = row_value
+			if row.has(to_id):
+				continue
+
+		_set_faction_relation(from_id, to_id, relation)
 
 
 func _warn_unknown_item_category(category_id: String, context: String = "") -> void:
@@ -541,6 +863,51 @@ func _warn_unknown_item_category(category_id: String, context: String = "") -> v
 	push_warning("unknown item category" + context_text + ": " + category_id + " -> " + DEFAULT_ITEM_CATEGORY_ID)
 
 
+func _warn_unknown_unit_race(race_id: String, context: String = "") -> void:
+	var normalized_id := _normalize_unit_race_id(race_id)
+	if normalized_id == "":
+		normalized_id = "<empty>"
+
+	var key := context + ":" + normalized_id
+	if _warned_unknown_unit_races.has(key):
+		return
+
+	_warned_unknown_unit_races[key] = true
+
+	var context_text := ""
+	if context != "":
+		context_text = " (" + context + ")"
+
+	push_warning("unknown unit race" + context_text + ": " + race_id + " -> " + DEFAULT_UNIT_RACE_ID)
+
+
+func _warn_unknown_unit_faction(faction_id: String, context: String = "") -> void:
+	var normalized_id := _normalize_unit_faction_id(faction_id)
+	if normalized_id == "":
+		normalized_id = "<empty>"
+
+	var key := context + ":" + normalized_id
+	if _warned_unknown_unit_factions.has(key):
+		return
+
+	_warned_unknown_unit_factions[key] = true
+
+	var context_text := ""
+	if context != "":
+		context_text = " (" + context + ")"
+
+	push_warning("unknown unit faction" + context_text + ": " + faction_id + " -> " + DEFAULT_UNIT_FACTION_ID)
+
+
+func _warn_missing_faction_relation(from_faction: String, to_faction: String) -> void:
+	var key := from_faction + "->" + to_faction
+	if _warned_missing_faction_relations.has(key):
+		return
+
+	_warned_missing_faction_relations[key] = true
+	push_warning("missing faction relation: " + key + " -> " + DEFAULT_FACTION_RELATION)
+
+
 func _normalize_loaded_item_category(category_id: String, item_id: String) -> String:
 	var normalized_id := _normalize_item_category_id(category_id)
 	if normalized_id == "":
@@ -551,6 +918,30 @@ func _normalize_loaded_item_category(category_id: String, item_id: String) -> St
 
 	_warn_unknown_item_category(category_id, "items.tsv item_id=" + item_id)
 	return DEFAULT_ITEM_CATEGORY_ID
+
+
+func _normalize_loaded_unit_race(race_id: String, context: String) -> String:
+	var normalized_id := _normalize_unit_race_id(race_id)
+	if normalized_id == "":
+		return DEFAULT_UNIT_RACE_ID
+
+	if has_unit_race(normalized_id):
+		return normalized_id
+
+	_warn_unknown_unit_race(race_id, context)
+	return DEFAULT_UNIT_RACE_ID
+
+
+func _normalize_loaded_unit_faction(faction_id: String, context: String) -> String:
+	var normalized_id := _normalize_unit_faction_id(faction_id)
+	if normalized_id == "":
+		return DEFAULT_UNIT_FACTION_ID
+
+	if has_unit_faction(normalized_id):
+		return normalized_id
+
+	_warn_unknown_unit_faction(faction_id, context)
+	return DEFAULT_UNIT_FACTION_ID
 
 
 func _get_item_category_defaults_for_item(category_id: String) -> Dictionary:
@@ -567,10 +958,11 @@ func _get_item_category_defaults_for_item(category_id: String) -> Dictionary:
 	if not _item_category_ids_from_tsv.has(normalized_id):
 		return defaults
 
-	var category := item_categories.get(normalized_id, {})
-	if typeof(category) != TYPE_DICTIONARY:
+	var category_value: Variant = item_categories.get(normalized_id, {})
+	if typeof(category_value) != TYPE_DICTIONARY:
 		return defaults
 
+	var category: Dictionary = category_value
 	defaults["default_max_stack"] = int(category.get("default_max_stack", defaults["default_max_stack"]))
 	defaults["default_usable"] = bool(category.get("default_usable", defaults["default_usable"]))
 	defaults["default_can_sell"] = bool(category.get("default_can_sell", defaults["default_can_sell"]))
@@ -1246,6 +1638,79 @@ func _build_enchantment_data(row: Dictionary) -> EnchantmentData:
 
 
 # ============================================================
+# UnitRaces
+# ============================================================
+
+func _load_unit_races() -> void:
+	var rows := _load_optional_tsv("res://data/master/unit_races.tsv")
+
+	for row in rows:
+		var race_id := _normalize_unit_race_id(_get_string(row, "race_id"))
+		if race_id == "":
+			push_warning("unit_races.tsv has empty race_id")
+			continue
+
+		var display_name := _get_string(row, "display_name", race_id).strip_edges()
+		if display_name == "":
+			display_name = race_id
+
+		_register_unit_race(_make_unit_race_entry(
+			race_id,
+			display_name,
+			_to_int(_get_string(row, "sort_order"), 0),
+			_get_string(row, "description")
+		))
+
+	_ensure_builtin_unit_race_fallbacks()
+
+
+# ============================================================
+# UnitFactions
+# ============================================================
+
+func _load_unit_factions() -> void:
+	var rows := _load_optional_tsv("res://data/master/unit_factions.tsv")
+
+	for row in rows:
+		var faction_id := _normalize_unit_faction_id(_get_string(row, "faction_id"))
+		if faction_id == "":
+			push_warning("unit_factions.tsv has empty faction_id")
+			continue
+
+		var display_name := _get_string(row, "display_name", faction_id).strip_edges()
+		if display_name == "":
+			display_name = faction_id
+
+		_register_unit_faction(_make_unit_faction_entry(
+			faction_id,
+			display_name,
+			_to_int(_get_string(row, "sort_order"), 0),
+			_get_string(row, "description")
+		))
+
+	_ensure_builtin_unit_faction_fallbacks()
+
+
+func _load_faction_relations() -> void:
+	var rows := _load_optional_tsv("res://data/master/faction_relations.tsv")
+
+	for row in rows:
+		var from_faction := _get_string(row, "from_faction")
+		var to_faction := _get_string(row, "to_faction")
+		if from_faction.strip_edges() == "" or to_faction.strip_edges() == "":
+			push_warning("faction_relations.tsv has empty from_faction or to_faction")
+			continue
+
+		_set_faction_relation(
+			from_faction,
+			to_faction,
+			_get_string(row, "relation", DEFAULT_FACTION_RELATION)
+		)
+
+	_ensure_builtin_faction_relation_fallbacks()
+
+
+# ============================================================
 # EnemyData
 # ============================================================
 
@@ -1280,7 +1745,8 @@ func _build_enemy_data(row: Dictionary) -> EnemyData:
 	enemy.quest_rank = _to_int(_get_string(row, "quest_rank"), enemy.quest_rank)
 	enemy.is_nocturnal = _to_bool(_get_string(row, "is_nocturnal", "false"))
 
-	enemy.faction = _get_string(row, "faction", enemy.faction)
+	enemy.faction = _normalize_loaded_unit_faction(_get_string(row, "faction", enemy.faction), "enemies.tsv enemy_type_id=" + enemy.enemy_type_id)
+	enemy.race = _normalize_loaded_unit_race(_get_string(row, "race"), "enemies.tsv enemy_type_id=" + enemy.enemy_type_id)
 
 	enemy.max_hp = _to_int(_get_string(row, "max_hp"), enemy.max_hp)
 	enemy.attack = _to_int(_get_string(row, "attack"), enemy.attack)
@@ -1415,7 +1881,8 @@ func _build_npc_data(row: Dictionary) -> NpcData:
 
 	npc.npc_name = _get_string(row, "npc_name", npc.npc_name)
 	npc.npc_type_id = _get_string(row, "npc_type_id")
-	npc.faction = _get_string(row, "faction", npc.faction)
+	npc.faction = _normalize_loaded_unit_faction(_get_string(row, "faction", npc.faction), "npcs.tsv npc_type_id=" + npc.npc_type_id)
+	npc.race = _normalize_loaded_unit_race(_get_string(row, "race"), "npcs.tsv npc_type_id=" + npc.npc_type_id)
 
 	npc.base_difficulty = _to_int(_get_string(row, "base_difficulty"), npc.base_difficulty)
 	npc.spawn_generator_tags = _split_list(_get_string(row, "spawn_generator_tags"))
@@ -1688,6 +2155,9 @@ func debug_print_loaded_data() -> void:
 	print("[GameData] dungeon_spawn_rules: ", dungeon_spawn_rules.size())
 	print("[GameData] unit_spawn_rules: ", unit_spawn_rules.size())
 	print("[GameData] item_categories: ", item_categories.size())
+	print("[GameData] unit_races: ", unit_races.size())
+	print("[GameData] unit_factions: ", unit_factions.size())
+	print("[GameData] faction_relations: ", faction_relations.size())
 
 	print("---------- Items ----------")
 	for item_id in items.keys():

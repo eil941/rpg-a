@@ -25,6 +25,8 @@ enum AIMoveStyle {
 @export_enum("PLAYER", "NPC", "ENEMY")
 var faction: String = "NPC"
 
+@export var race: String = "UNKNOWN"
+
 @export var base_difficulty: int = 1
 @export var spawn_generator_tags: Array[String] = []
 @export var rarity: int = 1
