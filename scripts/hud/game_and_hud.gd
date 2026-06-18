@@ -732,6 +732,7 @@ func _build_effect_entry(runtime, player_speed: float) -> Dictionary:
 
 	if runtime.effect_type == ItemEffectData.EffectType.APPLY_STATUS:
 		var status_id: String = String(runtime.status_id)
+		entry["status_id"] = status_id
 		entry["name"] = _get_status_display_name(status_id)
 		entry["icon_text"] = _get_status_icon_text(status_id)
 		entry["description"] = _get_status_description(status_id, int(runtime.status_power))
@@ -828,6 +829,12 @@ func _format_remaining_turn_text(seconds: float, player_speed: float) -> String:
 
 
 func _get_status_display_name(status_id: String) -> String:
+	if GameData != null and GameData.has_method("has_status_effect_type") and GameData.has_status_effect_type(status_id):
+		if GameData.has_method("get_status_effect_display_name"):
+			var display_name := String(GameData.get_status_effect_display_name(status_id)).strip_edges()
+			if display_name != "":
+				return display_name
+
 	match status_id:
 		"poison":
 			return "毒"
@@ -876,6 +883,12 @@ func _get_status_icon_text(status_id: String) -> String:
 
 
 func _get_status_description(status_id: String, status_power: int) -> String:
+	if GameData != null and GameData.has_method("has_status_effect_type") and GameData.has_status_effect_type(status_id):
+		if GameData.has_method("get_status_effect_description"):
+			var description := String(GameData.get_status_effect_description(status_id)).strip_edges()
+			if description != "":
+				return description
+
 	match status_id:
 		"poison":
 			return "継続ダメージを受ける。威力: %d" % max(1, status_power)

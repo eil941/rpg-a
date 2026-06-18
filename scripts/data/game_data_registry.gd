@@ -4,6 +4,7 @@ const DEFAULT_ITEM_CATEGORY_ID: String = "misc"
 const DEFAULT_UNIT_RACE_ID: String = "UNKNOWN"
 const DEFAULT_UNIT_FACTION_ID: String = "NEUTRAL"
 const DEFAULT_FACTION_RELATION: String = "NEUTRAL"
+const DEFAULT_ELEMENT_TYPE_ID: String = "neutral"
 const BUILTIN_ITEM_CATEGORY_FALLBACKS: Array[Dictionary] = [
 	{
 		"category_id": "material",
@@ -98,12 +99,105 @@ const BUILTIN_FACTION_RELATION_FALLBACKS: Array[Dictionary] = [
 	{"from_faction": "NEUTRAL", "to_faction": "ENEMY", "relation": "NEUTRAL"},
 	{"from_faction": "NEUTRAL", "to_faction": "NEUTRAL", "relation": "FRIENDLY"}
 ]
+const BUILTIN_ELEMENT_TYPE_FALLBACKS: Array[Dictionary] = [
+	{
+		"element_id": "neutral",
+		"display_name": "無",
+		"sort_order": 0,
+		"description": "通常属性または属性なし"
+	}
+]
+const BUILTIN_STATUS_EFFECT_TYPE_FALLBACKS: Array[Dictionary] = [
+	{
+		"status_id": "poison",
+		"display_name": "毒",
+		"sort_order": 10,
+		"category": "debuff",
+		"default_duration": 10.0,
+		"stackable": false,
+		"description": "継続ダメージを与える状態異常"
+	},
+	{
+		"status_id": "paralysis",
+		"display_name": "麻痺",
+		"sort_order": 20,
+		"category": "debuff",
+		"default_duration": 5.0,
+		"stackable": false,
+		"description": "行動不能になる状態異常"
+	},
+	{
+		"status_id": "burning",
+		"display_name": "火傷",
+		"sort_order": 30,
+		"category": "debuff",
+		"default_duration": 10.0,
+		"stackable": false,
+		"description": "火傷による継続ダメージ"
+	},
+	{
+		"status_id": "frostbite",
+		"display_name": "凍傷",
+		"sort_order": 40,
+		"category": "debuff",
+		"default_duration": 10.0,
+		"stackable": false,
+		"description": "凍傷による継続ダメージ"
+	},
+	{
+		"status_id": "sleep",
+		"display_name": "睡眠",
+		"sort_order": 50,
+		"category": "debuff",
+		"default_duration": 5.0,
+		"stackable": false,
+		"description": "眠って行動不能になる状態異常"
+	},
+	{
+		"status_id": "confusion",
+		"display_name": "混乱",
+		"sort_order": 60,
+		"category": "debuff",
+		"default_duration": 5.0,
+		"stackable": false,
+		"description": "行動が乱れる状態異常"
+	},
+	{
+		"status_id": "blind",
+		"display_name": "暗闇",
+		"sort_order": 70,
+		"category": "debuff",
+		"default_duration": 8.0,
+		"stackable": false,
+		"description": "命中や視界に影響する状態異常"
+	},
+	{
+		"status_id": "hallucination",
+		"display_name": "幻覚",
+		"sort_order": 80,
+		"category": "debuff",
+		"default_duration": 8.0,
+		"stackable": false,
+		"description": "視覚や認識に影響する状態異常"
+	},
+	{
+		"status_id": "curse",
+		"display_name": "呪い",
+		"sort_order": 90,
+		"category": "debuff",
+		"default_duration": 10.0,
+		"stackable": false,
+		"description": "呪い状態"
+	}
+]
 
 var item_categories: Dictionary = {}
 var _item_category_ids_from_tsv: Dictionary = {}
 var unit_races: Dictionary = {}
 var unit_factions: Dictionary = {}
 var faction_relations: Dictionary = {}
+var element_types: Dictionary = {}
+var status_effect_types: Dictionary = {}
 var items: Dictionary = {}
 var effects: Dictionary = {}
 var quests: Dictionary = {}
@@ -120,6 +214,8 @@ var _warned_unknown_item_categories: Dictionary = {}
 var _warned_unknown_unit_races: Dictionary = {}
 var _warned_unknown_unit_factions: Dictionary = {}
 var _warned_missing_faction_relations: Dictionary = {}
+var _warned_unknown_element_types: Dictionary = {}
+var _warned_unknown_status_effect_types: Dictionary = {}
 
 
 func _ready() -> void:
@@ -133,6 +229,8 @@ func load_all() -> void:
 	unit_races.clear()
 	unit_factions.clear()
 	faction_relations.clear()
+	element_types.clear()
+	status_effect_types.clear()
 	items.clear()
 	effects.clear()
 	quests.clear()
@@ -147,8 +245,11 @@ func load_all() -> void:
 	_warned_unknown_unit_races.clear()
 	_warned_unknown_unit_factions.clear()
 	_warned_missing_faction_relations.clear()
+	_warned_unknown_element_types.clear()
+	_warned_unknown_status_effect_types.clear()
 
 	_load_item_categories()
+	_load_status_effect_types()
 	_load_items()
 	_load_equipment()
 	_load_item_effects()
@@ -160,6 +261,7 @@ func load_all() -> void:
 	_load_unit_races()
 	_load_unit_factions()
 	_load_faction_relations()
+	_load_element_types()
 	_load_enemies()
 	_load_npcs()
 	_load_quests()
@@ -309,6 +411,118 @@ func has_unit_faction(faction_id: String) -> bool:
 		return false
 
 	return unit_factions.has(normalized_id)
+
+
+func get_element_type(element_id: String) -> Dictionary:
+	var normalized_id := _normalize_element_type_id(element_id)
+	if normalized_id == "":
+		normalized_id = DEFAULT_ELEMENT_TYPE_ID
+
+	if element_types.has(normalized_id):
+		return element_types[normalized_id].duplicate(true)
+
+	_warn_unknown_element_type(element_id, "get_element_type")
+
+	if element_types.has(DEFAULT_ELEMENT_TYPE_ID):
+		return element_types[DEFAULT_ELEMENT_TYPE_ID].duplicate(true)
+
+	return _make_element_type_entry(
+		DEFAULT_ELEMENT_TYPE_ID,
+		"無",
+		0,
+		"通常属性または属性なし"
+	)
+
+
+func get_all_element_types() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+
+	for element in element_types.values():
+		if typeof(element) != TYPE_DICTIONARY:
+			continue
+
+		result.append(element.duplicate(true))
+
+	result.sort_custom(Callable(self, "_sort_element_type_entries"))
+	return result
+
+
+func has_element_type(element_id: String) -> bool:
+	var normalized_id := _normalize_element_type_id(element_id)
+	if normalized_id == "":
+		return false
+
+	return element_types.has(normalized_id)
+
+
+func get_status_effect_type(status_id: String) -> Dictionary:
+	var normalized_id := _normalize_status_effect_id(status_id)
+	if status_effect_types.has(normalized_id):
+		return status_effect_types[normalized_id].duplicate(true)
+
+	_warn_unknown_status_effect_type(status_id, "get_status_effect_type")
+
+	return _make_status_effect_type_entry(
+		normalized_id,
+		normalized_id,
+		9999,
+		"neutral",
+		0.0,
+		false,
+		""
+	)
+
+
+func get_all_status_effect_types() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+
+	for status_effect in status_effect_types.values():
+		if typeof(status_effect) != TYPE_DICTIONARY:
+			continue
+
+		result.append(status_effect.duplicate(true))
+
+	result.sort_custom(Callable(self, "_sort_status_effect_type_entries"))
+	return result
+
+
+func has_status_effect_type(status_id: String) -> bool:
+	var normalized_id := _normalize_status_effect_id(status_id)
+	if normalized_id == "":
+		return false
+
+	return status_effect_types.has(normalized_id)
+
+
+func get_status_effect_display_name(status_id: String) -> String:
+	var normalized_id := _normalize_status_effect_id(status_id)
+	if normalized_id == "":
+		return ""
+
+	var status_effect := get_status_effect_type(normalized_id)
+	var display_name := String(status_effect.get("display_name", "")).strip_edges()
+	if display_name != "":
+		return display_name
+
+	return normalized_id
+
+
+func get_status_effect_description(status_id: String) -> String:
+	var normalized_id := _normalize_status_effect_id(status_id)
+	if normalized_id == "":
+		return ""
+
+	var status_effect := get_status_effect_type(normalized_id)
+	return String(status_effect.get("description", ""))
+
+
+func get_status_effect_category(status_id: String) -> String:
+	var normalized_id := _normalize_status_effect_id(status_id)
+	if normalized_id == "":
+		return "neutral"
+
+	var status_effect := get_status_effect_type(normalized_id)
+	return _normalize_status_effect_category(String(status_effect.get("category", "neutral")))
 
 
 func get_faction_relation(from_faction: String, to_faction: String) -> String:
@@ -644,6 +858,14 @@ func _normalize_unit_faction_id(faction_id: String) -> String:
 	return faction_id.strip_edges().to_upper()
 
 
+func _normalize_element_type_id(element_id: String) -> String:
+	return element_id.strip_edges().to_lower()
+
+
+func _normalize_status_effect_id(status_id: String) -> String:
+	return status_id.strip_edges()
+
+
 func _normalize_faction_relation_text(relation: String) -> String:
 	var normalized := relation.strip_edges().to_upper()
 	match normalized:
@@ -651,6 +873,15 @@ func _normalize_faction_relation_text(relation: String) -> String:
 			return normalized
 		_:
 			return ""
+
+
+func _normalize_status_effect_category(category: String) -> String:
+	var normalized := category.strip_edges().to_lower()
+	match normalized:
+		"buff", "debuff", "neutral":
+			return normalized
+		_:
+			return "neutral"
 
 
 func _sort_item_category_entries(a: Dictionary, b: Dictionary) -> bool:
@@ -679,6 +910,26 @@ func _sort_unit_faction_entries(a: Dictionary, b: Dictionary) -> bool:
 
 	if order_a == order_b:
 		return String(a.get("faction_id", "")) < String(b.get("faction_id", ""))
+
+	return order_a < order_b
+
+
+func _sort_element_type_entries(a: Dictionary, b: Dictionary) -> bool:
+	var order_a := int(a.get("sort_order", 0))
+	var order_b := int(b.get("sort_order", 0))
+
+	if order_a == order_b:
+		return String(a.get("element_id", "")) < String(b.get("element_id", ""))
+
+	return order_a < order_b
+
+
+func _sort_status_effect_type_entries(a: Dictionary, b: Dictionary) -> bool:
+	var order_a := int(a.get("sort_order", 0))
+	var order_b := int(b.get("sort_order", 0))
+
+	if order_a == order_b:
+		return String(a.get("status_id", "")) < String(b.get("status_id", ""))
 
 	return order_a < order_b
 
@@ -733,6 +984,40 @@ func _make_unit_faction_entry(
 	}
 
 
+func _make_element_type_entry(
+	element_id: String,
+	display_name: String,
+	sort_order: int,
+	description: String
+) -> Dictionary:
+	return {
+		"element_id": element_id,
+		"display_name": display_name,
+		"sort_order": sort_order,
+		"description": description
+	}
+
+
+func _make_status_effect_type_entry(
+	status_id: String,
+	display_name: String,
+	sort_order: int,
+	category: String,
+	default_duration: float,
+	stackable: bool,
+	description: String
+) -> Dictionary:
+	return {
+		"status_id": status_id,
+		"display_name": display_name,
+		"sort_order": sort_order,
+		"category": _normalize_status_effect_category(category),
+		"default_duration": default_duration,
+		"stackable": stackable,
+		"description": description
+	}
+
+
 func _register_item_category(category: Dictionary, from_tsv: bool = false) -> void:
 	var category_id := _normalize_item_category_id(String(category.get("category_id", "")))
 	if category_id == "":
@@ -779,6 +1064,37 @@ func _register_unit_faction(faction: Dictionary) -> void:
 	var entry := faction.duplicate(true)
 	entry["faction_id"] = faction_id
 	unit_factions[faction_id] = entry
+
+
+func _register_element_type(element: Dictionary) -> void:
+	var element_id := _normalize_element_type_id(String(element.get("element_id", "")))
+	if element_id == "":
+		push_warning("element_id is empty")
+		return
+
+	if element_types.has(element_id):
+		push_warning("duplicate element_id: " + element_id)
+		return
+
+	var entry := element.duplicate(true)
+	entry["element_id"] = element_id
+	element_types[element_id] = entry
+
+
+func _register_status_effect_type(status_effect: Dictionary) -> void:
+	var status_id := _normalize_status_effect_id(String(status_effect.get("status_id", "")))
+	if status_id == "":
+		push_warning("status_id is empty")
+		return
+
+	if status_effect_types.has(status_id):
+		push_warning("duplicate status_id: " + status_id)
+		return
+
+	var entry := status_effect.duplicate(true)
+	entry["status_id"] = status_id
+	entry["category"] = _normalize_status_effect_category(String(entry.get("category", "neutral")))
+	status_effect_types[status_id] = entry
 
 
 func _set_faction_relation(from_faction: String, to_faction: String, relation: String) -> void:
@@ -845,6 +1161,24 @@ func _ensure_builtin_faction_relation_fallbacks() -> void:
 		_set_faction_relation(from_id, to_id, relation)
 
 
+func _ensure_builtin_element_type_fallbacks() -> void:
+	for fallback in BUILTIN_ELEMENT_TYPE_FALLBACKS:
+		var element_id := _normalize_element_type_id(String(fallback.get("element_id", "")))
+		if element_id == "" or element_types.has(element_id):
+			continue
+
+		element_types[element_id] = fallback.duplicate(true)
+
+
+func _ensure_builtin_status_effect_type_fallbacks() -> void:
+	for fallback in BUILTIN_STATUS_EFFECT_TYPE_FALLBACKS:
+		var status_id := _normalize_status_effect_id(String(fallback.get("status_id", "")))
+		if status_id == "" or status_effect_types.has(status_id):
+			continue
+
+		status_effect_types[status_id] = fallback.duplicate(true)
+
+
 func _warn_unknown_item_category(category_id: String, context: String = "") -> void:
 	var normalized_id := _normalize_item_category_id(category_id)
 	if normalized_id == "":
@@ -908,6 +1242,42 @@ func _warn_missing_faction_relation(from_faction: String, to_faction: String) ->
 	push_warning("missing faction relation: " + key + " -> " + DEFAULT_FACTION_RELATION)
 
 
+func _warn_unknown_element_type(element_id: String, context: String = "") -> void:
+	var normalized_id := _normalize_element_type_id(element_id)
+	if normalized_id == "":
+		normalized_id = "<empty>"
+
+	var key := context + ":" + normalized_id
+	if _warned_unknown_element_types.has(key):
+		return
+
+	_warned_unknown_element_types[key] = true
+
+	var context_text := ""
+	if context != "":
+		context_text = " (" + context + ")"
+
+	push_warning("unknown element type" + context_text + ": " + element_id + " -> " + DEFAULT_ELEMENT_TYPE_ID)
+
+
+func _warn_unknown_status_effect_type(status_id: String, context: String = "") -> void:
+	var normalized_id := _normalize_status_effect_id(status_id)
+	if normalized_id == "":
+		normalized_id = "<empty>"
+
+	var key := context + ":" + normalized_id
+	if _warned_unknown_status_effect_types.has(key):
+		return
+
+	_warned_unknown_status_effect_types[key] = true
+
+	var context_text := ""
+	if context != "":
+		context_text = " (" + context + ")"
+
+	push_warning("unknown status effect type" + context_text + ": " + status_id + " (kept status_id)")
+
+
 func _normalize_loaded_item_category(category_id: String, item_id: String) -> String:
 	var normalized_id := _normalize_item_category_id(category_id)
 	if normalized_id == "":
@@ -944,6 +1314,32 @@ func _normalize_loaded_unit_faction(faction_id: String, context: String) -> Stri
 	return DEFAULT_UNIT_FACTION_ID
 
 
+func _normalize_loaded_element_type(element_id: String, context: String) -> String:
+	var normalized_id := _normalize_element_type_id(element_id)
+	if normalized_id == "":
+		return DEFAULT_ELEMENT_TYPE_ID
+
+	if has_element_type(normalized_id):
+		return normalized_id
+
+	_warn_unknown_element_type(element_id, context)
+	return DEFAULT_ELEMENT_TYPE_ID
+
+
+func _warn_unknown_element_resistance_keys(resistances: Dictionary, context: String) -> void:
+	for key in resistances.keys():
+		var element_id := _normalize_element_type_id(String(key))
+		if element_id == "" or has_element_type(element_id):
+			continue
+
+		var warn_key := context + ":element_resistances:" + element_id
+		if _warned_unknown_element_types.has(warn_key):
+			continue
+
+		_warned_unknown_element_types[warn_key] = true
+		push_warning("unknown element resistance key (" + context + "): " + String(key) + " (kept multiplier)")
+
+
 func _get_item_category_defaults_for_item(category_id: String) -> Dictionary:
 	var defaults := {
 		"default_max_stack": 99,
@@ -967,6 +1363,17 @@ func _get_item_category_defaults_for_item(category_id: String) -> Dictionary:
 	defaults["default_usable"] = bool(category.get("default_usable", defaults["default_usable"]))
 	defaults["default_can_sell"] = bool(category.get("default_can_sell", defaults["default_can_sell"]))
 	return defaults
+
+
+func _warn_unknown_status_effect_type_if_needed(status_id: String, context: String) -> void:
+	var normalized_id := _normalize_status_effect_id(status_id)
+	if normalized_id == "":
+		return
+
+	if has_status_effect_type(normalized_id):
+		return
+
+	_warn_unknown_status_effect_type(status_id, context)
 
 
 func _split_texture_array(value: String) -> Array[Texture2D]:
@@ -1045,6 +1452,36 @@ func _split_loot_categories(value: String) -> Array[LootCategoryEntry]:
 			result.append(entry)
 
 	return result
+
+
+# ============================================================
+# StatusEffectTypes
+# ============================================================
+
+func _load_status_effect_types() -> void:
+	var rows := _load_optional_tsv("res://data/master/status_effect_types.tsv")
+
+	for row in rows:
+		var status_id := _normalize_status_effect_id(_get_string(row, "status_id"))
+		if status_id == "":
+			push_warning("status_effect_types.tsv has empty status_id")
+			continue
+
+		var display_name := _get_string(row, "display_name", status_id).strip_edges()
+		if display_name == "":
+			display_name = status_id
+
+		_register_status_effect_type(_make_status_effect_type_entry(
+			status_id,
+			display_name,
+			_to_int(_get_string(row, "sort_order"), 0),
+			_get_string(row, "category", "neutral"),
+			_to_float(_get_string(row, "default_duration"), 0.0),
+			_to_bool(_get_string(row, "stackable", "false")),
+			_get_string(row, "description")
+		))
+
+	_ensure_builtin_status_effect_type_fallbacks()
 
 
 # ============================================================
@@ -1263,6 +1700,7 @@ func _load_item_effects() -> void:
 
 func _build_item_effect(row: Dictionary) -> ItemEffectData:
 	var effect := ItemEffectData.new()
+	var effect_id := _get_string(row, "effect_id").strip_edges()
 	var effect_type := _get_string(row, "effect_type").strip_edges()
 
 	match effect_type:
@@ -1348,6 +1786,9 @@ func _build_item_effect(row: Dictionary) -> ItemEffectData:
 			push_error("unknown effect_type: " + effect_type)
 			effect.effect_type = ItemEffectData.EffectType.NONE
 
+	if effect.uses_status_id():
+		_warn_unknown_status_effect_type_if_needed(String(effect.status_id), "item_effects.tsv effect_id=" + effect_id)
+
 	var curse_random_status_count_text := _get_string(row, "curse_random_status_count")
 	if curse_random_status_count_text.strip_edges() != "":
 		effect.curse_random_status_count = _to_int(curse_random_status_count_text, effect.curse_random_status_count)
@@ -1356,6 +1797,7 @@ func _build_item_effect(row: Dictionary) -> ItemEffectData:
 	if curse_status_pool_text.strip_edges() != "":
 		var pool: Array[StringName] = []
 		for status_text in _split_list(curse_status_pool_text):
+			_warn_unknown_status_effect_type_if_needed(status_text, "item_effects.tsv effect_id=" + effect_id + " curse_status_pool")
 			pool.append(StringName(status_text))
 		effect.curse_status_pool = pool
 
@@ -1711,6 +2153,33 @@ func _load_faction_relations() -> void:
 
 
 # ============================================================
+# ElementTypes
+# ============================================================
+
+func _load_element_types() -> void:
+	var rows := _load_optional_tsv("res://data/master/element_types.tsv")
+
+	for row in rows:
+		var element_id := _normalize_element_type_id(_get_string(row, "element_id"))
+		if element_id == "":
+			push_warning("element_types.tsv has empty element_id")
+			continue
+
+		var display_name := _get_string(row, "display_name", element_id).strip_edges()
+		if display_name == "":
+			display_name = element_id
+
+		_register_element_type(_make_element_type_entry(
+			element_id,
+			display_name,
+			_to_int(_get_string(row, "sort_order"), 0),
+			_get_string(row, "description")
+		))
+
+	_ensure_builtin_element_type_fallbacks()
+
+
+# ============================================================
 # EnemyData
 # ============================================================
 
@@ -1759,8 +2228,9 @@ func _build_enemy_data(row: Dictionary) -> EnemyData:
 	enemy.crit_damage = _to_float(_get_string(row, "crit_damage"), enemy.crit_damage)
 	enemy.luck = _to_int(_get_string(row, "luck"), enemy.luck)
 
-	enemy.element = _get_string(row, "element", enemy.element)
+	enemy.element = _normalize_loaded_element_type(_get_string(row, "element", enemy.element), "enemies.tsv enemy_type_id=" + enemy.enemy_type_id)
 	enemy.element_resistances = _split_float_dict(_get_string(row, "element_resistances"))
+	_warn_unknown_element_resistance_keys(enemy.element_resistances, "enemies.tsv enemy_type_id=" + enemy.enemy_type_id)
 
 	enemy.strength = _to_int(_get_string(row, "strength"), enemy.strength)
 	enemy.vitality = _to_int(_get_string(row, "vitality"), enemy.vitality)
@@ -1900,8 +2370,9 @@ func _build_npc_data(row: Dictionary) -> NpcData:
 	npc.crit_damage = _to_float(_get_string(row, "crit_damage"), npc.crit_damage)
 	npc.luck = _to_int(_get_string(row, "luck"), npc.luck)
 
-	npc.element = _get_string(row, "element", npc.element)
+	npc.element = _normalize_loaded_element_type(_get_string(row, "element", npc.element), "npcs.tsv npc_type_id=" + npc.npc_type_id)
 	npc.element_resistances = _split_float_dict(_get_string(row, "element_resistances"))
+	_warn_unknown_element_resistance_keys(npc.element_resistances, "npcs.tsv npc_type_id=" + npc.npc_type_id)
 
 	npc.strength = _to_int(_get_string(row, "strength"), npc.strength)
 	npc.vitality = _to_int(_get_string(row, "vitality"), npc.vitality)
@@ -2158,6 +2629,8 @@ func debug_print_loaded_data() -> void:
 	print("[GameData] unit_races: ", unit_races.size())
 	print("[GameData] unit_factions: ", unit_factions.size())
 	print("[GameData] faction_relations: ", faction_relations.size())
+	print("[GameData] element_types: ", element_types.size())
+	print("[GameData] status_effect_types: ", status_effect_types.size())
 
 	print("---------- Items ----------")
 	for item_id in items.keys():

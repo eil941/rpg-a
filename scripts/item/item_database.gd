@@ -396,7 +396,13 @@ static func _get_resource_display_name(resource_type: int) -> String:
 
 
 static func _get_status_display_name(status_id: StringName) -> String:
-	match String(status_id):
+	var status_text := String(status_id)
+	if GameData != null and GameData.has_method("get_status_effect_display_name"):
+		var display_name := String(GameData.get_status_effect_display_name(status_text)).strip_edges()
+		if display_name != "":
+			return display_name
+
+	match status_text:
 		"poison":
 			return "毒"
 		"paralysis":
@@ -416,7 +422,7 @@ static func _get_status_display_name(status_id: StringName) -> String:
 		"curse":
 			return "呪い"
 
-	return String(status_id)
+	return status_text
 
 
 static func _get_stat_display_name(stat_name: StringName) -> String:

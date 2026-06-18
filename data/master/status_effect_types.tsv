@@ -1,0 +1,10 @@
+status_id	display_name	sort_order	category	default_duration	stackable	description
+poison	毒	10	debuff	10	false	継続ダメージを与える状態異常
+paralysis	麻痺	20	debuff	5	false	行動不能になる状態異常
+burning	火傷	30	debuff	10	false	火傷による継続ダメージ
+frostbite	凍傷	40	debuff	10	false	凍傷による継続ダメージ
+sleep	睡眠	50	debuff	5	false	眠って行動不能になる状態異常
+confusion	混乱	60	debuff	5	false	行動が乱れる状態異常
+blind	暗闇	70	debuff	8	false	命中や視界に影響する状態異常
+hallucination	幻覚	80	debuff	8	false	視覚や認識に影響する状態異常
+curse	呪い	90	debuff	10	false	呪い状態

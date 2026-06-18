@@ -1299,6 +1299,28 @@ func _get_effect_font_color(_entry: Dictionary) -> Color:
 func _get_effect_texture(entry: Dictionary) -> Texture2D:
 	var type_text: String = String(entry.get("type_text", ""))
 	var name_text: String = String(entry.get("name", ""))
+	var status_id: String = String(entry.get("status_id", "")).strip_edges()
+
+	if status_id != "":
+		match status_id:
+			"poison":
+				return icon_poison
+			"paralysis":
+				return icon_paralysis
+			"sleep":
+				return icon_sleep
+			"burning":
+				return icon_burning
+			"frostbite":
+				return icon_frostbite
+			"confusion":
+				return icon_confusion
+			"blind":
+				return icon_blind
+			"hallucination":
+				return icon_hallucination
+			"curse":
+				return icon_curse
 
 	if type_text == "状態異常":
 		match name_text:
