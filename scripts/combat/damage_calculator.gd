@@ -38,6 +38,7 @@ func calculate_damage(attacker, target, attack_data: Dictionary = {}) -> Diction
 	var bonus_crit_rate = float(attack_data.get("bonus_crit_rate", 0.0))
 	var ignore_defense_rate = clamp(float(attack_data.get("ignore_defense_rate", 0.0)), 0.0, 1.0)
 	var fixed_damage_bonus = float(attack_data.get("fixed_damage_bonus", 0.0))
+	var skip_accuracy_check: bool = bool(attack_data.get("skip_accuracy_check", false))
 
 	var attacker_luck = _get_attacker_luck(attacker, attacker_stats)
 	var target_luck = _get_target_luck(target, target_stats)
@@ -126,7 +127,7 @@ func calculate_damage(attacker, target, attack_data: Dictionary = {}) -> Diction
 		MAX_HIT_RATE
 	)
 
-	if randf() > final_hit_rate:
+	if not skip_accuracy_check and randf() > final_hit_rate:
 		if DebugSettings.debug_damage_calculate:
 			print("----- Damage Calculate -----")
 			print("phase: ", "dodged")

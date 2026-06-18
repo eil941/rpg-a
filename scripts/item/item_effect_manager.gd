@@ -384,6 +384,13 @@ static func _apply_modifier(user, target, item_data: ItemData, effect: ItemEffec
 
 
 static func _apply_deal_damage(user, target, effect: ItemEffectData) -> bool:
+	if String(effect.damage_mode).strip_edges().to_lower() == "calculated":
+		return _apply_calculated_deal_damage(user, target, effect)
+
+	return _apply_direct_deal_damage(user, target, effect)
+
+
+static func _apply_direct_deal_damage(_user, target, effect: ItemEffectData) -> bool:
 	if target == null:
 		return false
 
@@ -414,6 +421,68 @@ static func _apply_deal_damage(user, target, effect: ItemEffectData) -> bool:
 		target.notify_hud_effects_refresh()
 
 	return true
+
+
+static func _apply_calculated_deal_damage(user, target, effect: ItemEffectData) -> bool:
+	if user == null or target == null:
+		return false
+
+	var stats = _get_stats_node(target)
+	if stats == null:
+		return false
+
+	if not _has_property(stats, "hp"):
+		return false
+
+	var result: Dictionary = DamageCalculator.calculate_damage(
+		user,
+		target,
+		_build_calculated_damage_attack_data(effect)
+	)
+
+	if not bool(result.get("hit", false)):
+		return false
+
+	var damage_value: int = max(0, int(result.get("final_damage", 0)))
+	if damage_value <= 0:
+		return false
+
+	if stats.has_method("take_damage"):
+		stats.take_damage(damage_value)
+	else:
+		stats.hp = max(0, stats.hp - damage_value)
+
+	print("[ITEM EFFECT] calculated damage=", damage_value, " target_hp=", stats.hp)
+
+	if target.has_method("check_death"):
+		target.check_death("item_effect_damage")
+
+	if target.has_method("notify_hud_player_status_refresh"):
+		target.notify_hud_player_status_refresh()
+	if target.has_method("notify_hud_effects_refresh"):
+		target.notify_hud_effects_refresh()
+
+	return true
+
+
+static func _build_calculated_damage_attack_data(effect: ItemEffectData) -> Dictionary:
+	var element := String(effect.damage_element).strip_edges().to_lower()
+	if element == "":
+		element = "neutral"
+
+	var power := float(effect.calculated_power)
+	if power <= 0.0:
+		power = 1.0
+
+	return {
+		"power": power,
+		"element": element,
+		"bonus_accuracy": float(effect.bonus_accuracy),
+		"bonus_crit_rate": float(effect.bonus_crit_rate),
+		"ignore_defense_rate": clamp(float(effect.ignore_defense_rate), 0.0, 1.0),
+		"fixed_damage_bonus": float(effect.fixed_damage_bonus),
+		"skip_accuracy_check": true
+	}
 
 
 static func _apply_grant_item(user, target, effect: ItemEffectData) -> bool:

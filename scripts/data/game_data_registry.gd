@@ -269,7 +269,7 @@ func load_all() -> void:
 
 
 	# 確認したいときだけ有効化
-	#debug_print_loaded_data()
+	debug_print_loaded_data()
 
 func get_item(item_id: String):
 	return items.get(item_id)
@@ -1373,6 +1373,47 @@ func _normalize_damage_mode(value: String, context: String = "") -> String:
 	return "direct"
 
 
+func _normalize_calculated_power(value: String, context: String = "") -> float:
+	var normalized_value := value.strip_edges()
+	if normalized_value == "":
+		return 1.0
+
+	var context_text := ""
+	if context != "":
+		context_text = " (" + context + ")"
+
+	if not normalized_value.is_valid_float():
+		push_warning("invalid calculated_power" + context_text + ": " + value + " -> 1.0")
+		return 1.0
+
+	var power := float(normalized_value)
+	if power <= 0.0:
+		push_warning("invalid calculated_power" + context_text + ": " + value + " -> 1.0")
+		return 1.0
+
+	return power
+
+
+func _normalize_damage_float(value: String, default_value: float, context: String = "", should_clamp_unit: bool = false) -> float:
+	var normalized_value := value.strip_edges()
+	if normalized_value == "":
+		return default_value
+
+	var context_text := ""
+	if context != "":
+		context_text = " (" + context + ")"
+
+	if not normalized_value.is_valid_float():
+		push_warning("invalid damage value" + context_text + ": " + value + " -> " + str(default_value))
+		return default_value
+
+	var parsed_value := float(normalized_value)
+	if should_clamp_unit:
+		return clamp(parsed_value, 0.0, 1.0)
+
+	return parsed_value
+
+
 func _warn_unknown_element_resistance_keys(resistances: Dictionary, context: String) -> void:
 	for key in resistances.keys():
 		var element_id := _normalize_element_type_id(String(key))
@@ -1794,6 +1835,31 @@ func _build_item_effect(row: Dictionary) -> ItemEffectData:
 			effect.damage_mode = _normalize_damage_mode(
 				_get_string(row, "damage_mode", effect.damage_mode),
 				"item_effects.tsv effect_id=" + effect_id
+			)
+			effect.calculated_power = _normalize_calculated_power(
+				_get_string(row, "calculated_power", str(effect.calculated_power)),
+				"item_effects.tsv effect_id=" + effect_id
+			)
+			effect.bonus_accuracy = _normalize_damage_float(
+				_get_string(row, "bonus_accuracy", str(effect.bonus_accuracy)),
+				0.0,
+				"item_effects.tsv effect_id=" + effect_id + " bonus_accuracy"
+			)
+			effect.bonus_crit_rate = _normalize_damage_float(
+				_get_string(row, "bonus_crit_rate", str(effect.bonus_crit_rate)),
+				0.0,
+				"item_effects.tsv effect_id=" + effect_id + " bonus_crit_rate"
+			)
+			effect.ignore_defense_rate = _normalize_damage_float(
+				_get_string(row, "ignore_defense_rate", str(effect.ignore_defense_rate)),
+				0.0,
+				"item_effects.tsv effect_id=" + effect_id + " ignore_defense_rate",
+				true
+			)
+			effect.fixed_damage_bonus = _normalize_damage_float(
+				_get_string(row, "fixed_damage_bonus", str(effect.fixed_damage_bonus)),
+				0.0,
+				"item_effects.tsv effect_id=" + effect_id + " fixed_damage_bonus"
 			)
 
 		"grant_item":

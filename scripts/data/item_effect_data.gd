@@ -88,6 +88,11 @@ enum TeleportMode {
 @export var percent_value: float = 0.0
 @export var damage_element: String = "neutral"
 @export var damage_mode: String = "direct"
+@export var calculated_power: float = 1.0
+@export var bonus_accuracy: float = 0.0
+@export var bonus_crit_rate: float = 0.0
+@export var ignore_defense_rate: float = 0.0
+@export var fixed_damage_bonus: float = 0.0
 
 # 回復系
 @export var resource_type: ResourceType = ResourceType.HP
