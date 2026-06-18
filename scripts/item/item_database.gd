@@ -361,10 +361,22 @@ static func _build_modifier_text(effect: ItemEffectData) -> String:
 
 
 static func _build_damage_text(effect: ItemEffectData) -> String:
+	var element_name := _get_damage_element_display_name(effect.damage_element)
 	if effect.power_min == effect.power_max:
-		return "ダメージ " + str(effect.power_min)
+		return element_name + "属性ダメージ " + str(effect.power_min)
 
-	return "ダメージ " + str(effect.power_min) + "〜" + str(effect.power_max)
+	return element_name + "属性ダメージ " + str(effect.power_min) + "〜" + str(effect.power_max)
+
+
+static func _get_damage_element_display_name(element_id: String) -> String:
+	var normalized_id := element_id.strip_edges().to_lower()
+	if normalized_id == "":
+		normalized_id = "neutral"
+
+	if GameData != null and GameData.has_method("get_element_display_name"):
+		return GameData.get_element_display_name(normalized_id)
+
+	return normalized_id
 
 
 static func _build_teleport_text(effect: ItemEffectData) -> String:

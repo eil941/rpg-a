@@ -44,6 +44,7 @@ var faction: String = "NPC"
 @export var luck: int = 0
 
 @export var element: String = "neutral"
+@export var default_attack_element: String = "neutral"
 @export var element_resistances: Dictionary = {
 	"neutral": 1.0
 }

@@ -94,7 +94,8 @@ func try_bump_attack(attacker, target) -> bool:
 	if not can_attack(attacker, target):
 		return false
 
-	var result = DamageCalculator.calculate_damage(attacker, target)
+	var attack_data := _build_normal_attack_data(attacker, target)
+	var result = DamageCalculator.calculate_damage(attacker, target, attack_data)
 
 	if not result["hit"]:
 		_log_attack_message(attacker, target, "%s の攻撃は %s に回避された" % [attacker.name, target.name])
@@ -418,7 +419,8 @@ func perform_attack(attacker, target, require_hostile: bool = true) -> bool:
 				elif diff.y < 0:
 					attacker.update_facing_only(Vector2.UP)
 
-	var result = DamageCalculator.calculate_damage(attacker, target)
+	var attack_data := _build_normal_attack_data(attacker, target)
+	var result = DamageCalculator.calculate_damage(attacker, target, attack_data)
 
 	if not result["hit"]:
 		_log_attack_message(attacker, target, "%s の攻撃は %s に回避された" % [attacker.name, target.name])
@@ -466,6 +468,63 @@ func _should_force_target_hostile(attacker, target, require_hostile: bool) -> bo
 		return false
 
 	return bool(attacker.is_player_unit)
+
+
+func _build_normal_attack_data(attacker, _target) -> Dictionary:
+	var element := _get_normal_attack_element(attacker)
+
+	return {
+		"power": 1.0,
+		"element": element,
+		"bonus_accuracy": 0.0,
+		"bonus_crit_rate": 0.0,
+		"ignore_defense_rate": 0.0,
+		"fixed_damage_bonus": 0.0
+	}
+
+
+func _get_normal_attack_element(attacker) -> String:
+	if attacker == null:
+		return "neutral"
+
+	if not attacker.has_method("get_main_weapon"):
+		return _get_default_attack_element(attacker)
+
+	var weapon = attacker.get_main_weapon()
+	if weapon != null and ("attack_element" in weapon):
+		var weapon_element := _normalize_attack_element(String(weapon.attack_element), "weapon attack_element")
+		if weapon_element != "":
+			return weapon_element
+
+	return _get_default_attack_element(attacker)
+
+
+func _get_default_attack_element(attacker) -> String:
+	if attacker == null:
+		return "neutral"
+
+	if not ("default_attack_element" in attacker):
+		return "neutral"
+
+	var element := _normalize_attack_element(String(attacker.default_attack_element), "default_attack_element")
+	if element == "":
+		return "neutral"
+
+	return element
+
+
+func _normalize_attack_element(raw_value: String, context: String) -> String:
+	var raw_element := raw_value.strip_edges()
+	var element := raw_element.to_lower()
+	if element == "":
+		return ""
+
+	if GameData != null and GameData.has_method("has_element_type"):
+		if not GameData.has_element_type(element):
+			push_warning("unknown " + context + ": " + raw_element + " -> neutral")
+			return "neutral"
+
+	return element
 
 
 func _make_target_hostile_to_attacker(attacker, target) -> void:

@@ -1,5 +1,5 @@
-item_id	slot_type	max_hp_bonus	attack_bonus	defense_bonus	speed_bonus	attack_type_id	attack_min_range	attack_max_range	combat_style	move_style
-knife	HAND	0	20	0	0	melee	1	1	MELEE	APPROACH
-bow	HAND	0	10	0	0	melee	1	5	LONG	KEEP_DISTANCE
-cloth_armor	BODY	0	0	20	0	melee	1	1	AUTO	AUTO
-power_ring	ACCESSORY	0	20	0	0	melee	1	1	AUTO	AUTO
+item_id	slot_type	max_hp_bonus	attack_bonus	defense_bonus	speed_bonus	attack_type_id	attack_element	attack_min_range	attack_max_range	combat_style	move_style
+knife	HAND	0	20	0	0	melee	neutral	1	1	MELEE	APPROACH
+bow	HAND	0	10	0	0	melee	neutral	1	5	LONG	KEEP_DISTANCE
+cloth_armor	BODY	0	0	20	0	melee	neutral	1	1	AUTO	AUTO
+power_ring	ACCESSORY	0	20	0	0	melee	neutral	1	1	AUTO	AUTO

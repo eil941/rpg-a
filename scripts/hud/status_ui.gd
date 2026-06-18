@@ -795,6 +795,19 @@ func build_page_1_basic_text(unit_node, stats) -> String:
 	return "\n".join(lines)
 
 
+func _get_element_display_name(element_id: String) -> String:
+	var normalized_id := element_id.strip_edges()
+	if normalized_id == "":
+		return ""
+
+	if GameData != null and GameData.has_method("get_element_display_name"):
+		var display_name := String(GameData.get_element_display_name(normalized_id)).strip_edges()
+		if display_name != "":
+			return display_name
+
+	return normalized_id
+
+
 func build_page_1_combat_text(unit_node, stats) -> String:
 	var lines: PackedStringArray = []
 
@@ -872,7 +885,8 @@ func build_page_1_combat_text(unit_node, stats) -> String:
 	lines.append("クリティカル率: %d%%" % int(round(float(combat_stats.get("crit_rate", 0.0)) * 100.0)))
 	lines.append("クリティカルダメージ: %.2f" % float(combat_stats.get("crit_damage", 1.5)))
 	lines.append("運: %d" % int(combat_stats.get("luck", 0)))
-	lines.append("属性: %s" % String(combat_stats.get("element", String(stats.element))))
+	var element_id := String(combat_stats.get("element", String(stats.element)))
+	lines.append("属性: %s" % _get_element_display_name(element_id))
 
 	return "\n".join(lines)
 
@@ -937,7 +951,7 @@ func build_page_3_text(stats) -> String:
 		for key in keys:
 			var rate = stats.element_resistances[key]
 			var rate_text: String = "%.2f" % float(rate)
-			lines.append("%s: %s" % [String(key), rate_text])
+			lines.append("%s: %s" % [_get_element_display_name(String(key)), rate_text])
 
 	lines.append("")
 	lines.append("[今後追加予定]")

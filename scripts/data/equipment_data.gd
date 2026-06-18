@@ -39,6 +39,8 @@ enum AIMoveStyle {
 @export_enum("melee", "shot", "magic", "heal")
 var attack_type_id: String = "melee"
 
+@export var attack_element: String = "neutral"
+
 @export var attack_min_range: int = 1
 @export var attack_max_range: int = 1
 

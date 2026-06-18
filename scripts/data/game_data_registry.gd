@@ -250,6 +250,7 @@ func load_all() -> void:
 
 	_load_item_categories()
 	_load_status_effect_types()
+	_load_element_types()
 	_load_items()
 	_load_equipment()
 	_load_item_effects()
@@ -261,7 +262,6 @@ func load_all() -> void:
 	_load_unit_races()
 	_load_unit_factions()
 	_load_faction_relations()
-	_load_element_types()
 	_load_enemies()
 	_load_npcs()
 	_load_quests()
@@ -269,7 +269,7 @@ func load_all() -> void:
 
 
 	# 確認したいときだけ有効化
-	# debug_print_loaded_data()
+	#debug_print_loaded_data()
 
 func get_item(item_id: String):
 	return items.get(item_id)
@@ -453,6 +453,36 @@ func has_element_type(element_id: String) -> bool:
 		return false
 
 	return element_types.has(normalized_id)
+
+
+func get_element_display_name(element_id: String) -> String:
+	var normalized_id := _normalize_element_type_id(element_id)
+	if normalized_id == "":
+		return ""
+
+	if not has_element_type(normalized_id):
+		_warn_unknown_element_type(element_id, "get_element_display_name")
+		return normalized_id
+
+	var element_type: Dictionary = get_element_type(normalized_id)
+	var display_name := String(element_type.get("display_name", "")).strip_edges()
+	if display_name != "":
+		return display_name
+
+	return normalized_id
+
+
+func get_element_description(element_id: String) -> String:
+	var normalized_id := _normalize_element_type_id(element_id)
+	if normalized_id == "":
+		return ""
+
+	if not has_element_type(normalized_id):
+		_warn_unknown_element_type(element_id, "get_element_description")
+		return ""
+
+	var element_type: Dictionary = get_element_type(normalized_id)
+	return String(element_type.get("description", ""))
 
 
 func get_status_effect_type(status_id: String) -> Dictionary:
@@ -1326,6 +1356,23 @@ func _normalize_loaded_element_type(element_id: String, context: String) -> Stri
 	return DEFAULT_ELEMENT_TYPE_ID
 
 
+func _normalize_damage_mode(value: String, context: String = "") -> String:
+	var normalized_value := value.strip_edges().to_lower()
+	if normalized_value == "":
+		return "direct"
+
+	match normalized_value:
+		"direct", "calculated":
+			return normalized_value
+
+	var context_text := ""
+	if context != "":
+		context_text = " (" + context + ")"
+
+	push_warning("unknown damage_mode" + context_text + ": " + value + " -> direct")
+	return "direct"
+
+
 func _warn_unknown_element_resistance_keys(resistances: Dictionary, context: String) -> void:
 	for key in resistances.keys():
 		var element_id := _normalize_element_type_id(String(key))
@@ -1599,6 +1646,10 @@ func _load_equipment() -> void:
 		equip.defense_bonus = _to_int(_get_string(row, "defense_bonus"), 0)
 		equip.speed_bonus = _to_int(_get_string(row, "speed_bonus"), 0)
 		equip.attack_type_id = _get_string(row, "attack_type_id", "melee")
+		equip.attack_element = _normalize_loaded_element_type(
+			_get_string(row, "attack_element", equip.attack_element),
+			"equipment.tsv item_id=" + item_id + " attack_element"
+		)
 		equip.attack_min_range = _to_int(_get_string(row, "attack_min_range"), 1)
 		equip.attack_max_range = _to_int(_get_string(row, "attack_max_range"), 1)
 		equip.combat_style = _combat_style_from_text(_get_string(row, "combat_style", "AUTO"))
@@ -1736,6 +1787,14 @@ func _build_item_effect(row: Dictionary) -> ItemEffectData:
 			effect.effect_type = ItemEffectData.EffectType.DEAL_DAMAGE
 			effect.power_min = _to_int(_get_string(row, "power_min"), 0)
 			effect.power_max = _to_int(_get_string(row, "power_max"), effect.power_min)
+			effect.damage_element = _normalize_loaded_element_type(
+				_get_string(row, "damage_element", effect.damage_element),
+				"item_effects.tsv effect_id=" + effect_id + " damage_element"
+			)
+			effect.damage_mode = _normalize_damage_mode(
+				_get_string(row, "damage_mode", effect.damage_mode),
+				"item_effects.tsv effect_id=" + effect_id
+			)
 
 		"grant_item":
 			effect.effect_type = ItemEffectData.EffectType.GRANT_ITEM
@@ -2229,6 +2288,7 @@ func _build_enemy_data(row: Dictionary) -> EnemyData:
 	enemy.luck = _to_int(_get_string(row, "luck"), enemy.luck)
 
 	enemy.element = _normalize_loaded_element_type(_get_string(row, "element", enemy.element), "enemies.tsv enemy_type_id=" + enemy.enemy_type_id)
+	enemy.default_attack_element = _normalize_loaded_element_type(_get_string(row, "default_attack_element", enemy.default_attack_element), "enemies.tsv enemy_type_id=" + enemy.enemy_type_id + " default_attack_element")
 	enemy.element_resistances = _split_float_dict(_get_string(row, "element_resistances"))
 	_warn_unknown_element_resistance_keys(enemy.element_resistances, "enemies.tsv enemy_type_id=" + enemy.enemy_type_id)
 
@@ -2371,6 +2431,7 @@ func _build_npc_data(row: Dictionary) -> NpcData:
 	npc.luck = _to_int(_get_string(row, "luck"), npc.luck)
 
 	npc.element = _normalize_loaded_element_type(_get_string(row, "element", npc.element), "npcs.tsv npc_type_id=" + npc.npc_type_id)
+	npc.default_attack_element = _normalize_loaded_element_type(_get_string(row, "default_attack_element", npc.default_attack_element), "npcs.tsv npc_type_id=" + npc.npc_type_id + " default_attack_element")
 	npc.element_resistances = _split_float_dict(_get_string(row, "element_resistances"))
 	_warn_unknown_element_resistance_keys(npc.element_resistances, "npcs.tsv npc_type_id=" + npc.npc_type_id)
 
