@@ -17,17 +17,20 @@ const DEFENSE_LUCK_DAMAGE_REDUCTION = 0.12
 
 # ダメージ下限が 1 を下回った時、その不足分を命中不利へ変換する係数
 const UNDERFLOW_TO_HIT_PENALTY = 0.03
+const DEFAULT_DAMAGE_TYPE = "physical"
 
 
 func calculate_damage(attacker, target, attack_data: Dictionary = {}) -> Dictionary:
+	var damage_type := _normalize_damage_type(str(attack_data.get("damage_type", DEFAULT_DAMAGE_TYPE)))
+
 	if attacker == null or target == null:
-		return _make_result(false, false, false, 0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, "invalid_target")
+		return _make_result(false, false, false, 0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, "invalid_target", damage_type)
 
 	if not attacker.has_node("Stats"):
-		return _make_result(false, false, false, 0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, "attacker_has_no_stats")
+		return _make_result(false, false, false, 0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, "attacker_has_no_stats", damage_type)
 
 	if not target.has_node("Stats"):
-		return _make_result(false, false, false, 0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, "target_has_no_stats")
+		return _make_result(false, false, false, 0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, "target_has_no_stats", damage_type)
 
 	var attacker_stats = attacker.get_node("Stats")
 	var target_stats = target.get_node("Stats")
@@ -37,6 +40,9 @@ func calculate_damage(attacker, target, attack_data: Dictionary = {}) -> Diction
 	var bonus_accuracy = float(attack_data.get("bonus_accuracy", 0.0))
 	var bonus_crit_rate = float(attack_data.get("bonus_crit_rate", 0.0))
 	var ignore_defense_rate = clamp(float(attack_data.get("ignore_defense_rate", 0.0)), 0.0, 1.0)
+	if damage_type == "true":
+		ignore_defense_rate = 1.0
+
 	var fixed_damage_bonus = float(attack_data.get("fixed_damage_bonus", 0.0))
 	var skip_accuracy_check: bool = bool(attack_data.get("skip_accuracy_check", false))
 
@@ -137,8 +143,10 @@ func calculate_damage(attacker, target, attack_data: Dictionary = {}) -> Diction
 			print("total_defense: ", total_defense)
 			print("effective_attack: ", effective_attack)
 			print("effective_defense: ", effective_defense)
+			print("ignored_defense_rate: ", ignore_defense_rate)
 			print("power: ", power)
 			print("element: ", element)
+			print("damage_type: ", damage_type)
 			print("element_rate: ", element_rate)
 			print("crit_rate: ", crit_rate)
 			print("is_critical: ", is_critical)
@@ -176,6 +184,9 @@ func calculate_damage(attacker, target, attack_data: Dictionary = {}) -> Diction
 			"max_damage": max(1, int(ceil(max(1.0, max_damage_raw)))),
 			"hit_rate": final_hit_rate,
 			"crit_rate": crit_rate,
+			"damage_type": damage_type,
+			"effective_defense": effective_defense,
+			"ignored_defense_rate": ignore_defense_rate,
 			"element_rate": element_rate,
 			"attacker_luck_rate": attacker_luck_rate,
 			"target_luck_rate": target_luck_rate,
@@ -201,8 +212,10 @@ func calculate_damage(attacker, target, attack_data: Dictionary = {}) -> Diction
 		print("total_defense: ", total_defense)
 		print("effective_attack: ", effective_attack)
 		print("effective_defense: ", effective_defense)
+		print("ignored_defense_rate: ", ignore_defense_rate)
 		print("power: ", power)
 		print("element: ", element)
+		print("damage_type: ", damage_type)
 		print("element_rate: ", element_rate)
 		print("crit_rate: ", crit_rate)
 		print("is_critical: ", is_critical)
@@ -240,6 +253,9 @@ func calculate_damage(attacker, target, attack_data: Dictionary = {}) -> Diction
 		"max_damage": max_damage,
 		"hit_rate": final_hit_rate,
 		"crit_rate": crit_rate,
+		"damage_type": damage_type,
+		"effective_defense": effective_defense,
+		"ignored_defense_rate": ignore_defense_rate,
 		"element_rate": element_rate,
 		"attacker_luck_rate": attacker_luck_rate,
 		"target_luck_rate": target_luck_rate,
@@ -249,6 +265,19 @@ func calculate_damage(attacker, target, attack_data: Dictionary = {}) -> Diction
 		"underflow_evasion_bonus": underflow_evasion_bonus,
 		"reason": "ok"
 	}
+
+
+func _normalize_damage_type(value: String) -> String:
+	var damage_type := value.strip_edges().to_lower()
+	if damage_type == "":
+		return DEFAULT_DAMAGE_TYPE
+
+	match damage_type:
+		"physical", "magical", "true":
+			return damage_type
+
+	push_warning("unknown damage_type: " + value + " -> " + DEFAULT_DAMAGE_TYPE)
+	return DEFAULT_DAMAGE_TYPE
 
 
 func _compress_luck(luck: int) -> float:
@@ -406,7 +435,10 @@ func _make_result(
 	attacker_luck_rate: float,
 	target_luck_rate: float,
 	defense_luck_damage_rate: float,
-	reason: String
+	reason: String,
+	damage_type: String = DEFAULT_DAMAGE_TYPE,
+	effective_defense: float = 0.0,
+	ignored_defense_rate: float = 0.0
 ) -> Dictionary:
 	return {
 		"hit": hit,
@@ -415,6 +447,9 @@ func _make_result(
 		"final_damage": final_damage,
 		"hit_rate": hit_rate,
 		"crit_rate": crit_rate,
+		"damage_type": damage_type,
+		"effective_defense": effective_defense,
+		"ignored_defense_rate": ignored_defense_rate,
 		"element_rate": element_rate,
 		"attacker_luck_rate": attacker_luck_rate,
 		"target_luck_rate": target_luck_rate,
