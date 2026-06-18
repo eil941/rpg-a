@@ -21,6 +21,7 @@ const UNIT_RENDER_Z_INDEX: int = 100
 @export_enum("PLAYER", "NPC", "ENEMY")
 var faction: String = "PLAYER"
 @export var default_attack_element: String = "neutral"
+@export var default_attack_damage_type: String = "physical"
 
 @export var animation_profile: AnimationProfile
 
@@ -2234,6 +2235,7 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 	stats.luck = enemy_data.luck
 	stats.element = enemy_data.element
 	default_attack_element = enemy_data.default_attack_element
+	default_attack_damage_type = enemy_data.default_attack_damage_type
 	stats.element_resistances = enemy_data.element_resistances.duplicate(true)
 
 	stats.strength = enemy_data.strength
@@ -2581,6 +2583,7 @@ func apply_npc_data(npc_data: NpcData) -> void:
 	stats.luck = npc_data.luck
 	stats.element = npc_data.element
 	default_attack_element = npc_data.default_attack_element
+	default_attack_damage_type = npc_data.default_attack_damage_type
 	stats.element_resistances = npc_data.element_resistances.duplicate(true)
 
 	stats.strength = npc_data.strength

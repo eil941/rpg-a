@@ -472,10 +472,12 @@ func _should_force_target_hostile(attacker, target, require_hostile: bool) -> bo
 
 func _build_normal_attack_data(attacker, _target) -> Dictionary:
 	var element := _get_normal_attack_element(attacker)
+	var damage_type := _get_normal_attack_damage_type(attacker)
 
 	return {
 		"power": 1.0,
 		"element": element,
+		"damage_type": damage_type,
 		"bonus_accuracy": 0.0,
 		"bonus_crit_rate": 0.0,
 		"ignore_defense_rate": 0.0,
@@ -525,6 +527,50 @@ func _normalize_attack_element(raw_value: String, context: String) -> String:
 			return "neutral"
 
 	return element
+
+
+func _get_normal_attack_damage_type(attacker) -> String:
+	if attacker == null:
+		return "physical"
+
+	if not attacker.has_method("get_main_weapon"):
+		return _get_default_attack_damage_type(attacker)
+
+	var weapon = attacker.get_main_weapon()
+	if weapon != null and ("attack_damage_type" in weapon):
+		var weapon_damage_type := _normalize_attack_damage_type(String(weapon.attack_damage_type), "weapon attack_damage_type")
+		if weapon_damage_type != "":
+			return weapon_damage_type
+
+	return _get_default_attack_damage_type(attacker)
+
+
+func _get_default_attack_damage_type(attacker) -> String:
+	if attacker == null:
+		return "physical"
+
+	if not ("default_attack_damage_type" in attacker):
+		return "physical"
+
+	var damage_type := _normalize_attack_damage_type(String(attacker.default_attack_damage_type), "default_attack_damage_type")
+	if damage_type == "":
+		return "physical"
+
+	return damage_type
+
+
+func _normalize_attack_damage_type(raw_value: String, context: String) -> String:
+	var raw_damage_type := raw_value.strip_edges()
+	var damage_type := raw_damage_type.to_lower()
+	if damage_type == "":
+		return ""
+
+	if GameData != null and GameData.has_method("has_damage_type"):
+		if not GameData.has_damage_type(damage_type):
+			push_warning("unknown " + context + ": " + raw_damage_type + " -> physical")
+			return "physical"
+
+	return damage_type
 
 
 func _make_target_hostile_to_attacker(attacker, target) -> void:

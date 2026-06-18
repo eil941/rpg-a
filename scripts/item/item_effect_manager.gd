@@ -477,12 +477,26 @@ static func _build_calculated_damage_attack_data(effect: ItemEffectData) -> Dict
 	return {
 		"power": power,
 		"element": element,
+		"damage_type": _get_effect_damage_type(effect),
 		"bonus_accuracy": float(effect.bonus_accuracy),
 		"bonus_crit_rate": float(effect.bonus_crit_rate),
 		"ignore_defense_rate": clamp(float(effect.ignore_defense_rate), 0.0, 1.0),
 		"fixed_damage_bonus": float(effect.fixed_damage_bonus),
 		"skip_accuracy_check": true
 	}
+
+
+static func _get_effect_damage_type(effect: ItemEffectData) -> String:
+	var damage_type := String(effect.damage_type).strip_edges().to_lower()
+	if damage_type == "":
+		return "physical"
+
+	if GameData != null and GameData.has_method("has_damage_type"):
+		if not GameData.has_damage_type(damage_type):
+			push_warning("unknown item effect damage_type: " + damage_type + " -> physical")
+			return "physical"
+
+	return damage_type
 
 
 static func _apply_grant_item(user, target, effect: ItemEffectData) -> bool:

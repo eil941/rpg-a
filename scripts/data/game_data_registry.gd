@@ -5,6 +5,7 @@ const DEFAULT_UNIT_RACE_ID: String = "UNKNOWN"
 const DEFAULT_UNIT_FACTION_ID: String = "NEUTRAL"
 const DEFAULT_FACTION_RELATION: String = "NEUTRAL"
 const DEFAULT_ELEMENT_TYPE_ID: String = "neutral"
+const DEFAULT_DAMAGE_TYPE_ID: String = "physical"
 const BUILTIN_ITEM_CATEGORY_FALLBACKS: Array[Dictionary] = [
 	{
 		"category_id": "material",
@@ -107,6 +108,14 @@ const BUILTIN_ELEMENT_TYPE_FALLBACKS: Array[Dictionary] = [
 		"description": "通常属性または属性なし"
 	}
 ]
+const BUILTIN_DAMAGE_TYPE_FALLBACKS: Array[Dictionary] = [
+	{
+		"damage_type_id": "physical",
+		"display_name": "physical",
+		"sort_order": 10,
+		"description": "Default physical damage classification"
+	}
+]
 const BUILTIN_STATUS_EFFECT_TYPE_FALLBACKS: Array[Dictionary] = [
 	{
 		"status_id": "poison",
@@ -197,6 +206,7 @@ var unit_races: Dictionary = {}
 var unit_factions: Dictionary = {}
 var faction_relations: Dictionary = {}
 var element_types: Dictionary = {}
+var damage_types: Dictionary = {}
 var status_effect_types: Dictionary = {}
 var items: Dictionary = {}
 var effects: Dictionary = {}
@@ -215,6 +225,7 @@ var _warned_unknown_unit_races: Dictionary = {}
 var _warned_unknown_unit_factions: Dictionary = {}
 var _warned_missing_faction_relations: Dictionary = {}
 var _warned_unknown_element_types: Dictionary = {}
+var _warned_unknown_damage_types: Dictionary = {}
 var _warned_unknown_status_effect_types: Dictionary = {}
 
 
@@ -230,6 +241,7 @@ func load_all() -> void:
 	unit_factions.clear()
 	faction_relations.clear()
 	element_types.clear()
+	damage_types.clear()
 	status_effect_types.clear()
 	items.clear()
 	effects.clear()
@@ -246,11 +258,13 @@ func load_all() -> void:
 	_warned_unknown_unit_factions.clear()
 	_warned_missing_faction_relations.clear()
 	_warned_unknown_element_types.clear()
+	_warned_unknown_damage_types.clear()
 	_warned_unknown_status_effect_types.clear()
 
 	_load_item_categories()
 	_load_status_effect_types()
 	_load_element_types()
+	_load_damage_types()
 	_load_items()
 	_load_equipment()
 	_load_item_effects()
@@ -483,6 +497,48 @@ func get_element_description(element_id: String) -> String:
 
 	var element_type: Dictionary = get_element_type(normalized_id)
 	return String(element_type.get("description", ""))
+
+
+func get_damage_type(damage_type_id: String) -> Dictionary:
+	var normalized_id := _normalize_damage_type_id(damage_type_id)
+	if normalized_id == "":
+		normalized_id = DEFAULT_DAMAGE_TYPE_ID
+
+	if damage_types.has(normalized_id):
+		return damage_types[normalized_id].duplicate(true)
+
+	_warn_unknown_damage_type(damage_type_id, "get_damage_type")
+
+	if damage_types.has(DEFAULT_DAMAGE_TYPE_ID):
+		return damage_types[DEFAULT_DAMAGE_TYPE_ID].duplicate(true)
+
+	return _make_damage_type_entry(
+		DEFAULT_DAMAGE_TYPE_ID,
+		DEFAULT_DAMAGE_TYPE_ID,
+		10,
+		"Default physical damage classification"
+	)
+
+
+func get_all_damage_types() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+
+	for damage_type in damage_types.values():
+		if typeof(damage_type) != TYPE_DICTIONARY:
+			continue
+
+		result.append(damage_type.duplicate(true))
+
+	result.sort_custom(Callable(self, "_sort_damage_type_entries"))
+	return result
+
+
+func has_damage_type(damage_type_id: String) -> bool:
+	var normalized_id := _normalize_damage_type_id(damage_type_id)
+	if normalized_id == "":
+		return false
+
+	return damage_types.has(normalized_id)
 
 
 func get_status_effect_type(status_id: String) -> Dictionary:
@@ -892,6 +948,10 @@ func _normalize_element_type_id(element_id: String) -> String:
 	return element_id.strip_edges().to_lower()
 
 
+func _normalize_damage_type_id(damage_type_id: String) -> String:
+	return damage_type_id.strip_edges().to_lower()
+
+
 func _normalize_status_effect_id(status_id: String) -> String:
 	return status_id.strip_edges()
 
@@ -950,6 +1010,16 @@ func _sort_element_type_entries(a: Dictionary, b: Dictionary) -> bool:
 
 	if order_a == order_b:
 		return String(a.get("element_id", "")) < String(b.get("element_id", ""))
+
+	return order_a < order_b
+
+
+func _sort_damage_type_entries(a: Dictionary, b: Dictionary) -> bool:
+	var order_a := int(a.get("sort_order", 0))
+	var order_b := int(b.get("sort_order", 0))
+
+	if order_a == order_b:
+		return String(a.get("damage_type_id", "")) < String(b.get("damage_type_id", ""))
 
 	return order_a < order_b
 
@@ -1022,6 +1092,20 @@ func _make_element_type_entry(
 ) -> Dictionary:
 	return {
 		"element_id": element_id,
+		"display_name": display_name,
+		"sort_order": sort_order,
+		"description": description
+	}
+
+
+func _make_damage_type_entry(
+	damage_type_id: String,
+	display_name: String,
+	sort_order: int,
+	description: String
+) -> Dictionary:
+	return {
+		"damage_type_id": damage_type_id,
 		"display_name": display_name,
 		"sort_order": sort_order,
 		"description": description
@@ -1111,6 +1195,21 @@ func _register_element_type(element: Dictionary) -> void:
 	element_types[element_id] = entry
 
 
+func _register_damage_type(damage_type: Dictionary) -> void:
+	var damage_type_id := _normalize_damage_type_id(String(damage_type.get("damage_type_id", "")))
+	if damage_type_id == "":
+		push_warning("damage_type_id is empty")
+		return
+
+	if damage_types.has(damage_type_id):
+		push_warning("duplicate damage_type_id: " + damage_type_id)
+		return
+
+	var entry := damage_type.duplicate(true)
+	entry["damage_type_id"] = damage_type_id
+	damage_types[damage_type_id] = entry
+
+
 func _register_status_effect_type(status_effect: Dictionary) -> void:
 	var status_id := _normalize_status_effect_id(String(status_effect.get("status_id", "")))
 	if status_id == "":
@@ -1198,6 +1297,15 @@ func _ensure_builtin_element_type_fallbacks() -> void:
 			continue
 
 		element_types[element_id] = fallback.duplicate(true)
+
+
+func _ensure_builtin_damage_type_fallbacks() -> void:
+	for fallback in BUILTIN_DAMAGE_TYPE_FALLBACKS:
+		var damage_type_id := _normalize_damage_type_id(String(fallback.get("damage_type_id", "")))
+		if damage_type_id == "" or damage_types.has(damage_type_id):
+			continue
+
+		damage_types[damage_type_id] = fallback.duplicate(true)
 
 
 func _ensure_builtin_status_effect_type_fallbacks() -> void:
@@ -1290,6 +1398,24 @@ func _warn_unknown_element_type(element_id: String, context: String = "") -> voi
 	push_warning("unknown element type" + context_text + ": " + element_id + " -> " + DEFAULT_ELEMENT_TYPE_ID)
 
 
+func _warn_unknown_damage_type(damage_type_id: String, context: String = "") -> void:
+	var normalized_id := _normalize_damage_type_id(damage_type_id)
+	if normalized_id == "":
+		normalized_id = "<empty>"
+
+	var key := context + ":" + normalized_id
+	if _warned_unknown_damage_types.has(key):
+		return
+
+	_warned_unknown_damage_types[key] = true
+
+	var context_text := ""
+	if context != "":
+		context_text = " (" + context + ")"
+
+	push_warning("unknown damage type" + context_text + ": " + damage_type_id + " -> " + DEFAULT_DAMAGE_TYPE_ID)
+
+
 func _warn_unknown_status_effect_type(status_id: String, context: String = "") -> void:
 	var normalized_id := _normalize_status_effect_id(status_id)
 	if normalized_id == "":
@@ -1354,6 +1480,18 @@ func _normalize_loaded_element_type(element_id: String, context: String) -> Stri
 
 	_warn_unknown_element_type(element_id, context)
 	return DEFAULT_ELEMENT_TYPE_ID
+
+
+func _normalize_loaded_damage_type(damage_type_id: String, context: String) -> String:
+	var normalized_id := _normalize_damage_type_id(damage_type_id)
+	if normalized_id == "":
+		return DEFAULT_DAMAGE_TYPE_ID
+
+	if has_damage_type(normalized_id):
+		return normalized_id
+
+	_warn_unknown_damage_type(damage_type_id, context)
+	return DEFAULT_DAMAGE_TYPE_ID
 
 
 func _normalize_damage_mode(value: String, context: String = "") -> String:
@@ -1691,6 +1829,10 @@ func _load_equipment() -> void:
 			_get_string(row, "attack_element", equip.attack_element),
 			"equipment.tsv item_id=" + item_id + " attack_element"
 		)
+		equip.attack_damage_type = _normalize_loaded_damage_type(
+			_get_string(row, "attack_damage_type", equip.attack_damage_type),
+			"equipment.tsv item_id=" + item_id + " attack_damage_type"
+		)
 		equip.attack_min_range = _to_int(_get_string(row, "attack_min_range"), 1)
 		equip.attack_max_range = _to_int(_get_string(row, "attack_max_range"), 1)
 		equip.combat_style = _combat_style_from_text(_get_string(row, "combat_style", "AUTO"))
@@ -1831,6 +1973,10 @@ func _build_item_effect(row: Dictionary) -> ItemEffectData:
 			effect.damage_element = _normalize_loaded_element_type(
 				_get_string(row, "damage_element", effect.damage_element),
 				"item_effects.tsv effect_id=" + effect_id + " damage_element"
+			)
+			effect.damage_type = _normalize_loaded_damage_type(
+				_get_string(row, "damage_type", effect.damage_type),
+				"item_effects.tsv effect_id=" + effect_id + " damage_type"
 			)
 			effect.damage_mode = _normalize_damage_mode(
 				_get_string(row, "damage_mode", effect.damage_mode),
@@ -2305,6 +2451,33 @@ func _load_element_types() -> void:
 
 
 # ============================================================
+# DamageTypes
+# ============================================================
+
+func _load_damage_types() -> void:
+	var rows := _load_optional_tsv("res://data/master/damage_types.tsv")
+
+	for row in rows:
+		var damage_type_id := _normalize_damage_type_id(_get_string(row, "damage_type_id"))
+		if damage_type_id == "":
+			push_warning("damage_types.tsv has empty damage_type_id")
+			continue
+
+		var display_name := _get_string(row, "display_name", damage_type_id).strip_edges()
+		if display_name == "":
+			display_name = damage_type_id
+
+		_register_damage_type(_make_damage_type_entry(
+			damage_type_id,
+			display_name,
+			_to_int(_get_string(row, "sort_order"), 0),
+			_get_string(row, "description")
+		))
+
+	_ensure_builtin_damage_type_fallbacks()
+
+
+# ============================================================
 # EnemyData
 # ============================================================
 
@@ -2355,6 +2528,7 @@ func _build_enemy_data(row: Dictionary) -> EnemyData:
 
 	enemy.element = _normalize_loaded_element_type(_get_string(row, "element", enemy.element), "enemies.tsv enemy_type_id=" + enemy.enemy_type_id)
 	enemy.default_attack_element = _normalize_loaded_element_type(_get_string(row, "default_attack_element", enemy.default_attack_element), "enemies.tsv enemy_type_id=" + enemy.enemy_type_id + " default_attack_element")
+	enemy.default_attack_damage_type = _normalize_loaded_damage_type(_get_string(row, "default_attack_damage_type", enemy.default_attack_damage_type), "enemies.tsv enemy_type_id=" + enemy.enemy_type_id + " default_attack_damage_type")
 	enemy.element_resistances = _split_float_dict(_get_string(row, "element_resistances"))
 	_warn_unknown_element_resistance_keys(enemy.element_resistances, "enemies.tsv enemy_type_id=" + enemy.enemy_type_id)
 
@@ -2498,6 +2672,7 @@ func _build_npc_data(row: Dictionary) -> NpcData:
 
 	npc.element = _normalize_loaded_element_type(_get_string(row, "element", npc.element), "npcs.tsv npc_type_id=" + npc.npc_type_id)
 	npc.default_attack_element = _normalize_loaded_element_type(_get_string(row, "default_attack_element", npc.default_attack_element), "npcs.tsv npc_type_id=" + npc.npc_type_id + " default_attack_element")
+	npc.default_attack_damage_type = _normalize_loaded_damage_type(_get_string(row, "default_attack_damage_type", npc.default_attack_damage_type), "npcs.tsv npc_type_id=" + npc.npc_type_id + " default_attack_damage_type")
 	npc.element_resistances = _split_float_dict(_get_string(row, "element_resistances"))
 	_warn_unknown_element_resistance_keys(npc.element_resistances, "npcs.tsv npc_type_id=" + npc.npc_type_id)
 
@@ -2757,6 +2932,7 @@ func debug_print_loaded_data() -> void:
 	print("[GameData] unit_factions: ", unit_factions.size())
 	print("[GameData] faction_relations: ", faction_relations.size())
 	print("[GameData] element_types: ", element_types.size())
+	print("[GameData] damage_types: ", damage_types.size())
 	print("[GameData] status_effect_types: ", status_effect_types.size())
 
 	print("---------- Items ----------")

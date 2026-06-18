@@ -31,6 +31,7 @@ SHEET_TO_TSV = {
     "unit_factions": "unit_factions.tsv",
     "faction_relations": "faction_relations.tsv",
     "element_types": "element_types.tsv",
+    "damage_types": "damage_types.tsv",
     "status_effect_types": "status_effect_types.tsv",
     "quests": "quests.tsv",
     "spawn_rules": "spawn_rules.tsv",

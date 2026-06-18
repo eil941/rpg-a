@@ -40,6 +40,7 @@ enum AIMoveStyle {
 var attack_type_id: String = "melee"
 
 @export var attack_element: String = "neutral"
+@export var attack_damage_type: String = "physical"
 
 @export var attack_min_range: int = 1
 @export var attack_max_range: int = 1

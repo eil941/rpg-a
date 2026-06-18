@@ -45,6 +45,7 @@ var faction: String = "NPC"
 
 @export var element: String = "neutral"
 @export var default_attack_element: String = "neutral"
+@export var default_attack_damage_type: String = "physical"
 @export var element_resistances: Dictionary = {
 	"neutral": 1.0
 }

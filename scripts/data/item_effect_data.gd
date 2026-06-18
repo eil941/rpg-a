@@ -87,6 +87,7 @@ enum TeleportMode {
 @export var power_max: int = 0
 @export var percent_value: float = 0.0
 @export var damage_element: String = "neutral"
+@export var damage_type: String = "physical"
 @export var damage_mode: String = "direct"
 @export var calculated_power: float = 1.0
 @export var bonus_accuracy: float = 0.0

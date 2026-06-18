@@ -1,0 +1,4 @@
+damage_type_id	display_name	sort_order	description
+physical	物理	10	通常の物理ダメージ
+magical	魔法	20	魔法やエネルギー系のダメージ
+true	固定	30	防御や耐性を無視する固定のダメージ分類
