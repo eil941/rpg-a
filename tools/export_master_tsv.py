@@ -28,6 +28,8 @@ SHEET_TO_TSV = {
     "item_effect_links": "item_effect_links.tsv",
     "quests": "quests.tsv",
     "spawn_rules": "spawn_rules.tsv",
+    "item_spawn_rule_category_multipliers": "item_spawn_rule_category_multipliers.tsv",
+    "item_spawn_rule_item_overrides": "item_spawn_rule_item_overrides.tsv",
     "enemies": "enemies.tsv",
     "npcs": "npcs.tsv",
     "enchantments": "enchantments.tsv",
