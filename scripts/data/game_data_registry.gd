@@ -208,6 +208,12 @@ var faction_relations: Dictionary = {}
 var element_types: Dictionary = {}
 var damage_types: Dictionary = {}
 var status_effect_types: Dictionary = {}
+var chest_tables: Dictionary = {}
+var chest_loot_tables: Dictionary = {}
+var shop_tables: Dictionary = {}
+var shop_loot_tables: Dictionary = {}
+var initial_inventory_tables: Dictionary = {}
+var initial_inventory_entries: Dictionary = {}
 var items: Dictionary = {}
 var effects: Dictionary = {}
 var quests: Dictionary = {}
@@ -243,6 +249,12 @@ func load_all() -> void:
 	element_types.clear()
 	damage_types.clear()
 	status_effect_types.clear()
+	chest_tables.clear()
+	chest_loot_tables.clear()
+	shop_tables.clear()
+	shop_loot_tables.clear()
+	initial_inventory_tables.clear()
+	initial_inventory_entries.clear()
 	items.clear()
 	effects.clear()
 	quests.clear()
@@ -267,6 +279,12 @@ func load_all() -> void:
 	_load_damage_types()
 	_load_items()
 	_load_equipment()
+	_load_chest_tables()
+	_load_chest_loot_tables()
+	_load_shop_tables()
+	_load_shop_loot_tables()
+	_load_initial_inventory_tables()
+	_load_initial_inventory_entries()
 	_load_item_effects()
 	_load_item_effect_links()
 	_apply_item_effect_links()
@@ -706,6 +724,174 @@ func get_all_enchantments() -> Array[EnchantmentData]:
 	return result
 
 
+func get_chest_table(chest_id: String) -> Dictionary:
+	var normalized_id := _normalize_chest_id(chest_id)
+	if normalized_id == "":
+		return {}
+
+	var table_value: Variant = chest_tables.get(normalized_id, {})
+	if typeof(table_value) != TYPE_DICTIONARY:
+		return {}
+
+	var table: Dictionary = table_value
+	return table.duplicate(true)
+
+
+func has_chest_table(chest_id: String) -> bool:
+	var normalized_id := _normalize_chest_id(chest_id)
+	if normalized_id == "":
+		return false
+
+	return chest_tables.has(normalized_id)
+
+
+func get_all_chest_tables() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+
+	for table_value in chest_tables.values():
+		if typeof(table_value) != TYPE_DICTIONARY:
+			continue
+
+		var table: Dictionary = table_value
+		result.append(table.duplicate(true))
+
+	result.sort_custom(Callable(self, "_sort_chest_table_entries"))
+	return result
+
+
+func get_chest_loot_entries(loot_table_id: String) -> Array[Dictionary]:
+	var normalized_id := _normalize_chest_id(loot_table_id)
+	if normalized_id == "":
+		return []
+
+	var entries_value: Variant = chest_loot_tables.get(normalized_id, [])
+	if typeof(entries_value) != TYPE_ARRAY:
+		return []
+
+	var result: Array[Dictionary] = []
+	var entries: Array = entries_value
+	for entry_value in entries:
+		if typeof(entry_value) != TYPE_DICTIONARY:
+			continue
+
+		var entry: Dictionary = entry_value
+		result.append(entry.duplicate(true))
+
+	return result
+
+
+func get_shop_table(shop_table_id: String) -> Dictionary:
+	var normalized_id := _normalize_shop_id(shop_table_id)
+	if normalized_id == "":
+		return {}
+
+	var table_value: Variant = shop_tables.get(normalized_id, {})
+	if typeof(table_value) != TYPE_DICTIONARY:
+		return {}
+
+	var table: Dictionary = table_value
+	return table.duplicate(true)
+
+
+func has_shop_table(shop_table_id: String) -> bool:
+	var normalized_id := _normalize_shop_id(shop_table_id)
+	if normalized_id == "":
+		return false
+
+	return shop_tables.has(normalized_id)
+
+
+func get_all_shop_tables() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+
+	for table_value in shop_tables.values():
+		if typeof(table_value) != TYPE_DICTIONARY:
+			continue
+
+		var table: Dictionary = table_value
+		result.append(table.duplicate(true))
+
+	result.sort_custom(Callable(self, "_sort_shop_table_entries"))
+	return result
+
+
+func get_shop_loot_entries(loot_table_id: String) -> Array[Dictionary]:
+	var normalized_id := _normalize_shop_id(loot_table_id)
+	if normalized_id == "":
+		return []
+
+	var entries_value: Variant = shop_loot_tables.get(normalized_id, [])
+	if typeof(entries_value) != TYPE_ARRAY:
+		return []
+
+	var result: Array[Dictionary] = []
+	var entries: Array = entries_value
+	for entry_value in entries:
+		if typeof(entry_value) != TYPE_DICTIONARY:
+			continue
+
+		var entry: Dictionary = entry_value
+		result.append(entry.duplicate(true))
+
+	return result
+
+
+func get_initial_inventory_table(inventory_table_id: String) -> Dictionary:
+	var normalized_id := _normalize_inventory_table_id(inventory_table_id)
+	if normalized_id == "":
+		return {}
+
+	var table_value: Variant = initial_inventory_tables.get(normalized_id, {})
+	if typeof(table_value) != TYPE_DICTIONARY:
+		return {}
+
+	var table: Dictionary = table_value
+	return table.duplicate(true)
+
+
+func has_initial_inventory_table(inventory_table_id: String) -> bool:
+	var normalized_id := _normalize_inventory_table_id(inventory_table_id)
+	if normalized_id == "":
+		return false
+
+	return initial_inventory_tables.has(normalized_id)
+
+
+func get_all_initial_inventory_tables() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+
+	for table_value in initial_inventory_tables.values():
+		if typeof(table_value) != TYPE_DICTIONARY:
+			continue
+
+		var table: Dictionary = table_value
+		result.append(table.duplicate(true))
+
+	result.sort_custom(Callable(self, "_sort_initial_inventory_table_entries"))
+	return result
+
+
+func get_initial_inventory_entries(inventory_table_id: String) -> Array[InitialInventoryEntry]:
+	var normalized_id := _normalize_inventory_table_id(inventory_table_id)
+	if normalized_id == "":
+		return []
+
+	var entries_value: Variant = initial_inventory_entries.get(normalized_id, [])
+	if typeof(entries_value) != TYPE_ARRAY:
+		return []
+
+	var result: Array[InitialInventoryEntry] = []
+	var entries: Array = entries_value
+	for entry_value in entries:
+		var entry := entry_value as InitialInventoryEntry
+		if entry == null:
+			continue
+
+		result.append(entry.duplicate(true) as InitialInventoryEntry)
+
+	return result
+
+
 func get_unit_spawn_rule(rule_id: String) -> SpawnRuleData:
 	return unit_spawn_rules.get(rule_id, null) as SpawnRuleData
 
@@ -956,6 +1142,18 @@ func _normalize_status_effect_id(status_id: String) -> String:
 	return status_id.strip_edges()
 
 
+func _normalize_chest_id(chest_id: String) -> String:
+	return chest_id.strip_edges()
+
+
+func _normalize_shop_id(shop_id: String) -> String:
+	return shop_id.strip_edges()
+
+
+func _normalize_inventory_table_id(inventory_table_id: String) -> String:
+	return inventory_table_id.strip_edges()
+
+
 func _normalize_faction_relation_text(relation: String) -> String:
 	var normalized := relation.strip_edges().to_upper()
 	match normalized:
@@ -1032,6 +1230,18 @@ func _sort_status_effect_type_entries(a: Dictionary, b: Dictionary) -> bool:
 		return String(a.get("status_id", "")) < String(b.get("status_id", ""))
 
 	return order_a < order_b
+
+
+func _sort_chest_table_entries(a: Dictionary, b: Dictionary) -> bool:
+	return String(a.get("chest_id", "")) < String(b.get("chest_id", ""))
+
+
+func _sort_shop_table_entries(a: Dictionary, b: Dictionary) -> bool:
+	return String(a.get("shop_table_id", "")) < String(b.get("shop_table_id", ""))
+
+
+func _sort_initial_inventory_table_entries(a: Dictionary, b: Dictionary) -> bool:
+	return String(a.get("inventory_table_id", "")) < String(b.get("inventory_table_id", ""))
 
 
 func _make_item_category_entry(
@@ -1132,6 +1342,96 @@ func _make_status_effect_type_entry(
 	}
 
 
+func _make_chest_table_entry(
+	chest_id: String,
+	display_name: String,
+	slot_count: int,
+	min_items: int,
+	max_items: int,
+	gold_min: int,
+	gold_max: int,
+	loot_table_id: String,
+	description: String
+) -> Dictionary:
+	return {
+		"chest_id": chest_id,
+		"display_name": display_name,
+		"slot_count": slot_count,
+		"min_items": min_items,
+		"max_items": max_items,
+		"gold_min": gold_min,
+		"gold_max": gold_max,
+		"loot_table_id": loot_table_id,
+		"description": description
+	}
+
+
+func _make_chest_loot_entry(
+	loot_table_id: String,
+	category: String,
+	item_id: String,
+	weight: int,
+	min_amount: int,
+	max_amount: int
+) -> Dictionary:
+	return {
+		"loot_table_id": loot_table_id,
+		"category": category,
+		"item_id": item_id,
+		"weight": weight,
+		"min_amount": min_amount,
+		"max_amount": max_amount
+	}
+
+
+func _make_shop_table_entry(
+	shop_table_id: String,
+	display_name: String,
+	min_items: int,
+	max_items: int,
+	loot_table_id: String,
+	description: String
+) -> Dictionary:
+	return {
+		"shop_table_id": shop_table_id,
+		"display_name": display_name,
+		"min_items": min_items,
+		"max_items": max_items,
+		"loot_table_id": loot_table_id,
+		"description": description
+	}
+
+
+func _make_shop_loot_entry(
+	loot_table_id: String,
+	category: String,
+	item_id: String,
+	weight: int,
+	min_amount: int,
+	max_amount: int
+) -> Dictionary:
+	return {
+		"loot_table_id": loot_table_id,
+		"category": category,
+		"item_id": item_id,
+		"weight": weight,
+		"min_amount": min_amount,
+		"max_amount": max_amount
+	}
+
+
+func _make_initial_inventory_table_entry(
+	inventory_table_id: String,
+	display_name: String,
+	description: String
+) -> Dictionary:
+	return {
+		"inventory_table_id": inventory_table_id,
+		"display_name": display_name,
+		"description": description
+	}
+
+
 func _register_item_category(category: Dictionary, from_tsv: bool = false) -> void:
 	var category_id := _normalize_item_category_id(String(category.get("category_id", "")))
 	if category_id == "":
@@ -1224,6 +1524,103 @@ func _register_status_effect_type(status_effect: Dictionary) -> void:
 	entry["status_id"] = status_id
 	entry["category"] = _normalize_status_effect_category(String(entry.get("category", "neutral")))
 	status_effect_types[status_id] = entry
+
+
+func _register_chest_table(chest_table: Dictionary) -> void:
+	var chest_id := _normalize_chest_id(String(chest_table.get("chest_id", "")))
+	if chest_id == "":
+		push_warning("chest_id is empty")
+		return
+
+	if chest_tables.has(chest_id):
+		push_warning("duplicate chest_id: " + chest_id)
+		return
+
+	var entry := chest_table.duplicate(true)
+	entry["chest_id"] = chest_id
+	chest_tables[chest_id] = entry
+
+
+func _register_chest_loot_entry(loot_entry: Dictionary) -> void:
+	var loot_table_id := _normalize_chest_id(String(loot_entry.get("loot_table_id", "")))
+	if loot_table_id == "":
+		push_warning("chest loot_table_id is empty")
+		return
+
+	var entries_value: Variant = chest_loot_tables.get(loot_table_id, [])
+	if typeof(entries_value) != TYPE_ARRAY:
+		entries_value = []
+
+	var entries: Array = entries_value
+	var entry := loot_entry.duplicate(true)
+	entry["loot_table_id"] = loot_table_id
+	entries.append(entry)
+	chest_loot_tables[loot_table_id] = entries
+
+
+func _register_shop_table(shop_table: Dictionary) -> void:
+	var shop_table_id := _normalize_shop_id(String(shop_table.get("shop_table_id", "")))
+	if shop_table_id == "":
+		push_warning("shop_table_id is empty")
+		return
+
+	if shop_tables.has(shop_table_id):
+		push_warning("duplicate shop_table_id: " + shop_table_id)
+		return
+
+	var entry := shop_table.duplicate(true)
+	entry["shop_table_id"] = shop_table_id
+	shop_tables[shop_table_id] = entry
+
+
+func _register_shop_loot_entry(loot_entry: Dictionary) -> void:
+	var loot_table_id := _normalize_shop_id(String(loot_entry.get("loot_table_id", "")))
+	if loot_table_id == "":
+		push_warning("shop loot_table_id is empty")
+		return
+
+	var entries_value: Variant = shop_loot_tables.get(loot_table_id, [])
+	if typeof(entries_value) != TYPE_ARRAY:
+		entries_value = []
+
+	var entries: Array = entries_value
+	var entry := loot_entry.duplicate(true)
+	entry["loot_table_id"] = loot_table_id
+	entries.append(entry)
+	shop_loot_tables[loot_table_id] = entries
+
+
+func _register_initial_inventory_table(inventory_table: Dictionary) -> void:
+	var inventory_table_id := _normalize_inventory_table_id(String(inventory_table.get("inventory_table_id", "")))
+	if inventory_table_id == "":
+		push_warning("initial inventory_table_id is empty")
+		return
+
+	if initial_inventory_tables.has(inventory_table_id):
+		push_warning("duplicate initial inventory_table_id: " + inventory_table_id)
+		return
+
+	var entry := inventory_table.duplicate(true)
+	entry["inventory_table_id"] = inventory_table_id
+	initial_inventory_tables[inventory_table_id] = entry
+
+
+func _register_initial_inventory_entry(inventory_table_id: String, entry: InitialInventoryEntry) -> void:
+	var normalized_id := _normalize_inventory_table_id(inventory_table_id)
+	if normalized_id == "":
+		push_warning("initial inventory entry has empty inventory_table_id")
+		return
+
+	if entry == null:
+		return
+
+	var entries_value: Variant = initial_inventory_entries.get(normalized_id, [])
+	if typeof(entries_value) != TYPE_ARRAY:
+		entries_value = []
+
+	var entries: Array = entries_value
+	entries.append(entry)
+	initial_inventory_entries[normalized_id] = entries
 
 
 func _set_faction_relation(from_faction: String, to_faction: String, relation: String) -> void:
@@ -1494,6 +1891,30 @@ func _normalize_loaded_damage_type(damage_type_id: String, context: String) -> S
 	return DEFAULT_DAMAGE_TYPE_ID
 
 
+func _normalize_loaded_shop_table_id(shop_table_id: String, context: String) -> String:
+	var normalized_id := _normalize_shop_id(shop_table_id)
+	if normalized_id == "":
+		return ""
+
+	if has_shop_table(normalized_id):
+		return normalized_id
+
+	push_warning("unknown shop_table_id (" + context + "): " + shop_table_id + " -> fallback columns")
+	return ""
+
+
+func _normalize_loaded_initial_inventory_table_id(inventory_table_id: String, context: String) -> String:
+	var normalized_id := _normalize_inventory_table_id(inventory_table_id)
+	if normalized_id == "":
+		return ""
+
+	if has_initial_inventory_table(normalized_id):
+		return normalized_id
+
+	push_warning("unknown initial_inventory_table_id (" + context + "): " + inventory_table_id + " -> fallback columns")
+	return ""
+
+
 func _normalize_damage_mode(value: String, context: String = "") -> String:
 	var normalized_value := value.strip_edges().to_lower()
 	if normalized_value == "":
@@ -1646,6 +2067,22 @@ func _split_initial_inventory_entries(value: String) -> Array[InitialInventoryEn
 			result.append(entry)
 
 	return result
+
+
+func _get_initial_inventory_entries_for_loaded_unit(
+	inventory_table_id: String,
+	fallback_items: String,
+	context: String
+) -> Array[InitialInventoryEntry]:
+	var normalized_id := _normalize_loaded_initial_inventory_table_id(inventory_table_id, context)
+	if normalized_id != "":
+		var table_entries := get_initial_inventory_entries(normalized_id)
+		if not table_entries.is_empty():
+			return table_entries
+
+		push_warning("initial_inventory_table_id (" + context + "): " + normalized_id + " has no entries -> fallback columns")
+
+	return _split_initial_inventory_entries(fallback_items)
 
 
 func _split_loot_categories(value: String) -> Array[LootCategoryEntry]:
@@ -1908,6 +2345,208 @@ func _move_style_from_text(value: String) -> int:
 			return EquipmentData.AIMoveStyle.HOLD
 		_:
 			return EquipmentData.AIMoveStyle.AUTO
+
+
+# ============================================================
+# Chest tables
+# ============================================================
+
+func _load_chest_tables() -> void:
+	var rows := _load_optional_tsv("res://data/master/chest_tables.tsv")
+
+	for row in rows:
+		var chest_id := _normalize_chest_id(_get_string(row, "chest_id"))
+		if chest_id == "":
+			push_warning("chest_tables.tsv has empty chest_id")
+			continue
+
+		var display_name := _get_string(row, "display_name", chest_id).strip_edges()
+		if display_name == "":
+			display_name = chest_id
+
+		var slot_count: int = max(_to_int(_get_string(row, "slot_count"), 12), 0)
+		var min_items: int = max(_to_int(_get_string(row, "min_items"), 1), 0)
+		var max_items: int = max(_to_int(_get_string(row, "max_items"), min_items), min_items)
+		var gold_min: int = max(_to_int(_get_string(row, "gold_min"), 0), 0)
+		var gold_max: int = max(_to_int(_get_string(row, "gold_max"), gold_min), gold_min)
+		var loot_table_id := _normalize_chest_id(_get_string(row, "loot_table_id", chest_id))
+		if loot_table_id == "":
+			loot_table_id = chest_id
+
+		_register_chest_table(_make_chest_table_entry(
+			chest_id,
+			display_name,
+			slot_count,
+			min_items,
+			max_items,
+			gold_min,
+			gold_max,
+			loot_table_id,
+			_get_string(row, "description")
+		))
+
+
+func _load_chest_loot_tables() -> void:
+	var rows := _load_optional_tsv("res://data/master/chest_loot_tables.tsv")
+
+	for row in rows:
+		var loot_table_id := _normalize_chest_id(_get_string(row, "loot_table_id"))
+		if loot_table_id == "":
+			push_warning("chest_loot_tables.tsv has empty loot_table_id")
+			continue
+
+		var category := _normalize_item_category_id(_get_string(row, "category"))
+		var item_id := _get_string(row, "item_id").strip_edges()
+		var context := "chest_loot_tables.tsv loot_table_id=" + loot_table_id
+
+		if category == "" and item_id == "":
+			push_warning(context + " has neither category nor item_id")
+			continue
+
+		if category != "" and not has_item_category(category):
+			_warn_unknown_item_category(category, context)
+			category = DEFAULT_ITEM_CATEGORY_ID
+
+		if item_id != "" and not has_item(item_id):
+			push_warning(context + " item_id not found: " + item_id)
+
+		var weight: int = max(_to_int(_get_string(row, "weight"), 100), 0)
+		var min_amount: int = max(_to_int(_get_string(row, "min_amount"), 1), 1)
+		var max_amount: int = max(_to_int(_get_string(row, "max_amount"), min_amount), min_amount)
+
+		_register_chest_loot_entry(_make_chest_loot_entry(
+			loot_table_id,
+			category,
+			item_id,
+			weight,
+			min_amount,
+			max_amount
+		))
+
+
+func _load_shop_tables() -> void:
+	var rows := _load_optional_tsv("res://data/master/shop_tables.tsv")
+
+	for row in rows:
+		var shop_table_id := _normalize_shop_id(_get_string(row, "shop_table_id"))
+		if shop_table_id == "":
+			push_warning("shop_tables.tsv has empty shop_table_id")
+			continue
+
+		var display_name := _get_string(row, "display_name", shop_table_id).strip_edges()
+		if display_name == "":
+			display_name = shop_table_id
+
+		var min_items: int = max(_to_int(_get_string(row, "min_items"), 0), 0)
+		var max_items: int = max(_to_int(_get_string(row, "max_items"), min_items), min_items)
+		var loot_table_id := _normalize_shop_id(_get_string(row, "loot_table_id", shop_table_id))
+		if loot_table_id == "":
+			loot_table_id = shop_table_id
+
+		_register_shop_table(_make_shop_table_entry(
+			shop_table_id,
+			display_name,
+			min_items,
+			max_items,
+			loot_table_id,
+			_get_string(row, "description")
+		))
+
+
+func _load_shop_loot_tables() -> void:
+	var rows := _load_optional_tsv("res://data/master/shop_loot_tables.tsv")
+
+	for row in rows:
+		var loot_table_id := _normalize_shop_id(_get_string(row, "loot_table_id"))
+		if loot_table_id == "":
+			push_warning("shop_loot_tables.tsv has empty loot_table_id")
+			continue
+
+		var category := _normalize_item_category_id(_get_string(row, "category"))
+		var item_id := _get_string(row, "item_id").strip_edges()
+		var context := "shop_loot_tables.tsv loot_table_id=" + loot_table_id
+
+		if category == "" and item_id == "":
+			push_warning(context + " has neither category nor item_id")
+			continue
+
+		if category != "" and not has_item_category(category):
+			_warn_unknown_item_category(category, context)
+			category = DEFAULT_ITEM_CATEGORY_ID
+
+		if item_id != "" and not has_item(item_id):
+			push_warning(context + " item_id not found: " + item_id)
+
+		var weight: int = max(_to_int(_get_string(row, "weight"), 100), 0)
+		var min_amount: int = max(_to_int(_get_string(row, "min_amount"), 1), 1)
+		var max_amount: int = max(_to_int(_get_string(row, "max_amount"), min_amount), min_amount)
+
+		_register_shop_loot_entry(_make_shop_loot_entry(
+			loot_table_id,
+			category,
+			item_id,
+			weight,
+			min_amount,
+			max_amount
+		))
+
+
+func _load_initial_inventory_tables() -> void:
+	var rows := _load_optional_tsv("res://data/master/initial_inventory_tables.tsv")
+
+	for row in rows:
+		var inventory_table_id := _normalize_inventory_table_id(_get_string(row, "inventory_table_id"))
+		if inventory_table_id == "":
+			push_warning("initial_inventory_tables.tsv has empty inventory_table_id")
+			continue
+
+		var display_name := _get_string(row, "display_name", inventory_table_id).strip_edges()
+		if display_name == "":
+			display_name = inventory_table_id
+
+		_register_initial_inventory_table(_make_initial_inventory_table_entry(
+			inventory_table_id,
+			display_name,
+			_get_string(row, "description")
+		))
+
+
+func _load_initial_inventory_entries() -> void:
+	var rows := _load_optional_tsv("res://data/master/initial_inventory_entries.tsv")
+
+	for row in rows:
+		var inventory_table_id := _normalize_inventory_table_id(_get_string(row, "inventory_table_id"))
+		if inventory_table_id == "":
+			push_warning("initial_inventory_entries.tsv has empty inventory_table_id")
+			continue
+
+		var context := "initial_inventory_entries.tsv inventory_table_id=" + inventory_table_id
+		if not has_initial_inventory_table(inventory_table_id):
+			push_warning(context + " not found in initial_inventory_tables")
+			continue
+
+		var item_id := _get_string(row, "item_id").strip_edges()
+		if item_id == "":
+			push_warning(context + " has empty item_id")
+			continue
+
+		if not has_item(item_id):
+			push_warning(context + " item_id not found: " + item_id)
+
+		var min_amount: int = max(_to_int(_get_string(row, "min_amount"), 1), 1)
+		var max_amount: int = max(_to_int(_get_string(row, "max_amount"), min_amount), min_amount)
+		var drop_chance: float = clamp(_to_float(_get_string(row, "drop_chance"), 1.0), 0.0, 1.0)
+		var guaranteed := _to_bool(_get_string(row, "guaranteed", "false"))
+		var roll_equipment_enchantments := _to_bool(_get_string(row, "roll_equipment_enchantments", "true"))
+
+		var entry := InitialInventoryEntry.new()
+		entry.item_id = item_id
+		entry.amount_min = min_amount
+		entry.amount_max = max_amount
+		entry.chance = 1.0 if guaranteed else drop_chance
+		entry.roll_equipment_enchantments = roll_equipment_enchantments
+
+		_register_initial_inventory_entry(inventory_table_id, entry)
 
 
 # ============================================================
@@ -2571,7 +3210,15 @@ func _build_enemy_data(row: Dictionary) -> EnemyData:
 	enemy.equipped_accessory_3 = ItemDatabase.get_equipment_resource(_get_string(row, "equipped_accessory_3"))
 	enemy.equipped_accessory_4 = ItemDatabase.get_equipment_resource(_get_string(row, "equipped_accessory_4"))
 
-	enemy.initial_inventory_items = _split_initial_inventory_entries(_get_string(row, "initial_inventory_items"))
+	enemy.initial_inventory_table_id = _normalize_loaded_initial_inventory_table_id(
+		_get_string(row, "initial_inventory_table_id", enemy.initial_inventory_table_id),
+		"enemies.tsv enemy_type_id=" + enemy.enemy_type_id
+	)
+	enemy.initial_inventory_items = _get_initial_inventory_entries_for_loaded_unit(
+		enemy.initial_inventory_table_id,
+		_get_string(row, "initial_inventory_items"),
+		"enemies.tsv enemy_type_id=" + enemy.enemy_type_id
+	)
 	enemy.drop_inventory_on_death = _to_bool(_get_string(row, "drop_inventory_on_death", "true"))
 	enemy.drop_equipped_items_on_death = _to_bool(_get_string(row, "drop_equipped_items_on_death", "true"))
 	enemy.death_inventory_drop_radius = _to_int(_get_string(row, "death_inventory_drop_radius"), enemy.death_inventory_drop_radius)
@@ -2714,7 +3361,15 @@ func _build_npc_data(row: Dictionary) -> NpcData:
 	npc.equipped_accessory_3 = ItemDatabase.get_equipment_resource(_get_string(row, "equipped_accessory_3"))
 	npc.equipped_accessory_4 = ItemDatabase.get_equipment_resource(_get_string(row, "equipped_accessory_4"))
 
-	npc.initial_inventory_items = _split_initial_inventory_entries(_get_string(row, "initial_inventory_items"))
+	npc.initial_inventory_table_id = _normalize_loaded_initial_inventory_table_id(
+		_get_string(row, "initial_inventory_table_id", npc.initial_inventory_table_id),
+		"npcs.tsv npc_type_id=" + npc.npc_type_id
+	)
+	npc.initial_inventory_items = _get_initial_inventory_entries_for_loaded_unit(
+		npc.initial_inventory_table_id,
+		_get_string(row, "initial_inventory_items"),
+		"npcs.tsv npc_type_id=" + npc.npc_type_id
+	)
 	npc.drop_inventory_on_death = _to_bool(_get_string(row, "drop_inventory_on_death", "true"))
 	npc.drop_equipped_items_on_death = _to_bool(_get_string(row, "drop_equipped_items_on_death", "true"))
 	npc.death_inventory_drop_radius = _to_int(_get_string(row, "death_inventory_drop_radius"), npc.death_inventory_drop_radius)
@@ -2742,6 +3397,10 @@ func _build_npc_data(row: Dictionary) -> NpcData:
 	npc.extra_interact_actions = _split_list(_get_string(row, "extra_interact_actions"))
 
 	npc.can_generate_shop_inventory = _to_bool(_get_string(row, "can_generate_shop_inventory", "false"))
+	npc.shop_table_id = _normalize_loaded_shop_table_id(
+		_get_string(row, "shop_table_id", npc.shop_table_id),
+		"npcs.tsv npc_type_id=" + npc.npc_type_id
+	)
 	npc.shop_min_items = _to_int(_get_string(row, "shop_min_items"), npc.shop_min_items)
 	npc.shop_max_items = _to_int(_get_string(row, "shop_max_items"), npc.shop_max_items)
 	npc.shop_loot_categories = _split_loot_categories(_get_string(row, "shop_loot_categories"))
@@ -2914,7 +3573,47 @@ func _validate_quests() -> void:
 
 		if quest.reward_item_amounts.size() > 0 and quest.reward_item_ids.size() != quest.reward_item_amounts.size():
 			push_error("quest reward ids/amounts size mismatch: " + String(quest_id))
-			
+
+
+func _count_chest_loot_entries() -> int:
+	var count := 0
+
+	for entries_value in chest_loot_tables.values():
+		if typeof(entries_value) != TYPE_ARRAY:
+			continue
+
+		var entries: Array = entries_value
+		count += entries.size()
+
+	return count
+
+
+func _count_shop_loot_entries() -> int:
+	var count := 0
+
+	for entries_value in shop_loot_tables.values():
+		if typeof(entries_value) != TYPE_ARRAY:
+			continue
+
+		var entries: Array = entries_value
+		count += entries.size()
+
+	return count
+
+
+func _count_initial_inventory_entries() -> int:
+	var count := 0
+
+	for entries_value in initial_inventory_entries.values():
+		if typeof(entries_value) != TYPE_ARRAY:
+			continue
+
+		var entries: Array = entries_value
+		count += entries.size()
+
+	return count
+
+
 func debug_print_loaded_data() -> void:
 	print("========== GameData Loaded ==========")
 	print("[GameData] items: ", items.size())
@@ -2927,6 +3626,12 @@ func debug_print_loaded_data() -> void:
 	print("[GameData] item_spawn_rules: ", item_spawn_rules.size())
 	print("[GameData] dungeon_spawn_rules: ", dungeon_spawn_rules.size())
 	print("[GameData] unit_spawn_rules: ", unit_spawn_rules.size())
+	print("[GameData] chest_tables: ", chest_tables.size())
+	print("[GameData] chest_loot_entries: ", _count_chest_loot_entries())
+	print("[GameData] shop_tables: ", shop_tables.size())
+	print("[GameData] shop_loot_entries: ", _count_shop_loot_entries())
+	print("[GameData] initial_inventory_tables: ", initial_inventory_tables.size())
+	print("[GameData] initial_inventory_entries: ", _count_initial_inventory_entries())
 	print("[GameData] item_categories: ", item_categories.size())
 	print("[GameData] unit_races: ", unit_races.size())
 	print("[GameData] unit_factions: ", unit_factions.size())

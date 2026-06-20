@@ -1,0 +1,3 @@
+chest_id	display_name	slot_count	min_items	max_items	gold_min	gold_max	loot_table_id	description
+wooden	木の宝箱	12	1	3	0	0	wooden	通常の木製宝箱
+treasure	宝箱	6	1	3	0	0	treasure	装備品中心の宝箱

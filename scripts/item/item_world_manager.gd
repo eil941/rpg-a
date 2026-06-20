@@ -180,6 +180,13 @@ func generate_dungeon_floor_chest_data(is_final_floor: bool) -> Array:
 
 
 func generate_random_chest_inventory_for_type(chest_type_id: String, is_final_floor: bool) -> Array:
+	var chest_table: Dictionary = _get_chest_table_for_type_id(chest_type_id)
+	if not chest_table.is_empty():
+		var loot_table_id := String(chest_table.get("loot_table_id", "")).strip_edges()
+		var loot_entries: Array[Dictionary] = _get_chest_loot_entries_for_table(loot_table_id)
+		if not loot_entries.is_empty():
+			return _generate_random_chest_inventory_from_table(chest_type_id, chest_table, loot_entries)
+
 	var result: Array = []
 	var chest_data: ChestData = find_chest_data_by_type_id(chest_type_id)
 
@@ -214,6 +221,80 @@ func generate_random_chest_inventory_for_type(chest_type_id: String, is_final_fl
 		result.append(chest_entry)
 
 	return result
+
+
+func _generate_random_chest_inventory_from_table(
+	chest_type_id: String,
+	chest_table: Dictionary,
+	loot_entries: Array[Dictionary]
+) -> Array:
+	var result: Array = []
+	var min_items: int = max(int(chest_table.get("min_items", 1)), 0)
+	var max_items: int = max(int(chest_table.get("max_items", min_items)), min_items)
+	var item_count: int = rng.randi_range(min_items, max_items)
+
+	for i in range(item_count):
+		var loot_entry: Dictionary = choose_weighted_chest_loot_entry(loot_entries)
+		if loot_entry.is_empty():
+			continue
+
+		var item_id := String(loot_entry.get("item_id", "")).strip_edges()
+		if item_id != "":
+			if not ItemDatabase.has_item(item_id):
+				continue
+		else:
+			var category := ItemCategories.normalize(String(loot_entry.get("category", "")))
+			if category == "":
+				continue
+			item_id = ItemDatabase.get_random_item_id_by_type(category, rng)
+
+		if item_id == "":
+			continue
+
+		var min_amount: int = max(int(loot_entry.get("min_amount", 1)), 1)
+		var max_amount: int = max(int(loot_entry.get("max_amount", min_amount)), min_amount)
+		var amount: int = rng.randi_range(min_amount, max_amount)
+
+		var chest_entry: Dictionary = _build_inventory_entry(item_id, amount)
+		_debug_enchant_log("[ENCHANT][ItemWorldManager] chest TSV item chest_type=%s item_id=%s entry=%s" % [chest_type_id, item_id, str(chest_entry)])
+		result.append(chest_entry)
+
+	return result
+
+
+func choose_weighted_chest_loot_entry(loot_entries: Array[Dictionary]) -> Dictionary:
+	if loot_entries.is_empty():
+		return {}
+
+	var total_weight: int = 0
+
+	for entry in loot_entries:
+		if entry.is_empty():
+			continue
+
+		var weight: int = max(int(entry.get("weight", 0)), 0)
+		if weight > 0:
+			total_weight += weight
+
+	if total_weight <= 0:
+		return {}
+
+	var roll: int = rng.randi_range(1, total_weight)
+	var accum: int = 0
+
+	for entry in loot_entries:
+		if entry.is_empty():
+			continue
+
+		var weight: int = max(int(entry.get("weight", 0)), 0)
+		if weight <= 0:
+			continue
+
+		accum += weight
+		if roll <= accum:
+			return entry
+
+	return {}
 
 
 func choose_weighted_loot_category(chest_data: ChestData) -> LootCategoryEntry:
@@ -325,6 +406,17 @@ func choose_random_chest_type_id(is_final_floor: bool) -> String:
 func get_available_chest_type_ids() -> Array[String]:
 	var result: Array[String] = []
 
+	for table in _get_all_chest_table_entries():
+		var type_id := String(table.get("chest_id", "")).strip_edges()
+		if type_id == "":
+			continue
+
+		if not result.has(type_id):
+			result.append(type_id)
+
+	if not result.is_empty():
+		return result
+
 	for data in chest_data_list:
 		if data == null:
 			continue
@@ -335,6 +427,67 @@ func get_available_chest_type_ids() -> Array[String]:
 
 		if not result.has(type_id):
 			result.append(type_id)
+
+	return result
+
+
+func _get_chest_table_for_type_id(chest_type_id: String) -> Dictionary:
+	if GameData == null:
+		return {}
+
+	if not GameData.has_method("get_chest_table"):
+		return {}
+
+	var table_value: Variant = GameData.get_chest_table(chest_type_id)
+	if typeof(table_value) != TYPE_DICTIONARY:
+		return {}
+
+	var table: Dictionary = table_value
+	return table
+
+
+func _get_all_chest_table_entries() -> Array[Dictionary]:
+	if GameData == null:
+		return []
+
+	if not GameData.has_method("get_all_chest_tables"):
+		return []
+
+	var tables_value: Variant = GameData.get_all_chest_tables()
+	if typeof(tables_value) != TYPE_ARRAY:
+		return []
+
+	var result: Array[Dictionary] = []
+	var tables: Array = tables_value
+	for table_value in tables:
+		if typeof(table_value) != TYPE_DICTIONARY:
+			continue
+
+		var table: Dictionary = table_value
+		result.append(table)
+
+	return result
+
+
+func _get_chest_loot_entries_for_table(loot_table_id: String) -> Array[Dictionary]:
+	if GameData == null:
+		return []
+
+	if not GameData.has_method("get_chest_loot_entries"):
+		return []
+
+	var entries_value: Variant = GameData.get_chest_loot_entries(loot_table_id)
+	if typeof(entries_value) != TYPE_ARRAY:
+		return []
+
+	var result: Array[Dictionary] = []
+	var entries: Array = entries_value
+	for entry_value in entries:
+		if typeof(entry_value) != TYPE_DICTIONARY:
+			continue
+
+		var entry: Dictionary = entry_value
+		result.append(entry)
 
 	return result
 

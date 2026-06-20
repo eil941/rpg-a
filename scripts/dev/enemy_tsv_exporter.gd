@@ -69,6 +69,7 @@ const COLUMNS: Array[String] = [
 	"equipped_accessory_2",
 	"equipped_accessory_3",
 	"equipped_accessory_4",
+	"initial_inventory_table_id",
 	"initial_inventory_items",
 	"drop_inventory_on_death",
 	"drop_equipped_items_on_death",
@@ -213,6 +214,7 @@ func _enemy_to_row(enemy: EnemyData) -> Dictionary:
 	row["equipped_accessory_3"] = _equipment_item_id(enemy.equipped_accessory_3)
 	row["equipped_accessory_4"] = _equipment_item_id(enemy.equipped_accessory_4)
 
+	row["initial_inventory_table_id"] = enemy.initial_inventory_table_id if "initial_inventory_table_id" in enemy else ""
 	row["initial_inventory_items"] = _join_initial_inventory(enemy.initial_inventory_items)
 	row["drop_inventory_on_death"] = enemy.drop_inventory_on_death
 	row["drop_equipped_items_on_death"] = enemy.drop_equipped_items_on_death

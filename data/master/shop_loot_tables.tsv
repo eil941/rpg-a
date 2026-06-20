@@ -1,0 +1,4 @@
+loot_table_id	category	item_id	weight	min_amount	max_amount
+general_shop_loot	misc		100	1	100
+general_shop_loot	consumable		100	1	1
+general_shop_loot	material		100	1	1

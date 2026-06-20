@@ -100,6 +100,7 @@ var faction: String = "ENEMY"
 # item_id / 個数 / 確率を1つのResource内でまとめて設定するので、
 # 別配列の数ズレ・順番ミス・設定忘れを防げる。
 @export var initial_inventory_items: Array[InitialInventoryEntry] = []
+@export var initial_inventory_table_id: String = ""
 
 # 死亡時にInventory内アイテムを地面へ落とすか。
 # trueなら、上の初期所持品や後から持ったアイテムが死亡時にドロップされる。

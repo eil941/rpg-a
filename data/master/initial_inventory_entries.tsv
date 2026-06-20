@@ -1,0 +1,3 @@
+inventory_table_id	item_id	min_amount	max_amount	drop_chance	guaranteed	roll_equipment_enchantments
+bat_1_initial_inventory	apple	1	1	1.0	true	true
+bat_2_initial_inventory	apple	1	12	1.0	true	true

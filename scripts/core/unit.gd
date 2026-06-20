@@ -1141,7 +1141,8 @@ func apply_shop_inventory_from_data(
 	can_generate_shop_inventory: bool,
 	shop_min_items: int,
 	shop_max_items: int,
-	shop_loot_categories: Array
+	shop_loot_categories: Array,
+	shop_table_id: String = ""
 ) -> void:
 	if not can_generate_shop_inventory:
 		return
@@ -1149,12 +1150,15 @@ func apply_shop_inventory_from_data(
 	if inventory == null:
 		return
 
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.randomize()
+
+	if _apply_shop_inventory_from_table(shop_table_id, rng):
+		return
+
 	if shop_loot_categories.is_empty():
 		print("[SHOP INVENTORY] skip: shop_loot_categories is empty unit=", name)
 		return
-
-	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
-	rng.randomize()
 
 	var min_count: int = max(0, shop_min_items)
 	var max_count: int = max(min_count, shop_max_items)
@@ -1176,6 +1180,130 @@ func apply_shop_inventory_from_data(
 		var amount: int = rng.randi_range(min_amount, max_amount)
 
 		_add_generated_shop_item_to_inventory(item_id, amount, rng)
+
+
+func _apply_shop_inventory_from_table(shop_table_id: String, rng: RandomNumberGenerator) -> bool:
+	var table: Dictionary = _get_shop_table(shop_table_id)
+	if table.is_empty():
+		return false
+
+	var loot_table_id := String(table.get("loot_table_id", "")).strip_edges()
+	var loot_entries: Array[Dictionary] = _get_shop_loot_entries(loot_table_id)
+	if loot_entries.is_empty():
+		return false
+
+	var min_count: int = max(int(table.get("min_items", 0)), 0)
+	var max_count: int = max(int(table.get("max_items", min_count)), min_count)
+	var generate_count: int = rng.randi_range(min_count, max_count)
+
+	for i in range(generate_count):
+		var loot_entry: Dictionary = _pick_shop_loot_entry(loot_entries, rng)
+		if loot_entry.is_empty():
+			continue
+
+		var item_id: String = _resolve_shop_loot_item_id(loot_entry, rng)
+		if item_id == "":
+			continue
+
+		var min_amount: int = max(int(loot_entry.get("min_amount", 1)), 1)
+		var max_amount: int = max(int(loot_entry.get("max_amount", min_amount)), min_amount)
+		var amount: int = rng.randi_range(min_amount, max_amount)
+
+		_add_generated_shop_item_to_inventory(item_id, amount, rng)
+
+	return true
+
+
+func _get_shop_table(shop_table_id: String) -> Dictionary:
+	var normalized_id := String(shop_table_id).strip_edges()
+	if normalized_id == "":
+		return {}
+
+	if GameData == null:
+		return {}
+
+	if not GameData.has_method("get_shop_table"):
+		return {}
+
+	var table_value: Variant = GameData.get_shop_table(normalized_id)
+	if typeof(table_value) != TYPE_DICTIONARY:
+		return {}
+
+	var table: Dictionary = table_value
+	return table
+
+
+func _get_shop_loot_entries(loot_table_id: String) -> Array[Dictionary]:
+	var normalized_id := String(loot_table_id).strip_edges()
+	if normalized_id == "":
+		return []
+
+	if GameData == null:
+		return []
+
+	if not GameData.has_method("get_shop_loot_entries"):
+		return []
+
+	var entries_value: Variant = GameData.get_shop_loot_entries(normalized_id)
+	if typeof(entries_value) != TYPE_ARRAY:
+		return []
+
+	var result: Array[Dictionary] = []
+	var entries: Array = entries_value
+	for entry_value in entries:
+		if typeof(entry_value) != TYPE_DICTIONARY:
+			continue
+
+		var entry: Dictionary = entry_value
+		result.append(entry)
+
+	return result
+
+
+func _pick_shop_loot_entry(loot_entries: Array[Dictionary], rng: RandomNumberGenerator) -> Dictionary:
+	var total_weight: int = 0
+
+	for entry in loot_entries:
+		if entry.is_empty():
+			continue
+
+		total_weight += max(int(entry.get("weight", 0)), 0)
+
+	if total_weight <= 0:
+		return {}
+
+	var roll: int = rng.randi_range(1, total_weight)
+	var current: int = 0
+
+	for entry in loot_entries:
+		if entry.is_empty():
+			continue
+
+		current += max(int(entry.get("weight", 0)), 0)
+		if roll <= current:
+			return entry
+
+	return {}
+
+
+func _resolve_shop_loot_item_id(loot_entry: Dictionary, rng: RandomNumberGenerator) -> String:
+	var item_id := String(loot_entry.get("item_id", "")).strip_edges()
+	if item_id != "":
+		if ItemDatabase.has_item(item_id):
+			return item_id
+
+		print("[SHOP INVENTORY] item_id not found: ", item_id, " unit=", name)
+		return ""
+
+	var category := ItemCategories.normalize(String(loot_entry.get("category", "")))
+	if category == "":
+		return ""
+
+	item_id = ItemDatabase.get_random_item_id_by_category(category, rng)
+	if item_id == "":
+		print("[SHOP INVENTORY] no item for type=", category, " unit=", name)
+
+	return item_id
 
 
 func _pick_shop_loot_category(shop_loot_categories: Array, rng: RandomNumberGenerator) -> LootCategoryEntry:
@@ -2655,7 +2783,8 @@ func apply_npc_data(npc_data: NpcData) -> void:
 		npc_data.can_generate_shop_inventory,
 		npc_data.shop_min_items,
 		npc_data.shop_max_items,
-		npc_data.shop_loot_categories
+		npc_data.shop_loot_categories,
+		npc_data.shop_table_id
 	)
 
 	if npc_data.animation_profile != null:

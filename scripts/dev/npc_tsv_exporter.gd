@@ -66,6 +66,7 @@ const COLUMNS: Array[String] = [
 	"equipped_accessory_2",
 	"equipped_accessory_3",
 	"equipped_accessory_4",
+	"initial_inventory_table_id",
 	"initial_inventory_items",
 	"drop_inventory_on_death",
 	"drop_equipped_items_on_death",
@@ -89,6 +90,7 @@ const COLUMNS: Array[String] = [
 	"can_receive_order",
 	"extra_interact_actions",
 	"can_generate_shop_inventory",
+	"shop_table_id",
 	"shop_min_items",
 	"shop_max_items",
 	"shop_loot_categories",
@@ -211,6 +213,7 @@ func _npc_to_row(npc: NpcData) -> Dictionary:
 	row["equipped_accessory_3"] = _equipment_item_id(npc.equipped_accessory_3)
 	row["equipped_accessory_4"] = _equipment_item_id(npc.equipped_accessory_4)
 
+	row["initial_inventory_table_id"] = npc.initial_inventory_table_id if "initial_inventory_table_id" in npc else ""
 	row["initial_inventory_items"] = _join_initial_inventory(npc.initial_inventory_items)
 	row["drop_inventory_on_death"] = npc.drop_inventory_on_death
 	row["drop_equipped_items_on_death"] = npc.drop_equipped_items_on_death
@@ -239,6 +242,7 @@ func _npc_to_row(npc: NpcData) -> Dictionary:
 	row["extra_interact_actions"] = _join_string_array(npc.extra_interact_actions)
 
 	row["can_generate_shop_inventory"] = npc.can_generate_shop_inventory
+	row["shop_table_id"] = npc.shop_table_id if "shop_table_id" in npc else ""
 	row["shop_min_items"] = npc.shop_min_items
 	row["shop_max_items"] = npc.shop_max_items
 	row["shop_loot_categories"] = _join_loot_categories(npc.shop_loot_categories)

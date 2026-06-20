@@ -96,6 +96,7 @@ var faction: String = "NPC"
 # item_id / 個数 / 確率を1つのResource内でまとめて設定するので、
 # 別配列の数ズレ・順番ミス・設定忘れを防げる。
 @export var initial_inventory_items: Array[InitialInventoryEntry] = []
+@export var initial_inventory_table_id: String = ""
 
 # 死亡時にInventory内アイテムを地面へ落とすか。
 # trueなら、上の初期所持品や後から持ったアイテムが死亡時にドロップされる。
@@ -136,6 +137,7 @@ var unit_roles: int = 0
 @export var extra_interact_actions: Array[String] = []
 
 @export var can_generate_shop_inventory: bool = false
+@export var shop_table_id: String = ""
 @export var shop_min_items: int = 3
 @export var shop_max_items: int = 6
 @export var shop_loot_categories: Array[LootCategoryEntry] = []

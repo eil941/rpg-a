@@ -1,0 +1,2 @@
+shop_table_id	display_name	min_items	max_items	loot_table_id	description
+general_shop	一般ショップ	6	12	general_shop_loot	既存商人NPC用の通常ショップ

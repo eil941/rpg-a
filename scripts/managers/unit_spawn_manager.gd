@@ -177,6 +177,16 @@ func get_shop_loot_categories_from_data(data) -> Array:
 	return []
 
 
+func get_shop_table_id_from_data(data) -> String:
+	if data == null:
+		return ""
+
+	if "shop_table_id" in data:
+		return String(data.shop_table_id).strip_edges()
+
+	return ""
+
+
 func choose_weighted_shop_category(data) -> LootCategoryEntry:
 	if data == null:
 		return null
@@ -216,6 +226,125 @@ func choose_weighted_shop_category(data) -> LootCategoryEntry:
 	return null
 
 
+func get_shop_table(shop_table_id: String) -> Dictionary:
+	var normalized_id := String(shop_table_id).strip_edges()
+	if normalized_id == "":
+		return {}
+
+	if GameData == null:
+		return {}
+
+	if not GameData.has_method("get_shop_table"):
+		return {}
+
+	var table_value: Variant = GameData.get_shop_table(normalized_id)
+	if typeof(table_value) != TYPE_DICTIONARY:
+		return {}
+
+	var table: Dictionary = table_value
+	return table
+
+
+func get_shop_loot_entries(loot_table_id: String) -> Array[Dictionary]:
+	var normalized_id := String(loot_table_id).strip_edges()
+	if normalized_id == "":
+		return []
+
+	if GameData == null:
+		return []
+
+	if not GameData.has_method("get_shop_loot_entries"):
+		return []
+
+	var entries_value: Variant = GameData.get_shop_loot_entries(normalized_id)
+	if typeof(entries_value) != TYPE_ARRAY:
+		return []
+
+	var result: Array[Dictionary] = []
+	var entries: Array = entries_value
+	for entry_value in entries:
+		if typeof(entry_value) != TYPE_DICTIONARY:
+			continue
+
+		var entry: Dictionary = entry_value
+		result.append(entry)
+
+	return result
+
+
+func choose_weighted_shop_loot_entry(loot_entries: Array[Dictionary]) -> Dictionary:
+	var total_weight: int = 0
+
+	for entry in loot_entries:
+		if entry.is_empty():
+			continue
+
+		total_weight += max(int(entry.get("weight", 0)), 0)
+
+	if total_weight <= 0:
+		return {}
+
+	var roll: int = rng.randi_range(1, total_weight)
+	var accum: int = 0
+
+	for entry in loot_entries:
+		if entry.is_empty():
+			continue
+
+		accum += max(int(entry.get("weight", 0)), 0)
+		if roll <= accum:
+			return entry
+
+	return {}
+
+
+func resolve_shop_loot_item_id(loot_entry: Dictionary) -> String:
+	var item_id := String(loot_entry.get("item_id", "")).strip_edges()
+	if item_id != "":
+		if ItemDatabase.has_item(item_id):
+			return item_id
+		return ""
+
+	var category := ItemCategories.normalize(String(loot_entry.get("category", "")))
+	if category == "":
+		return ""
+
+	return ItemDatabase.get_random_item_id_by_type(category, rng)
+
+
+func generate_random_shop_inventory_from_table(shop_table_id: String) -> Array:
+	var result: Array = []
+	var table: Dictionary = get_shop_table(shop_table_id)
+	if table.is_empty():
+		return result
+
+	var loot_table_id := String(table.get("loot_table_id", "")).strip_edges()
+	var loot_entries: Array[Dictionary] = get_shop_loot_entries(loot_table_id)
+	if loot_entries.is_empty():
+		return result
+
+	var min_items: int = max(int(table.get("min_items", 0)), 0)
+	var max_items: int = max(int(table.get("max_items", min_items)), min_items)
+	var item_count: int = rng.randi_range(min_items, max_items)
+
+	for i in range(item_count):
+		var loot_entry: Dictionary = choose_weighted_shop_loot_entry(loot_entries)
+		if loot_entry.is_empty():
+			continue
+
+		var item_id: String = resolve_shop_loot_item_id(loot_entry)
+		if item_id == "":
+			continue
+
+		var min_amount: int = max(int(loot_entry.get("min_amount", 1)), 1)
+		var max_amount: int = max(int(loot_entry.get("max_amount", min_amount)), min_amount)
+		var amount: int = rng.randi_range(min_amount, max_amount)
+
+		result.append(_build_shop_entry(item_id, amount))
+
+	return result
+
+
 func _build_shop_entry(item_id: String, amount: int) -> Dictionary:
 	var equipment_resource: EquipmentData = ItemDatabase.get_equipment_resource(item_id)
 
@@ -238,6 +367,12 @@ func generate_random_shop_inventory_from_data(data) -> Array:
 
 	if not unit_can_generate_shop_inventory_from_data(data):
 		return result
+
+	var shop_table_id := get_shop_table_id_from_data(data)
+	if shop_table_id != "":
+		var table_inventory: Array = generate_random_shop_inventory_from_table(shop_table_id)
+		if not table_inventory.is_empty():
+			return table_inventory
 
 	var min_items: int = max(get_shop_min_items_from_data(data), 0)
 	var max_items: int = max(get_shop_max_items_from_data(data), min_items)

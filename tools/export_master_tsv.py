@@ -27,6 +27,12 @@ SHEET_TO_TSV = {
     "equipment": "equipment.tsv",
     "item_effects": "item_effects.tsv",
     "item_effect_links": "item_effect_links.tsv",
+    "chest_tables": "chest_tables.tsv",
+    "chest_loot_tables": "chest_loot_tables.tsv",
+    "shop_tables": "shop_tables.tsv",
+    "shop_loot_tables": "shop_loot_tables.tsv",
+    "initial_inventory_tables": "initial_inventory_tables.tsv",
+    "initial_inventory_entries": "initial_inventory_entries.tsv",
     "unit_races": "unit_races.tsv",
     "unit_factions": "unit_factions.tsv",
     "faction_relations": "faction_relations.tsv",
@@ -104,6 +110,14 @@ def trim_empty_columns(rows: list[list[str]]) -> list[list[str]]:
     return [row[:keep_cols] for row in rows]
 
 
+def trim_trailing_empty_cells(row: list[str]) -> list[str]:
+    """行末だけの空セルはTSVの trailing tab になるため、出力時に落とす。"""
+    keep_cols = len(row)
+    while keep_cols > 0 and row[keep_cols - 1] == "":
+        keep_cols -= 1
+    return row[:keep_cols]
+
+
 def worksheet_to_rows(ws) -> list[list[str]]:
     rows: list[list[str]] = []
 
@@ -127,7 +141,7 @@ def export_tsv(rows: list[list[str]], out_path: Path) -> None:
             quoting=csv.QUOTE_MINIMAL,
         )
         for row in rows:
-            writer.writerow(row)
+            writer.writerow(trim_trailing_empty_cells(row))
 
 
 def main() -> int:

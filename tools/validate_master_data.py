@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import csv
 import sys
@@ -128,6 +128,34 @@ def check_duplicates(table: Table, id_column: str) -> None:
         reporter.ok(f"{table.filename}.{id_column} has no duplicates")
 
 
+def check_composite_duplicates(table: Table, columns: list[str]) -> None:
+    for column in columns:
+        if not require_column(table, column):
+            return
+
+    seen: dict[tuple[str, ...], int] = {}
+    duplicate_count = 0
+    label = "+".join(columns)
+
+    for row, line_number in zip(table.rows, table.line_numbers):
+        values = tuple(row.get(column, "").strip() for column in columns)
+        if any(value == "" for value in values):
+            reporter.error(f"{table.filename}:{line_number} empty {label} value")
+            continue
+
+        if values in seen:
+            duplicate_count += 1
+            reporter.error(
+                f"{table.filename}:{line_number} duplicate {label} '{values}' first seen at line {seen[values]}"
+            )
+            continue
+
+        seen[values] = line_number
+
+    if duplicate_count == 0:
+        reporter.ok(f"{table.filename}.{label} has no duplicates")
+
+
 def make_id_set(table: Table, id_column: str, normalizer: Callable[[str], str] = identity) -> set[str]:
     if id_column not in table.header:
         return set()
@@ -187,6 +215,46 @@ def check_reference(
 
     if issue_count == 0:
         reporter.ok(f"{table.filename}.{column} references {target_label} ({checked} checked)")
+
+
+def check_allowed_values(
+    table: Table,
+    column: str,
+    valid_values: set[str],
+    *,
+    normalizer: Callable[[str], str] = identity,
+    allow_empty: bool = False,
+    severity: str = "error",
+) -> None:
+    if not require_column(table, column):
+        return
+
+    checked = 0
+    issue_count = 0
+
+    for row, line_number in zip(table.rows, table.line_numbers):
+        raw_value = row.get(column, "")
+        value = normalizer(raw_value)
+
+        if value == "":
+            if allow_empty:
+                continue
+
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} empty {column}")
+            continue
+
+        checked += 1
+        if value not in valid_values:
+            issue_count += 1
+            message = f"{table.filename}:{line_number} {column} '{raw_value.strip()}' is not one of {sorted(valid_values)}"
+            if severity == "warn":
+                reporter.warn(message)
+            else:
+                reporter.error(message)
+
+    if issue_count == 0:
+        reporter.ok(f"{table.filename}.{column} values are valid ({checked} checked)")
 
 
 def check_damage_mode(table: Table) -> None:
@@ -255,51 +323,324 @@ def check_element_resistance_keys(table: Table, element_ids: set[str]) -> None:
         reporter.ok(f"{table.filename}.element_resistances keys reference element_types ({checked} checked)")
 
 
+def parse_int_cell(table: Table, row: dict[str, str], line_number: int, column: str) -> int | None:
+    if not require_column(table, column):
+        return None
+
+    value = row.get(column, "").strip()
+    if value == "":
+        reporter.error(f"{table.filename}:{line_number} empty {column}")
+        return None
+
+    try:
+        return int(value)
+    except ValueError:
+        reporter.error(f"{table.filename}:{line_number} {column} '{value}' is not an integer")
+        return None
+
+
+def parse_float_cell(table: Table, row: dict[str, str], line_number: int, column: str) -> float | None:
+    if not require_column(table, column):
+        return None
+
+    value = row.get(column, "").strip()
+    if value == "":
+        reporter.error(f"{table.filename}:{line_number} empty {column}")
+        return None
+
+    try:
+        return float(value)
+    except ValueError:
+        reporter.error(f"{table.filename}:{line_number} {column} '{value}' is not a number")
+        return None
+
+
+def parse_bool_cell(table: Table, row: dict[str, str], line_number: int, column: str) -> bool | None:
+    if not require_column(table, column):
+        return None
+
+    value = normalize_lower(row.get(column, ""))
+    if value == "":
+        reporter.error(f"{table.filename}:{line_number} empty {column}")
+        return None
+
+    if value == "true":
+        return True
+    if value == "false":
+        return False
+
+    reporter.error(f"{table.filename}:{line_number} {column} '{row.get(column, '').strip()}' is not true/false")
+    return None
+
+
+def check_chest_tables(table: Table, loot_table_ids: set[str]) -> None:
+    check_reference(
+        table,
+        "loot_table_id",
+        loot_table_ids,
+        "chest_loot_tables.loot_table_id",
+    )
+
+    for column in ("slot_count", "min_items", "max_items", "gold_min", "gold_max"):
+        require_column(table, column)
+
+    issue_count = 0
+    for row, line_number in zip(table.rows, table.line_numbers):
+        slot_count = parse_int_cell(table, row, line_number, "slot_count")
+        min_items = parse_int_cell(table, row, line_number, "min_items")
+        max_items = parse_int_cell(table, row, line_number, "max_items")
+        gold_min = parse_int_cell(table, row, line_number, "gold_min")
+        gold_max = parse_int_cell(table, row, line_number, "gold_max")
+
+        if slot_count is not None and slot_count < 0:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} slot_count must be >= 0")
+
+        if min_items is not None and max_items is not None and min_items > max_items:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} min_items must be <= max_items")
+
+        if gold_min is not None and gold_max is not None and gold_min > gold_max:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} gold_min must be <= gold_max")
+
+    if issue_count == 0:
+        reporter.ok(f"{table.filename} numeric ranges are valid")
+
+
+def check_chest_loot_tables(
+    table: Table,
+    item_category_ids: set[str],
+    item_ids: set[str],
+) -> None:
+    for column in ("loot_table_id", "category", "item_id", "weight", "min_amount", "max_amount"):
+        require_column(table, column)
+
+    issue_count = 0
+    checked_category = 0
+    checked_item = 0
+
+    for row, line_number in zip(table.rows, table.line_numbers):
+        loot_table_id = row.get("loot_table_id", "").strip()
+        category = normalize_lower(row.get("category", ""))
+        item_id = row.get("item_id", "").strip()
+
+        if loot_table_id == "":
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} empty loot_table_id")
+
+        if category == "" and item_id == "":
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} category and item_id are both empty")
+
+        if category != "":
+            checked_category += 1
+            if category not in item_category_ids:
+                issue_count += 1
+                reporter.error(
+                    f"{table.filename}:{line_number} category '{row.get('category', '').strip()}' not found in item_categories.category_id"
+                )
+
+        if item_id != "":
+            checked_item += 1
+            if item_id not in item_ids:
+                issue_count += 1
+                reporter.error(f"{table.filename}:{line_number} item_id '{item_id}' not found in items.item_id")
+
+        weight = parse_int_cell(table, row, line_number, "weight")
+        min_amount = parse_int_cell(table, row, line_number, "min_amount")
+        max_amount = parse_int_cell(table, row, line_number, "max_amount")
+
+        if weight is not None and weight < 0:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} weight must be >= 0")
+
+        if min_amount is not None and max_amount is not None and min_amount > max_amount:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} min_amount must be <= max_amount")
+
+    if issue_count == 0:
+        reporter.ok(
+            f"{table.filename} rows are valid (categories={checked_category}, item_ids={checked_item})"
+        )
+
+
+def check_shop_tables(table: Table, loot_table_ids: set[str]) -> None:
+    check_reference(
+        table,
+        "loot_table_id",
+        loot_table_ids,
+        "shop_loot_tables.loot_table_id",
+    )
+
+    for column in ("min_items", "max_items"):
+        require_column(table, column)
+
+    issue_count = 0
+    for row, line_number in zip(table.rows, table.line_numbers):
+        min_items = parse_int_cell(table, row, line_number, "min_items")
+        max_items = parse_int_cell(table, row, line_number, "max_items")
+
+        if min_items is not None and max_items is not None and min_items > max_items:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} min_items must be <= max_items")
+
+    if issue_count == 0:
+        reporter.ok(f"{table.filename} numeric ranges are valid")
+
+
+def check_shop_loot_tables(
+    table: Table,
+    item_category_ids: set[str],
+    item_ids: set[str],
+) -> None:
+    check_chest_loot_tables(table, item_category_ids, item_ids)
+
+
+def check_initial_inventory_entries(
+    table: Table,
+    initial_inventory_table_ids: set[str],
+    item_ids: set[str],
+) -> None:
+    for column in (
+        "inventory_table_id",
+        "item_id",
+        "min_amount",
+        "max_amount",
+        "drop_chance",
+        "guaranteed",
+        "roll_equipment_enchantments",
+    ):
+        require_column(table, column)
+
+    issue_count = 0
+    checked_tables = 0
+    checked_items = 0
+
+    for row, line_number in zip(table.rows, table.line_numbers):
+        inventory_table_id = row.get("inventory_table_id", "").strip()
+        item_id = row.get("item_id", "").strip()
+
+        if inventory_table_id == "":
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} empty inventory_table_id")
+        else:
+            checked_tables += 1
+            if inventory_table_id not in initial_inventory_table_ids:
+                issue_count += 1
+                reporter.error(
+                    f"{table.filename}:{line_number} inventory_table_id '{inventory_table_id}' not found in initial_inventory_tables.inventory_table_id"
+                )
+
+        if item_id == "":
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} empty item_id")
+        else:
+            checked_items += 1
+            if item_id not in item_ids:
+                issue_count += 1
+                reporter.error(f"{table.filename}:{line_number} item_id '{item_id}' not found in items.item_id")
+
+        min_amount = parse_int_cell(table, row, line_number, "min_amount")
+        max_amount = parse_int_cell(table, row, line_number, "max_amount")
+        drop_chance = parse_float_cell(table, row, line_number, "drop_chance")
+        parse_bool_cell(table, row, line_number, "guaranteed")
+        parse_bool_cell(table, row, line_number, "roll_equipment_enchantments")
+
+        if min_amount is not None and min_amount < 1:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} min_amount must be >= 1")
+
+        if min_amount is not None and max_amount is not None and min_amount > max_amount:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} min_amount must be <= max_amount")
+
+        if drop_chance is not None and not 0.0 <= drop_chance <= 1.0:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} drop_chance must be between 0.0 and 1.0")
+
+    if issue_count == 0:
+        reporter.ok(
+            f"{table.filename} rows are valid (tables={checked_tables}, item_ids={checked_items})"
+        )
+
+
 def main() -> int:
     if not MASTER_DIR.exists():
         reporter.error(f"missing master data directory: {MASTER_DIR}")
         return 1
 
     filenames = {
+        "item_categories": "item_categories.tsv",
         "items": "items.tsv",
         "equipment": "equipment.tsv",
         "item_effects": "item_effects.tsv",
         "item_effect_links": "item_effect_links.tsv",
-        "quests": "quests.tsv",
-        "enemies": "enemies.tsv",
-        "npcs": "npcs.tsv",
-        "enchantments": "enchantments.tsv",
+        "chest_tables": "chest_tables.tsv",
+        "chest_loot_tables": "chest_loot_tables.tsv",
+        "shop_tables": "shop_tables.tsv",
+        "shop_loot_tables": "shop_loot_tables.tsv",
+        "initial_inventory_tables": "initial_inventory_tables.tsv",
+        "initial_inventory_entries": "initial_inventory_entries.tsv",
+        "unit_races": "unit_races.tsv",
+        "unit_factions": "unit_factions.tsv",
+        "faction_relations": "faction_relations.tsv",
         "element_types": "element_types.tsv",
         "damage_types": "damage_types.tsv",
         "status_effect_types": "status_effect_types.tsv",
-        "unit_races": "unit_races.tsv",
-        "unit_factions": "unit_factions.tsv",
+        "quests": "quests.tsv",
+        "spawn_rules": "spawn_rules.tsv",
+        "enemies": "enemies.tsv",
+        "npcs": "npcs.tsv",
+        "enchantments": "enchantments.tsv",
+        "dungeon_spawn_rules": "dungeon_spawn_rules.tsv",
+        "unit_spawn_rules": "unit_spawn_rules.tsv",
     }
 
     tables = {name: load_tsv(filename) for name, filename in filenames.items()}
 
     duplicate_checks = {
+        "item_categories": "category_id",
         "items": "item_id",
         "item_effects": "effect_id",
-        "quests": "quest_id",
-        "enemies": "enemy_type_id",
-        "npcs": "npc_type_id",
-        "enchantments": "enchant_id",
+        "chest_tables": "chest_id",
+        "shop_tables": "shop_table_id",
+        "initial_inventory_tables": "inventory_table_id",
+        "unit_races": "race_id",
+        "unit_factions": "faction_id",
         "element_types": "element_id",
         "damage_types": "damage_type_id",
         "status_effect_types": "status_id",
-        "unit_races": "race_id",
-        "unit_factions": "faction_id",
+        "quests": "quest_id",
+        "spawn_rules": "rule_id",
+        "enemies": "enemy_type_id",
+        "npcs": "npc_type_id",
+        "enchantments": "enchant_id",
+        "dungeon_spawn_rules": "rule_id",
+        "unit_spawn_rules": "rule_id",
     }
 
     for table_name, id_column in duplicate_checks.items():
         check_duplicates(tables[table_name], id_column)
 
     item_ids = make_id_set(tables["items"], "item_id")
+    item_category_ids = make_id_set(tables["item_categories"], "category_id", normalize_lower)
     effect_ids = make_id_set(tables["item_effects"], "effect_id")
+    chest_loot_table_ids = make_id_set(tables["chest_loot_tables"], "loot_table_id")
+    shop_ids = make_id_set(tables["shop_tables"], "shop_table_id")
+    shop_loot_table_ids = make_id_set(tables["shop_loot_tables"], "loot_table_id")
+    initial_inventory_table_ids = make_id_set(tables["initial_inventory_tables"], "inventory_table_id")
+    faction_ids = make_id_set(tables["unit_factions"], "faction_id")
     element_ids = make_id_set(tables["element_types"], "element_id", normalize_lower)
     damage_type_ids = make_id_set(tables["damage_types"], "damage_type_id", normalize_lower)
 
+    check_reference(
+        tables["items"],
+        "category",
+        item_category_ids,
+        "item_categories.category_id",
+        normalizer=normalize_lower,
+    )
     check_reference(
         tables["equipment"],
         "item_id",
@@ -317,6 +658,57 @@ def main() -> int:
         "effect_id",
         effect_ids,
         "item_effects.effect_id",
+    )
+    check_chest_loot_tables(
+        tables["chest_loot_tables"],
+        item_category_ids,
+        item_ids,
+    )
+    check_chest_tables(tables["chest_tables"], chest_loot_table_ids)
+    check_shop_loot_tables(
+        tables["shop_loot_tables"],
+        item_category_ids,
+        item_ids,
+    )
+    check_shop_tables(tables["shop_tables"], shop_loot_table_ids)
+    check_initial_inventory_entries(
+        tables["initial_inventory_entries"],
+        initial_inventory_table_ids,
+        item_ids,
+    )
+    check_reference(
+        tables["npcs"],
+        "shop_table_id",
+        shop_ids,
+        "shop_tables.shop_table_id",
+        allow_empty=True,
+    )
+    for table_name in ("enemies", "npcs"):
+        check_reference(
+            tables[table_name],
+            "initial_inventory_table_id",
+            initial_inventory_table_ids,
+            "initial_inventory_tables.inventory_table_id",
+            allow_empty=True,
+        )
+    check_composite_duplicates(tables["faction_relations"], ["from_faction", "to_faction"])
+    check_reference(
+        tables["faction_relations"],
+        "from_faction",
+        faction_ids,
+        "unit_factions.faction_id",
+    )
+    check_reference(
+        tables["faction_relations"],
+        "to_faction",
+        faction_ids,
+        "unit_factions.faction_id",
+    )
+    check_allowed_values(
+        tables["faction_relations"],
+        "relation",
+        {"FRIENDLY", "NEUTRAL", "HOSTILE"},
+        normalizer=lambda value: value.strip().upper(),
     )
 
     for table_name in ("equipment",):
