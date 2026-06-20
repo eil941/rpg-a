@@ -24,7 +24,8 @@ static func get_category_multipliers(rule_id: String) -> Dictionary:
 	_ensure_loaded()
 	if not _category_multipliers_by_rule.has(rule_id):
 		return {}
-	return Dictionary(_category_multipliers_by_rule[rule_id]).duplicate()
+	var result: Dictionary = _category_multipliers_by_rule[rule_id]
+	return result.duplicate()
 
 
 static func has_item_weight_overrides(rule_id: String) -> bool:
@@ -36,7 +37,8 @@ static func get_item_weight_overrides(rule_id: String) -> Dictionary:
 	_ensure_loaded()
 	if not _item_weight_overrides_by_rule.has(rule_id):
 		return {}
-	return Dictionary(_item_weight_overrides_by_rule[rule_id]).duplicate()
+	var result: Dictionary = _item_weight_overrides_by_rule[rule_id]
+	return result.duplicate()
 
 
 static func _ensure_loaded() -> void:
