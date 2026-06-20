@@ -43,9 +43,13 @@ class_name ItemSpawnRuleData
 @export var blocked_item_ids: Array[String] = []
 
 # カテゴリ補正
+# Step 5-F: item_spawn_rule_category_multipliers.tsv に rule_id の行がある場合は子テーブルを優先。
+# 子テーブルが未定義・空の場合のみ、旧 spawn_rules.tsv の composite 列を fallback として使う。
 @export var category_multipliers: Dictionary = {}
 
 # 個別アイテム重み上書き
+# Step 5-F: item_spawn_rule_item_overrides.tsv に rule_id の行がある場合は子テーブルを優先。
+# 子テーブルが未定義・空の場合のみ、旧 spawn_rules.tsv の composite 列を fallback として使う。
 @export var item_weight_overrides: Dictionary = {}
 
 func matches_context(spawn_context: Dictionary) -> bool:
@@ -79,7 +83,6 @@ func matches_context(spawn_context: Dictionary) -> bool:
 		return false
 
 	return true
-
 
 func get_spawn_count(spawn_context: Dictionary, rng: RandomNumberGenerator) -> int:
 	var min_count: int = max(base_item_count_min, 0)
@@ -135,20 +138,34 @@ func get_rarity_multiplier(rarity_value: int, spawn_context: Dictionary) -> floa
 
 func get_category_multiplier(category: String) -> float:
 	var normalized: String = ItemCategories.normalize(category)
+	var multipliers := _get_effective_category_multipliers()
 
-	for key in category_multipliers.keys():
+	for key in multipliers.keys():
 		var key_text: String = ItemCategories.normalize(String(key))
 		if key_text == normalized:
-			return float(category_multipliers[key])
+			return float(multipliers[key])
 
 	return 1.0
 
 
 func has_item_weight_override(item_id: String) -> bool:
-	return item_weight_overrides.has(item_id)
+	return _get_effective_item_weight_overrides().has(item_id)
 
 
 func get_item_weight_override(item_id: String) -> int:
-	if item_weight_overrides.has(item_id):
-		return int(item_weight_overrides[item_id])
+	var overrides := _get_effective_item_weight_overrides()
+	if overrides.has(item_id):
+		return int(overrides[item_id])
 	return -1
+
+
+func _get_effective_category_multipliers() -> Dictionary:
+	if ItemSpawnRuleChildTableDatabase.has_category_multipliers(rule_id):
+		return ItemSpawnRuleChildTableDatabase.get_category_multipliers(rule_id)
+	return category_multipliers
+
+
+func _get_effective_item_weight_overrides() -> Dictionary:
+	if ItemSpawnRuleChildTableDatabase.has_item_weight_overrides(rule_id):
+		return ItemSpawnRuleChildTableDatabase.get_item_weight_overrides(rule_id)
+	return item_weight_overrides
