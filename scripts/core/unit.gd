@@ -670,6 +670,15 @@ func get_total_max_hp() -> int:
 	return max(total, 1)
 
 
+func _clamp_current_hp_to_total_max() -> void:
+	if stats == null:
+		return
+	if not _stats_has_property(stats, "hp"):
+		return
+
+	stats.hp = clampi(int(stats.hp), 0, get_total_max_hp())
+
+
 func get_total_attack() -> int:
 	if stats == null:
 		return 0
@@ -937,6 +946,7 @@ func set_equipped_entry(slot_name: String, entry: Dictionary) -> bool:
 		return false
 
 	equipped_items[slot_name] = entry.duplicate(true)
+	_clamp_current_hp_to_total_max()
 	return true
 
 
@@ -952,11 +962,13 @@ func set_equipped_item_by_id(slot_name: String, item_id: String) -> bool:
 		"item_id": item_id,
 		"amount": 1
 	}
+	_clamp_current_hp_to_total_max()
 	return true
 
 
 func clear_equipment_slot(slot_name: String) -> void:
 	equipped_items.erase(slot_name)
+	_clamp_current_hp_to_total_max()
 
 
 func get_equipment_save_data() -> Dictionary:
@@ -994,6 +1006,8 @@ func apply_equipment_save_data(data: Dictionary) -> void:
 
 		if can_equip_item_id_to_slot(item_id2, slot_name):
 			equipped_items[slot_name] = entry
+
+	_clamp_current_hp_to_total_max()
 
 
 func apply_debug_start_items_if_needed() -> void:

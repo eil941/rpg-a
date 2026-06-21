@@ -81,6 +81,9 @@ var debug_player_start_items: Array[Dictionary] = [
 	{"item_id":"apple","amount":10},
 	{"item_id":"meat_skewer","amount":10},
 	{"item_id":"travel_ration","amount":10},
+	{"item_id":"test_iron_ore","amount":5},
+	{"item_id":"test_small_heal_herb","amount":10},
+	{"item_id":"test_copper_ring","amount":1},
 	
 ]
 

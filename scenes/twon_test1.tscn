@@ -3,13 +3,8 @@
 [ext_resource type="Script" uid="uid://byq1jgatqgio8" path="res://scripts/map/map_scene_scripts/start_field.gd" id="1_uhm3n"]
 [ext_resource type="PackedScene" uid="uid://cmvysxaa458bi" path="res://scenes/Enemyunit_1.tscn" id="2_q8wv3"]
 [ext_resource type="Script" uid="uid://dnv8aysj2gsac" path="res://scripts/data/enemy_data.gd" id="3_d5vwd"]
-[ext_resource type="Resource" uid="uid://bx0ysoc4wt0rf" path="res://data/test/bat_data.tres" id="4_b8ago"]
-[ext_resource type="Resource" uid="uid://dws5qrsx22iah" path="res://data/test/orc_data.tres" id="5_07cp6"]
-[ext_resource type="Resource" uid="uid://sq1on05oxw1q" path="res://data/test/slime_data.tres" id="6_vq7pi"]
 [ext_resource type="PackedScene" uid="uid://c0jrt3uvmhd2g" path="res://scenes/npc1.tscn" id="7_wqr25"]
 [ext_resource type="Script" uid="uid://bgt8humnn3jqj" path="res://scripts/data/npc_data.gd" id="8_cigcp"]
-[ext_resource type="Resource" uid="uid://be6340dxmccnl" path="res://data/test/NPC/npc_1.tres" id="9_ypn47"]
-[ext_resource type="Resource" uid="uid://sponxcnnn0fd" path="res://data/test/NPC/new_sabo.tres" id="10_k26v4"]
 [ext_resource type="PackedScene" uid="uid://ds64we2akg2ou" path="res://scenes/item_pickup.tscn" id="11_iwo0w"]
 [ext_resource type="PackedScene" uid="uid://dnaf0ryx1bvp8" path="res://scenes/chest.tscn" id="12_8ipmi"]
 [ext_resource type="TileSet" uid="uid://dp5op2komiss3" path="res://data/all_tilechipes.tres" id="13_uhm3n"]
@@ -19,9 +14,11 @@
 script = ExtResource("1_uhm3n")
 enemy_unit_scene = ExtResource("2_q8wv3")
 enemy_spawn_count = 15
-enemy_data_list = Array[ExtResource("3_d5vwd")]([ExtResource("4_b8ago"), ExtResource("5_07cp6"), ExtResource("6_vq7pi")])
+enemy_data_list = Array[ExtResource("3_d5vwd")]([])
+enemy_type_id_list = Array[String](["bat", "orc", "slime", "test_training_slime"])
 npc_unit_scene = ExtResource("7_wqr25")
-npc_data_list = Array[ExtResource("8_cigcp")]([ExtResource("9_ypn47"), ExtResource("10_k26v4")])
+npc_data_list = Array[ExtResource("8_cigcp")]([])
+npc_type_id_list = Array[String](["npc_1", "no_id", "test_helper_villager"])
 item_pickup_scene = ExtResource("11_iwo0w")
 chest_scene = ExtResource("12_8ipmi")
 

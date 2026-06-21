@@ -10,10 +10,12 @@ extends Node2D
 @export var enemy_unit_scene: PackedScene
 @export var enemy_spawn_count: int = 5
 @export var enemy_data_list: Array[EnemyData]
+@export var enemy_type_id_list: Array[String] = []
 
 @export var npc_unit_scene: PackedScene
 @export var npc_spawn_count: int = 3
 @export var npc_data_list: Array[NpcData]
+@export var npc_type_id_list: Array[String] = []
 
 @export var item_pickup_scene: PackedScene
 @export var chest_scene: PackedScene
@@ -38,6 +40,8 @@ func _ready() -> void:
 		push_warning("start_field: player が見つかりません")
 
 	var walkable_tiles: Array[Vector2i] = collect_walkable_tiles()
+	var current_enemy_data_list: Array[EnemyData] = _get_effective_enemy_data_list()
+	var current_npc_data_list: Array[NpcData] = _get_effective_npc_data_list()
 
 	spawn_manager = UnitSpawnManager.new(
 		units_node,
@@ -47,14 +51,14 @@ func _ready() -> void:
 	)
 
 	if WorldState.map_enemy_spawns.has(map_id):
-		spawn_manager.spawn_saved_enemies(enemy_unit_scene, enemy_data_list)
+		spawn_manager.spawn_saved_enemies(enemy_unit_scene, current_enemy_data_list)
 	else:
-		spawn_manager.spawn_random_enemies(enemy_unit_scene, enemy_data_list, enemy_spawn_count)
+		spawn_manager.spawn_random_enemies(enemy_unit_scene, current_enemy_data_list, enemy_spawn_count)
 
 	if WorldState.map_npc_spawns.has(map_id):
-		spawn_manager.spawn_saved_npcs(npc_unit_scene, npc_data_list)
+		spawn_manager.spawn_saved_npcs(npc_unit_scene, current_npc_data_list)
 	else:
-		spawn_manager.spawn_random_npcs(npc_unit_scene, npc_data_list, npc_spawn_count)
+		spawn_manager.spawn_random_npcs(npc_unit_scene, current_npc_data_list, npc_spawn_count)
 
 	item_world_manager = ItemWorldManager.new(
 		self,
@@ -71,6 +75,46 @@ func _ready() -> void:
 	item_world_manager.setup_detail_map_random_spawn_with_save()
 	#item_world_manager.setup_test_item_and_chest_with_save()
 	#item_world_manager.spawn_fixed_test_item_and_chest()
+
+
+func _get_effective_enemy_data_list() -> Array[EnemyData]:
+	if enemy_data_list.size() > 0:
+		return enemy_data_list
+	if enemy_type_id_list.size() > 0:
+		return _get_enemy_data_by_ids(enemy_type_id_list)
+	return EnemyDatabase.get_all_enemy_data()
+
+
+func _get_effective_npc_data_list() -> Array[NpcData]:
+	if npc_data_list.size() > 0:
+		return npc_data_list
+	if npc_type_id_list.size() > 0:
+		return _get_npc_data_by_ids(npc_type_id_list)
+	return NpcDatabase.get_all_npc_data()
+
+
+func _get_enemy_data_by_ids(type_ids: Array[String]) -> Array[EnemyData]:
+	var result: Array[EnemyData] = []
+
+	for type_id in type_ids:
+		var data: EnemyData = EnemyDatabase.get_enemy_data_by_id(type_id.strip_edges())
+		if data == null:
+			continue
+		result.append(data)
+
+	return result
+
+
+func _get_npc_data_by_ids(type_ids: Array[String]) -> Array[NpcData]:
+	var result: Array[NpcData] = []
+
+	for type_id in type_ids:
+		var data: NpcData = NpcDatabase.get_npc_data_by_id(type_id.strip_edges())
+		if data == null:
+			continue
+		result.append(data)
+
+	return result
 
 
 func find_player() -> void:

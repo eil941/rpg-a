@@ -1,0 +1,4 @@
+npc_type_id	quest_id	weight	enabled
+test_helper_villager	test_iron_ore_delivery	100	true
+test_helper_villager	quest_fixed_apple_delivery	100	true
+test_helper_villager	quest_villager_material_delivery	100	true

@@ -27,6 +27,8 @@ All TSV files under `data/master` are exported by `tools/export_master_tsv.py` a
 | `status_effect_types.tsv` | optional master | status display metadata | Complete |
 | `quests.tsv` | required master | `QuestDatabase` wrapper and `QuestManager` | Complete |
 | `spawn_rules.tsv` | required master | `ItemSpawnRuleDatabase` | Mostly complete |
+| `item_spawn_rule_category_multipliers.tsv` | optional master | item spawn category weight multipliers | Mostly complete |
+| `item_spawn_rule_item_overrides.tsv` | optional master | item spawn item-specific weight overrides | Mostly complete, currently no data rows |
 | `unit_spawn_rules.tsv` | required master | `SpawnRuleDatabase` wrapper | Complete |
 | `dungeon_spawn_rules.tsv` | required master | `DungeonSpawnRuleDatabase` wrapper | Complete, currently no data rows |
 | `enemies.tsv` | required master | `EnemyDatabase` wrapper, maps, dungeon | Complete |
@@ -45,17 +47,17 @@ All TSV files under `data/master` are exported by `tools/export_master_tsv.py` a
 - chest table IDs, loot table references, chest loot item/category references, and amount ranges;
 - shop table IDs, NPC shop table references, shop loot item/category references, and amount ranges;
 - initial inventory table IDs, enemy/NPC table references, entry item references, amount ranges, drop chance, and boolean flags;
+- item spawn rule child tables, including rule/category pairs, rule/item pairs, category/item references, and non-negative multiplier/weight values;
+- selected TSV resource path columns, including `res://...::SubResource` paths, as WARN-level existence checks;
 - `damage_mode` values.
 
-Current result: `warnings=0 errors=0`.
+Current result after Step 5-H: `warnings=0 errors=0`.
 
 ## Remaining TSV candidates
 
 | Candidate | Current location | Why consider TSV | Priority |
 | --- | --- | --- | --- |
-| `drop_tables.tsv` | unit inventory/drop flags and generated inventory | Death drops are controlled by unit rows and runtime inventory entries. Add only if drops become authored tables. | Medium |
-| `item_spawn_rule_category_multipliers.tsv` | `spawn_rules.tsv.category_multipliers` dictionary cell | Existing TSV works, but child rows would validate category IDs better. | Medium |
-| `item_spawn_rule_item_overrides.tsv` | `spawn_rules.tsv.item_weight_overrides` dictionary cell | Existing TSV works, but child rows would validate item IDs better. | Medium |
+| `drop_tables.tsv` | unit inventory/drop flags and generated inventory | Deferred. Death drops currently use the unit's runtime inventory, so authored drop tables would duplicate initial inventory data until a separate drop-only design is needed. | Low |
 | `attacked_behavior_types.tsv` | `AttackedBehaviorData` resources loaded from path columns | Behavior resources are gameplay configuration; keep as resources until multiple reusable behavior profiles are needed. | Low |
 | `ai_style_types.tsv` | GDScript enums plus TSV numeric columns | Enums are execution logic. TSV metadata could help display/validation later. | Low |
 
@@ -88,16 +90,67 @@ Step 5-D added `initial_inventory_tables.tsv` and `initial_inventory_entries.tsv
 
 `initial_inventory_entries.tsv` includes `roll_equipment_enchantments` to preserve the fifth field from the old composite format. The `guaranteed` column maps to `chance=1.0`; otherwise `drop_chance` is used as the generation chance.
 
+## Death drop migration status
+
+Step 5-E investigated authored `drop_tables.tsv` / `drop_table_entries.tsv` and deferred them. Current death drops are not a separate authored loot table. `Unit.handle_death()` calls `drop_inventory_items_on_death_if_needed()`, which collects the unit's current bag, hotbar, and optionally equipped items, then drops those entries near the unit.
+
+`InitialInventoryEntry` chance handling happens at spawn/initialization time when entries are built and added to the unit inventory. Death-time logic does not reroll `drop_chance`; it simply drops whatever inventory entries remain. This means `initial_inventory_tables.tsv` already covers the only currently authored source of enemy/NPC carried items.
+
+Adding drop tables now would create two competing data sources: items granted to the unit at spawn, and separate items generated only on death. Keep `drop_tables.tsv` deferred until there is a concrete need for drop-only rewards such as boss loot, non-carried monster drops, or shared drop pools that should not appear in the unit's inventory while alive.
+
+## Item spawn rule child table status
+
+Step 5-F added `item_spawn_rule_category_multipliers.tsv` and `item_spawn_rule_item_overrides.tsv`. These split the former `spawn_rules.tsv` composite dictionaries into row-based child tables that can be validated against `spawn_rules.tsv`, `item_categories.tsv`, and `items.tsv`. In `master_data.xlsx`, the category multiplier sheet is named `spawn_rule_category_multipliers` because Excel worksheet names are limited to 31 characters; the exported TSV keeps the full master filename.
+
+`GameDataRegistry` loads the child tables before `spawn_rules.tsv` is converted into `ItemSpawnRuleData`. If a child table has rows for a `rule_id`, those rows are used. If no child rows exist for a rule, the old `category_multipliers` / `item_weight_overrides` composite columns in `spawn_rules.tsv` remain as fallback.
+
+The old composite columns are intentionally still present for compatibility and rollback during Godot verification. Once child table coverage has been tested, they can be considered for removal or left as authoring fallback.
+
+## Resource path validation status
+
+Step 5-G added validator checks for selected TSV columns that store `res://` resource paths. Empty cells are allowed. For Godot subresource paths such as `res://path/file.tres::Resource_id`, only the base file path is checked for existence; the subresource ID is not validated yet.
+
+Missing resource paths are reported as WARN, not ERROR. Several loader paths can fall back to `null`, and resource references may include optional visual or behavior data, so making these strict errors immediately would block migration work before each optional path has been classified.
+
+Step 5-H cleared the orphaned `npcs.tsv:2 attacked_by_player_behavior_path` reference to `res://data/test/NPC/new_sabo.tres::Resource_id2ul`. That resource only exists under `data/_old_tres_backup`, so the master `npcs` row now leaves the optional attacked behavior path empty.
+
+Current missing resource paths: none.
+
+Future tightening should classify path columns as required or optional before promoting any WARN to ERROR. `attacked_by_player_behavior_path` should remain optional unless attacked behavior data becomes mandatory for all NPCs.
+
+## Scene/resource path audit status
+
+Step 5-I audited non-TSV `res://data/test/NPC/new_sabo.tres` references in active scenes and scripts. Active scene references were removed from `scenes/Main.tscn`, `scenes/dungeon_main.tscn`, `scenes/start_field.tscn`, `scenes/twon_test1.tscn`, and `scenes/npc_debug_map_special_reworked.tscn`.
+
+The normal map and dungeon scenes now leave old exported enemy/NPC data arrays empty; their scripts fall back to `EnemyDatabase` / `NpcDatabase`, which read the TSV-backed `GameData`. The special debug map now stores `npc_type_id = "no_id"` on its `SpecialMapUnitEntry`, and the entry resolves that ID through `NpcDatabase` when no direct `NpcData` resource is assigned.
+
+The legacy `new_sabo.tres` resource was not restored from `data/_old_tres_backup`. Step 5-J later removed tracked Godot `.tmp` scene snapshots, so the remaining text hits are limited to this audit document, `master_sub`, and `data/_old_tres_backup`.
+
+## Legacy backup/copy cleanup status
+
+Step 5-J classified the remaining post-migration legacy data:
+
+- `data/_old_tres_backup`: 124 tracked files. These are old resource-based master data backups (`ItemData`, `EnemyData`, `NpcData`, quest, spawn rule, item effect, equipment, and test resources). No active scene/script reference to `res://data/_old_tres_backup` was found outside the backup folder itself. Keep this directory as migration backup for now; do not restore resources from it unless a specific behavior needs to be recovered.
+- `master_sub`: 11 tracked TSV files. This appears to be an old TSV copy set and is not used by `tools/export_master_tsv.py`, `tools/validate_master_data.py`, or active runtime loading. Keep it as a legacy copy for now; it is a future deletion/archive candidate after user review.
+- Godot `.tmp` scene snapshots: 33 tracked `scenes/*.tmp` files were removed. They were editor temporary snapshots, not active scenes, and several still contained stale `res://data/test` resource paths. `.gitignore` now ignores `*.tmp` and `*.tmp.*` so new editor snapshots are not added accidentally.
+
+## Completion decision
+
+Step 5-K records the TSV migration completion decision in `docs/tsv_migration_completion.md`.
+
+The current master-data TSV scope is complete enough to treat TSV/Excel as the authoritative source. Remaining Resources are intentional: visuals/UI, optional behavior profiles, runtime compatibility containers, and fallback data that should be kept until Godot playtesting confirms TSV coverage.
+
 ## Noted issues
 
-- `npcs.tsv` has one `attacked_by_player_behavior_path` pointing at `res://data/test/NPC/new_sabo.tres::Resource_id2ul`; the file was not found in the current tree. This is not a TSV migration blocker because the loader safely returns `null`, but it should be checked before making attacked behavior data stricter.
+- The old `npcs.tsv` attacked behavior reference to `res://data/test/NPC/new_sabo.tres::Resource_id2ul` was cleared in Step 5-H. If NPC attacked behavior should be restored later, create or restore an intentional `AttackedBehaviorData` resource and reference that new path.
 - `data/_old_tres_backup` contains legacy `ItemData`, `EnemyData`, `NpcData`, `QuestData`, `SpawnRuleData`, `ItemEffectData`, and related resources. It appears to be migration backup data, not active runtime data.
 - `master_sub` contains old TSV copies and appears unused by runtime code.
+- The tracked `scenes/*.tmp` Godot scene snapshots were removed in Step 5-J. If a deleted snapshot was intentionally kept for comparison, recover it from Git history rather than recreating it as runtime data.
 
 ## Suggested next steps
 
-1. Step 5-E: Decide whether death drops need authored `drop_tables.tsv`, or whether runtime inventory drops are enough.
-2. Step 5-F: Decide whether chest UI/visual metadata should remain in `ChestData` permanently.
-3. Step 5-G: Add optional validator checks for resource path columns.
-4. Step 5-H: Decide whether to archive or ignore `data/_old_tres_backup` and `master_sub`.
-5. Step 5-I: Remove old shop and initial inventory fallback columns only after enough playtesting confirms TSV coverage.
+1. Decide whether chest UI/visual metadata should remain in `ChestData` permanently.
+2. Decide whether attacked behavior resources should stay as optional `.tres` resources or gain a dedicated TSV metadata table later.
+3. Decide whether to archive or delete `data/_old_tres_backup` and `master_sub` after TSV migration is fully accepted.
+4. Remove old shop, initial inventory, and item spawn fallback columns only after enough playtesting confirms TSV coverage.
+5. Future drop step: Add `drop_tables.tsv` only when drop-only rewards are needed separately from carried inventory.

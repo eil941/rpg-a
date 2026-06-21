@@ -11,6 +11,8 @@ enum SpawnKind {
 
 @export var enemy_data: EnemyData
 @export var npc_data: NpcData
+@export var enemy_type_id: String = ""
+@export var npc_type_id: String = ""
 
 # 固定配置用
 @export var fixed_spawn_count: int = 1
@@ -22,7 +24,11 @@ enum SpawnKind {
 
 func get_data_resource() -> Resource:
 	if spawn_kind == SpawnKind.ENEMY:
+		if enemy_data == null and enemy_type_id.strip_edges() != "":
+			return EnemyDatabase.get_enemy_data_by_id(enemy_type_id.strip_edges())
 		return enemy_data
+	if npc_data == null and npc_type_id.strip_edges() != "":
+		return NpcDatabase.get_npc_data_by_id(npc_type_id.strip_edges())
 	return npc_data
 
 

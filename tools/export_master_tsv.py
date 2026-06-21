@@ -40,7 +40,11 @@ SHEET_TO_TSV = {
     "damage_types": "damage_types.tsv",
     "status_effect_types": "status_effect_types.tsv",
     "quests": "quests.tsv",
+    "npc_quest_links": "npc_quest_links.tsv",
     "spawn_rules": "spawn_rules.tsv",
+    # Excel worksheet names are limited to 31 characters; the TSV keeps the full master name.
+    "spawn_rule_category_multipliers": "item_spawn_rule_category_multipliers.tsv",
+    "item_spawn_rule_item_overrides": "item_spawn_rule_item_overrides.tsv",
     "enemies": "enemies.tsv",
     "npcs": "npcs.tsv",
     "enchantments": "enchantments.tsv",

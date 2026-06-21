@@ -26,7 +26,24 @@ static func _get_resource_property_names(resource_type: int) -> Dictionary:
 			return {}
 
 
-static func _apply_resource_restore(stats, current_property: String, max_property: String, effect: ItemEffectData, amount: int) -> bool:
+static func _get_restore_max_value(target, stats, resource_type: int, max_property: String) -> float:
+	if resource_type == ItemEffectData.ResourceType.HP and target != null and target.has_method("get_total_max_hp"):
+		return float(target.get_total_max_hp())
+
+	if stats != null and max_property != "" and _has_property(stats, max_property):
+		return float(stats.get(max_property))
+
+	return 0.0
+
+
+static func _apply_resource_restore(
+	stats,
+	current_property: String,
+	max_property: String,
+	effect: ItemEffectData,
+	amount: int,
+	effective_max_value: float
+) -> bool:
 	if stats == null:
 		return false
 	if current_property == "" or max_property == "":
@@ -39,7 +56,7 @@ static func _apply_resource_restore(stats, current_property: String, max_propert
 	var current_value_variant: Variant = stats.get(current_property)
 	var max_value_variant: Variant = stats.get(max_property)
 	var current_value: float = float(current_value_variant)
-	var max_value: float = float(max_value_variant)
+	var max_value: float = max(0.0, effective_max_value)
 	var new_value: float = current_value
 
 	if effect.value_mode == ItemEffectData.ValueMode.FULL:
@@ -239,13 +256,16 @@ static func _apply_restore_resource(user, target, effect: ItemEffectData) -> boo
 	var property_names: Dictionary = _get_resource_property_names(effect.resource_type)
 	if property_names.is_empty():
 		return false
+	var max_property: String = String(property_names.get("max", ""))
+	var effective_max_value: float = _get_restore_max_value(target, stats, effect.resource_type, max_property)
 
 	return _apply_resource_restore(
 		stats,
 		String(property_names.get("current", "")),
-		String(property_names.get("max", "")),
+		max_property,
 		effect,
-		amount
+		amount,
+		effective_max_value
 	)
 
 

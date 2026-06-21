@@ -222,10 +222,14 @@ var npcs: Dictionary = {}
 var enchantments: Dictionary = {}
 var dungeon_spawn_rules: Dictionary = {}
 var unit_spawn_rules: Dictionary = {}
+var npc_quest_links: Array[Dictionary] = []
+var npc_quest_links_by_npc: Dictionary = {}
 
 var item_effect_links: Dictionary = {}
 
 var item_spawn_rules: Array[ItemSpawnRuleData] = []
+var item_spawn_rule_category_multipliers: Dictionary = {}
+var item_spawn_rule_item_overrides: Dictionary = {}
 var _warned_unknown_item_categories: Dictionary = {}
 var _warned_unknown_unit_races: Dictionary = {}
 var _warned_unknown_unit_factions: Dictionary = {}
@@ -262,7 +266,11 @@ func load_all() -> void:
 	npcs.clear()
 	enchantments.clear()
 	item_effect_links.clear()
+	npc_quest_links.clear()
+	npc_quest_links_by_npc.clear()
 	item_spawn_rules.clear()
+	item_spawn_rule_category_multipliers.clear()
+	item_spawn_rule_item_overrides.clear()
 	dungeon_spawn_rules.clear()
 	unit_spawn_rules.clear()
 	_warned_unknown_item_categories.clear()
@@ -297,6 +305,9 @@ func load_all() -> void:
 	_load_enemies()
 	_load_npcs()
 	_load_quests()
+	_load_npc_quest_links()
+	_load_item_spawn_rule_category_multipliers()
+	_load_item_spawn_rule_item_overrides()
 	_load_item_spawn_rules()
 
 
@@ -892,6 +903,40 @@ func get_initial_inventory_entries(inventory_table_id: String) -> Array[InitialI
 	return result
 
 
+func get_npc_quest_links(npc_type_id: String) -> Array[Dictionary]:
+	var normalized_id := npc_type_id.strip_edges()
+	if normalized_id == "":
+		return []
+
+	var entries_value: Variant = npc_quest_links_by_npc.get(normalized_id, [])
+	if typeof(entries_value) != TYPE_ARRAY:
+		return []
+
+	var result: Array[Dictionary] = []
+	var entries: Array = entries_value
+	for entry_value in entries:
+		if typeof(entry_value) != TYPE_DICTIONARY:
+			continue
+
+		var entry: Dictionary = entry_value
+		result.append(entry.duplicate(true))
+
+	return result
+
+
+func has_npc_quest_links(npc_type_id: String) -> bool:
+	return not get_npc_quest_links(npc_type_id).is_empty()
+
+
+func get_all_npc_quest_links() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+
+	for entry in npc_quest_links:
+		result.append(entry.duplicate(true))
+
+	return result
+
+
 func get_unit_spawn_rule(rule_id: String) -> SpawnRuleData:
 	return unit_spawn_rules.get(rule_id, null) as SpawnRuleData
 
@@ -948,6 +993,32 @@ func get_item_spawn_rule(rule_id: String) -> ItemSpawnRuleData:
 
 func has_item_spawn_rule(rule_id: String) -> bool:
 	return get_item_spawn_rule(rule_id) != null
+
+
+func get_item_spawn_rule_category_multipliers(rule_id: String) -> Dictionary:
+	var normalized_id := _normalize_item_spawn_rule_id(rule_id)
+	if normalized_id == "":
+		return {}
+
+	var entries_value: Variant = item_spawn_rule_category_multipliers.get(normalized_id, {})
+	if typeof(entries_value) != TYPE_DICTIONARY:
+		return {}
+
+	var entries: Dictionary = entries_value
+	return entries.duplicate(true)
+
+
+func get_item_spawn_rule_item_overrides(rule_id: String) -> Dictionary:
+	var normalized_id := _normalize_item_spawn_rule_id(rule_id)
+	if normalized_id == "":
+		return {}
+
+	var entries_value: Variant = item_spawn_rule_item_overrides.get(normalized_id, {})
+	if typeof(entries_value) != TYPE_DICTIONARY:
+		return {}
+
+	var entries: Dictionary = entries_value
+	return entries.duplicate(true)
 
 
 # ============================================================
@@ -1152,6 +1223,10 @@ func _normalize_shop_id(shop_id: String) -> String:
 
 func _normalize_inventory_table_id(inventory_table_id: String) -> String:
 	return inventory_table_id.strip_edges()
+
+
+func _normalize_item_spawn_rule_id(rule_id: String) -> String:
+	return rule_id.strip_edges()
 
 
 func _normalize_faction_relation_text(relation: String) -> String:
@@ -3482,6 +3557,47 @@ func _load_quests() -> void:
 		quests[quest.quest_id] = quest
 
 
+func _load_npc_quest_links() -> void:
+	var rows := _load_optional_tsv("res://data/master/npc_quest_links.tsv")
+
+	for row in rows:
+		var npc_type_id := _get_string(row, "npc_type_id").strip_edges()
+		var quest_id := _get_string(row, "quest_id").strip_edges()
+
+		if npc_type_id == "" or quest_id == "":
+			push_warning("npc_quest_links.tsv has empty npc_type_id or quest_id")
+			continue
+
+		if not has_npc(npc_type_id):
+			push_warning("npc_quest_links.tsv npc_type_id not found: " + npc_type_id)
+
+		if not has_quest(quest_id):
+			push_warning("npc_quest_links.tsv quest_id not found: " + quest_id)
+
+		var entry := {
+			"npc_type_id": npc_type_id,
+			"quest_id": quest_id,
+			"weight": max(_to_int(_get_string(row, "weight"), 100), 0),
+			"enabled": _to_bool(_get_string(row, "enabled", "true"))
+		}
+
+		npc_quest_links.append(entry)
+
+		if not bool(entry.get("enabled", true)):
+			continue
+
+		if not npc_quest_links_by_npc.has(npc_type_id):
+			npc_quest_links_by_npc[npc_type_id] = []
+
+		var entries_value: Variant = npc_quest_links_by_npc.get(npc_type_id, [])
+		if typeof(entries_value) != TYPE_ARRAY:
+			npc_quest_links_by_npc[npc_type_id] = []
+			entries_value = npc_quest_links_by_npc[npc_type_id]
+
+		var entries: Array = entries_value
+		entries.append(entry)
+
+
 func _quest_objective_type_from_text(value: String) -> int:
 	match value.strip_edges().to_upper():
 		"DELIVER_ITEM":
@@ -3614,16 +3730,45 @@ func _count_initial_inventory_entries() -> int:
 	return count
 
 
+func _count_item_spawn_rule_category_multiplier_entries() -> int:
+	var count := 0
+
+	for entries_value in item_spawn_rule_category_multipliers.values():
+		if typeof(entries_value) != TYPE_DICTIONARY:
+			continue
+
+		var entries: Dictionary = entries_value
+		count += entries.size()
+
+	return count
+
+
+func _count_item_spawn_rule_item_override_entries() -> int:
+	var count := 0
+
+	for entries_value in item_spawn_rule_item_overrides.values():
+		if typeof(entries_value) != TYPE_DICTIONARY:
+			continue
+
+		var entries: Dictionary = entries_value
+		count += entries.size()
+
+	return count
+
+
 func debug_print_loaded_data() -> void:
 	print("========== GameData Loaded ==========")
 	print("[GameData] items: ", items.size())
 	print("[GameData] effects: ", effects.size())
 	print("[GameData] item_effect_links: ", item_effect_links.size())
 	print("[GameData] quests: ", quests.size())
+	print("[GameData] npc_quest_links: ", npc_quest_links.size())
 	print("[GameData] enemies: ", enemies.size())
 	print("[GameData] npcs: ", npcs.size())
 	print("[GameData] enchantments: ", enchantments.size())
 	print("[GameData] item_spawn_rules: ", item_spawn_rules.size())
+	print("[GameData] item_spawn_rule_category_multipliers: ", _count_item_spawn_rule_category_multiplier_entries())
+	print("[GameData] item_spawn_rule_item_overrides: ", _count_item_spawn_rule_item_override_entries())
 	print("[GameData] dungeon_spawn_rules: ", dungeon_spawn_rules.size())
 	print("[GameData] unit_spawn_rules: ", unit_spawn_rules.size())
 	print("[GameData] chest_tables: ", chest_tables.size())
@@ -3865,6 +4010,65 @@ func _load_item_spawn_rules() -> void:
 	)
 
 
+func _load_item_spawn_rule_category_multipliers() -> void:
+	var rows := _load_optional_tsv("res://data/master/item_spawn_rule_category_multipliers.tsv")
+
+	for row in rows:
+		var rule_id := _normalize_item_spawn_rule_id(_get_string(row, "rule_id"))
+		if rule_id == "":
+			push_warning("item_spawn_rule_category_multipliers.tsv has empty rule_id")
+			continue
+
+		var category := _normalize_item_category_id(_get_string(row, "category"))
+		var context := "item_spawn_rule_category_multipliers.tsv rule_id=" + rule_id
+		if category == "":
+			push_warning(context + " has empty category")
+			continue
+
+		if not has_item_category(category):
+			_warn_unknown_item_category(category, context)
+			continue
+
+		var multiplier: float = max(_to_float(_get_string(row, "multiplier"), 1.0), 0.0)
+
+		var entries_value: Variant = item_spawn_rule_category_multipliers.get(rule_id, {})
+		if typeof(entries_value) != TYPE_DICTIONARY:
+			entries_value = {}
+
+		var entries: Dictionary = entries_value
+		entries[category] = multiplier
+		item_spawn_rule_category_multipliers[rule_id] = entries
+
+
+func _load_item_spawn_rule_item_overrides() -> void:
+	var rows := _load_optional_tsv("res://data/master/item_spawn_rule_item_overrides.tsv")
+
+	for row in rows:
+		var rule_id := _normalize_item_spawn_rule_id(_get_string(row, "rule_id"))
+		if rule_id == "":
+			push_warning("item_spawn_rule_item_overrides.tsv has empty rule_id")
+			continue
+
+		var item_id := _get_string(row, "item_id").strip_edges()
+		var context := "item_spawn_rule_item_overrides.tsv rule_id=" + rule_id
+		if item_id == "":
+			push_warning(context + " has empty item_id")
+			continue
+
+		if not has_item(item_id):
+			push_warning(context + " item_id not found: " + item_id)
+
+		var weight: int = max(_to_int(_get_string(row, "weight"), 0), 0)
+
+		var entries_value: Variant = item_spawn_rule_item_overrides.get(rule_id, {})
+		if typeof(entries_value) != TYPE_DICTIONARY:
+			entries_value = {}
+
+		var entries: Dictionary = entries_value
+		entries[item_id] = weight
+		item_spawn_rule_item_overrides[rule_id] = entries
+
+
 func _build_item_spawn_rule(row: Dictionary) -> ItemSpawnRuleData:
 	var rule := ItemSpawnRuleData.new()
 
@@ -3893,7 +4097,17 @@ func _build_item_spawn_rule(row: Dictionary) -> ItemSpawnRuleData:
 
 	rule.blocked_categories = _split_list(_get_string(row, "blocked_categories"))
 	rule.blocked_item_ids = _split_list(_get_string(row, "blocked_item_ids"))
-	rule.category_multipliers = _split_float_dict(_get_string(row, "category_multipliers"))
-	rule.item_weight_overrides = _split_int_dict(_get_string(row, "item_weight_overrides"))
+
+	var category_multipliers_from_child := get_item_spawn_rule_category_multipliers(rule.rule_id)
+	if category_multipliers_from_child.is_empty():
+		rule.category_multipliers = _split_float_dict(_get_string(row, "category_multipliers"))
+	else:
+		rule.category_multipliers = category_multipliers_from_child
+
+	var item_weight_overrides_from_child := get_item_spawn_rule_item_overrides(rule.rule_id)
+	if item_weight_overrides_from_child.is_empty():
+		rule.item_weight_overrides = _split_int_dict(_get_string(row, "item_weight_overrides"))
+	else:
+		rule.item_weight_overrides = item_weight_overrides_from_child
 
 	return rule

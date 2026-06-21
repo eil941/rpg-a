@@ -10,6 +10,41 @@ from typing import Callable
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MASTER_DIR = PROJECT_ROOT / "data" / "master"
 
+RESOURCE_PATH_COLUMNS = {
+    "items": ["icon_path", "resource_path"],
+    "equipment": ["icon_path", "resource_path"],
+    "enemies": [
+        "scene_path",
+        "sprite_frames_path",
+        "attacked_by_player_behavior_path",
+        "talk_portrait_path",
+        "animation_profile_path",
+        "idle_right_frames",
+        "walk_right_frames",
+        "idle_left_frames",
+        "walk_left_frames",
+        "idle_down_frames",
+        "walk_down_frames",
+        "idle_up_frames",
+        "walk_up_frames",
+    ],
+    "npcs": [
+        "scene_path",
+        "sprite_frames_path",
+        "attacked_by_player_behavior_path",
+        "talk_portrait_path",
+        "animation_profile_path",
+        "idle_right_frames",
+        "walk_right_frames",
+        "idle_left_frames",
+        "walk_left_frames",
+        "idle_down_frames",
+        "walk_down_frames",
+        "idle_up_frames",
+        "walk_up_frames",
+    ],
+}
+
 
 @dataclass
 class Table:
@@ -257,6 +292,55 @@ def check_allowed_values(
         reporter.ok(f"{table.filename}.{column} values are valid ({checked} checked)")
 
 
+def iter_resource_paths(raw_value: str) -> list[str]:
+    values: list[str] = []
+
+    for part in raw_value.split("|"):
+        value = part.strip()
+        if value.startswith("res://"):
+            values.append(value)
+
+    return values
+
+
+def get_resource_file_path(resource_path: str) -> Path | None:
+    file_part = resource_path.split("::", 1)[0].strip()
+    if not file_part.startswith("res://"):
+        return None
+
+    relative_path = file_part.removeprefix("res://").replace("\\", "/")
+    if relative_path == "":
+        return None
+
+    return PROJECT_ROOT / Path(*relative_path.split("/"))
+
+
+def check_resource_paths(table: Table, columns: list[str]) -> None:
+    checked = 0
+    issue_count = 0
+
+    for column in columns:
+        if column not in table.header:
+            continue
+
+        for row, line_number in zip(table.rows, table.line_numbers):
+            for resource_path in iter_resource_paths(row.get(column, "")):
+                checked += 1
+                file_path = get_resource_file_path(resource_path)
+                if file_path is None:
+                    continue
+
+                if not file_path.exists():
+                    issue_count += 1
+                    relative = file_path.relative_to(PROJECT_ROOT)
+                    reporter.warn(
+                        f"{table.filename}:{line_number} {column} resource not found: {resource_path} -> {relative}"
+                    )
+
+    if issue_count == 0:
+        reporter.ok(f"{table.filename} resource paths exist ({checked} checked)")
+
+
 def check_damage_mode(table: Table) -> None:
     valid_modes = {"direct", "calculated"}
     if not require_column(table, "damage_mode", "warn"):
@@ -283,6 +367,27 @@ def check_damage_mode(table: Table) -> None:
     if issue_count == 0:
         count_text = ", ".join(f"{key}={value}" for key, value in sorted(counts.items()))
         reporter.ok(f"{table.filename}.damage_mode values are valid ({count_text})")
+
+
+def check_npc_quest_links(table: Table) -> None:
+    for column in ("npc_type_id", "quest_id", "weight", "enabled"):
+        require_column(table, column)
+
+    issue_count = 0
+
+    for row, line_number in zip(table.rows, table.line_numbers):
+        weight = parse_float_cell(table, row, line_number, "weight")
+        if weight is None:
+            issue_count += 1
+        elif weight < 0:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} weight must be >= 0")
+
+        if parse_bool_cell(table, row, line_number, "enabled") is None:
+            issue_count += 1
+
+    if issue_count == 0:
+        reporter.ok(f"{table.filename}.weight/enabled values are valid ({len(table.rows)} checked)")
 
 
 def check_element_resistance_keys(table: Table, element_ids: set[str]) -> None:
@@ -565,6 +670,46 @@ def check_initial_inventory_entries(
         )
 
 
+def check_item_spawn_rule_category_multipliers(table: Table) -> None:
+    require_column(table, "multiplier")
+
+    issue_count = 0
+    checked = 0
+
+    for row, line_number in zip(table.rows, table.line_numbers):
+        multiplier = parse_float_cell(table, row, line_number, "multiplier")
+        if multiplier is None:
+            continue
+
+        checked += 1
+        if multiplier < 0.0:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} multiplier must be >= 0")
+
+    if issue_count == 0:
+        reporter.ok(f"{table.filename}.multiplier values are valid ({checked} checked)")
+
+
+def check_item_spawn_rule_item_overrides(table: Table) -> None:
+    require_column(table, "weight")
+
+    issue_count = 0
+    checked = 0
+
+    for row, line_number in zip(table.rows, table.line_numbers):
+        weight = parse_int_cell(table, row, line_number, "weight")
+        if weight is None:
+            continue
+
+        checked += 1
+        if weight < 0:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} weight must be >= 0")
+
+    if issue_count == 0:
+        reporter.ok(f"{table.filename}.weight values are valid ({checked} checked)")
+
+
 def main() -> int:
     if not MASTER_DIR.exists():
         reporter.error(f"missing master data directory: {MASTER_DIR}")
@@ -589,7 +734,10 @@ def main() -> int:
         "damage_types": "damage_types.tsv",
         "status_effect_types": "status_effect_types.tsv",
         "quests": "quests.tsv",
+        "npc_quest_links": "npc_quest_links.tsv",
         "spawn_rules": "spawn_rules.tsv",
+        "item_spawn_rule_category_multipliers": "item_spawn_rule_category_multipliers.tsv",
+        "item_spawn_rule_item_overrides": "item_spawn_rule_item_overrides.tsv",
         "enemies": "enemies.tsv",
         "npcs": "npcs.tsv",
         "enchantments": "enchantments.tsv",
@@ -623,9 +771,16 @@ def main() -> int:
     for table_name, id_column in duplicate_checks.items():
         check_duplicates(tables[table_name], id_column)
 
+    check_composite_duplicates(tables["item_spawn_rule_category_multipliers"], ["rule_id", "category"])
+    check_composite_duplicates(tables["item_spawn_rule_item_overrides"], ["rule_id", "item_id"])
+    check_composite_duplicates(tables["npc_quest_links"], ["npc_type_id", "quest_id"])
+
     item_ids = make_id_set(tables["items"], "item_id")
     item_category_ids = make_id_set(tables["item_categories"], "category_id", normalize_lower)
     effect_ids = make_id_set(tables["item_effects"], "effect_id")
+    quest_ids = make_id_set(tables["quests"], "quest_id")
+    npc_ids = make_id_set(tables["npcs"], "npc_type_id")
+    item_spawn_rule_ids = make_id_set(tables["spawn_rules"], "rule_id")
     chest_loot_table_ids = make_id_set(tables["chest_loot_tables"], "loot_table_id")
     shop_ids = make_id_set(tables["shop_tables"], "shop_table_id")
     shop_loot_table_ids = make_id_set(tables["shop_loot_tables"], "loot_table_id")
@@ -659,6 +814,33 @@ def main() -> int:
         effect_ids,
         "item_effects.effect_id",
     )
+    check_reference(
+        tables["item_spawn_rule_category_multipliers"],
+        "rule_id",
+        item_spawn_rule_ids,
+        "spawn_rules.rule_id",
+    )
+    check_reference(
+        tables["item_spawn_rule_category_multipliers"],
+        "category",
+        item_category_ids,
+        "item_categories.category_id",
+        normalizer=normalize_lower,
+    )
+    check_item_spawn_rule_category_multipliers(tables["item_spawn_rule_category_multipliers"])
+    check_reference(
+        tables["item_spawn_rule_item_overrides"],
+        "rule_id",
+        item_spawn_rule_ids,
+        "spawn_rules.rule_id",
+    )
+    check_reference(
+        tables["item_spawn_rule_item_overrides"],
+        "item_id",
+        item_ids,
+        "items.item_id",
+    )
+    check_item_spawn_rule_item_overrides(tables["item_spawn_rule_item_overrides"])
     check_chest_loot_tables(
         tables["chest_loot_tables"],
         item_category_ids,
@@ -794,6 +976,22 @@ def main() -> int:
         missing_column_severity="warn",
     )
     check_damage_mode(tables["item_effects"])
+    check_reference(
+        tables["npc_quest_links"],
+        "npc_type_id",
+        npc_ids,
+        "npcs.npc_type_id",
+    )
+    check_reference(
+        tables["npc_quest_links"],
+        "quest_id",
+        quest_ids,
+        "quests.quest_id",
+    )
+    check_npc_quest_links(tables["npc_quest_links"])
+
+    for table_name, columns in RESOURCE_PATH_COLUMNS.items():
+        check_resource_paths(tables[table_name], columns)
 
     print()
     print(

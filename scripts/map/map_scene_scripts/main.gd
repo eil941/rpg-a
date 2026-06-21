@@ -12,6 +12,7 @@ extends Node2D
 
 @export var npc_unit_scene: PackedScene
 @export var npc_data_list: Array[NpcData]
+@export var npc_type_id_list: Array[String] = []
 
 @export var item_pickup_scene: PackedScene
 @export var chest_scene: PackedScene
@@ -102,7 +103,7 @@ func _ready() -> void:
 	var current_enemy_spawn_count: int = fallback_enemy_spawn_count
 	var current_npc_spawn_count: int = fallback_npc_spawn_count
 	var current_enemy_data_list: Array[EnemyData] = all_enemy_data
-	var current_npc_data_list: Array[NpcData] = npc_data_list
+	var current_npc_data_list: Array[NpcData] = _get_effective_npc_data_list()
 
 	var enemy_pool_info: Dictionary = _build_enemy_spawn_pool(spawn_context, all_enemy_data)
 	if enemy_pool_info.get("count", 0) > 0 and enemy_pool_info.get("pool", []).size() > 0:
@@ -129,10 +130,8 @@ func _ready() -> void:
 		print("SKIP ENEMY SPAWN map_id=", map_id)
 
 	if WorldState.map_npc_spawns.has(map_id):
-		
 		spawn_manager.spawn_saved_npcs(npc_unit_scene, current_npc_data_list)
 	elif current_npc_spawn_count > 0:
-		
 		spawn_manager.spawn_random_npcs(
 			npc_unit_scene,
 			current_npc_data_list,
@@ -362,9 +361,9 @@ func _build_npc_spawn_pool(context: Dictionary) -> Dictionary:
 	var selected_rule: SpawnRuleData = _get_best_matching_spawn_rule("NPC", context)
 	var pool: Array[NpcData] = []
 	var total_spawn_count: int = 0
+	var all_npc_data: Array[NpcData] = NpcDatabase.get_all_npc_data()
 
 	if selected_rule == null:
-		
 		return {
 			"count": 0,
 			"pool": pool
@@ -373,7 +372,7 @@ func _build_npc_spawn_pool(context: Dictionary) -> Dictionary:
 	
 	total_spawn_count = max(0, selected_rule.max_spawn_count)
 
-	for data in npc_data_list:
+	for data in all_npc_data:
 		if data == null:
 			continue
 		if not _is_npc_allowed_by_rule_and_context(data, selected_rule, context):
@@ -386,6 +385,26 @@ func _build_npc_spawn_pool(context: Dictionary) -> Dictionary:
 		"count": total_spawn_count,
 		"pool": pool
 	}
+
+
+func _get_effective_npc_data_list() -> Array[NpcData]:
+	if npc_data_list.size() > 0:
+		return npc_data_list
+	if npc_type_id_list.size() > 0:
+		return _get_npc_data_by_ids(npc_type_id_list)
+	return NpcDatabase.get_all_npc_data()
+
+
+func _get_npc_data_by_ids(type_ids: Array[String]) -> Array[NpcData]:
+	var result: Array[NpcData] = []
+
+	for type_id in type_ids:
+		var data: NpcData = NpcDatabase.get_npc_data_by_id(type_id.strip_edges())
+		if data == null:
+			continue
+		result.append(data)
+
+	return result
 
 
 func _get_best_matching_spawn_rule(spawn_kind: String, context: Dictionary) -> SpawnRuleData:
@@ -405,7 +424,6 @@ func _get_best_matching_spawn_rule(spawn_kind: String, context: Dictionary) -> S
 		if rule == null:
 			continue
 		if _rule_requires_distance_filter(rule):
-			
 			continue
 		candidates.append(rule)
 

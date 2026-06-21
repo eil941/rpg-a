@@ -181,6 +181,10 @@ func _spawn_one_unit(units_node: Node, entry: SpecialMapUnitEntry, tile: Vector2
 	if entry == null:
 		return
 
+	var data_res: Resource = entry.get_data_resource()
+	if data_res == null:
+		return
+
 	var unit = unit_scene.instantiate()
 	if unit == null:
 		return
@@ -197,11 +201,11 @@ func _spawn_one_unit(units_node: Node, entry: SpecialMapUnitEntry, tile: Vector2
 	match entry.spawn_kind:
 		SpecialMapUnitEntry.SpawnKind.ENEMY:
 			if "enemy_data_to_apply" in unit:
-				unit.enemy_data_to_apply = entry.enemy_data
+				unit.enemy_data_to_apply = data_res as EnemyData
 
 		SpecialMapUnitEntry.SpawnKind.NPC:
 			if "npc_data_to_apply" in unit:
-				unit.npc_data_to_apply = entry.npc_data
+				unit.npc_data_to_apply = data_res as NpcData
 
 	units_node.add_child(unit)
 

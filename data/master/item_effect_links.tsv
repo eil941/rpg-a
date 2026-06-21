@@ -31,3 +31,4 @@ curse_orb	curse_orb_curse	1
 bread	bread_restore_hunger	1
 meat_skewer	meat_skewer_restore_hunger	1
 travel_ration	travel_ration_restore_hunger	1
+test_small_heal_herb	test_small_heal_herb_restore_hp	1

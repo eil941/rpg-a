@@ -37,3 +37,6 @@ knife	Knife	ナイフ	equipment	res://assets/items/knife.png	1	false	34	true	1	1
 bow	bow	弓	equipment	res://assets/items/bow.png	1	false	23	true	1	100	0	0
 cloth_armor	Cloth Armor	防具	equipment	res://assets/items/armor.png	1	false	56	true	1	100	0	0
 power_ring	Power Ring	指輪	equipment	res://assets/items/ring.png	1	false	15	true	1	100	0	0
+test_iron_ore	鉄鉱石	鍛冶に使えそうな鉱石。	material		99	false	30	true	1	0	0	0
+test_small_heal_herb	小さな薬草	少しだけHPを回復する薬草。	consumable	res://assets/items/sample/healing_potion.png	99	true	20	true	1	0	5	15
+test_copper_ring	銅の指輪	試験用の小さな指輪。	equipment	res://assets/items/ring.png	1	false	40	true	1	0	0	0

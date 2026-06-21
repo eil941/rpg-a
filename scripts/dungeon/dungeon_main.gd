@@ -15,6 +15,7 @@ extends Node2D
 @export var npc_unit_scene: PackedScene
 @export var npc_spawn_count: int = 0
 @export var npc_data_list: Array[NpcData]
+@export var npc_type_id_list: Array[String] = []
 
 @export var item_pickup_scene: PackedScene
 @export var chest_scene: PackedScene
@@ -119,7 +120,7 @@ func _ready() -> void:
 		print("[DUNGEON ENEMY REPAIR] map_id=", map_id, " spawn_count=", current_enemy_spawn_count, " enemy_type_ids_size=", enemy_type_ids.size())
 
 	var current_enemy_data_list: Array[EnemyData] = filter_enemy_data_by_ids(enemy_type_ids)
-	var current_npc_data_list: Array[NpcData] = npc_data_list
+	var current_npc_data_list: Array[NpcData] = _get_effective_npc_data_list()
 
 	if npc_type_ids.size() > 0:
 		current_npc_data_list = filter_npc_data_by_ids(npc_type_ids)
@@ -841,10 +842,19 @@ func filter_enemy_data_by_ids(type_ids: Array) -> Array[EnemyData]:
 func filter_npc_data_by_ids(type_ids: Array) -> Array[NpcData]:
 	var result: Array[NpcData] = []
 
-	for data in npc_data_list:
+	for type_id in type_ids:
+		var npc_id: String = String(type_id)
+		var data: NpcData = NpcDatabase.get_npc_data_by_id(npc_id)
 		if data == null:
 			continue
-		if type_ids.has(data.npc_type_id):
-			result.append(data)
+		result.append(data)
 
 	return result
+
+
+func _get_effective_npc_data_list() -> Array[NpcData]:
+	if npc_data_list.size() > 0:
+		return npc_data_list
+	if npc_type_id_list.size() > 0:
+		return filter_npc_data_by_ids(npc_type_id_list)
+	return NpcDatabase.get_all_npc_data()

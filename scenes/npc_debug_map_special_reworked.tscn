@@ -3,7 +3,6 @@
 [ext_resource type="Script" uid="uid://dijdj8mde1wyn" path="res://scripts/map/special_map/special_map_main.gd" id="1_imv15"]
 [ext_resource type="Script" uid="uid://lpmjqo6rh2c2" path="res://scripts/map/special_map/special_map_unit_entry.gd" id="2_eebdd"]
 [ext_resource type="PackedScene" uid="uid://c0jrt3uvmhd2g" path="res://scenes/npc1.tscn" id="3_k21mc"]
-[ext_resource type="Resource" uid="uid://sponxcnnn0fd" path="res://data/test/NPC/new_sabo.tres" id="6_g0ppq"]
 [ext_resource type="TileSet" uid="uid://cpndipp741lyo" path="res://data/test/test_event.tres" id="6_kaf6g"]
 [ext_resource type="TileSet" uid="uid://ctyo0oxx5pcg0" path="res://data/sample_map1.tres" id="7_87c2p"]
 [ext_resource type="PackedScene" uid="uid://dnaf0ryx1bvp8" path="res://scenes/chest.tscn" id="8_87c2p"]
@@ -12,7 +11,7 @@
 
 [sub_resource type="Resource" id="Resource_kaf6g"]
 script = ExtResource("2_eebdd")
-npc_data = ExtResource("6_g0ppq")
+npc_type_id = "no_id"
 fixed_spawn_tiles = Array[Vector2i]([Vector2i(39, 16)])
 metadata/_custom_type_script = "uid://lpmjqo6rh2c2"
 

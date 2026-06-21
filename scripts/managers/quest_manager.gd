@@ -593,6 +593,10 @@ func _filter_templates_for_unit(unit, templates: Array) -> Array:
 	if unit == null:
 		return result
 
+	var linked_templates: Array = _get_linked_quest_templates_for_unit(unit)
+	if not linked_templates.is_empty():
+		return linked_templates
+
 	var unit_role_flags: int = 0
 	if "unit_roles" in unit:
 		unit_role_flags = int(unit.unit_roles)
@@ -613,6 +617,78 @@ func _filter_templates_for_unit(unit, templates: Array) -> Array:
 			result.append(template)
 
 	return result
+
+
+func _get_linked_quest_templates_for_unit(unit) -> Array:
+	var result: Array = []
+	var npc_type_id: String = _get_unit_npc_type_id(unit)
+	if npc_type_id == "":
+		return result
+
+	if GameData == null:
+		return result
+
+	if not GameData.has_method("get_npc_quest_links"):
+		return result
+
+	var links_value: Variant = GameData.get_npc_quest_links(npc_type_id)
+	if typeof(links_value) != TYPE_ARRAY:
+		return result
+
+	var links: Array = links_value
+	for link_value in links:
+		if typeof(link_value) != TYPE_DICTIONARY:
+			continue
+
+		var link: Dictionary = link_value
+		if not bool(link.get("enabled", true)):
+			continue
+
+		var quest_id: String = String(link.get("quest_id", "")).strip_edges()
+		if quest_id == "":
+			continue
+
+		var template: QuestData = QuestDatabase.get_quest(quest_id)
+		if template == null:
+			continue
+
+		var link_weight: int = max(int(link.get("weight", template.weight)), 0)
+		var weighted_template: QuestData = _duplicate_quest_template_with_weight(template, link_weight)
+		if weighted_template == null:
+			continue
+
+		result.append(weighted_template)
+
+	return result
+
+
+func _get_unit_npc_type_id(unit) -> String:
+	if unit == null:
+		return ""
+
+	if "npc_data_to_apply" in unit:
+		var npc_data: NpcData = unit.npc_data_to_apply as NpcData
+		if npc_data != null:
+			var npc_type_id: String = npc_data.npc_type_id.strip_edges()
+			if npc_type_id != "":
+				return npc_type_id
+
+	if "npc_type_id" in unit:
+		return String(unit.npc_type_id).strip_edges()
+
+	return ""
+
+
+func _duplicate_quest_template_with_weight(template: QuestData, weight: int) -> QuestData:
+	if template == null:
+		return null
+
+	var duplicated_template: QuestData = template.duplicate(true) as QuestData
+	if duplicated_template == null:
+		return null
+
+	duplicated_template.weight = max(weight, 1)
+	return duplicated_template
 
 
 func _pick_weighted_templates(templates: Array, pick_count: int, rng: RandomNumberGenerator) -> Array:
