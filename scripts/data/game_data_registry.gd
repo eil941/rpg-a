@@ -208,6 +208,9 @@ var faction_relations: Dictionary = {}
 var element_types: Dictionary = {}
 var damage_types: Dictionary = {}
 var status_effect_types: Dictionary = {}
+var localization_texts: Dictionary = {}
+var dialogue_sets: Dictionary = {}
+var dialogue_lines_by_set: Dictionary = {}
 var chest_tables: Dictionary = {}
 var chest_loot_tables: Dictionary = {}
 var shop_tables: Dictionary = {}
@@ -253,6 +256,9 @@ func load_all() -> void:
 	element_types.clear()
 	damage_types.clear()
 	status_effect_types.clear()
+	localization_texts.clear()
+	dialogue_sets.clear()
+	dialogue_lines_by_set.clear()
 	chest_tables.clear()
 	chest_loot_tables.clear()
 	shop_tables.clear()
@@ -285,6 +291,9 @@ func load_all() -> void:
 	_load_status_effect_types()
 	_load_element_types()
 	_load_damage_types()
+	_load_localization_texts()
+	_load_dialogue_sets()
+	_load_dialogue_lines()
 	_load_items()
 	_load_equipment()
 	_load_chest_tables()
@@ -638,6 +647,140 @@ func get_status_effect_category(status_id: String) -> String:
 
 	var status_effect := get_status_effect_type(normalized_id)
 	return _normalize_status_effect_category(String(status_effect.get("category", "neutral")))
+
+
+func get_localized_text(text_key: String, locale: String = "ja", fallback: String = "") -> String:
+	var normalized_key := text_key.strip_edges()
+	if normalized_key == "":
+		return fallback
+
+	var entry_value: Variant = localization_texts.get(normalized_key, {})
+	if typeof(entry_value) != TYPE_DICTIONARY:
+		return fallback
+
+	var entry: Dictionary = entry_value
+	var normalized_locale := locale.strip_edges().to_lower()
+	if normalized_locale == "":
+		normalized_locale = "ja"
+
+	var localized_text := String(entry.get(normalized_locale, ""))
+	if localized_text.strip_edges() != "":
+		return localized_text
+
+	var ja_text := String(entry.get("ja", ""))
+	if ja_text.strip_edges() != "":
+		return ja_text
+
+	return fallback
+
+
+func has_localized_text(text_key: String) -> bool:
+	var normalized_key := text_key.strip_edges()
+	if normalized_key == "":
+		return false
+
+	return localization_texts.has(normalized_key)
+
+
+func get_all_localization_texts() -> Dictionary:
+	return localization_texts.duplicate(true)
+
+
+func has_dialogue_set(dialogue_set_id: String) -> bool:
+	var normalized_id := dialogue_set_id.strip_edges()
+	if normalized_id == "":
+		return false
+
+	return dialogue_sets.has(normalized_id)
+
+
+func get_dialogue_set(dialogue_set_id: String) -> Dictionary:
+	var normalized_id := dialogue_set_id.strip_edges()
+	if normalized_id == "":
+		return {}
+
+	var set_value: Variant = dialogue_sets.get(normalized_id, {})
+	if typeof(set_value) != TYPE_DICTIONARY:
+		return {}
+
+	var set_entry: Dictionary = set_value
+	return set_entry.duplicate(true)
+
+
+func get_dialogue_lines(dialogue_set_id: String, context: String = "") -> Array[Dictionary]:
+	var normalized_id := dialogue_set_id.strip_edges()
+	if normalized_id == "":
+		return []
+
+	if not has_dialogue_set(normalized_id):
+		return []
+
+	var entries_value: Variant = dialogue_lines_by_set.get(normalized_id, [])
+	if typeof(entries_value) != TYPE_ARRAY:
+		return []
+
+	var normalized_context: String = context.strip_edges().to_lower()
+	var result: Array[Dictionary] = []
+	var entries: Array = entries_value
+	for entry_value in entries:
+		if typeof(entry_value) != TYPE_DICTIONARY:
+			continue
+
+		var entry: Dictionary = entry_value
+		if normalized_context != "" and String(entry.get("context", "")).strip_edges().to_lower() != normalized_context:
+			continue
+
+		result.append(entry.duplicate(true))
+
+	return result
+
+
+func get_dialogue_line_text_keys(dialogue_set_id: String, context: String = "") -> Array[String]:
+	var result: Array[String] = []
+
+	for line in get_dialogue_lines(dialogue_set_id, context):
+		var text_key: String = String(line.get("text_key", "")).strip_edges()
+		if text_key == "":
+			continue
+
+		result.append(text_key)
+
+	return result
+
+
+func get_random_dialogue_text(
+	dialogue_set_id: String,
+	context: String = "greeting",
+	locale: String = "ja",
+	fallback: String = ""
+) -> String:
+	var lines: Array[Dictionary] = get_dialogue_lines(dialogue_set_id, context)
+	if lines.is_empty():
+		return fallback
+
+	var total_weight: float = 0.0
+	for line in lines:
+		var weight: float = max(0.0, float(line.get("weight", 0.0)))
+		total_weight += weight
+
+	if total_weight <= 0.0:
+		return fallback
+
+	var roll: float = randf() * total_weight
+	var cursor: float = 0.0
+	for line in lines:
+		var weight: float = max(0.0, float(line.get("weight", 0.0)))
+		if weight <= 0.0:
+			continue
+
+		cursor += weight
+		if roll <= cursor:
+			var text_key: String = String(line.get("text_key", "")).strip_edges()
+			return get_localized_text(text_key, locale, fallback)
+
+	var last_line: Dictionary = lines[lines.size() - 1]
+	var last_text_key: String = String(last_line.get("text_key", "")).strip_edges()
+	return get_localized_text(last_text_key, locale, fallback)
 
 
 func get_faction_relation(from_faction: String, to_faction: String) -> String:
@@ -3192,6 +3335,108 @@ func _load_damage_types() -> void:
 
 
 # ============================================================
+# LocalizationTexts
+# ============================================================
+
+func _load_localization_texts() -> void:
+	var rows := _load_optional_tsv("res://data/master/localization_texts.tsv")
+
+	for row in rows:
+		var text_key := _get_string(row, "text_key").strip_edges()
+		if text_key == "":
+			push_warning("localization_texts.tsv has empty text_key")
+			continue
+
+		if localization_texts.has(text_key):
+			push_warning("duplicate localization text_key: " + text_key)
+			continue
+
+		var enabled := _to_bool(_get_string(row, "enabled", "true"))
+		if not enabled:
+			continue
+
+		localization_texts[text_key] = {
+			"text_key": text_key,
+			"ja": _get_string(row, "ja"),
+			"en": _get_string(row, "en"),
+			"notes": _get_string(row, "notes"),
+			"enabled": true
+		}
+
+
+# ============================================================
+# Dialogue
+# ============================================================
+
+func _load_dialogue_sets() -> void:
+	var rows := _load_optional_tsv("res://data/master/dialogue_sets.tsv")
+
+	for row in rows:
+		var dialogue_set_id := _get_string(row, "dialogue_set_id").strip_edges()
+		if dialogue_set_id == "":
+			push_warning("dialogue_sets.tsv has empty dialogue_set_id")
+			continue
+
+		if dialogue_sets.has(dialogue_set_id):
+			push_warning("duplicate dialogue_set_id: " + dialogue_set_id)
+			continue
+
+		if not _to_bool(_get_string(row, "enabled", "true")):
+			continue
+
+		dialogue_sets[dialogue_set_id] = {
+			"dialogue_set_id": dialogue_set_id,
+			"usage": _get_string(row, "usage"),
+			"notes": _get_string(row, "notes"),
+			"enabled": true
+		}
+
+
+func _load_dialogue_lines() -> void:
+	var rows := _load_optional_tsv("res://data/master/dialogue_lines.tsv")
+
+	for row in rows:
+		var dialogue_set_id := _get_string(row, "dialogue_set_id").strip_edges()
+		var line_id := _get_string(row, "line_id").strip_edges()
+		var context := _get_string(row, "context").strip_edges().to_lower()
+		var text_key := _get_string(row, "text_key").strip_edges()
+
+		if dialogue_set_id == "" or line_id == "" or context == "" or text_key == "":
+			push_warning("dialogue_lines.tsv has empty required value")
+			continue
+
+		if not has_dialogue_set(dialogue_set_id):
+			push_warning("dialogue_lines.tsv dialogue_set_id not found or disabled: " + dialogue_set_id)
+			continue
+
+		if not has_localized_text(text_key):
+			push_warning("dialogue_lines.tsv text_key not found or disabled: " + text_key)
+
+		if not _to_bool(_get_string(row, "enabled", "true")):
+			continue
+
+		var entry: Dictionary = {
+			"dialogue_set_id": dialogue_set_id,
+			"line_id": line_id,
+			"context": context,
+			"text_key": text_key,
+			"weight": max(0.0, _to_float(_get_string(row, "weight"), 1.0)),
+			"enabled": true
+		}
+
+		if not dialogue_lines_by_set.has(dialogue_set_id):
+			dialogue_lines_by_set[dialogue_set_id] = []
+
+		var entries_value: Variant = dialogue_lines_by_set.get(dialogue_set_id, [])
+		if typeof(entries_value) != TYPE_ARRAY:
+			dialogue_lines_by_set[dialogue_set_id] = []
+			entries_value = dialogue_lines_by_set[dialogue_set_id]
+
+		var entries: Array = entries_value
+		entries.append(entry)
+
+
+# ============================================================
 # EnemyData
 # ============================================================
 
@@ -3457,6 +3702,7 @@ func _build_npc_data(row: Dictionary) -> NpcData:
 
 	npc.talk_display_name = _get_string(row, "talk_display_name", npc.talk_display_name)
 	npc.talk_greeting_text = _get_string(row, "talk_greeting_text", npc.talk_greeting_text).replace("\\n", "\n")
+	npc.dialogue_set_id = _get_string(row, "dialogue_set_id", npc.dialogue_set_id).strip_edges()
 	npc.talk_portrait = _load_resource_or_null(_get_string(row, "talk_portrait_path")) as Texture2D
 	npc.unit_roles = _to_int(_get_string(row, "unit_roles"), npc.unit_roles)
 	npc.friendliness = _to_int(_get_string(row, "friendliness"), npc.friendliness)
@@ -3730,6 +3976,19 @@ func _count_initial_inventory_entries() -> int:
 	return count
 
 
+func _count_dialogue_lines() -> int:
+	var count := 0
+
+	for entries_value in dialogue_lines_by_set.values():
+		if typeof(entries_value) != TYPE_ARRAY:
+			continue
+
+		var entries: Array = entries_value
+		count += entries.size()
+
+	return count
+
+
 func _count_item_spawn_rule_category_multiplier_entries() -> int:
 	var count := 0
 
@@ -3784,6 +4043,9 @@ func debug_print_loaded_data() -> void:
 	print("[GameData] element_types: ", element_types.size())
 	print("[GameData] damage_types: ", damage_types.size())
 	print("[GameData] status_effect_types: ", status_effect_types.size())
+	print("[GameData] localization_texts: ", localization_texts.size())
+	print("[GameData] dialogue_sets: ", dialogue_sets.size())
+	print("[GameData] dialogue_lines: ", _count_dialogue_lines())
 
 	print("---------- Items ----------")
 	for item_id in items.keys():

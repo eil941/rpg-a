@@ -194,6 +194,38 @@ Step 6 history:
 
 Operational regression checks should use a New Game, runtime state reset, quest reset, or regenerated map when testing quest generation, because saved/generated quest state can cache older candidates.
 
+## Step 7 Localization Foundation
+
+Step 7-A added `localization_texts.tsv` as a lightweight foundation for future multilingual text management.
+
+Current scope:
+
+- `master_data.xlsx` now has a `localization_texts` sheet.
+- `data/master/localization_texts.tsv` is exported from that sheet.
+- `GameDataRegistry` loads enabled localization rows and exposes lookup helpers.
+- `validate_master_data.py` checks `text_key`, `enabled`, duplicate keys, and empty `ja`/`en` text.
+
+The existing display fields are intentionally unchanged for now. `items` names/descriptions, quest titles/descriptions, NPC dialogue, skill text, and UI text still use their current columns and runtime paths. Future migration steps can add text key columns and switch individual display surfaces gradually.
+
+Step 7-B added lightweight dialogue master tables:
+
+- `dialogue_sets.tsv` stores enabled dialogue set metadata.
+- `dialogue_lines.tsv` stores enabled dialogue line candidates by set and context.
+- Dialogue lines reference `localization_texts.tsv.text_key`.
+- `npcs.tsv.dialogue_set_id` is optional and currently set only for `test_helper_villager`.
+- Existing NPC talk display is intentionally unchanged and still uses `npcs.talk_greeting_text`.
+
+Step 7-B regression data:
+
+| Area | ID / key | Purpose |
+| --- | --- | --- |
+| `dialogue_sets.tsv` | `test_helper_villager_default` | Dialogue set foundation check for the Step 6 helper villager. |
+| `dialogue_lines.tsv` | `greeting_1`, `greeting_2` | Two weighted `greeting` candidates for `test_helper_villager_default`. |
+| `localization_texts.tsv` | `dialogue.test_helper_villager.greeting.1` | Japanese/English text for the first greeting candidate. |
+| `localization_texts.tsv` | `dialogue.test_helper_villager.greeting.2` | Japanese/English text for the second greeting candidate. |
+
+Future dialogue display migration can switch individual NPC talk surfaces from `talk_greeting_text` to `dialogue_set_id` after Godot-side UI behavior is verified.
+
 ## Final Completion Checklist
 
 - [x] Master TSVs export from `master_data.xlsx`.

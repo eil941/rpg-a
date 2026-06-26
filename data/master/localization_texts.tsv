@@ -1,0 +1,7 @@
+text_key	ja	en	notes	enabled
+item.test_iron_ore.name	鉄鉱石	Iron Ore	Step 6 regression item name	true
+item.test_iron_ore.desc	鍛冶に使う確認用の鉱石。	Test ore used for smithing checks.	Step 6 regression item desc	true
+npc.test_helper_villager.name	確認村人	Test Villager	Step 6 regression NPC name	true
+quest.test_iron_ore_delivery.title	鉄鉱石の確認依頼	Iron Ore Check Request	Step 6 regression quest title	true
+dialogue.test_helper_villager.greeting.1	TSV追加確認用の村人です。	This is a villager used for TSV checks.	Step 7-B dialogue line	true
+dialogue.test_helper_villager.greeting.2	今日はデータ確認日和ですね。	It's a good day for checking data.	Step 7-B dialogue line	true

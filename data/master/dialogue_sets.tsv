@@ -1,0 +1,2 @@
+dialogue_set_id	usage	notes	enabled
+test_helper_villager_default	npc_talk	Step 7-B regression dialogue set for test helper villager	true

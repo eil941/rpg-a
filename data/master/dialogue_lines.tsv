@@ -1,0 +1,3 @@
+dialogue_set_id	line_id	context	text_key	weight	enabled
+test_helper_villager_default	greeting_1	greeting	dialogue.test_helper_villager.greeting.1	100	true
+test_helper_villager_default	greeting_2	greeting	dialogue.test_helper_villager.greeting.2	100	true

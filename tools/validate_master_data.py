@@ -390,6 +390,65 @@ def check_npc_quest_links(table: Table) -> None:
         reporter.ok(f"{table.filename}.weight/enabled values are valid ({len(table.rows)} checked)")
 
 
+def check_localization_texts(table: Table) -> None:
+    for column in ("text_key", "ja", "en", "enabled"):
+        require_column(table, column)
+
+    issue_count = 0
+
+    for row, line_number in zip(table.rows, table.line_numbers):
+        if parse_bool_cell(table, row, line_number, "enabled") is None:
+            issue_count += 1
+
+        ja_text = row.get("ja", "").strip()
+        en_text = row.get("en", "").strip()
+        if ja_text == "" and en_text == "":
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} ja and en are both empty")
+
+    if issue_count == 0:
+        reporter.ok(f"{table.filename} localization rows are valid ({len(table.rows)} checked)")
+
+
+def check_dialogue_sets(table: Table) -> None:
+    for column in ("dialogue_set_id", "usage", "enabled"):
+        require_column(table, column)
+
+    issue_count = 0
+
+    for row, line_number in zip(table.rows, table.line_numbers):
+        if parse_bool_cell(table, row, line_number, "enabled") is None:
+            issue_count += 1
+
+    if issue_count == 0:
+        reporter.ok(f"{table.filename}.enabled values are valid ({len(table.rows)} checked)")
+
+
+def check_dialogue_lines(table: Table) -> None:
+    for column in ("dialogue_set_id", "line_id", "context", "text_key", "weight", "enabled"):
+        require_column(table, column)
+
+    issue_count = 0
+
+    for row, line_number in zip(table.rows, table.line_numbers):
+        if row.get("context", "").strip() == "":
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} empty context")
+
+        weight = parse_float_cell(table, row, line_number, "weight")
+        if weight is None:
+            issue_count += 1
+        elif weight < 0:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} weight must be >= 0")
+
+        if parse_bool_cell(table, row, line_number, "enabled") is None:
+            issue_count += 1
+
+    if issue_count == 0:
+        reporter.ok(f"{table.filename} dialogue rows are valid ({len(table.rows)} checked)")
+
+
 def check_element_resistance_keys(table: Table, element_ids: set[str]) -> None:
     if not require_column(table, "element_resistances", "warn"):
         return
@@ -733,6 +792,9 @@ def main() -> int:
         "element_types": "element_types.tsv",
         "damage_types": "damage_types.tsv",
         "status_effect_types": "status_effect_types.tsv",
+        "localization_texts": "localization_texts.tsv",
+        "dialogue_sets": "dialogue_sets.tsv",
+        "dialogue_lines": "dialogue_lines.tsv",
         "quests": "quests.tsv",
         "npc_quest_links": "npc_quest_links.tsv",
         "spawn_rules": "spawn_rules.tsv",
@@ -759,6 +821,8 @@ def main() -> int:
         "element_types": "element_id",
         "damage_types": "damage_type_id",
         "status_effect_types": "status_id",
+        "localization_texts": "text_key",
+        "dialogue_sets": "dialogue_set_id",
         "quests": "quest_id",
         "spawn_rules": "rule_id",
         "enemies": "enemy_type_id",
@@ -774,6 +838,7 @@ def main() -> int:
     check_composite_duplicates(tables["item_spawn_rule_category_multipliers"], ["rule_id", "category"])
     check_composite_duplicates(tables["item_spawn_rule_item_overrides"], ["rule_id", "item_id"])
     check_composite_duplicates(tables["npc_quest_links"], ["npc_type_id", "quest_id"])
+    check_composite_duplicates(tables["dialogue_lines"], ["dialogue_set_id", "line_id"])
 
     item_ids = make_id_set(tables["items"], "item_id")
     item_category_ids = make_id_set(tables["item_categories"], "category_id", normalize_lower)
@@ -788,6 +853,8 @@ def main() -> int:
     faction_ids = make_id_set(tables["unit_factions"], "faction_id")
     element_ids = make_id_set(tables["element_types"], "element_id", normalize_lower)
     damage_type_ids = make_id_set(tables["damage_types"], "damage_type_id", normalize_lower)
+    localization_text_keys = make_id_set(tables["localization_texts"], "text_key")
+    dialogue_set_ids = make_id_set(tables["dialogue_sets"], "dialogue_set_id")
 
     check_reference(
         tables["items"],
@@ -989,6 +1056,28 @@ def main() -> int:
         "quests.quest_id",
     )
     check_npc_quest_links(tables["npc_quest_links"])
+    check_localization_texts(tables["localization_texts"])
+    check_dialogue_sets(tables["dialogue_sets"])
+    check_reference(
+        tables["dialogue_lines"],
+        "dialogue_set_id",
+        dialogue_set_ids,
+        "dialogue_sets.dialogue_set_id",
+    )
+    check_reference(
+        tables["dialogue_lines"],
+        "text_key",
+        localization_text_keys,
+        "localization_texts.text_key",
+    )
+    check_dialogue_lines(tables["dialogue_lines"])
+    check_reference(
+        tables["npcs"],
+        "dialogue_set_id",
+        dialogue_set_ids,
+        "dialogue_sets.dialogue_set_id",
+        allow_empty=True,
+    )
 
     for table_name, columns in RESOURCE_PATH_COLUMNS.items():
         check_resource_paths(tables[table_name], columns)
