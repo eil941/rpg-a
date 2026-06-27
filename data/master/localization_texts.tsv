@@ -5,3 +5,7 @@ npc.test_helper_villager.name	確認村人	Test Villager	Step 6 regression NPC n
 quest.test_iron_ore_delivery.title	鉄鉱石の確認依頼	Iron Ore Check Request	Step 6 regression quest title	true
 dialogue.test_helper_villager.greeting.1	TSV追加確認用の村人です。	This is a villager used for TSV checks.	Step 7-B dialogue line	true
 dialogue.test_helper_villager.greeting.2	今日はデータ確認日和ですね。	It's a good day for checking data.	Step 7-B dialogue line	true
+skill.test_slash.name	確認斬り	Test Slash	Step 7-C skill name	true
+skill.test_slash.desc	確認用の戦闘スキルです。	A combat skill used for checks.	Step 7-C skill description	true
+skill.test_foraging.name	確認採取	Test Foraging	Step 7-C skill name	true
+skill.test_foraging.desc	確認用の生活スキルです。	A life skill used for checks.	Step 7-C skill description	true

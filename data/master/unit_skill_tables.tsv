@@ -1,0 +1,3 @@
+skill_table_id	usage	notes	enabled
+test_helper_villager_skills	npc	Step 7-C regression skill table for test helper villager	true
+test_training_slime_skills	enemy	Step 7-C regression skill table for test training slime	true

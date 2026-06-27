@@ -1,0 +1,2 @@
+skill_id	min_level	max_level	trigger	effect_id	chance_percent	order	enabled
+test_slash	1	3	on_cast	blast_stone_damage	100	1	true

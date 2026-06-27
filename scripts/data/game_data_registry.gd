@@ -211,6 +211,12 @@ var status_effect_types: Dictionary = {}
 var localization_texts: Dictionary = {}
 var dialogue_sets: Dictionary = {}
 var dialogue_lines_by_set: Dictionary = {}
+var skills: Dictionary = {}
+var skill_levels_by_skill: Dictionary = {}
+var skill_effect_links_by_skill: Dictionary = {}
+var skill_requirements_by_skill: Dictionary = {}
+var unit_skill_tables: Dictionary = {}
+var unit_skill_entries_by_table: Dictionary = {}
 var chest_tables: Dictionary = {}
 var chest_loot_tables: Dictionary = {}
 var shop_tables: Dictionary = {}
@@ -259,6 +265,12 @@ func load_all() -> void:
 	localization_texts.clear()
 	dialogue_sets.clear()
 	dialogue_lines_by_set.clear()
+	skills.clear()
+	skill_levels_by_skill.clear()
+	skill_effect_links_by_skill.clear()
+	skill_requirements_by_skill.clear()
+	unit_skill_tables.clear()
+	unit_skill_entries_by_table.clear()
 	chest_tables.clear()
 	chest_loot_tables.clear()
 	shop_tables.clear()
@@ -294,6 +306,8 @@ func load_all() -> void:
 	_load_localization_texts()
 	_load_dialogue_sets()
 	_load_dialogue_lines()
+	_load_skills()
+	_load_skill_levels()
 	_load_items()
 	_load_equipment()
 	_load_chest_tables()
@@ -305,16 +319,20 @@ func load_all() -> void:
 	_load_item_effects()
 	_load_item_effect_links()
 	_apply_item_effect_links()
+	_load_skill_effect_links()
 	_load_enchantments()
 	_load_dungeon_spawn_rules()
 	_load_unit_spawn_rules()
 	_load_unit_races()
 	_load_unit_factions()
 	_load_faction_relations()
+	_load_unit_skill_tables()
+	_load_unit_skill_entries()
 	_load_enemies()
 	_load_npcs()
 	_load_quests()
 	_load_npc_quest_links()
+	_load_skill_requirements()
 	_load_item_spawn_rule_category_multipliers()
 	_load_item_spawn_rule_item_overrides()
 	_load_item_spawn_rules()
@@ -783,6 +801,170 @@ func get_random_dialogue_text(
 	return get_localized_text(last_text_key, locale, fallback)
 
 
+func has_skill(skill_id: String) -> bool:
+	var normalized_id := skill_id.strip_edges()
+	if normalized_id == "":
+		return false
+
+	return skills.has(normalized_id)
+
+
+func get_skill(skill_id: String) -> Dictionary:
+	var normalized_id := skill_id.strip_edges()
+	if normalized_id == "":
+		return {}
+
+	var skill_value: Variant = skills.get(normalized_id, {})
+	if typeof(skill_value) != TYPE_DICTIONARY:
+		return {}
+
+	var skill: Dictionary = skill_value
+	return skill.duplicate(true)
+
+
+func get_all_skills() -> Dictionary:
+	return skills.duplicate(true)
+
+
+func get_skill_level(skill_id: String, level: int) -> Dictionary:
+	var normalized_id := skill_id.strip_edges()
+	if normalized_id == "" or level < 1:
+		return {}
+
+	var level_map_value: Variant = skill_levels_by_skill.get(normalized_id, {})
+	if typeof(level_map_value) != TYPE_DICTIONARY:
+		return {}
+
+	var level_map: Dictionary = level_map_value
+	var level_value: Variant = level_map.get(level, {})
+	if typeof(level_value) != TYPE_DICTIONARY:
+		return {}
+
+	var level_entry: Dictionary = level_value
+	return level_entry.duplicate(true)
+
+
+func get_skill_levels(skill_id: String) -> Array[Dictionary]:
+	var normalized_id := skill_id.strip_edges()
+	if normalized_id == "":
+		return []
+
+	var level_map_value: Variant = skill_levels_by_skill.get(normalized_id, {})
+	if typeof(level_map_value) != TYPE_DICTIONARY:
+		return []
+
+	var result: Array[Dictionary] = []
+	var level_map: Dictionary = level_map_value
+	for level_value in level_map.values():
+		if typeof(level_value) != TYPE_DICTIONARY:
+			continue
+
+		var level_entry: Dictionary = level_value
+		result.append(level_entry.duplicate(true))
+
+	result.sort_custom(Callable(self, "_sort_skill_level_entries"))
+	return result
+
+
+func get_skill_effect_links(skill_id: String, level: int = 0, trigger: String = "") -> Array[Dictionary]:
+	var normalized_id := skill_id.strip_edges()
+	if normalized_id == "":
+		return []
+
+	var entries_value: Variant = skill_effect_links_by_skill.get(normalized_id, [])
+	if typeof(entries_value) != TYPE_ARRAY:
+		return []
+
+	var normalized_trigger := trigger.strip_edges().to_lower()
+	var result: Array[Dictionary] = []
+	var entries: Array = entries_value
+	for entry_value in entries:
+		if typeof(entry_value) != TYPE_DICTIONARY:
+			continue
+
+		var entry: Dictionary = entry_value
+		if level > 0:
+			var min_level: int = int(entry.get("min_level", 1))
+			var max_level: int = int(entry.get("max_level", min_level))
+			if level < min_level or level > max_level:
+				continue
+
+		if normalized_trigger != "" and String(entry.get("trigger", "")).strip_edges().to_lower() != normalized_trigger:
+			continue
+
+		result.append(entry.duplicate(true))
+
+	result.sort_custom(Callable(self, "_sort_ordered_entries"))
+	return result
+
+
+func get_skill_requirements(skill_id: String, requirement_kind: String = "") -> Array[Dictionary]:
+	var normalized_id := skill_id.strip_edges()
+	if normalized_id == "":
+		return []
+
+	var entries_value: Variant = skill_requirements_by_skill.get(normalized_id, [])
+	if typeof(entries_value) != TYPE_ARRAY:
+		return []
+
+	var normalized_kind := requirement_kind.strip_edges().to_lower()
+	var result: Array[Dictionary] = []
+	var entries: Array = entries_value
+	for entry_value in entries:
+		if typeof(entry_value) != TYPE_DICTIONARY:
+			continue
+
+		var entry: Dictionary = entry_value
+		if normalized_kind != "" and String(entry.get("requirement_kind", "")).strip_edges().to_lower() != normalized_kind:
+			continue
+
+		result.append(entry.duplicate(true))
+
+	return result
+
+
+func has_unit_skill_table(skill_table_id: String) -> bool:
+	var normalized_id := skill_table_id.strip_edges()
+	if normalized_id == "":
+		return false
+
+	return unit_skill_tables.has(normalized_id)
+
+
+func get_unit_skill_table(skill_table_id: String) -> Dictionary:
+	var normalized_id := skill_table_id.strip_edges()
+	if normalized_id == "":
+		return {}
+
+	var table_value: Variant = unit_skill_tables.get(normalized_id, {})
+	if typeof(table_value) != TYPE_DICTIONARY:
+		return {}
+
+	var table: Dictionary = table_value
+	return table.duplicate(true)
+
+
+func get_unit_skill_entries(skill_table_id: String) -> Array[Dictionary]:
+	var normalized_id := skill_table_id.strip_edges()
+	if normalized_id == "":
+		return []
+
+	var entries_value: Variant = unit_skill_entries_by_table.get(normalized_id, [])
+	if typeof(entries_value) != TYPE_ARRAY:
+		return []
+
+	var result: Array[Dictionary] = []
+	var entries: Array = entries_value
+	for entry_value in entries:
+		if typeof(entry_value) != TYPE_DICTIONARY:
+			continue
+
+		var entry: Dictionary = entry_value
+		result.append(entry.duplicate(true))
+
+	return result
+
+
 func get_faction_relation(from_faction: String, to_faction: String) -> String:
 	var from_id := _normalize_loaded_unit_faction(from_faction, "faction_relations.tsv from_faction")
 	var to_id := _normalize_loaded_unit_faction(to_faction, "faction_relations.tsv to_faction")
@@ -1223,6 +1405,19 @@ func _get_string(row: Dictionary, key: String, default_value: String = "") -> St
 	return String(row.get(key, default_value))
 
 
+func _append_dictionary_array_entry(target: Dictionary, key: String, entry: Dictionary) -> void:
+	if not target.has(key):
+		target[key] = []
+
+	var entries_value: Variant = target.get(key, [])
+	if typeof(entries_value) != TYPE_ARRAY:
+		target[key] = []
+		entries_value = target[key]
+
+	var entries: Array = entries_value
+	entries.append(entry)
+
+
 func _to_bool(value: String) -> bool:
 	var text := value.strip_edges().to_lower()
 	return text == "true" or text == "1" or text == "yes" or text == "on"
@@ -1446,6 +1641,20 @@ func _sort_status_effect_type_entries(a: Dictionary, b: Dictionary) -> bool:
 
 	if order_a == order_b:
 		return String(a.get("status_id", "")) < String(b.get("status_id", ""))
+
+	return order_a < order_b
+
+
+func _sort_skill_level_entries(a: Dictionary, b: Dictionary) -> bool:
+	return int(a.get("level", 0)) < int(b.get("level", 0))
+
+
+func _sort_ordered_entries(a: Dictionary, b: Dictionary) -> bool:
+	var order_a := int(a.get("order", 0))
+	var order_b := int(b.get("order", 0))
+
+	if order_a == order_b:
+		return String(a.get("entry_id", a.get("effect_id", ""))) < String(b.get("entry_id", b.get("effect_id", "")))
 
 	return order_a < order_b
 
@@ -2189,6 +2398,75 @@ func _normalize_damage_float(value: String, default_value: float, context: Strin
 		return clamp(parsed_value, 0.0, 1.0)
 
 	return parsed_value
+
+
+func _normalize_allowed_text(value: String, allowed_values: Array, fallback: String, context: String) -> String:
+	var normalized_value := value.strip_edges().to_lower()
+	if normalized_value == "":
+		return fallback
+
+	if allowed_values.has(normalized_value):
+		return normalized_value
+
+	push_warning("unknown " + context + ": " + value + " -> " + fallback)
+	return fallback
+
+
+func _normalize_skill_category(value: String, context: String) -> String:
+	return _normalize_allowed_text(value, ["combat", "movement", "work", "life"], "", context)
+
+
+func _normalize_skill_kind(value: String, context: String) -> String:
+	return _normalize_allowed_text(value, ["active", "passive"], "passive", context)
+
+
+func _normalize_skill_target_type(value: String, context: String) -> String:
+	return _normalize_allowed_text(value, ["self", "enemy", "ally", "tile", "none"], "none", context)
+
+
+func _normalize_skill_effect_polarity(value: String, context: String) -> String:
+	return _normalize_allowed_text(value, ["damage", "heal", "buff", "debuff", "utility", "passive"], "utility", context)
+
+
+func _normalize_skill_cost_type(value: String, context: String) -> String:
+	return _normalize_allowed_text(value, ["none", "hp", "mp", "stamina", "hunger"], "none", context)
+
+
+func _normalize_skill_trigger(value: String, context: String) -> String:
+	return _normalize_allowed_text(value, ["on_cast", "passive", "on_attack_hit", "on_turn_start", "on_turn_end"], "", context)
+
+
+func _normalize_skill_requirement_kind(value: String, context: String) -> String:
+	return _normalize_allowed_text(value, ["learn", "upgrade", "use"], "", context)
+
+
+func _normalize_skill_requirement_type(value: String, context: String) -> String:
+	return _normalize_allowed_text(value, ["unit_level", "skill_level", "item", "faction", "quest", "none"], "none", context)
+
+
+func _normalize_unit_skill_pick_type(value: String, context: String) -> String:
+	var normalized_value := value.strip_edges().to_upper()
+	if normalized_value == "":
+		return "SKILL"
+
+	match normalized_value:
+		"SKILL", "CATEGORY":
+			return normalized_value
+		_:
+			push_warning("unknown " + context + ": " + value + " -> SKILL")
+			return "SKILL"
+
+
+func _normalize_loaded_skill_table_id(skill_table_id: String, context: String) -> String:
+	var normalized_id := skill_table_id.strip_edges()
+	if normalized_id == "":
+		return ""
+
+	if has_unit_skill_table(normalized_id):
+		return normalized_id
+
+	push_warning("unknown skill_table_id (" + context + "): " + skill_table_id + " -> empty")
+	return ""
 
 
 func _warn_unknown_element_resistance_keys(resistances: Dictionary, context: String) -> void:
@@ -3437,6 +3715,267 @@ func _load_dialogue_lines() -> void:
 
 
 # ============================================================
+# Skills
+# ============================================================
+
+func _load_skills() -> void:
+	var rows := _load_optional_tsv("res://data/master/skills.tsv")
+
+	for row in rows:
+		var skill_id := _get_string(row, "skill_id").strip_edges()
+		if skill_id == "":
+			push_warning("skills.tsv has empty skill_id")
+			continue
+
+		if skills.has(skill_id):
+			push_warning("duplicate skill_id: " + skill_id)
+			continue
+
+		if not _to_bool(_get_string(row, "enabled", "true")):
+			continue
+
+		var display_name_key := _get_string(row, "display_name_key").strip_edges()
+		var description_key := _get_string(row, "description_key").strip_edges()
+		if display_name_key != "" and not has_localized_text(display_name_key):
+			push_warning("skills.tsv display_name_key not found or disabled: " + display_name_key)
+		if description_key != "" and not has_localized_text(description_key):
+			push_warning("skills.tsv description_key not found or disabled: " + description_key)
+
+		var context := "skills.tsv skill_id=" + skill_id
+		skills[skill_id] = {
+			"skill_id": skill_id,
+			"category": _normalize_skill_category(_get_string(row, "category"), context + " category"),
+			"skill_kind": _normalize_skill_kind(_get_string(row, "skill_kind"), context + " skill_kind"),
+			"target_type": _normalize_skill_target_type(_get_string(row, "target_type"), context + " target_type"),
+			"effect_polarity": _normalize_skill_effect_polarity(_get_string(row, "effect_polarity"), context + " effect_polarity"),
+			"display_name_key": display_name_key,
+			"description_key": description_key,
+			"max_level": max(1, _to_int(_get_string(row, "max_level"), 1)),
+			"notes": _get_string(row, "notes"),
+			"enabled": true
+		}
+
+
+func _load_skill_levels() -> void:
+	var rows := _load_optional_tsv("res://data/master/skill_levels.tsv")
+
+	for row in rows:
+		var skill_id := _get_string(row, "skill_id").strip_edges()
+		if skill_id == "":
+			push_warning("skill_levels.tsv has empty skill_id")
+			continue
+
+		if not has_skill(skill_id):
+			push_warning("skill_levels.tsv skill_id not found or disabled: " + skill_id)
+			continue
+
+		if not _to_bool(_get_string(row, "enabled", "true")):
+			continue
+
+		var level = max(1, _to_int(_get_string(row, "level"), 1))
+		var skill: Dictionary = get_skill(skill_id)
+		var max_level := int(skill.get("max_level", level))
+		if level > max_level:
+			push_warning("skill_levels.tsv level exceeds max_level: " + skill_id + " level=" + str(level))
+			continue
+
+		if not skill_levels_by_skill.has(skill_id):
+			skill_levels_by_skill[skill_id] = {}
+
+		var level_map_value: Variant = skill_levels_by_skill.get(skill_id, {})
+		if typeof(level_map_value) != TYPE_DICTIONARY:
+			skill_levels_by_skill[skill_id] = {}
+			level_map_value = skill_levels_by_skill[skill_id]
+
+		var level_map: Dictionary = level_map_value
+		if level_map.has(level):
+			push_warning("duplicate skill level: " + skill_id + " level=" + str(level))
+			continue
+
+		var context := "skill_levels.tsv skill_id=" + skill_id + " level=" + str(level)
+		level_map[level] = {
+			"skill_id": skill_id,
+			"level": level,
+			"cost_type": _normalize_skill_cost_type(_get_string(row, "cost_type"), context + " cost_type"),
+			"cost_amount": max(0.0, _to_float(_get_string(row, "cost_amount"), 0.0)),
+			"cooldown": max(0.0, _to_float(_get_string(row, "cooldown"), 0.0)),
+			"power": _to_float(_get_string(row, "power"), 0.0),
+			"duration": max(0.0, _to_float(_get_string(row, "duration"), 0.0)),
+			"range": max(0.0, _to_float(_get_string(row, "range"), 0.0)),
+			"success_rate": clamp(_to_float(_get_string(row, "success_rate"), 1.0), 0.0, 1.0),
+			"enabled": true
+		}
+
+
+func _load_skill_effect_links() -> void:
+	var rows := _load_optional_tsv("res://data/master/skill_effect_links.tsv")
+
+	for row in rows:
+		var skill_id := _get_string(row, "skill_id").strip_edges()
+		var effect_id := _get_string(row, "effect_id").strip_edges()
+		if skill_id == "" or effect_id == "":
+			push_warning("skill_effect_links.tsv has empty skill_id or effect_id")
+			continue
+
+		if not has_skill(skill_id):
+			push_warning("skill_effect_links.tsv skill_id not found or disabled: " + skill_id)
+			continue
+
+		if not effects.has(effect_id):
+			push_warning("skill_effect_links.tsv effect_id not found: " + effect_id)
+			continue
+
+		if not _to_bool(_get_string(row, "enabled", "true")):
+			continue
+
+		var min_level = max(1, _to_int(_get_string(row, "min_level"), 1))
+		var max_level = max(min_level, _to_int(_get_string(row, "max_level"), min_level))
+		var skill: Dictionary = get_skill(skill_id)
+		var skill_max_level := int(skill.get("max_level", max_level))
+		if max_level > skill_max_level:
+			push_warning("skill_effect_links.tsv max_level exceeds skill max_level: " + skill_id + " max_level=" + str(max_level))
+			continue
+
+		var context := "skill_effect_links.tsv skill_id=" + skill_id + " effect_id=" + effect_id
+		var trigger := _normalize_skill_trigger(_get_string(row, "trigger"), context + " trigger")
+		if trigger == "":
+			push_warning("skill_effect_links.tsv has empty or invalid trigger: " + skill_id + " effect_id=" + effect_id)
+			continue
+
+		var entry := {
+			"skill_id": skill_id,
+			"min_level": min_level,
+			"max_level": max_level,
+			"trigger": trigger,
+			"effect_id": effect_id,
+			"chance_percent": clamp(_to_float(_get_string(row, "chance_percent"), 100.0), 0.0, 100.0),
+			"order": max(1, _to_int(_get_string(row, "order"), 1)),
+			"enabled": true
+		}
+		_append_dictionary_array_entry(skill_effect_links_by_skill, skill_id, entry)
+
+
+func _load_skill_requirements() -> void:
+	var rows := _load_optional_tsv("res://data/master/skill_requirements.tsv")
+
+	for row in rows:
+		var skill_id := _get_string(row, "skill_id").strip_edges()
+		if skill_id == "":
+			push_warning("skill_requirements.tsv has empty skill_id")
+			continue
+
+		if not has_skill(skill_id):
+			push_warning("skill_requirements.tsv skill_id not found or disabled: " + skill_id)
+			continue
+
+		if not _to_bool(_get_string(row, "enabled", "true")):
+			continue
+
+		var context := "skill_requirements.tsv skill_id=" + skill_id
+		var requirement_kind := _normalize_skill_requirement_kind(_get_string(row, "requirement_kind"), context + " requirement_kind")
+		if requirement_kind == "":
+			push_warning("skill_requirements.tsv has empty or invalid requirement_kind: " + skill_id)
+			continue
+
+		var entry := {
+			"skill_id": skill_id,
+			"requirement_kind": requirement_kind,
+			"requirement_type": _normalize_skill_requirement_type(_get_string(row, "requirement_type"), context + " requirement_type"),
+			"target_id": _get_string(row, "target_id").strip_edges(),
+			"required_value": max(0.0, _to_float(_get_string(row, "required_value"), 0.0)),
+			"enabled": true
+		}
+		_append_dictionary_array_entry(skill_requirements_by_skill, skill_id, entry)
+
+
+func _load_unit_skill_tables() -> void:
+	var rows := _load_optional_tsv("res://data/master/unit_skill_tables.tsv")
+
+	for row in rows:
+		var skill_table_id := _get_string(row, "skill_table_id").strip_edges()
+		if skill_table_id == "":
+			push_warning("unit_skill_tables.tsv has empty skill_table_id")
+			continue
+
+		if unit_skill_tables.has(skill_table_id):
+			push_warning("duplicate unit skill_table_id: " + skill_table_id)
+			continue
+
+		if not _to_bool(_get_string(row, "enabled", "true")):
+			continue
+
+		unit_skill_tables[skill_table_id] = {
+			"skill_table_id": skill_table_id,
+			"usage": _get_string(row, "usage").strip_edges().to_lower(),
+			"notes": _get_string(row, "notes"),
+			"enabled": true
+		}
+
+
+func _load_unit_skill_entries() -> void:
+	var rows := _load_optional_tsv("res://data/master/unit_skill_entries.tsv")
+
+	for row in rows:
+		var skill_table_id := _get_string(row, "skill_table_id").strip_edges()
+		var entry_id := _get_string(row, "entry_id").strip_edges()
+		if skill_table_id == "" or entry_id == "":
+			push_warning("unit_skill_entries.tsv has empty skill_table_id or entry_id")
+			continue
+
+		if not has_unit_skill_table(skill_table_id):
+			push_warning("unit_skill_entries.tsv skill_table_id not found or disabled: " + skill_table_id)
+			continue
+
+		if not _to_bool(_get_string(row, "enabled", "true")):
+			continue
+
+		var context := "unit_skill_entries.tsv skill_table_id=" + skill_table_id + " entry_id=" + entry_id
+		var pick_type := _normalize_unit_skill_pick_type(_get_string(row, "pick_type"), context + " pick_type")
+		var skill_id := _get_string(row, "skill_id").strip_edges()
+		var skill_category := _normalize_skill_category(_get_string(row, "skill_category"), context + " skill_category")
+
+		if pick_type == "SKILL":
+			if skill_id == "" or not has_skill(skill_id):
+				push_warning("unit_skill_entries.tsv skill_id not found or disabled: " + skill_id)
+				continue
+			skill_category = ""
+		elif skill_category == "":
+			push_warning("unit_skill_entries.tsv CATEGORY row has empty or invalid skill_category: " + skill_table_id + " entry=" + entry_id)
+			continue
+
+		var level_min = max(0, _to_int(_get_string(row, "level_min"), 0))
+		var level_max = max(level_min, _to_int(_get_string(row, "level_max"), level_min))
+		var learned := _to_bool(_get_string(row, "learned", "false"))
+		if learned and level_min < 1:
+			level_min = 1
+			level_max = max(level_max, level_min)
+
+		if pick_type == "SKILL":
+			var skill: Dictionary = get_skill(skill_id)
+			level_max = min(level_max, int(skill.get("max_level", level_max)))
+
+		var entry := {
+			"skill_table_id": skill_table_id,
+			"entry_id": entry_id,
+			"pick_type": pick_type,
+			"skill_id": skill_id,
+			"skill_category": skill_category,
+			"learned": learned,
+			"level_min": level_min,
+			"level_max": level_max,
+			"exp_min": max(0, _to_int(_get_string(row, "exp_min"), 0)),
+			"exp_max": max(0, _to_int(_get_string(row, "exp_max"), 0)),
+			"chance_percent": clamp(_to_float(_get_string(row, "chance_percent"), 100.0), 0.0, 100.0),
+			"weight": max(0.0, _to_float(_get_string(row, "weight"), 0.0)),
+			"enabled": true
+		}
+		if int(entry.get("exp_max", 0)) < int(entry.get("exp_min", 0)):
+			entry["exp_max"] = entry.get("exp_min", 0)
+
+		_append_dictionary_array_entry(unit_skill_entries_by_table, skill_table_id, entry)
+
+
+# ============================================================
 # EnemyData
 # ============================================================
 
@@ -3551,6 +4090,10 @@ func _build_enemy_data(row: Dictionary) -> EnemyData:
 
 	enemy.talk_display_name = _get_string(row, "talk_display_name", enemy.talk_display_name)
 	enemy.talk_greeting_text = _get_string(row, "talk_greeting_text", enemy.talk_greeting_text).replace("\\n", "\n")
+	enemy.skill_table_id = _normalize_loaded_skill_table_id(
+		_get_string(row, "skill_table_id", enemy.skill_table_id),
+		"enemies.tsv enemy_type_id=" + enemy.enemy_type_id
+	)
 	enemy.talk_portrait = _load_resource_or_null(_get_string(row, "talk_portrait_path")) as Texture2D
 	enemy.unit_roles = _to_int(_get_string(row, "unit_roles"), enemy.unit_roles)
 	enemy.friendliness = _to_int(_get_string(row, "friendliness"), enemy.friendliness)
@@ -3703,6 +4246,10 @@ func _build_npc_data(row: Dictionary) -> NpcData:
 	npc.talk_display_name = _get_string(row, "talk_display_name", npc.talk_display_name)
 	npc.talk_greeting_text = _get_string(row, "talk_greeting_text", npc.talk_greeting_text).replace("\\n", "\n")
 	npc.dialogue_set_id = _get_string(row, "dialogue_set_id", npc.dialogue_set_id).strip_edges()
+	npc.skill_table_id = _normalize_loaded_skill_table_id(
+		_get_string(row, "skill_table_id", npc.skill_table_id),
+		"npcs.tsv npc_type_id=" + npc.npc_type_id
+	)
 	npc.talk_portrait = _load_resource_or_null(_get_string(row, "talk_portrait_path")) as Texture2D
 	npc.unit_roles = _to_int(_get_string(row, "unit_roles"), npc.unit_roles)
 	npc.friendliness = _to_int(_get_string(row, "friendliness"), npc.friendliness)
@@ -3989,6 +4536,58 @@ func _count_dialogue_lines() -> int:
 	return count
 
 
+func _count_skill_levels() -> int:
+	var count := 0
+
+	for entries_value in skill_levels_by_skill.values():
+		if typeof(entries_value) != TYPE_DICTIONARY:
+			continue
+
+		var entries: Dictionary = entries_value
+		count += entries.size()
+
+	return count
+
+
+func _count_skill_effect_links() -> int:
+	var count := 0
+
+	for entries_value in skill_effect_links_by_skill.values():
+		if typeof(entries_value) != TYPE_ARRAY:
+			continue
+
+		var entries: Array = entries_value
+		count += entries.size()
+
+	return count
+
+
+func _count_skill_requirements() -> int:
+	var count := 0
+
+	for entries_value in skill_requirements_by_skill.values():
+		if typeof(entries_value) != TYPE_ARRAY:
+			continue
+
+		var entries: Array = entries_value
+		count += entries.size()
+
+	return count
+
+
+func _count_unit_skill_entries() -> int:
+	var count := 0
+
+	for entries_value in unit_skill_entries_by_table.values():
+		if typeof(entries_value) != TYPE_ARRAY:
+			continue
+
+		var entries: Array = entries_value
+		count += entries.size()
+
+	return count
+
+
 func _count_item_spawn_rule_category_multiplier_entries() -> int:
 	var count := 0
 
@@ -4046,6 +4645,12 @@ func debug_print_loaded_data() -> void:
 	print("[GameData] localization_texts: ", localization_texts.size())
 	print("[GameData] dialogue_sets: ", dialogue_sets.size())
 	print("[GameData] dialogue_lines: ", _count_dialogue_lines())
+	print("[GameData] skills: ", skills.size())
+	print("[GameData] skill_levels: ", _count_skill_levels())
+	print("[GameData] skill_effect_links: ", _count_skill_effect_links())
+	print("[GameData] skill_requirements: ", _count_skill_requirements())
+	print("[GameData] unit_skill_tables: ", unit_skill_tables.size())
+	print("[GameData] unit_skill_entries: ", _count_unit_skill_entries())
 
 	print("---------- Items ----------")
 	for item_id in items.keys():

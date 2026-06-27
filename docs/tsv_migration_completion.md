@@ -226,6 +226,28 @@ Step 7-B regression data:
 
 Future dialogue display migration can switch individual NPC talk surfaces from `talk_greeting_text` to `dialogue_set_id` after Godot-side UI behavior is verified.
 
+Step 7-C added the lightweight all-Unit skill system TSV foundation:
+
+- `skills.tsv` stores skill definitions and localization text keys.
+- `skill_levels.tsv` stores per-level numeric parameters.
+- `skill_effect_links.tsv` links skills to existing `item_effects.effect_id` rows without renaming `item_effects`.
+- `skill_requirements.tsv` is present as an empty requirements table that validates successfully.
+- `unit_skill_tables.tsv` and `unit_skill_entries.tsv` store initial skill table metadata for future Unit skill-state generation.
+- `enemies.tsv.skill_table_id` and `npcs.tsv.skill_table_id` are optional references and are currently set only for `test_training_slime` and `test_helper_villager`.
+
+Step 7-C regression data:
+
+| Area | ID / key | Purpose |
+| --- | --- | --- |
+| `skills.tsv` | `test_slash` | Combat active skill definition check. |
+| `skills.tsv` | `test_foraging` | Life passive skill definition check. |
+| `skill_effect_links.tsv` | `test_slash -> blast_stone_damage` | Confirms skills can reference existing item effects. |
+| `unit_skill_tables.tsv` | `test_helper_villager_skills` | NPC skill table reference check. |
+| `unit_skill_tables.tsv` | `test_training_slime_skills` | Enemy skill table reference check. |
+| `localization_texts.tsv` | `skill.test_slash.*`, `skill.test_foraging.*` | Skill display name/description localization keys. |
+
+Skill execution, `Unit.skill_state` generation, save/load migration, combat skill behavior, movement/life skill behavior, and skill UI are intentionally not implemented in Step 7-C.
+
 ## Final Completion Checklist
 
 - [x] Master TSVs export from `master_data.xlsx`.

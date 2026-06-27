@@ -1,0 +1,3 @@
+skill_table_id	entry_id	pick_type	skill_id	skill_category	learned	level_min	level_max	exp_min	exp_max	chance_percent	weight	enabled
+test_helper_villager_skills	foraging_fixed	SKILL	test_foraging		true	1	1	0	0	100	100	true
+test_training_slime_skills	slash_fixed	SKILL	test_slash		true	1	1	0	0	100	100	true

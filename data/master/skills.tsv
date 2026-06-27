@@ -1,0 +1,3 @@
+skill_id	category	skill_kind	target_type	effect_polarity	display_name_key	description_key	max_level	notes	enabled
+test_slash	combat	active	enemy	damage	skill.test_slash.name	skill.test_slash.desc	3	Step 7-C regression combat skill	true
+test_foraging	life	passive	self	passive	skill.test_foraging.name	skill.test_foraging.desc	3	Step 7-C regression life skill	true

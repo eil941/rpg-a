@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import csv
 import sys
@@ -44,6 +44,16 @@ RESOURCE_PATH_COLUMNS = {
         "walk_up_frames",
     ],
 }
+
+SKILL_CATEGORIES = {"combat", "movement", "work", "life"}
+SKILL_KINDS = {"active", "passive"}
+SKILL_TARGET_TYPES = {"self", "enemy", "ally", "tile", "none"}
+SKILL_EFFECT_POLARITIES = {"damage", "heal", "buff", "debuff", "utility", "passive"}
+SKILL_COST_TYPES = {"none", "hp", "mp", "stamina", "hunger"}
+SKILL_TRIGGERS = {"on_cast", "passive", "on_attack_hit", "on_turn_start", "on_turn_end"}
+SKILL_REQUIREMENT_KINDS = {"learn", "upgrade", "use"}
+SKILL_REQUIREMENT_TYPES = {"unit_level", "skill_level", "item", "faction", "quest", "none"}
+UNIT_SKILL_PICK_TYPES = {"SKILL", "CATEGORY"}
 
 
 @dataclass
@@ -449,6 +459,287 @@ def check_dialogue_lines(table: Table) -> None:
         reporter.ok(f"{table.filename} dialogue rows are valid ({len(table.rows)} checked)")
 
 
+def make_skill_max_levels(table: Table) -> dict[str, int]:
+    result: dict[str, int] = {}
+    if "skill_id" not in table.header or "max_level" not in table.header:
+        return result
+
+    for row in table.rows:
+        skill_id = row.get("skill_id", "").strip()
+        max_level_text = row.get("max_level", "").strip()
+        if skill_id == "" or max_level_text == "":
+            continue
+
+        try:
+            result[skill_id] = int(max_level_text)
+        except ValueError:
+            continue
+
+    return result
+
+
+def check_skills(table: Table) -> None:
+    for column in (
+        "skill_id",
+        "category",
+        "skill_kind",
+        "target_type",
+        "effect_polarity",
+        "display_name_key",
+        "description_key",
+        "max_level",
+        "enabled",
+    ):
+        require_column(table, column)
+
+    check_allowed_values(table, "category", SKILL_CATEGORIES, normalizer=normalize_lower)
+    check_allowed_values(table, "skill_kind", SKILL_KINDS, normalizer=normalize_lower)
+    check_allowed_values(table, "target_type", SKILL_TARGET_TYPES, normalizer=normalize_lower)
+    check_allowed_values(table, "effect_polarity", SKILL_EFFECT_POLARITIES, normalizer=normalize_lower)
+
+    issue_count = 0
+    for row, line_number in zip(table.rows, table.line_numbers):
+        max_level = parse_int_cell(table, row, line_number, "max_level")
+        if max_level is not None and max_level < 1:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} max_level must be >= 1")
+
+        if parse_bool_cell(table, row, line_number, "enabled") is None:
+            issue_count += 1
+
+    if issue_count == 0:
+        reporter.ok(f"{table.filename} skill rows are valid ({len(table.rows)} checked)")
+
+
+def check_skill_levels(table: Table, skill_max_levels: dict[str, int]) -> None:
+    for column in (
+        "skill_id",
+        "level",
+        "cost_type",
+        "cost_amount",
+        "cooldown",
+        "power",
+        "duration",
+        "range",
+        "success_rate",
+        "enabled",
+    ):
+        require_column(table, column)
+
+    check_allowed_values(table, "cost_type", SKILL_COST_TYPES, normalizer=normalize_lower)
+
+    issue_count = 0
+    for row, line_number in zip(table.rows, table.line_numbers):
+        skill_id = row.get("skill_id", "").strip()
+        level = parse_int_cell(table, row, line_number, "level")
+        if level is not None:
+            if level < 1:
+                issue_count += 1
+                reporter.error(f"{table.filename}:{line_number} level must be >= 1")
+            max_level = skill_max_levels.get(skill_id)
+            if max_level is not None and level > max_level:
+                issue_count += 1
+                reporter.error(f"{table.filename}:{line_number} level exceeds skills.max_level ({max_level})")
+
+        for column in ("cost_amount", "cooldown", "duration", "range"):
+            value = parse_float_cell(table, row, line_number, column)
+            if value is not None and value < 0.0:
+                issue_count += 1
+                reporter.error(f"{table.filename}:{line_number} {column} must be >= 0")
+
+        parse_float_cell(table, row, line_number, "power")
+
+        success_rate = parse_float_cell(table, row, line_number, "success_rate")
+        if success_rate is not None and not 0.0 <= success_rate <= 1.0:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} success_rate must be between 0.0 and 1.0")
+
+        if parse_bool_cell(table, row, line_number, "enabled") is None:
+            issue_count += 1
+
+    if issue_count == 0:
+        reporter.ok(f"{table.filename} skill level rows are valid ({len(table.rows)} checked)")
+
+
+def check_skill_effect_links(table: Table, skill_max_levels: dict[str, int]) -> None:
+    for column in (
+        "skill_id",
+        "min_level",
+        "max_level",
+        "trigger",
+        "effect_id",
+        "chance_percent",
+        "order",
+        "enabled",
+    ):
+        require_column(table, column)
+
+    check_allowed_values(table, "trigger", SKILL_TRIGGERS, normalizer=normalize_lower)
+
+    issue_count = 0
+    for row, line_number in zip(table.rows, table.line_numbers):
+        skill_id = row.get("skill_id", "").strip()
+        min_level = parse_int_cell(table, row, line_number, "min_level")
+        max_level = parse_int_cell(table, row, line_number, "max_level")
+        if min_level is not None and min_level < 1:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} min_level must be >= 1")
+        if max_level is not None and max_level < 1:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} max_level must be >= 1")
+        if min_level is not None and max_level is not None and min_level > max_level:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} min_level must be <= max_level")
+
+        skill_max_level = skill_max_levels.get(skill_id)
+        if max_level is not None and skill_max_level is not None and max_level > skill_max_level:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} max_level exceeds skills.max_level ({skill_max_level})")
+
+        chance_percent = parse_float_cell(table, row, line_number, "chance_percent")
+        if chance_percent is not None and not 0.0 <= chance_percent <= 100.0:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} chance_percent must be between 0 and 100")
+
+        order = parse_int_cell(table, row, line_number, "order")
+        if order is not None and order < 1:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} order must be >= 1")
+
+        if parse_bool_cell(table, row, line_number, "enabled") is None:
+            issue_count += 1
+
+    if issue_count == 0:
+        reporter.ok(f"{table.filename} skill effect links are valid ({len(table.rows)} checked)")
+
+
+def check_skill_requirements(table: Table) -> None:
+    for column in ("skill_id", "requirement_kind", "requirement_type", "target_id", "required_value", "enabled"):
+        require_column(table, column)
+
+    if not table.rows:
+        reporter.ok(f"{table.filename} has no requirement rows")
+        return
+
+    check_allowed_values(table, "requirement_kind", SKILL_REQUIREMENT_KINDS, normalizer=normalize_lower)
+    check_allowed_values(table, "requirement_type", SKILL_REQUIREMENT_TYPES, normalizer=normalize_lower)
+
+    issue_count = 0
+    for row, line_number in zip(table.rows, table.line_numbers):
+        required_value = parse_float_cell(table, row, line_number, "required_value")
+        if required_value is not None and required_value < 0.0:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} required_value must be >= 0")
+
+        if parse_bool_cell(table, row, line_number, "enabled") is None:
+            issue_count += 1
+
+    if issue_count == 0:
+        reporter.ok(f"{table.filename} skill requirement rows are valid ({len(table.rows)} checked)")
+
+
+def check_unit_skill_tables(table: Table) -> None:
+    for column in ("skill_table_id", "usage", "enabled"):
+        require_column(table, column)
+
+    issue_count = 0
+    for row, line_number in zip(table.rows, table.line_numbers):
+        if parse_bool_cell(table, row, line_number, "enabled") is None:
+            issue_count += 1
+
+    if issue_count == 0:
+        reporter.ok(f"{table.filename}.enabled values are valid ({len(table.rows)} checked)")
+
+
+def check_unit_skill_entries(table: Table, skill_max_levels: dict[str, int]) -> None:
+    for column in (
+        "skill_table_id",
+        "entry_id",
+        "pick_type",
+        "skill_id",
+        "skill_category",
+        "learned",
+        "level_min",
+        "level_max",
+        "exp_min",
+        "exp_max",
+        "chance_percent",
+        "weight",
+        "enabled",
+    ):
+        require_column(table, column)
+
+    check_allowed_values(table, "pick_type", UNIT_SKILL_PICK_TYPES, normalizer=lambda value: value.strip().upper())
+
+    issue_count = 0
+    for row, line_number in zip(table.rows, table.line_numbers):
+        pick_type = row.get("pick_type", "").strip().upper()
+        skill_id = row.get("skill_id", "").strip()
+        skill_category = normalize_lower(row.get("skill_category", ""))
+
+        if pick_type == "SKILL":
+            if skill_id == "":
+                issue_count += 1
+                reporter.error(f"{table.filename}:{line_number} SKILL row has empty skill_id")
+        elif pick_type == "CATEGORY":
+            if skill_category not in SKILL_CATEGORIES:
+                issue_count += 1
+                reporter.error(f"{table.filename}:{line_number} CATEGORY row has invalid skill_category '{row.get('skill_category', '').strip()}'")
+
+        learned = parse_bool_cell(table, row, line_number, "learned")
+        if learned is None:
+            issue_count += 1
+
+        level_min = parse_int_cell(table, row, line_number, "level_min")
+        level_max = parse_int_cell(table, row, line_number, "level_max")
+        if level_min is not None and level_min < 0:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} level_min must be >= 0")
+        if level_max is not None and level_max < 0:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} level_max must be >= 0")
+        if level_min is not None and level_max is not None:
+            if level_min > level_max:
+                issue_count += 1
+                reporter.error(f"{table.filename}:{line_number} level_min must be <= level_max")
+            if learned is True and level_min < 1:
+                issue_count += 1
+                reporter.error(f"{table.filename}:{line_number} learned=true requires level_min >= 1")
+            if pick_type == "SKILL":
+                skill_max_level = skill_max_levels.get(skill_id)
+                if skill_max_level is not None and level_max > skill_max_level:
+                    issue_count += 1
+                    reporter.error(f"{table.filename}:{line_number} level_max exceeds skills.max_level ({skill_max_level})")
+
+        exp_min = parse_int_cell(table, row, line_number, "exp_min")
+        exp_max = parse_int_cell(table, row, line_number, "exp_max")
+        if exp_min is not None and exp_min < 0:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} exp_min must be >= 0")
+        if exp_max is not None and exp_max < 0:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} exp_max must be >= 0")
+        if exp_min is not None and exp_max is not None and exp_min > exp_max:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} exp_min must be <= exp_max")
+
+        chance_percent = parse_float_cell(table, row, line_number, "chance_percent")
+        if chance_percent is not None and not 0.0 <= chance_percent <= 100.0:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} chance_percent must be between 0 and 100")
+
+        weight = parse_float_cell(table, row, line_number, "weight")
+        if weight is not None and weight < 0.0:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} weight must be >= 0")
+
+        if parse_bool_cell(table, row, line_number, "enabled") is None:
+            issue_count += 1
+
+    if issue_count == 0:
+        reporter.ok(f"{table.filename} unit skill entries are valid ({len(table.rows)} checked)")
+
+
 def check_element_resistance_keys(table: Table, element_ids: set[str]) -> None:
     if not require_column(table, "element_resistances", "warn"):
         return
@@ -795,6 +1086,12 @@ def main() -> int:
         "localization_texts": "localization_texts.tsv",
         "dialogue_sets": "dialogue_sets.tsv",
         "dialogue_lines": "dialogue_lines.tsv",
+        "skills": "skills.tsv",
+        "skill_levels": "skill_levels.tsv",
+        "skill_effect_links": "skill_effect_links.tsv",
+        "skill_requirements": "skill_requirements.tsv",
+        "unit_skill_tables": "unit_skill_tables.tsv",
+        "unit_skill_entries": "unit_skill_entries.tsv",
         "quests": "quests.tsv",
         "npc_quest_links": "npc_quest_links.tsv",
         "spawn_rules": "spawn_rules.tsv",
@@ -823,6 +1120,8 @@ def main() -> int:
         "status_effect_types": "status_id",
         "localization_texts": "text_key",
         "dialogue_sets": "dialogue_set_id",
+        "skills": "skill_id",
+        "unit_skill_tables": "skill_table_id",
         "quests": "quest_id",
         "spawn_rules": "rule_id",
         "enemies": "enemy_type_id",
@@ -839,6 +1138,8 @@ def main() -> int:
     check_composite_duplicates(tables["item_spawn_rule_item_overrides"], ["rule_id", "item_id"])
     check_composite_duplicates(tables["npc_quest_links"], ["npc_type_id", "quest_id"])
     check_composite_duplicates(tables["dialogue_lines"], ["dialogue_set_id", "line_id"])
+    check_composite_duplicates(tables["skill_levels"], ["skill_id", "level"])
+    check_composite_duplicates(tables["unit_skill_entries"], ["skill_table_id", "entry_id"])
 
     item_ids = make_id_set(tables["items"], "item_id")
     item_category_ids = make_id_set(tables["item_categories"], "category_id", normalize_lower)
@@ -855,6 +1156,9 @@ def main() -> int:
     damage_type_ids = make_id_set(tables["damage_types"], "damage_type_id", normalize_lower)
     localization_text_keys = make_id_set(tables["localization_texts"], "text_key")
     dialogue_set_ids = make_id_set(tables["dialogue_sets"], "dialogue_set_id")
+    skill_ids = make_id_set(tables["skills"], "skill_id")
+    skill_max_levels = make_skill_max_levels(tables["skills"])
+    unit_skill_table_ids = make_id_set(tables["unit_skill_tables"], "skill_table_id")
 
     check_reference(
         tables["items"],
@@ -1078,6 +1382,70 @@ def main() -> int:
         "dialogue_sets.dialogue_set_id",
         allow_empty=True,
     )
+    check_reference(
+        tables["skills"],
+        "display_name_key",
+        localization_text_keys,
+        "localization_texts.text_key",
+    )
+    check_reference(
+        tables["skills"],
+        "description_key",
+        localization_text_keys,
+        "localization_texts.text_key",
+    )
+    check_skills(tables["skills"])
+    check_reference(
+        tables["skill_levels"],
+        "skill_id",
+        skill_ids,
+        "skills.skill_id",
+    )
+    check_skill_levels(tables["skill_levels"], skill_max_levels)
+    check_reference(
+        tables["skill_effect_links"],
+        "skill_id",
+        skill_ids,
+        "skills.skill_id",
+    )
+    check_reference(
+        tables["skill_effect_links"],
+        "effect_id",
+        effect_ids,
+        "item_effects.effect_id",
+    )
+    check_skill_effect_links(tables["skill_effect_links"], skill_max_levels)
+    check_reference(
+        tables["skill_requirements"],
+        "skill_id",
+        skill_ids,
+        "skills.skill_id",
+    )
+    check_skill_requirements(tables["skill_requirements"])
+    check_unit_skill_tables(tables["unit_skill_tables"])
+    check_reference(
+        tables["unit_skill_entries"],
+        "skill_table_id",
+        unit_skill_table_ids,
+        "unit_skill_tables.skill_table_id",
+    )
+    check_reference(
+        tables["unit_skill_entries"],
+        "skill_id",
+        skill_ids,
+        "skills.skill_id",
+        allow_empty=True,
+    )
+    check_unit_skill_entries(tables["unit_skill_entries"], skill_max_levels)
+    for table_name in ("enemies", "npcs"):
+        check_reference(
+            tables[table_name],
+            "skill_table_id",
+            unit_skill_table_ids,
+            "unit_skill_tables.skill_table_id",
+            allow_empty=True,
+            missing_column_severity="warn",
+        )
 
     for table_name, columns in RESOURCE_PATH_COLUMNS.items():
         check_resource_paths(tables[table_name], columns)

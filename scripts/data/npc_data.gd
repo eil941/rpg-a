@@ -120,6 +120,7 @@ var move_style: int = AIMoveStyle.FLEE
 @export var talk_display_name: String = ""
 @export_multiline var talk_greeting_text: String = "こんにちは。"
 @export var dialogue_set_id: String = ""
+@export var skill_table_id: String = ""
 @export var talk_portrait: Texture2D
 
 @export_flags("VILLAGER", "MERCHANT", "GUARD", "RECRUIT", "QUEST_GIVER", "ENEMY_BOSS")
