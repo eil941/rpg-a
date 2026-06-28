@@ -10,6 +10,7 @@ var speed: float = 120.0
 
 var extended_stats_data: Dictionary = {}
 var skills_data: Dictionary = {}
+var skill_state_data: Dictionary = {}
 
 var current_map_id: String = ""
 var current_tile: Vector2i = Vector2i.ZERO
@@ -51,6 +52,7 @@ func reset_for_new_game() -> void:
 
 	extended_stats_data.clear()
 	skills_data.clear()
+	skill_state_data.clear()
 
 	current_map_id = ""
 	current_tile = Vector2i.ZERO

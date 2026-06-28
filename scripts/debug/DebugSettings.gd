@@ -17,6 +17,17 @@ var debug_ai_move: bool = false
 var debug_ai_style_apply: bool = false
 var debug_npc_ai: bool = false
 var debug_enemy_ai: bool = false
+var debug_dynamic_skill_apply: bool = false
+var debug_skill_exp: bool = false
+var debug_action_skill_growth: bool = false
+var debug_player_move_skill_exp: bool = false
+var debug_player_move_skill_id: String = "test_foraging"
+var debug_player_move_skill_exp_amount: int = 1
+var debug_player_move_skill_exp_verbose: bool = false
+var debug_player_move_legacy_gathering_growth: bool = false
+var debug_player_move_legacy_gathering_skill_id: String = "gathering"
+var debug_player_move_legacy_gathering_growth_amount: int = 1
+var debug_player_move_legacy_gathering_verbose: bool = false
 
 # 逃走AI確認
 var debug_flee_ai: bool = false

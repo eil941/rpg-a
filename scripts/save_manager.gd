@@ -35,6 +35,7 @@ const PLAYER_DATA_PROPS: Array[String] = [
 	"speed",
 	"extended_stats_data",
 	"skills_data",
+	"skill_state_data",
 	"current_map_id",
 	"current_tile",
 	"last_map_id",

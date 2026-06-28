@@ -272,6 +272,7 @@ func _physics_process(delta: float) -> void:
 			repeat_timer = repeat_delay
 
 			debug_print_current_tile_info()
+			apply_debug_move_skill_exp_if_needed()
 
 			if is_player_unit:
 				try_pickup_items_on_current_tile()
@@ -1880,6 +1881,7 @@ func try_move(dir: Vector2) -> bool:
 			is_moving = false
 
 			debug_print_current_tile_info()
+			apply_debug_move_skill_exp_if_needed()
 
 			if is_player_unit:
 				try_pickup_items_on_current_tile()
@@ -2190,6 +2192,93 @@ func save_inventory_persistence_data() -> Variant:
 	return inventory.save_inventory_data()
 
 
+func apply_debug_move_skill_exp_if_needed() -> void:
+	if not is_player_unit:
+		return
+
+	if DebugSettings == null:
+		return
+
+	if skills == null:
+		return
+
+	if bool(DebugSettings.debug_player_move_skill_exp):
+		var skill_id: String = String(DebugSettings.debug_player_move_skill_id).strip_edges()
+		var exp_amount: int = maxi(0, int(DebugSettings.debug_player_move_skill_exp_amount))
+		_apply_debug_skill_growth(skill_id, exp_amount, "debug_move", "[MoveSkillExp]", bool(DebugSettings.debug_player_move_skill_exp_verbose))
+
+	if bool(DebugSettings.debug_player_move_legacy_gathering_growth):
+		var legacy_skill_id: String = String(DebugSettings.debug_player_move_legacy_gathering_skill_id).strip_edges()
+		var growth_amount: int = maxi(0, int(DebugSettings.debug_player_move_legacy_gathering_growth_amount))
+		_apply_debug_skill_growth(legacy_skill_id, growth_amount, "debug_move_legacy", "[MoveLegacySkillGrowth]", bool(DebugSettings.debug_player_move_legacy_gathering_verbose))
+
+
+func gain_action_skill_growth(skill_id: String, amount: int = 1, source: String = "") -> Dictionary:
+	var result: Dictionary = {
+		"applied": false,
+		"skill_id": "",
+		"source": source,
+		"old_value": 0,
+		"old_growth": 0,
+		"new_value": 0,
+		"new_growth": 0
+	}
+
+	if skills == null:
+		return result
+
+	var normalized_skill_id: String = skill_id.strip_edges()
+	result["skill_id"] = normalized_skill_id
+	if normalized_skill_id == "":
+		return result
+
+	var normalized_amount: int = maxi(0, amount)
+	if normalized_amount <= 0:
+		return result
+
+	var old_value: int = skills.get_skill_value(normalized_skill_id)
+	var old_growth: int = skills.get_skill_growth_point(normalized_skill_id)
+
+	skills.learn_skill(normalized_skill_id, 1)
+	skills.gain_skill_growth(normalized_skill_id, normalized_amount)
+
+	var new_value: int = skills.get_skill_value(normalized_skill_id)
+	var new_growth: int = skills.get_skill_growth_point(normalized_skill_id)
+
+	result["applied"] = true
+	result["old_value"] = old_value
+	result["old_growth"] = old_growth
+	result["new_value"] = new_value
+	result["new_growth"] = new_growth
+
+	if DebugSettings != null and bool(DebugSettings.debug_action_skill_growth):
+		print(
+			"[ActionSkillGrowth]",
+			" unit=", name,
+			" source=", source,
+			" skill_id=", normalized_skill_id,
+			" old=value", old_value, " growth", old_growth,
+			" new=value", new_value, " growth", new_growth
+		)
+
+	return result
+
+
+func _apply_debug_skill_growth(skill_id: String, amount: int, source: String, log_prefix: String, verbose: bool) -> void:
+	var result: Dictionary = gain_action_skill_growth(skill_id, amount, source)
+	if not bool(result.get("applied", false)):
+		return
+
+	if verbose:
+		print(
+			log_prefix,
+			" unit=", name,
+			" skill_id=", String(result.get("skill_id", "")),
+			" old=value", int(result.get("old_value", 0)), " growth", int(result.get("old_growth", 0)),
+			" new=value", int(result.get("new_value", 0)), " growth", int(result.get("new_growth", 0))
+		)
+
+
 
 func get_stats_data() -> Dictionary:
 	var data: Dictionary = stats.get_stats_data()
@@ -2244,6 +2333,12 @@ func apply_stats_data(data: Dictionary) -> void:
 	if data.has("skills") and skills != null:
 		skills.apply_skills_data(data["skills"])
 
+	if data.has("skill_state") and skills != null and skills.has_method("apply_legacy_skill_state_data"):
+		var skill_state_value: Variant = data.get("skill_state", {})
+		if typeof(skill_state_value) == TYPE_DICTIONARY:
+			var loaded_skill_state: Dictionary = skill_state_value
+			skills.apply_legacy_skill_state_data(loaded_skill_state)
+
 	if data.has("effect_runtimes"):
 		load_effect_runtimes_save_data(data["effect_runtimes"])
 	else:
@@ -2280,6 +2375,9 @@ func save_persistent_stats() -> void:
 
 		if skills != null:
 			PlayerData.skills_data = skills.get_skills_data()
+
+		PlayerData.skill_state_data.clear()
+
 
 		if inventory != null:
 			PlayerData.inventory_data = save_inventory_persistence_data()
@@ -2320,8 +2418,16 @@ func load_persistent_stats() -> void:
 			stats.defense = PlayerData.defense
 			stats.speed = PlayerData.speed
 
+		var restored_dynamic_skills_from_skills_data: bool = false
+
 		if skills != null and PlayerData.skills_data.size() > 0:
 			skills.apply_skills_data(PlayerData.skills_data)
+			restored_dynamic_skills_from_skills_data = PlayerData.skills_data.has("dynamic_skills") or PlayerData.skills_data.has("skill_state")
+
+		if not restored_dynamic_skills_from_skills_data and PlayerData.skill_state_data.size() > 0:
+			if skills != null and skills.has_method("apply_legacy_skill_state_data"):
+				skills.apply_legacy_skill_state_data(PlayerData.skill_state_data)
+			PlayerData.skill_state_data.clear()
 
 		if inventory != null:
 			inventory.load_inventory_data(PlayerData.inventory_data)
@@ -2408,6 +2514,9 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 		skills.negotiation = enemy_data.negotiation
 		skills.speech = enemy_data.speech
 		skills.medical = enemy_data.medical
+
+	if skills != null and skills.has_method("apply_initial_skills_from_table"):
+		skills.apply_initial_skills_from_table(enemy_data.skill_table_id)
 
 	equipped_items.clear()
 	if enemy_data.has_method("get_equipment_save_data"):
@@ -2756,6 +2865,9 @@ func apply_npc_data(npc_data: NpcData) -> void:
 		skills.negotiation = npc_data.negotiation
 		skills.speech = npc_data.speech
 		skills.medical = npc_data.medical
+
+	if skills != null and skills.has_method("apply_initial_skills_from_table"):
+		skills.apply_initial_skills_from_table(npc_data.skill_table_id)
 
 	equipped_items.clear()
 	if npc_data.has_method("get_equipment_save_data"):

@@ -246,7 +246,34 @@ Step 7-C regression data:
 | `unit_skill_tables.tsv` | `test_training_slime_skills` | Enemy skill table reference check. |
 | `localization_texts.tsv` | `skill.test_slash.*`, `skill.test_foraging.*` | Skill display name/description localization keys. |
 
-Skill execution, `Unit.skill_state` generation, save/load migration, combat skill behavior, movement/life skill behavior, and skill UI are intentionally not implemented in Step 7-C.
+Skill execution, combat skill behavior, movement/life skill behavior, and skill UI are intentionally not implemented in Step 7-C.
+
+Step 7-D added the first runtime `Unit.skill_state` foundation:
+
+- `Unit` now keeps a lightweight `skill_state` dictionary for all unit types.
+- `GameDataRegistry.build_initial_skill_state()` builds initial skill state from `unit_skill_tables.tsv` / `unit_skill_entries.tsv`.
+- Enemy and NPC data application now applies initial skill state from `skill_table_id`.
+- The state remains data-only; skill execution, combat effects, and UI are still deferred.
+
+Step 7-E added save/load support for `Unit.skill_state`:
+
+- `get_stats_data()` now includes `skill_state`.
+- `apply_stats_data()` restores `skill_state` only when saved data contains the key.
+- Player skill state is stored separately in `PlayerData.skill_state_data`.
+- `SaveManager` includes `skill_state_data` in the player snapshot.
+- Non-player units persist `skill_state` through the existing `WorldState.unit_states` path.
+- Old save/world data without `skill_state` remains compatible and keeps the initialized table-derived state.
+- `DebugSettings.debug_skill_state_apply` defaults to `false`; enable it manually when checking generated skill state logs.
+
+Step 7-F added the first skill experience and level-up foundation:
+
+- `skill_levels.tsv` now has an `exp_to_next` column.
+- `GameDataRegistry.get_skill_exp_to_next()` exposes the required experience for a skill level.
+- `Unit` now exposes `learn_skill()`, `add_skill_exp()`, `can_skill_level_up()`, `try_level_up_skill()`, and `get_skill_exp_to_next()`.
+- `add_skill_exp()` can learn missing/unlearned skills, add experience, level up repeatedly while thresholds are met, and never exceed `skills.tsv.max_level`.
+- At max level, skill experience is normalized to `0`.
+- `DebugSettings.debug_skill_exp` defaults to `false`; enable it manually when checking `[SkillExp]` logs.
+- Skill use UI, combat invocation, life-action auto experience, skill effects, and skill display migration are still deferred.
 
 ## Final Completion Checklist
 

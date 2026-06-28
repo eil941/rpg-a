@@ -522,6 +522,7 @@ def check_skill_levels(table: Table, skill_max_levels: dict[str, int]) -> None:
         "duration",
         "range",
         "success_rate",
+        "exp_to_next",
         "enabled",
     ):
         require_column(table, column)
@@ -553,6 +554,17 @@ def check_skill_levels(table: Table, skill_max_levels: dict[str, int]) -> None:
         if success_rate is not None and not 0.0 <= success_rate <= 1.0:
             issue_count += 1
             reporter.error(f"{table.filename}:{line_number} success_rate must be between 0.0 and 1.0")
+
+        exp_to_next = parse_int_cell(table, row, line_number, "exp_to_next")
+        if exp_to_next is not None:
+            if exp_to_next < 0:
+                issue_count += 1
+                reporter.error(f"{table.filename}:{line_number} exp_to_next must be >= 0")
+            max_level = skill_max_levels.get(skill_id)
+            if max_level is not None:
+                if level is not None and level < max_level and exp_to_next <= 0:
+                    issue_count += 1
+                    reporter.error(f"{table.filename}:{line_number} exp_to_next must be > 0 before max_level")
 
         if parse_bool_cell(table, row, line_number, "enabled") is None:
             issue_count += 1

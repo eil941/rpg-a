@@ -802,7 +802,7 @@ func get_random_dialogue_text(
 
 
 func has_skill(skill_id: String) -> bool:
-	var normalized_id := skill_id.strip_edges()
+	var normalized_id: String = skill_id.strip_edges()
 	if normalized_id == "":
 		return false
 
@@ -810,7 +810,7 @@ func has_skill(skill_id: String) -> bool:
 
 
 func get_skill(skill_id: String) -> Dictionary:
-	var normalized_id := skill_id.strip_edges()
+	var normalized_id: String = skill_id.strip_edges()
 	if normalized_id == "":
 		return {}
 
@@ -827,7 +827,7 @@ func get_all_skills() -> Dictionary:
 
 
 func get_skill_level(skill_id: String, level: int) -> Dictionary:
-	var normalized_id := skill_id.strip_edges()
+	var normalized_id: String = skill_id.strip_edges()
 	if normalized_id == "" or level < 1:
 		return {}
 
@@ -844,8 +844,16 @@ func get_skill_level(skill_id: String, level: int) -> Dictionary:
 	return level_entry.duplicate(true)
 
 
+func get_skill_exp_to_next(skill_id: String, level: int) -> int:
+	var level_entry: Dictionary = get_skill_level(skill_id, level)
+	if level_entry.is_empty():
+		return 0
+
+	return maxi(0, int(level_entry.get("exp_to_next", 0)))
+
+
 func get_skill_levels(skill_id: String) -> Array[Dictionary]:
-	var normalized_id := skill_id.strip_edges()
+	var normalized_id: String = skill_id.strip_edges()
 	if normalized_id == "":
 		return []
 
@@ -867,7 +875,7 @@ func get_skill_levels(skill_id: String) -> Array[Dictionary]:
 
 
 func get_skill_effect_links(skill_id: String, level: int = 0, trigger: String = "") -> Array[Dictionary]:
-	var normalized_id := skill_id.strip_edges()
+	var normalized_id: String = skill_id.strip_edges()
 	if normalized_id == "":
 		return []
 
@@ -875,7 +883,7 @@ func get_skill_effect_links(skill_id: String, level: int = 0, trigger: String = 
 	if typeof(entries_value) != TYPE_ARRAY:
 		return []
 
-	var normalized_trigger := trigger.strip_edges().to_lower()
+	var normalized_trigger: String = trigger.strip_edges().to_lower()
 	var result: Array[Dictionary] = []
 	var entries: Array = entries_value
 	for entry_value in entries:
@@ -899,7 +907,7 @@ func get_skill_effect_links(skill_id: String, level: int = 0, trigger: String = 
 
 
 func get_skill_requirements(skill_id: String, requirement_kind: String = "") -> Array[Dictionary]:
-	var normalized_id := skill_id.strip_edges()
+	var normalized_id: String = skill_id.strip_edges()
 	if normalized_id == "":
 		return []
 
@@ -907,7 +915,7 @@ func get_skill_requirements(skill_id: String, requirement_kind: String = "") -> 
 	if typeof(entries_value) != TYPE_ARRAY:
 		return []
 
-	var normalized_kind := requirement_kind.strip_edges().to_lower()
+	var normalized_kind: String = requirement_kind.strip_edges().to_lower()
 	var result: Array[Dictionary] = []
 	var entries: Array = entries_value
 	for entry_value in entries:
@@ -924,7 +932,7 @@ func get_skill_requirements(skill_id: String, requirement_kind: String = "") -> 
 
 
 func has_unit_skill_table(skill_table_id: String) -> bool:
-	var normalized_id := skill_table_id.strip_edges()
+	var normalized_id: String = skill_table_id.strip_edges()
 	if normalized_id == "":
 		return false
 
@@ -932,7 +940,7 @@ func has_unit_skill_table(skill_table_id: String) -> bool:
 
 
 func get_unit_skill_table(skill_table_id: String) -> Dictionary:
-	var normalized_id := skill_table_id.strip_edges()
+	var normalized_id: String = skill_table_id.strip_edges()
 	if normalized_id == "":
 		return {}
 
@@ -945,7 +953,7 @@ func get_unit_skill_table(skill_table_id: String) -> Dictionary:
 
 
 func get_unit_skill_entries(skill_table_id: String) -> Array[Dictionary]:
-	var normalized_id := skill_table_id.strip_edges()
+	var normalized_id: String = skill_table_id.strip_edges()
 	if normalized_id == "":
 		return []
 
@@ -963,6 +971,173 @@ func get_unit_skill_entries(skill_table_id: String) -> Array[Dictionary]:
 		result.append(entry.duplicate(true))
 
 	return result
+
+
+func build_initial_dynamic_skills(skill_table_id: String, rng: RandomNumberGenerator = null) -> Dictionary:
+	var normalized_id: String = skill_table_id.strip_edges()
+	if normalized_id == "":
+		return {}
+
+	if not has_unit_skill_table(normalized_id):
+		return {}
+
+	var local_rng: RandomNumberGenerator = rng
+	if local_rng == null:
+		local_rng = RandomNumberGenerator.new()
+		local_rng.randomize()
+
+	var result: Dictionary = {}
+	var entries: Array[Dictionary] = get_unit_skill_entries(normalized_id)
+	for entry in entries:
+		if not bool(entry.get("enabled", true)):
+			continue
+
+		var chance_percent: float = clampf(float(entry.get("chance_percent", 100.0)), 0.0, 100.0)
+		if chance_percent <= 0.0:
+			continue
+
+		if chance_percent < 100.0:
+			var chance_roll: float = local_rng.randf() * 100.0
+			if chance_roll > chance_percent:
+				continue
+
+		var resolved_skill_id: String = _resolve_unit_skill_entry_skill_id(entry, local_rng)
+		if resolved_skill_id == "":
+			continue
+
+		var dynamic_entry: Dictionary = _build_dynamic_skill_entry(resolved_skill_id, entry, local_rng)
+		_merge_dynamic_skill_entry(result, dynamic_entry)
+
+	return result
+
+
+func _resolve_unit_skill_entry_skill_id(entry: Dictionary, rng: RandomNumberGenerator) -> String:
+	var pick_type: String = String(entry.get("pick_type", "SKILL")).strip_edges().to_upper()
+	if pick_type == "SKILL":
+		var skill_id: String = String(entry.get("skill_id", "")).strip_edges()
+		if skill_id == "" or not has_skill(skill_id):
+			return ""
+		return skill_id
+
+	if pick_type == "CATEGORY":
+		var skill_category: String = String(entry.get("skill_category", "")).strip_edges().to_lower()
+		return _pick_skill_id_by_category(skill_category, rng)
+
+	push_warning("unit_skill_entries unknown pick_type at runtime: " + pick_type)
+	return ""
+
+
+func _pick_skill_id_by_category(skill_category: String, rng: RandomNumberGenerator) -> String:
+	var normalized_category: String = _normalize_skill_category(skill_category, "unit_skill_entries skill_category")
+	if normalized_category == "":
+		return ""
+
+	var candidates: Array[Dictionary] = []
+	var total_weight: float = 0.0
+	for skill_value in skills.values():
+		if typeof(skill_value) != TYPE_DICTIONARY:
+			continue
+
+		var skill: Dictionary = skill_value
+		if String(skill.get("category", "")).strip_edges().to_lower() != normalized_category:
+			continue
+
+		var skill_id: String = String(skill.get("skill_id", "")).strip_edges()
+		if skill_id == "":
+			continue
+
+		var weight: float = maxf(0.0, float(skill.get("weight", 1.0)))
+		if weight <= 0.0:
+			continue
+
+		candidates.append({
+			"skill_id": skill_id,
+			"weight": weight
+		})
+		total_weight += weight
+
+	if candidates.is_empty() or total_weight <= 0.0:
+		push_warning("unit_skill_entries CATEGORY has no enabled skills: " + normalized_category)
+		return ""
+
+	var roll: float = rng.randf() * total_weight
+	var cursor: float = 0.0
+	for candidate in candidates:
+		var weight: float = maxf(0.0, float(candidate.get("weight", 0.0)))
+		if weight <= 0.0:
+			continue
+
+		cursor += weight
+		if roll <= cursor:
+			return String(candidate.get("skill_id", "")).strip_edges()
+
+	var last_candidate: Dictionary = candidates[candidates.size() - 1]
+	return String(last_candidate.get("skill_id", "")).strip_edges()
+
+
+func _build_dynamic_skill_entry(skill_id: String, entry: Dictionary, rng: RandomNumberGenerator) -> Dictionary:
+	var learned: bool = bool(entry.get("learned", false))
+	var level_min: int = maxi(0, int(entry.get("level_min", 0)))
+	var level_max: int = maxi(level_min, int(entry.get("level_max", level_min)))
+	var level: int = 0
+
+	if learned:
+		level_min = maxi(1, level_min)
+		var skill: Dictionary = get_skill(skill_id)
+		var skill_max_level: int = maxi(1, int(skill.get("max_level", level_max)))
+		level_max = mini(maxi(level_min, level_max), skill_max_level)
+		if level_max > level_min:
+			level = rng.randi_range(level_min, level_max)
+		else:
+			level = level_min
+
+	var exp_min: int = maxi(0, int(entry.get("exp_min", 0)))
+	var exp_max: int = maxi(exp_min, int(entry.get("exp_max", exp_min)))
+	var exp: int = exp_min
+	if exp_max > exp_min:
+		exp = rng.randi_range(exp_min, exp_max)
+
+	return {
+		"skill_id": skill_id,
+		"learned": learned,
+		"value": level,
+		"growth": exp
+	}
+
+
+func _merge_dynamic_skill_entry(dynamic_skill_map: Dictionary, new_entry: Dictionary) -> void:
+	var skill_id: String = String(new_entry.get("skill_id", "")).strip_edges()
+	if skill_id == "":
+		return
+
+	if not dynamic_skill_map.has(skill_id):
+		dynamic_skill_map[skill_id] = new_entry.duplicate(true)
+		return
+
+	var existing_value: Variant = dynamic_skill_map.get(skill_id, {})
+	if typeof(existing_value) != TYPE_DICTIONARY:
+		dynamic_skill_map[skill_id] = new_entry.duplicate(true)
+		return
+
+	var existing_entry: Dictionary = existing_value
+	if _is_better_dynamic_skill_entry(new_entry, existing_entry):
+		dynamic_skill_map[skill_id] = new_entry.duplicate(true)
+
+
+func _is_better_dynamic_skill_entry(new_entry: Dictionary, existing_entry: Dictionary) -> bool:
+	var new_learned: bool = bool(new_entry.get("learned", false))
+	var existing_learned: bool = bool(existing_entry.get("learned", false))
+	if new_learned != existing_learned:
+		return new_learned
+
+	var new_level: int = int(new_entry.get("value", 0))
+	var existing_level: int = int(existing_entry.get("value", 0))
+	if new_level != existing_level:
+		return new_level > existing_level
+
+	var new_exp: int = int(new_entry.get("growth", 0))
+	var existing_exp: int = int(existing_entry.get("growth", 0))
+	return new_exp > existing_exp
 
 
 func get_faction_relation(from_faction: String, to_faction: String) -> String:
@@ -3719,10 +3894,10 @@ func _load_dialogue_lines() -> void:
 # ============================================================
 
 func _load_skills() -> void:
-	var rows := _load_optional_tsv("res://data/master/skills.tsv")
+	var rows: Array[Dictionary] = _load_optional_tsv("res://data/master/skills.tsv")
 
 	for row in rows:
-		var skill_id := _get_string(row, "skill_id").strip_edges()
+		var skill_id: String = _get_string(row, "skill_id").strip_edges()
 		if skill_id == "":
 			push_warning("skills.tsv has empty skill_id")
 			continue
@@ -3734,14 +3909,14 @@ func _load_skills() -> void:
 		if not _to_bool(_get_string(row, "enabled", "true")):
 			continue
 
-		var display_name_key := _get_string(row, "display_name_key").strip_edges()
-		var description_key := _get_string(row, "description_key").strip_edges()
+		var display_name_key: String = _get_string(row, "display_name_key").strip_edges()
+		var description_key: String = _get_string(row, "description_key").strip_edges()
 		if display_name_key != "" and not has_localized_text(display_name_key):
 			push_warning("skills.tsv display_name_key not found or disabled: " + display_name_key)
 		if description_key != "" and not has_localized_text(description_key):
 			push_warning("skills.tsv description_key not found or disabled: " + description_key)
 
-		var context := "skills.tsv skill_id=" + skill_id
+		var context: String = "skills.tsv skill_id=" + skill_id
 		skills[skill_id] = {
 			"skill_id": skill_id,
 			"category": _normalize_skill_category(_get_string(row, "category"), context + " category"),
@@ -3750,17 +3925,17 @@ func _load_skills() -> void:
 			"effect_polarity": _normalize_skill_effect_polarity(_get_string(row, "effect_polarity"), context + " effect_polarity"),
 			"display_name_key": display_name_key,
 			"description_key": description_key,
-			"max_level": max(1, _to_int(_get_string(row, "max_level"), 1)),
+			"max_level": maxi(1, _to_int(_get_string(row, "max_level"), 1)),
 			"notes": _get_string(row, "notes"),
 			"enabled": true
 		}
 
 
 func _load_skill_levels() -> void:
-	var rows := _load_optional_tsv("res://data/master/skill_levels.tsv")
+	var rows: Array[Dictionary] = _load_optional_tsv("res://data/master/skill_levels.tsv")
 
 	for row in rows:
-		var skill_id := _get_string(row, "skill_id").strip_edges()
+		var skill_id: String = _get_string(row, "skill_id").strip_edges()
 		if skill_id == "":
 			push_warning("skill_levels.tsv has empty skill_id")
 			continue
@@ -3772,9 +3947,9 @@ func _load_skill_levels() -> void:
 		if not _to_bool(_get_string(row, "enabled", "true")):
 			continue
 
-		var level = max(1, _to_int(_get_string(row, "level"), 1))
+		var level: int = maxi(1, _to_int(_get_string(row, "level"), 1))
 		var skill: Dictionary = get_skill(skill_id)
-		var max_level := int(skill.get("max_level", level))
+		var max_level: int = int(skill.get("max_level", level))
 		if level > max_level:
 			push_warning("skill_levels.tsv level exceeds max_level: " + skill_id + " level=" + str(level))
 			continue
@@ -3792,27 +3967,28 @@ func _load_skill_levels() -> void:
 			push_warning("duplicate skill level: " + skill_id + " level=" + str(level))
 			continue
 
-		var context := "skill_levels.tsv skill_id=" + skill_id + " level=" + str(level)
+		var context: String = "skill_levels.tsv skill_id=" + skill_id + " level=" + str(level)
 		level_map[level] = {
 			"skill_id": skill_id,
 			"level": level,
 			"cost_type": _normalize_skill_cost_type(_get_string(row, "cost_type"), context + " cost_type"),
-			"cost_amount": max(0.0, _to_float(_get_string(row, "cost_amount"), 0.0)),
-			"cooldown": max(0.0, _to_float(_get_string(row, "cooldown"), 0.0)),
+			"cost_amount": maxf(0.0, _to_float(_get_string(row, "cost_amount"), 0.0)),
+			"cooldown": maxf(0.0, _to_float(_get_string(row, "cooldown"), 0.0)),
 			"power": _to_float(_get_string(row, "power"), 0.0),
-			"duration": max(0.0, _to_float(_get_string(row, "duration"), 0.0)),
-			"range": max(0.0, _to_float(_get_string(row, "range"), 0.0)),
-			"success_rate": clamp(_to_float(_get_string(row, "success_rate"), 1.0), 0.0, 1.0),
+			"duration": maxf(0.0, _to_float(_get_string(row, "duration"), 0.0)),
+			"range": maxf(0.0, _to_float(_get_string(row, "range"), 0.0)),
+			"success_rate": clampf(_to_float(_get_string(row, "success_rate"), 1.0), 0.0, 1.0),
+			"exp_to_next": maxi(0, _to_int(_get_string(row, "exp_to_next"), 0)),
 			"enabled": true
 		}
 
 
 func _load_skill_effect_links() -> void:
-	var rows := _load_optional_tsv("res://data/master/skill_effect_links.tsv")
+	var rows: Array[Dictionary] = _load_optional_tsv("res://data/master/skill_effect_links.tsv")
 
 	for row in rows:
-		var skill_id := _get_string(row, "skill_id").strip_edges()
-		var effect_id := _get_string(row, "effect_id").strip_edges()
+		var skill_id: String = _get_string(row, "skill_id").strip_edges()
+		var effect_id: String = _get_string(row, "effect_id").strip_edges()
 		if skill_id == "" or effect_id == "":
 			push_warning("skill_effect_links.tsv has empty skill_id or effect_id")
 			continue
@@ -3828,38 +4004,38 @@ func _load_skill_effect_links() -> void:
 		if not _to_bool(_get_string(row, "enabled", "true")):
 			continue
 
-		var min_level = max(1, _to_int(_get_string(row, "min_level"), 1))
-		var max_level = max(min_level, _to_int(_get_string(row, "max_level"), min_level))
+		var min_level: int = maxi(1, _to_int(_get_string(row, "min_level"), 1))
+		var max_level: int = maxi(min_level, _to_int(_get_string(row, "max_level"), min_level))
 		var skill: Dictionary = get_skill(skill_id)
-		var skill_max_level := int(skill.get("max_level", max_level))
+		var skill_max_level: int = int(skill.get("max_level", max_level))
 		if max_level > skill_max_level:
 			push_warning("skill_effect_links.tsv max_level exceeds skill max_level: " + skill_id + " max_level=" + str(max_level))
 			continue
 
-		var context := "skill_effect_links.tsv skill_id=" + skill_id + " effect_id=" + effect_id
-		var trigger := _normalize_skill_trigger(_get_string(row, "trigger"), context + " trigger")
+		var context: String = "skill_effect_links.tsv skill_id=" + skill_id + " effect_id=" + effect_id
+		var trigger: String = _normalize_skill_trigger(_get_string(row, "trigger"), context + " trigger")
 		if trigger == "":
 			push_warning("skill_effect_links.tsv has empty or invalid trigger: " + skill_id + " effect_id=" + effect_id)
 			continue
 
-		var entry := {
+		var entry: Dictionary = {
 			"skill_id": skill_id,
 			"min_level": min_level,
 			"max_level": max_level,
 			"trigger": trigger,
 			"effect_id": effect_id,
-			"chance_percent": clamp(_to_float(_get_string(row, "chance_percent"), 100.0), 0.0, 100.0),
-			"order": max(1, _to_int(_get_string(row, "order"), 1)),
+			"chance_percent": clampf(_to_float(_get_string(row, "chance_percent"), 100.0), 0.0, 100.0),
+			"order": maxi(1, _to_int(_get_string(row, "order"), 1)),
 			"enabled": true
 		}
 		_append_dictionary_array_entry(skill_effect_links_by_skill, skill_id, entry)
 
 
 func _load_skill_requirements() -> void:
-	var rows := _load_optional_tsv("res://data/master/skill_requirements.tsv")
+	var rows: Array[Dictionary] = _load_optional_tsv("res://data/master/skill_requirements.tsv")
 
 	for row in rows:
-		var skill_id := _get_string(row, "skill_id").strip_edges()
+		var skill_id: String = _get_string(row, "skill_id").strip_edges()
 		if skill_id == "":
 			push_warning("skill_requirements.tsv has empty skill_id")
 			continue
@@ -3871,28 +4047,28 @@ func _load_skill_requirements() -> void:
 		if not _to_bool(_get_string(row, "enabled", "true")):
 			continue
 
-		var context := "skill_requirements.tsv skill_id=" + skill_id
-		var requirement_kind := _normalize_skill_requirement_kind(_get_string(row, "requirement_kind"), context + " requirement_kind")
+		var context: String = "skill_requirements.tsv skill_id=" + skill_id
+		var requirement_kind: String = _normalize_skill_requirement_kind(_get_string(row, "requirement_kind"), context + " requirement_kind")
 		if requirement_kind == "":
 			push_warning("skill_requirements.tsv has empty or invalid requirement_kind: " + skill_id)
 			continue
 
-		var entry := {
+		var entry: Dictionary = {
 			"skill_id": skill_id,
 			"requirement_kind": requirement_kind,
 			"requirement_type": _normalize_skill_requirement_type(_get_string(row, "requirement_type"), context + " requirement_type"),
 			"target_id": _get_string(row, "target_id").strip_edges(),
-			"required_value": max(0.0, _to_float(_get_string(row, "required_value"), 0.0)),
+			"required_value": maxf(0.0, _to_float(_get_string(row, "required_value"), 0.0)),
 			"enabled": true
 		}
 		_append_dictionary_array_entry(skill_requirements_by_skill, skill_id, entry)
 
 
 func _load_unit_skill_tables() -> void:
-	var rows := _load_optional_tsv("res://data/master/unit_skill_tables.tsv")
+	var rows: Array[Dictionary] = _load_optional_tsv("res://data/master/unit_skill_tables.tsv")
 
 	for row in rows:
-		var skill_table_id := _get_string(row, "skill_table_id").strip_edges()
+		var skill_table_id: String = _get_string(row, "skill_table_id").strip_edges()
 		if skill_table_id == "":
 			push_warning("unit_skill_tables.tsv has empty skill_table_id")
 			continue
@@ -3913,11 +4089,11 @@ func _load_unit_skill_tables() -> void:
 
 
 func _load_unit_skill_entries() -> void:
-	var rows := _load_optional_tsv("res://data/master/unit_skill_entries.tsv")
+	var rows: Array[Dictionary] = _load_optional_tsv("res://data/master/unit_skill_entries.tsv")
 
 	for row in rows:
-		var skill_table_id := _get_string(row, "skill_table_id").strip_edges()
-		var entry_id := _get_string(row, "entry_id").strip_edges()
+		var skill_table_id: String = _get_string(row, "skill_table_id").strip_edges()
+		var entry_id: String = _get_string(row, "entry_id").strip_edges()
 		if skill_table_id == "" or entry_id == "":
 			push_warning("unit_skill_entries.tsv has empty skill_table_id or entry_id")
 			continue
@@ -3929,10 +4105,10 @@ func _load_unit_skill_entries() -> void:
 		if not _to_bool(_get_string(row, "enabled", "true")):
 			continue
 
-		var context := "unit_skill_entries.tsv skill_table_id=" + skill_table_id + " entry_id=" + entry_id
-		var pick_type := _normalize_unit_skill_pick_type(_get_string(row, "pick_type"), context + " pick_type")
-		var skill_id := _get_string(row, "skill_id").strip_edges()
-		var skill_category := _normalize_skill_category(_get_string(row, "skill_category"), context + " skill_category")
+		var context: String = "unit_skill_entries.tsv skill_table_id=" + skill_table_id + " entry_id=" + entry_id
+		var pick_type: String = _normalize_unit_skill_pick_type(_get_string(row, "pick_type"), context + " pick_type")
+		var skill_id: String = _get_string(row, "skill_id").strip_edges()
+		var skill_category: String = _normalize_skill_category(_get_string(row, "skill_category"), context + " skill_category")
 
 		if pick_type == "SKILL":
 			if skill_id == "" or not has_skill(skill_id):
@@ -3943,18 +4119,18 @@ func _load_unit_skill_entries() -> void:
 			push_warning("unit_skill_entries.tsv CATEGORY row has empty or invalid skill_category: " + skill_table_id + " entry=" + entry_id)
 			continue
 
-		var level_min = max(0, _to_int(_get_string(row, "level_min"), 0))
-		var level_max = max(level_min, _to_int(_get_string(row, "level_max"), level_min))
-		var learned := _to_bool(_get_string(row, "learned", "false"))
+		var level_min: int = maxi(0, _to_int(_get_string(row, "level_min"), 0))
+		var level_max: int = maxi(level_min, _to_int(_get_string(row, "level_max"), level_min))
+		var learned: bool = _to_bool(_get_string(row, "learned", "false"))
 		if learned and level_min < 1:
 			level_min = 1
-			level_max = max(level_max, level_min)
+			level_max = maxi(level_max, level_min)
 
 		if pick_type == "SKILL":
 			var skill: Dictionary = get_skill(skill_id)
-			level_max = min(level_max, int(skill.get("max_level", level_max)))
+			level_max = mini(level_max, int(skill.get("max_level", level_max)))
 
-		var entry := {
+		var entry: Dictionary = {
 			"skill_table_id": skill_table_id,
 			"entry_id": entry_id,
 			"pick_type": pick_type,
@@ -3963,10 +4139,10 @@ func _load_unit_skill_entries() -> void:
 			"learned": learned,
 			"level_min": level_min,
 			"level_max": level_max,
-			"exp_min": max(0, _to_int(_get_string(row, "exp_min"), 0)),
-			"exp_max": max(0, _to_int(_get_string(row, "exp_max"), 0)),
-			"chance_percent": clamp(_to_float(_get_string(row, "chance_percent"), 100.0), 0.0, 100.0),
-			"weight": max(0.0, _to_float(_get_string(row, "weight"), 0.0)),
+			"exp_min": maxi(0, _to_int(_get_string(row, "exp_min"), 0)),
+			"exp_max": maxi(0, _to_int(_get_string(row, "exp_max"), 0)),
+			"chance_percent": clampf(_to_float(_get_string(row, "chance_percent"), 100.0), 0.0, 100.0),
+			"weight": maxf(0.0, _to_float(_get_string(row, "weight"), 0.0)),
 			"enabled": true
 		}
 		if int(entry.get("exp_max", 0)) < int(entry.get("exp_min", 0)):

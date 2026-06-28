@@ -916,20 +916,38 @@ func build_page_2_text(unit_node, skills) -> String:
 
 	if skills == null:
 		lines.append("スキルデータなし")
-	else:
-		lines.append("採取: %d" % int(skills.gathering))
-		lines.append("調査: %d" % int(skills.investigation))
-		lines.append("隠密: %d" % int(skills.stealth))
-		lines.append("罠解除: %d" % int(skills.trap_disarm))
-		lines.append("釣り: %d" % int(skills.fishing))
-		lines.append("鑑定: %d" % int(skills.appraisal))
-		lines.append("料理: %d" % int(skills.cooking))
-		lines.append("修理: %d" % int(skills.repair))
-		lines.append("鍛冶: %d" % int(skills.smithing))
-		lines.append("錬金: %d" % int(skills.alchemy))
-		lines.append("交渉: %d" % int(skills.negotiation))
-		lines.append("話術: %d" % int(skills.speech))
-		lines.append("医療: %d" % int(skills.medical))
+		return "\n".join(lines)
+
+	if skills.has_method("get_skill_display_rows"):
+		var rows_value: Variant = skills.call("get_skill_display_rows", "ja")
+		if typeof(rows_value) == TYPE_ARRAY:
+			var rows: Array = rows_value as Array
+			for row_value in rows:
+				if typeof(row_value) != TYPE_DICTIONARY:
+					continue
+
+				var row: Dictionary = row_value as Dictionary
+				var skill_id: String = String(row.get("skill_id", "")).strip_edges()
+				var display_name: String = String(row.get("display_name", skill_id)).strip_edges()
+				if display_name == "":
+					display_name = skill_id
+
+				lines.append("%s: %d" % [display_name, int(row.get("value", 0))])
+			return "\n".join(lines)
+
+	lines.append("採取: %d" % int(skills.gathering))
+	lines.append("調査: %d" % int(skills.investigation))
+	lines.append("隠密: %d" % int(skills.stealth))
+	lines.append("罠解除: %d" % int(skills.trap_disarm))
+	lines.append("釣り: %d" % int(skills.fishing))
+	lines.append("鑑定: %d" % int(skills.appraisal))
+	lines.append("料理: %d" % int(skills.cooking))
+	lines.append("修理: %d" % int(skills.repair))
+	lines.append("鍛冶: %d" % int(skills.smithing))
+	lines.append("錬金: %d" % int(skills.alchemy))
+	lines.append("交渉: %d" % int(skills.negotiation))
+	lines.append("話術: %d" % int(skills.speech))
+	lines.append("医療: %d" % int(skills.medical))
 
 	return "\n".join(lines)
 
