@@ -379,6 +379,38 @@ def check_damage_mode(table: Table) -> None:
         reporter.ok(f"{table.filename}.damage_mode values are valid ({count_text})")
 
 
+def check_trigger_chance(table: Table) -> None:
+    if not require_column(table, "trigger_chance", "warn"):
+        return
+
+    checked = 0
+    defaulted = 0
+    issue_count = 0
+
+    for row, line_number in zip(table.rows, table.line_numbers):
+        raw_value = row.get("trigger_chance", "").strip()
+        if raw_value == "":
+            defaulted += 1
+            continue
+
+        try:
+            value = float(raw_value)
+        except ValueError:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} trigger_chance must be numeric or empty")
+            continue
+
+        checked += 1
+        if not 0.0 <= value <= 1.0:
+            issue_count += 1
+            reporter.error(f"{table.filename}:{line_number} trigger_chance must be between 0.0 and 1.0")
+
+    if issue_count == 0:
+        reporter.ok(
+            f"{table.filename}.trigger_chance values are valid (explicit={checked}, default={defaulted})"
+        )
+
+
 def check_npc_quest_links(table: Table) -> None:
     for column in ("npc_type_id", "quest_id", "weight", "enabled"):
         require_column(table, column)
@@ -1359,6 +1391,7 @@ def main() -> int:
         missing_column_severity="warn",
     )
     check_damage_mode(tables["item_effects"])
+    check_trigger_chance(tables["item_effects"])
     check_reference(
         tables["npc_quest_links"],
         "npc_type_id",

@@ -92,6 +92,10 @@ static func get_spawn_weight(item_id: String) -> int:
 	return 100
 
 
+static func is_random_spawn_candidate(item_id: String) -> bool:
+	return get_spawn_weight(item_id) > 0
+
+
 static func get_item_type(item_id: String) -> String:
 	var data = get_item_resource(item_id)
 	if data == null:
@@ -109,12 +113,15 @@ static func get_item_type(item_id: String) -> String:
 	return String(ItemCategories.MISC)
 
 
-static func get_item_ids_by_type(item_type: String) -> Array[String]:
+static func get_item_ids_by_type(item_type: String, include_unspawnable: bool = false) -> Array[String]:
 	var result: Array[String] = []
 	var normalized_type: String = ItemCategories.normalize(item_type)
 
 	for item_id in _get_item_resource_keys():
 		var id_text: String = String(item_id)
+
+		if not include_unspawnable and not is_random_spawn_candidate(id_text):
+			continue
 
 		if get_item_type(id_text) == normalized_type:
 			result.append(id_text)
@@ -122,7 +129,7 @@ static func get_item_ids_by_type(item_type: String) -> Array[String]:
 	return result
 
 
-static func get_item_ids_by_types(item_types: Array[String]) -> Array[String]:
+static func get_item_ids_by_types(item_types: Array[String], include_unspawnable: bool = false) -> Array[String]:
 	var result: Array[String] = []
 	var normalized_types: Array[String] = []
 
@@ -133,18 +140,21 @@ static func get_item_ids_by_types(item_types: Array[String]) -> Array[String]:
 		var id_text: String = String(item_id)
 		var type_text: String = get_item_type(id_text)
 
+		if not include_unspawnable and not is_random_spawn_candidate(id_text):
+			continue
+
 		if normalized_types.has(type_text):
 			result.append(id_text)
 
 	return result
 
 
-static func get_item_ids_by_category(category: String) -> Array[String]:
-	return get_item_ids_by_type(category)
+static func get_item_ids_by_category(category: String, include_unspawnable: bool = false) -> Array[String]:
+	return get_item_ids_by_type(category, include_unspawnable)
 
 
-static func get_item_ids_by_categories(categories: Array[String]) -> Array[String]:
-	return get_item_ids_by_types(categories)
+static func get_item_ids_by_categories(categories: Array[String], include_unspawnable: bool = false) -> Array[String]:
+	return get_item_ids_by_types(categories, include_unspawnable)
 
 
 static func get_random_item_id_by_type(item_type: String, rng: RandomNumberGenerator) -> String:
@@ -646,6 +656,9 @@ static func get_spawnable_item_ids() -> Array[String]:
 			continue
 
 		if data is ItemData or data is EquipmentData:
+			if not is_random_spawn_candidate(id_text):
+				continue
+
 			result.append(id_text)
 
 	return result

@@ -3,4 +3,10 @@ knife	HAND	0	20	0	0	melee	neutral	physical	1	1	MELEE	APPROACH
 bow	HAND	0	10	0	0	melee	neutral	physical	1	5	LONG	KEEP_DISTANCE
 cloth_armor	BODY	0	0	20	0	melee	neutral	physical	1	1	AUTO	AUTO
 power_ring	ACCESSORY	0	20	0	0	melee	neutral	physical	1	1	AUTO	AUTO
-test_copper_ring	ACCESSORY	3	0	0	0	melee	neutral	physical	1	1	AUTO	AUTO
+sample_copper_guard_ring	ACCESSORY	3	0	0	0	melee	neutral	physical	1	1	AUTO	AUTO
+sample_flame_knife	HAND	0	5	0	0	melee	neutral	physical	1	1	MELEE	APPROACH
+sample_poison_knife	HAND	0	3	0	0	melee	neutral	physical	1	1	MELEE	APPROACH
+sample_drain_knife	HAND	0	3	0	0	melee	neutral	physical	1	1	MELEE	APPROACH
+sample_dud_flame_knife	HAND	0	3	0	0	melee	neutral	physical	1	1	MELEE	APPROACH
+sample_unstable_flame_knife	HAND	0	3	0	0	melee	neutral	physical	1	1	MELEE	APPROACH
+sample_combo_knife	HAND	0	3	0	0	melee	neutral	physical	1	1	MELEE	APPROACH

@@ -531,6 +531,82 @@ func get_all_equipped_resources() -> Array[EquipmentData]:
 	return result
 
 
+func _append_equipped_item_effect_entries(
+	result: Array[Dictionary],
+	slot_name: String,
+	entry: Dictionary,
+	equipment: EquipmentData
+) -> void:
+	if equipment == null:
+		return
+
+	var item_id: String = String(entry.get("item_id", ""))
+	if item_id == "":
+		item_id = String(equipment.item_id)
+
+	for raw_effect in equipment.effects:
+		var effect: ItemEffectData = raw_effect as ItemEffectData
+		if effect == null:
+			continue
+
+		result.append({
+			"slot_name": slot_name,
+			"item_id": item_id,
+			"entry": entry.duplicate(true),
+			"equipment": equipment,
+			"effect_id": _get_item_effect_debug_name(effect),
+			"effect": effect
+		})
+
+
+func get_equipped_item_effects() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	var using_hotbar_override: bool = _is_using_hotbar_hand_override_slot()
+
+	for slot_name in equipment_slot_order:
+		if using_hotbar_override and (slot_name == "right_hand" or slot_name == "left_hand"):
+			continue
+
+		var entry: Dictionary = get_equipped_entry(slot_name)
+		var equipment: EquipmentData = _get_equipment_resource_from_entry(entry)
+		_append_equipped_item_effect_entries(result, slot_name, entry, equipment)
+
+	if using_hotbar_override:
+		var hotbar_weapon_entry: Dictionary = _get_selected_hotbar_hand_weapon_entry()
+		var hotbar_weapon: EquipmentData = _get_equipment_resource_from_entry(hotbar_weapon_entry)
+		_append_equipped_item_effect_entries(result, "hotbar_hand", hotbar_weapon_entry, hotbar_weapon)
+
+	return result
+
+
+func _is_attack_equipment_effect_candidate(effect: ItemEffectData) -> bool:
+	if effect == null:
+		return false
+
+	match effect.effect_type:
+		ItemEffectData.EffectType.DEAL_DAMAGE:
+			return true
+		ItemEffectData.EffectType.APPLY_STATUS:
+			return true
+		ItemEffectData.EffectType.RESTORE_RESOURCE:
+			return true
+		_:
+			return false
+
+
+func get_equipped_attack_effects() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+
+	for effect_entry in get_equipped_item_effects():
+		var effect: ItemEffectData = effect_entry.get("effect") as ItemEffectData
+		if not _is_attack_equipment_effect_candidate(effect):
+			continue
+
+		result.append(effect_entry.duplicate(true))
+
+	return result
+
+
 func get_current_hand_display_entry() -> Dictionary:
 	# HUD左端の「手持ち表示」枠に出す内容。
 	# 現在は「ホットバーで実際に選択しているアイテム」だけを表示する。
@@ -652,6 +728,121 @@ func _get_total_enchantment_bonus(stat_name: String) -> int:
 	return total
 
 
+func _get_item_effect_debug_name(effect: ItemEffectData) -> String:
+	if effect == null:
+		return ""
+
+	if GameData != null:
+		var raw_effects: Variant = GameData.get("effects")
+		if typeof(raw_effects) == TYPE_DICTIONARY:
+			var all_effects: Dictionary = raw_effects as Dictionary
+			for effect_id in all_effects.keys():
+				if all_effects[effect_id] == effect:
+					return String(effect_id)
+
+	return effect.get_effect_type_name()
+
+
+func _is_equipment_passive_debug_enabled() -> bool:
+	if DebugSettings == null:
+		return false
+	return bool(DebugSettings.debug_equipment_effects) or bool(DebugSettings.debug_equipment_attack_effects)
+
+
+func _debug_log_equipment_passive_effect(
+	context: String,
+	effect_entry: Dictionary,
+	effect: ItemEffectData,
+	flat_delta: int,
+	percent_delta: float
+) -> void:
+	if not _is_equipment_passive_debug_enabled():
+		return
+	if effect == null:
+		return
+
+	print(
+		"[EquipmentPassiveEffect]",
+		" unit=", name,
+		" context=", context,
+		" slot=", String(effect_entry.get("slot_name", "")),
+		" item=", String(effect_entry.get("item_id", "")),
+		" effect=", _get_item_effect_debug_name(effect),
+		" type=", effect.get_effect_type_name(),
+		" stat=", String(effect.stat_name),
+		" flat=", flat_delta,
+		" percent=", percent_delta
+	)
+
+
+func _debug_log_equipment_passive_stat(
+	context: String,
+	stat_name: StringName,
+	before_value: int,
+	after_value: int,
+	slot_name: String = "",
+	item_id: String = ""
+) -> void:
+	if not _is_equipment_passive_debug_enabled():
+		return
+
+	print(
+		"[EquipmentPassiveStat]",
+		" unit=", name,
+		" context=", context,
+		" slot=", slot_name,
+		" item=", item_id,
+		" stat=", String(stat_name),
+		" before=", before_value,
+		" after=", after_value,
+		" delta=", after_value - before_value
+	)
+
+
+func _get_total_equipment_effect_modifier(stat_name: StringName, context: String = "stat_recalculate") -> Dictionary:
+	var result: Dictionary = {
+		"flat": 0,
+		"percent": 0.0
+	}
+	var stat_key: String = String(stat_name)
+
+	for effect_entry in get_equipped_item_effects():
+		var effect: ItemEffectData = effect_entry.get("effect") as ItemEffectData
+		if effect == null:
+			continue
+		if effect.effect_type != ItemEffectData.EffectType.APPLY_MODIFIER:
+			continue
+		if String(effect.stat_name) != stat_key:
+			continue
+
+		var modifier_sign: float = 1.0
+		if effect.modifier_kind == ItemEffectData.ModifierKind.DEBUFF:
+			modifier_sign = -1.0
+
+		var flat_delta: int = int(modifier_sign * float(effect.stat_flat))
+		var percent_delta: float = modifier_sign * float(effect.stat_percent)
+		result["flat"] = int(result.get("flat", 0)) + flat_delta
+		result["percent"] = float(result.get("percent", 0.0)) + percent_delta
+
+		_debug_log_equipment_passive_effect(context, effect_entry, effect, flat_delta, percent_delta)
+
+	return result
+
+
+func _apply_equipment_effect_modifier(stat_name: StringName, base_value: int, min_value: int = 0, context: String = "stat_recalculate") -> int:
+	var modifier: Dictionary = _get_total_equipment_effect_modifier(stat_name, context)
+	var flat_bonus: int = int(modifier.get("flat", 0))
+	var percent_bonus: float = float(modifier.get("percent", 0.0))
+	var multiplier: float = max(0.0, 1.0 + percent_bonus)
+	var modified_value: int = int(round((float(base_value) + float(flat_bonus)) * multiplier))
+	var final_value: int = max(min_value, modified_value)
+
+	if flat_bonus != 0 or not is_equal_approx(percent_bonus, 0.0):
+		_debug_log_equipment_passive_stat(context, stat_name, base_value, final_value)
+
+	return final_value
+
+
 func get_total_max_hp() -> int:
 	if stats == null:
 		return 1
@@ -668,7 +859,7 @@ func get_total_max_hp() -> int:
 
 	total += _get_total_enchantment_bonus("max_hp")
 
-	return max(total, 1)
+	return _apply_equipment_effect_modifier(&"max_hp", total, 1)
 
 
 func _clamp_current_hp_to_total_max() -> void:
@@ -696,7 +887,9 @@ func get_total_attack() -> int:
 
 	total += _get_total_enchantment_bonus("attack")
 
-	return get_modified_stat_value(&"attack", max(total, 0))
+	total = _apply_equipment_effect_modifier(&"attack", max(total, 0), 0)
+
+	return get_modified_stat_value(&"attack", total)
 
 
 func get_total_defense() -> int:
@@ -715,7 +908,9 @@ func get_total_defense() -> int:
 
 	total += _get_total_enchantment_bonus("defense")
 
-	return get_modified_stat_value(&"defense", max(total, 0))
+	total = _apply_equipment_effect_modifier(&"defense", max(total, 0), 0)
+
+	return get_modified_stat_value(&"defense", total)
 
 
 func get_total_speed() -> float:
@@ -734,7 +929,9 @@ func get_total_speed() -> float:
 
 	total += _get_total_enchantment_bonus("speed")
 
-	return float(get_modified_stat_value(&"speed", max(total, 1)))
+	total = _apply_equipment_effect_modifier(&"speed", max(total, 1), 1)
+
+	return float(get_modified_stat_value(&"speed", total))
 
 
 func get_total_accuracy() -> float:
@@ -748,6 +945,7 @@ func get_total_accuracy() -> float:
 		base_accuracy = float(stats.accuracy)
 
 	var scaled_accuracy: int = int(round(base_accuracy * 1000.0))
+	scaled_accuracy = _apply_equipment_effect_modifier(&"accuracy", scaled_accuracy, 0)
 	var modified_accuracy: int = get_modified_stat_value(&"accuracy", scaled_accuracy)
 
 	return clamp(float(modified_accuracy) / 1000.0, 0.0, 1.0)
@@ -764,6 +962,7 @@ func get_total_evasion() -> float:
 		base_evasion = float(stats.evasion)
 
 	var scaled_evasion: int = int(round(base_evasion * 1000.0))
+	scaled_evasion = _apply_equipment_effect_modifier(&"evasion", scaled_evasion, 0)
 	var modified_evasion: int = get_modified_stat_value(&"evasion", scaled_evasion)
 
 	return clamp(float(modified_evasion) / 1000.0, 0.0, 1.0)
@@ -780,6 +979,7 @@ func get_total_crit_rate() -> float:
 		base_crit_rate = float(stats.crit_rate)
 
 	var scaled_crit_rate: int = int(round(base_crit_rate * 1000.0))
+	scaled_crit_rate = _apply_equipment_effect_modifier(&"crit_rate", scaled_crit_rate, 0)
 	var modified_crit_rate: int = get_modified_stat_value(&"crit_rate", scaled_crit_rate)
 
 	return clamp(float(modified_crit_rate) / 1000.0, 0.0, 1.0)
@@ -946,8 +1146,11 @@ func set_equipped_entry(slot_name: String, entry: Dictionary) -> bool:
 	if not can_equip_item_id_to_slot(item_id, slot_name):
 		return false
 
+	var before_attack: int = get_total_attack()
 	equipped_items[slot_name] = entry.duplicate(true)
 	_clamp_current_hp_to_total_max()
+	var after_attack: int = get_total_attack()
+	_debug_log_equipment_passive_stat("equip", &"attack", before_attack, after_attack, slot_name, item_id)
 	return true
 
 
@@ -959,17 +1162,24 @@ func set_equipped_item_by_id(slot_name: String, item_id: String) -> bool:
 	if not can_equip_item_id_to_slot(item_id, slot_name):
 		return false
 
+	var before_attack: int = get_total_attack()
 	equipped_items[slot_name] = {
 		"item_id": item_id,
 		"amount": 1
 	}
 	_clamp_current_hp_to_total_max()
+	var after_attack: int = get_total_attack()
+	_debug_log_equipment_passive_stat("equip", &"attack", before_attack, after_attack, slot_name, item_id)
 	return true
 
 
 func clear_equipment_slot(slot_name: String) -> void:
+	var before_attack: int = get_total_attack()
+	var previous_item_id: String = String(get_equipped_entry(slot_name).get("item_id", ""))
 	equipped_items.erase(slot_name)
 	_clamp_current_hp_to_total_max()
+	var after_attack: int = get_total_attack()
+	_debug_log_equipment_passive_stat("unequip", &"attack", before_attack, after_attack, slot_name, previous_item_id)
 
 
 func get_equipment_save_data() -> Dictionary:

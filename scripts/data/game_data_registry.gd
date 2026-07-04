@@ -2575,6 +2575,10 @@ func _normalize_damage_float(value: String, default_value: float, context: Strin
 	return parsed_value
 
 
+func _normalize_trigger_chance(value: String, context: String = "") -> float:
+	return _normalize_damage_float(value, 1.0, context, true)
+
+
 func _normalize_allowed_text(value: String, allowed_values: Array, fallback: String, context: String) -> String:
 	var normalized_value := value.strip_edges().to_lower()
 	if normalized_value == "":
@@ -3366,6 +3370,11 @@ func _build_item_effect(row: Dictionary) -> ItemEffectData:
 		_:
 			push_error("unknown effect_type: " + effect_type)
 			effect.effect_type = ItemEffectData.EffectType.NONE
+
+	effect.trigger_chance = _normalize_trigger_chance(
+		_get_string(row, "trigger_chance", str(effect.trigger_chance)),
+		"item_effects.tsv effect_id=" + effect_id + " trigger_chance"
+	)
 
 	if effect.uses_status_id():
 		_warn_unknown_status_effect_type_if_needed(String(effect.status_id), "item_effects.tsv effect_id=" + effect_id)

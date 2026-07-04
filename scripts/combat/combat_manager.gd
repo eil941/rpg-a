@@ -107,6 +107,7 @@ func try_bump_attack(attacker, target) -> bool:
 		damage = 1
 
 	target.stats.take_damage(damage)
+	_apply_equipment_attack_effects(attacker, target)
 	_wake_up_target_if_needed(target)
 
 	if result["is_critical"]:
@@ -434,6 +435,7 @@ func perform_attack(attacker, target, require_hostile: bool = true) -> bool:
 		damage = 1
 
 	target.stats.take_damage(damage)
+	_apply_equipment_attack_effects(attacker, target)
 
 	var target_died: bool = false
 	if target.has_method("check_death"):
@@ -468,6 +470,338 @@ func _should_force_target_hostile(attacker, target, require_hostile: bool) -> bo
 		return false
 
 	return bool(attacker.is_player_unit)
+
+
+func _get_unit_debug_name(unit) -> String:
+	if unit == null:
+		return "<null>"
+	if "name" in unit:
+		return String(unit.name)
+	return str(unit)
+
+
+func _is_equipment_attack_effect_debug_enabled() -> bool:
+	if DebugSettings == null:
+		return false
+	return bool(DebugSettings.debug_equipment_attack_effects)
+
+
+func _debug_log_equipment_attack_effects(attacker, target) -> void:
+	if not _is_equipment_attack_effect_debug_enabled():
+		return
+
+	var attacker_name: String = _get_unit_debug_name(attacker)
+	var target_name: String = _get_unit_debug_name(target)
+
+	if attacker == null or not attacker.has_method("get_equipped_attack_effects"):
+		print(
+			"[EquipmentAttackEffects]",
+			" attacker=", attacker_name,
+			" target=", target_name,
+			" effects=0",
+			" reason=no_api"
+		)
+		return
+
+	var effect_entries: Array = attacker.get_equipped_attack_effects()
+	if effect_entries.is_empty():
+		print(
+			"[EquipmentAttackEffects]",
+			" attacker=", attacker_name,
+			" target=", target_name,
+			" effects=0"
+		)
+		return
+
+	for raw_entry in effect_entries:
+		if typeof(raw_entry) != TYPE_DICTIONARY:
+			continue
+
+		var effect_entry: Dictionary = raw_entry as Dictionary
+		var effect: ItemEffectData = effect_entry.get("effect") as ItemEffectData
+		var effect_type: String = ""
+		if effect != null:
+			effect_type = effect.get_effect_type_name()
+
+		print(
+			"[EquipmentAttackEffects]",
+			" attacker=", attacker_name,
+			" target=", target_name,
+			" slot=", String(effect_entry.get("slot_name", "")),
+			" item=", String(effect_entry.get("item_id", "")),
+			" effect=", String(effect_entry.get("effect_id", "")),
+			" type=", effect_type
+		)
+
+
+func _is_target_dead_for_equipment_attack_effect(target) -> bool:
+	if target == null:
+		return true
+	if not ("stats" in target):
+		return true
+	if target.stats == null:
+		return true
+	if not ("hp" in target.stats):
+		return true
+	return int(target.stats.hp) <= 0
+
+
+func _debug_log_equipment_attack_effect_skip(
+	attacker,
+	target,
+	effect_entry: Dictionary,
+	reason: String,
+	trigger_chance: float = -1.0
+) -> void:
+	if not _is_equipment_attack_effect_debug_enabled():
+		return
+
+	var effect: ItemEffectData = effect_entry.get("effect") as ItemEffectData
+	var effect_type: String = ""
+	if effect != null:
+		effect_type = effect.get_effect_type_name()
+
+	if trigger_chance >= 0.0:
+		print(
+			"[EquipmentAttackEffectSkip]",
+			" attacker=", _get_unit_debug_name(attacker),
+			" target=", _get_unit_debug_name(target),
+			" slot=", String(effect_entry.get("slot_name", "")),
+			" item=", String(effect_entry.get("item_id", "")),
+			" effect=", String(effect_entry.get("effect_id", "")),
+			" type=", effect_type,
+			" reason=", reason,
+			" chance=", trigger_chance
+		)
+	else:
+		print(
+			"[EquipmentAttackEffectSkip]",
+			" attacker=", _get_unit_debug_name(attacker),
+			" target=", _get_unit_debug_name(target),
+			" slot=", String(effect_entry.get("slot_name", "")),
+			" item=", String(effect_entry.get("item_id", "")),
+			" effect=", String(effect_entry.get("effect_id", "")),
+			" type=", effect_type,
+			" reason=", reason
+		)
+
+
+func _debug_log_equipment_attack_effect_apply(
+	attacker,
+	target,
+	effect_entry: Dictionary,
+	effect: ItemEffectData,
+	damage: int,
+	mode: String
+) -> void:
+	if not _is_equipment_attack_effect_debug_enabled():
+		return
+
+	print(
+		"[EquipmentAttackEffectApply]",
+		" attacker=", _get_unit_debug_name(attacker),
+		" target=", _get_unit_debug_name(target),
+		" slot=", String(effect_entry.get("slot_name", "")),
+		" item=", String(effect_entry.get("item_id", "")),
+		" effect=", String(effect_entry.get("effect_id", "")),
+		" type=", effect.get_effect_type_name(),
+		" damage=", damage,
+		" element=", String(effect.damage_element),
+		" damage_type=", String(effect.damage_type),
+		" mode=", mode
+	)
+
+
+func _debug_log_equipment_attack_status_apply(
+	attacker,
+	target,
+	effect_entry: Dictionary,
+	effect: ItemEffectData
+) -> void:
+	if not _is_equipment_attack_effect_debug_enabled():
+		return
+
+	print(
+		"[EquipmentAttackEffectApply]",
+		" attacker=", _get_unit_debug_name(attacker),
+		" target=", _get_unit_debug_name(target),
+		" slot=", String(effect_entry.get("slot_name", "")),
+		" item=", String(effect_entry.get("item_id", "")),
+		" effect=", String(effect_entry.get("effect_id", "")),
+		" type=", effect.get_effect_type_name(),
+		" status=", String(effect.status_id),
+		" duration=", effect.duration_value
+	)
+
+
+func _debug_log_equipment_attack_restore_apply(
+	attacker,
+	target,
+	effect_entry: Dictionary,
+	effect: ItemEffectData,
+	resource_name: String,
+	amount: int,
+	before_value: int,
+	after_value: int
+) -> void:
+	if not _is_equipment_attack_effect_debug_enabled():
+		return
+
+	print(
+		"[EquipmentAttackEffectApply]",
+		" attacker=", _get_unit_debug_name(attacker),
+		" target=", _get_unit_debug_name(target),
+		" slot=", String(effect_entry.get("slot_name", "")),
+		" item=", String(effect_entry.get("item_id", "")),
+		" effect=", String(effect_entry.get("effect_id", "")),
+		" type=", effect.get_effect_type_name(),
+		" resource=", resource_name,
+		" amount=", amount,
+		" resource_value=", before_value, "->", after_value
+	)
+
+
+func _get_equipment_attack_trigger_chance(effect: ItemEffectData) -> float:
+	if effect == null:
+		return 0.0
+	return clamp(float(effect.trigger_chance), 0.0, 1.0)
+
+
+func _should_apply_equipment_attack_effect(_effect_entry: Dictionary, effect: ItemEffectData) -> bool:
+	var trigger_chance: float = _get_equipment_attack_trigger_chance(effect)
+	if trigger_chance >= 1.0:
+		return true
+	if trigger_chance <= 0.0:
+		return false
+
+	return randf() <= trigger_chance
+
+
+func _apply_equipment_attack_deal_damage(attacker, target, effect_entry: Dictionary, effect: ItemEffectData) -> int:
+	if _is_target_dead_for_equipment_attack_effect(target):
+		_debug_log_equipment_attack_effect_skip(attacker, target, effect_entry, "target_dead")
+		return 0
+
+	var mode: String = String(effect.damage_mode).strip_edges().to_lower()
+	if mode != "direct":
+		_debug_log_equipment_attack_effect_skip(attacker, target, effect_entry, "unsupported_mode_" + mode)
+		return 0
+
+	var extra_damage: int = max(0, int(effect.get_rolled_power()))
+	if extra_damage <= 0:
+		_debug_log_equipment_attack_effect_skip(attacker, target, effect_entry, "zero_damage")
+		return 0
+
+	target.stats.take_damage(extra_damage)
+	_debug_log_equipment_attack_effect_apply(attacker, target, effect_entry, effect, extra_damage, mode)
+	return extra_damage
+
+
+func _apply_equipment_attack_apply_status(attacker, target, effect_entry: Dictionary, effect: ItemEffectData) -> bool:
+	if _is_target_dead_for_equipment_attack_effect(target):
+		_debug_log_equipment_attack_effect_skip(attacker, target, effect_entry, "target_dead")
+		return false
+
+	if effect.status_id == &"":
+		_debug_log_equipment_attack_effect_skip(attacker, target, effect_entry, "missing_status")
+		return false
+
+	if not target.has_method("add_status_effect_runtime"):
+		_debug_log_equipment_attack_effect_skip(attacker, target, effect_entry, "no_status_api")
+		return false
+
+	var runtime: UnitEffectRuntime = UnitEffectRuntime.new()
+	runtime.source_item_id = String(effect_entry.get("item_id", ""))
+	runtime.effect_type = ItemEffectData.EffectType.APPLY_STATUS
+	runtime.status_id = effect.status_id
+	runtime.status_power = max(0, int(effect.status_power))
+	runtime.duration_type = effect.duration_type
+	runtime.remaining_duration = effect.duration_value
+
+	target.add_status_effect_runtime(runtime)
+	_debug_log_equipment_attack_status_apply(attacker, target, effect_entry, effect)
+	return true
+
+
+func _apply_equipment_attack_restore_resource(attacker, target, effect_entry: Dictionary, effect: ItemEffectData) -> bool:
+	if attacker == null:
+		return false
+	if _is_target_dead_for_equipment_attack_effect(attacker):
+		_debug_log_equipment_attack_effect_skip(attacker, target, effect_entry, "attacker_dead")
+		return false
+
+	var stats = null
+	if "stats" in attacker:
+		stats = attacker.stats
+	if stats == null:
+		_debug_log_equipment_attack_effect_skip(attacker, target, effect_entry, "no_attacker_stats")
+		return false
+
+	var resource_name: String = effect.get_resource_type_name()
+	if resource_name == "":
+		_debug_log_equipment_attack_effect_skip(attacker, target, effect_entry, "unsupported_resource")
+		return false
+
+	var before_value: int = 0
+	if resource_name in stats:
+		before_value = int(stats.get(resource_name))
+
+	if not ItemEffectManager._apply_restore_resource(attacker, attacker, effect):
+		_debug_log_equipment_attack_effect_skip(attacker, target, effect_entry, "restore_failed")
+		return false
+
+	var after_value: int = before_value
+	if resource_name in stats:
+		after_value = int(stats.get(resource_name))
+
+	var actual_amount: int = max(0, after_value - before_value)
+	_debug_log_equipment_attack_restore_apply(attacker, target, effect_entry, effect, resource_name, actual_amount, before_value, after_value)
+	return true
+
+
+func _apply_equipment_attack_effects(attacker, target) -> int:
+	_debug_log_equipment_attack_effects(attacker, target)
+
+	if attacker == null or target == null:
+		return 0
+	if not attacker.has_method("get_equipped_attack_effects"):
+		return 0
+
+	var effect_entries: Array = attacker.get_equipped_attack_effects()
+	if effect_entries.is_empty():
+		return 0
+
+	var total_extra_damage: int = 0
+
+	for raw_entry in effect_entries:
+		if typeof(raw_entry) != TYPE_DICTIONARY:
+			continue
+
+		var effect_entry: Dictionary = raw_entry as Dictionary
+		var effect: ItemEffectData = effect_entry.get("effect") as ItemEffectData
+		if effect == null:
+			continue
+
+		if not _should_apply_equipment_attack_effect(effect_entry, effect):
+			var trigger_chance: float = _get_equipment_attack_trigger_chance(effect)
+			_debug_log_equipment_attack_effect_skip(attacker, target, effect_entry, "proc_failed", trigger_chance)
+			continue
+
+		match effect.effect_type:
+			ItemEffectData.EffectType.DEAL_DAMAGE:
+				var extra_damage: int = _apply_equipment_attack_deal_damage(attacker, target, effect_entry, effect)
+				total_extra_damage += extra_damage
+
+			ItemEffectData.EffectType.APPLY_STATUS:
+				_apply_equipment_attack_apply_status(attacker, target, effect_entry, effect)
+
+			ItemEffectData.EffectType.RESTORE_RESOURCE:
+				_apply_equipment_attack_restore_resource(attacker, target, effect_entry, effect)
+
+			_:
+				_debug_log_equipment_attack_effect_skip(attacker, target, effect_entry, "unsupported_type")
+
+	return total_extra_damage
 
 
 func _build_normal_attack_data(attacker, _target) -> Dictionary:

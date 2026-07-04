@@ -94,6 +94,7 @@ enum TeleportMode {
 @export var bonus_crit_rate: float = 0.0
 @export var ignore_defense_rate: float = 0.0
 @export var fixed_damage_bonus: float = 0.0
+@export var trigger_chance: float = 1.0
 
 # 回復系
 @export var resource_type: ResourceType = ResourceType.HP

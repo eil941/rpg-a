@@ -39,4 +39,10 @@ cloth_armor	Cloth Armor	防具	equipment	res://assets/items/armor.png	1	false	56
 power_ring	Power Ring	指輪	equipment	res://assets/items/ring.png	1	false	15	true	1	100	0	0
 test_iron_ore	鉄鉱石	鍛冶に使えそうな鉱石。	material		99	false	30	true	1	0	0	0
 test_small_heal_herb	小さな薬草	少しだけHPを回復する薬草。	consumable	res://assets/items/sample/healing_potion.png	99	true	20	true	1	0	5	15
-test_copper_ring	銅の指輪	試験用の小さな指輪。	equipment	res://assets/items/ring.png	1	false	40	true	1	0	0	0
+sample_copper_guard_ring	銅の守り指輪	装備中 defense +1 のサンプル指輪。	equipment	res://assets/items/ring.png	1	false	40	true	1	0	0	0
+sample_flame_knife	火花のナイフ	攻撃命中時に追加 fire direct damage 1 が発動するサンプルナイフ。	equipment	res://assets/items/knife.png	1	false	50	true	1	0	0	0
+sample_poison_knife	毒牙のナイフ	攻撃命中時に poison を付与するサンプルナイフ。	equipment	res://assets/items/knife.png	1	false	50	true	1	0	0	0
+sample_drain_knife	吸命のナイフ	攻撃命中時に attacker の HP を1回復するサンプルナイフ。	equipment	res://assets/items/knife.png	1	false	50	true	1	0	0	0
+sample_dud_flame_knife	不発の火花ナイフ	trigger_chance=0.0 で常に proc_failed になるサンプルナイフ。	equipment	res://assets/items/knife.png	1	false	50	true	1	0	0	0
+sample_unstable_flame_knife	揺らめき火のナイフ	trigger_chance=0.5 で攻撃時効果が半分程度発動するサンプルナイフ。	equipment	res://assets/items/knife.png	1	false	50	true	1	0	0	0
+sample_combo_knife	複合効果のナイフ	攻撃命中時に追加ダメージとHP回復を同時に確認するサンプルナイフ。	equipment	res://assets/items/knife.png	1	false	60	true	1	0	0	0
