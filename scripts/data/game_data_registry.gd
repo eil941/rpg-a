@@ -1598,6 +1598,13 @@ func _to_bool(value: String) -> bool:
 	return text == "true" or text == "1" or text == "yes" or text == "on"
 
 
+func _to_bool_default(value: String, default_value: bool = false) -> bool:
+	if value.strip_edges() == "":
+		return default_value
+
+	return _to_bool(value)
+
+
 func _to_int(value: String, default_value: int = 0) -> int:
 	if value.strip_edges() == "":
 		return default_value
@@ -4266,9 +4273,9 @@ func _build_enemy_data(row: Dictionary) -> EnemyData:
 		_get_string(row, "initial_inventory_items"),
 		"enemies.tsv enemy_type_id=" + enemy.enemy_type_id
 	)
-	enemy.drop_inventory_on_death = _to_bool(_get_string(row, "drop_inventory_on_death", "true"))
-	enemy.drop_equipped_items_on_death = _to_bool(_get_string(row, "drop_equipped_items_on_death", "true"))
-	enemy.death_inventory_drop_radius = _to_int(_get_string(row, "death_inventory_drop_radius"), enemy.death_inventory_drop_radius)
+	enemy.drop_inventory_on_death = _to_bool_default(_get_string(row, "drop_inventory_on_death"), true)
+	enemy.drop_equipped_items_on_death = _to_bool_default(_get_string(row, "drop_equipped_items_on_death"), true)
+	enemy.death_inventory_drop_radius = _to_int(_get_string(row, "death_inventory_drop_radius"), 5)
 	enemy.attacked_by_player_behavior = _load_resource_or_null(_get_string(row, "attacked_by_player_behavior_path")) as AttackedBehaviorData
 
 	enemy.override_combat_style = _to_bool(_get_string(row, "override_combat_style", "false"))
@@ -4421,9 +4428,9 @@ func _build_npc_data(row: Dictionary) -> NpcData:
 		_get_string(row, "initial_inventory_items"),
 		"npcs.tsv npc_type_id=" + npc.npc_type_id
 	)
-	npc.drop_inventory_on_death = _to_bool(_get_string(row, "drop_inventory_on_death", "true"))
-	npc.drop_equipped_items_on_death = _to_bool(_get_string(row, "drop_equipped_items_on_death", "true"))
-	npc.death_inventory_drop_radius = _to_int(_get_string(row, "death_inventory_drop_radius"), npc.death_inventory_drop_radius)
+	npc.drop_inventory_on_death = _to_bool_default(_get_string(row, "drop_inventory_on_death"), true)
+	npc.drop_equipped_items_on_death = _to_bool_default(_get_string(row, "drop_equipped_items_on_death"), true)
+	npc.death_inventory_drop_radius = _to_int(_get_string(row, "death_inventory_drop_radius"), 5)
 	npc.attacked_by_player_behavior = _load_resource_or_null(_get_string(row, "attacked_by_player_behavior_path")) as AttackedBehaviorData
 
 	npc.override_combat_style = _to_bool(_get_string(row, "override_combat_style", "false"))

@@ -225,6 +225,7 @@ func _ready() -> void:
 		apply_npc_data(npc_data_to_apply)
 
 	load_persistent_stats()
+	apply_debug_player_death_drop_scope_if_needed()
 	apply_debug_start_items_if_needed()
 
 	if is_player_unit:
@@ -1257,6 +1258,33 @@ func apply_debug_start_items_if_needed() -> void:
 
 	PlayerData.inventory_data = save_inventory_persistence_data()
 	PlayerData.debug_start_items_applied = true
+
+
+func apply_debug_player_death_drop_scope_if_needed() -> void:
+	if not is_player_unit:
+		return
+
+	if DebugSettings == null:
+		return
+
+	if not bool(DebugSettings.debug_player_death_drop_scope_test_enabled):
+		return
+
+	var mode: String = _get_debug_player_death_drop_scope_mode()
+
+	match mode:
+		"none":
+			drop_inventory_on_death = false
+			drop_equipped_items_on_death = false
+		"inventory_only":
+			drop_inventory_on_death = true
+			drop_equipped_items_on_death = false
+		"all":
+			drop_inventory_on_death = true
+			drop_equipped_items_on_death = true
+		_:
+			drop_inventory_on_death = true
+			drop_equipped_items_on_death = true
 
 
 func apply_initial_inventory_from_data(initial_inventory_items: Array) -> void:
@@ -2905,14 +2933,31 @@ func _mark_spawn_data_dead_in_dictionary(spawn_dictionary: Dictionary) -> void:
 
 
 func drop_inventory_items_on_death_if_needed() -> void:
+	var debug_scope_enabled: bool = _is_debug_player_death_drop_scope_enabled()
+
 	if not drop_inventory_on_death:
+		if debug_scope_enabled:
+			var empty_targets_for_drop_disabled: Array[Dictionary] = []
+			_debug_log_death_drop_scope_targets(empty_targets_for_drop_disabled)
+			_debug_log_death_drop_scope_result(0, 0)
+			print("[DEATH DROP] skipped by drop_inventory_on_death=false")
 		return
 
 	if inventory == null:
+		if debug_scope_enabled:
+			var empty_targets_for_no_inventory: Array[Dictionary] = []
+			_debug_log_death_drop_scope_targets(empty_targets_for_no_inventory)
+			_debug_log_death_drop_scope_result(0, 0)
+			print("[DEATH DROP] skipped by inventory=null")
 		return
 
 	var drop_targets: Array[Dictionary] = _collect_inventory_drop_targets()
+	if debug_scope_enabled:
+		_debug_log_death_drop_scope_targets(drop_targets)
+
 	if drop_targets.is_empty():
+		if debug_scope_enabled:
+			_debug_log_death_drop_scope_result(0, 0)
 		return
 
 	var dropped_count: int = 0
@@ -2936,6 +2981,9 @@ func drop_inventory_items_on_death_if_needed() -> void:
 		else:
 			failed_count += 1
 
+	if debug_scope_enabled:
+		_debug_log_death_drop_scope_result(dropped_count, failed_count)
+
 	if dropped_count <= 0:
 		if failed_count > 0:
 			print("[DEATH DROP] failed: ", name, " failed=", failed_count)
@@ -2947,6 +2995,68 @@ func drop_inventory_items_on_death_if_needed() -> void:
 
 	notify_inventory_refresh()
 	print("[DEATH DROP] unit=", name, " dropped=", dropped_count, " failed=", failed_count)
+
+
+func _is_debug_player_death_drop_scope_enabled() -> bool:
+	if not is_player_unit:
+		return false
+
+	if DebugSettings == null:
+		return false
+
+	return bool(DebugSettings.debug_player_death_drop_scope_test_enabled)
+
+
+func _get_debug_player_death_drop_scope_mode() -> String:
+	if DebugSettings == null:
+		return "all"
+
+	var mode: String = String(DebugSettings.debug_player_death_drop_scope_mode).strip_edges().to_lower()
+	if mode == "none" or mode == "inventory_only" or mode == "all":
+		return mode
+
+	return "all"
+
+
+func _debug_log_death_drop_scope_targets(drop_targets: Array[Dictionary]) -> void:
+	if not _is_debug_player_death_drop_scope_enabled():
+		return
+
+	var bag_count: int = 0
+	var hotbar_count: int = 0
+	var equipment_count: int = 0
+
+	for target in drop_targets:
+		var source: String = String(target.get("source", ""))
+		match source:
+			"bag":
+				bag_count += 1
+			"hotbar":
+				hotbar_count += 1
+			"equipment":
+				equipment_count += 1
+
+	print(
+		"[DEATH DROP SCOPE] unit=", name,
+		" mode=", _get_debug_player_death_drop_scope_mode(),
+		" drop_inventory=", drop_inventory_on_death,
+		" drop_equipment=", drop_equipped_items_on_death,
+		" targets: bag=", bag_count,
+		" hotbar=", hotbar_count,
+		" equipment=", equipment_count
+	)
+
+
+func _debug_log_death_drop_scope_result(dropped_count: int, failed_count: int) -> void:
+	if not _is_debug_player_death_drop_scope_enabled():
+		return
+
+	print(
+		"[DEATH DROP SCOPE RESULT] unit=", name,
+		" mode=", _get_debug_player_death_drop_scope_mode(),
+		" dropped=", dropped_count,
+		" failed=", failed_count
+	)
 
 
 func _collect_inventory_drop_targets() -> Array[Dictionary]:

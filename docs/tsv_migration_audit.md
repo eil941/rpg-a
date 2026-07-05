@@ -46,7 +46,7 @@ All TSV files under `data/master` are exported by `tools/export_master_tsv.py` a
 - element and damage type references used by equipment, enemies, NPCs, and item effects;
 - chest table IDs, loot table references, chest loot item/category references, and amount ranges;
 - shop table IDs, NPC shop table references, shop loot item/category references, and amount ranges;
-- initial inventory table IDs, enemy/NPC table references, entry item references, amount ranges, drop chance, and boolean flags;
+- initial inventory table IDs, enemy/NPC table references, entry item references, amount ranges, spawn chance, and boolean flags;
 - item spawn rule child tables, including rule/category pairs, rule/item pairs, category/item references, and non-negative multiplier/weight values;
 - selected TSV resource path columns, including `res://...::SubResource` paths, as WARN-level existence checks;
 - `damage_mode` values.
@@ -88,13 +88,19 @@ Step 5-D added `initial_inventory_tables.tsv` and `initial_inventory_entries.tsv
 
 `GameDataRegistry` prefers a valid `initial_inventory_table_id` with at least one TSV entry. If the table ID is empty, invalid, missing, or has no entries, the loader falls back to the old `initial_inventory_items` column. The loaded data is still converted into `InitialInventoryEntry` resources, so `Unit.apply_initial_inventory_from_data()` and death drop behavior do not need a new runtime path.
 
-`initial_inventory_entries.tsv` includes `roll_equipment_enchantments` to preserve the fifth field from the old composite format. The `guaranteed` column maps to `chance=1.0`; otherwise `drop_chance` is used as the generation chance.
+`initial_inventory_entries.tsv` includes `roll_equipment_enchantments` to preserve the fifth field from the old composite format. The `guaranteed` column maps to `chance=1.0`; otherwise `spawn_chance` is used as the generation chance. The old `drop_chance` name remains a loader/validator fallback only.
 
 ## Death drop migration status
 
 Step 5-E investigated authored `drop_tables.tsv` / `drop_table_entries.tsv` and deferred them. Current death drops are not a separate authored loot table. `Unit.handle_death()` calls `drop_inventory_items_on_death_if_needed()`, which collects the unit's current bag, hotbar, and optionally equipped items, then drops those entries near the unit.
 
-`InitialInventoryEntry` chance handling happens at spawn/initialization time when entries are built and added to the unit inventory. Death-time logic does not reroll `drop_chance`; it simply drops whatever inventory entries remain. This means `initial_inventory_tables.tsv` already covers the only currently authored source of enemy/NPC carried items.
+Step 10-B formalized the runtime death drop rule in `docs/death_drop_spec.md`. `drop_inventory_on_death` is the parent switch for all death drops. When it is false, bag, hotbar, and equipped items are all retained. When it is true, bag and hotbar entries are dropped, and equipped entries are also dropped only if `drop_equipped_items_on_death` is true.
+
+Step 10-D confirmed the TSV control defaults for death drop settings. Blank `drop_inventory_on_death` values are treated as `true`, blank `drop_equipped_items_on_death` values are treated as `true`, and blank `death_inventory_drop_radius` values are treated as `5`. This keeps empty TSV cells in `enemies.tsv` / `npcs.tsv` aligned with the full-drop default instead of accidentally disabling drops.
+
+Step 10-E verified the player death drop scope with debug-only settings: `none` drops nothing, `inventory_only` drops bag + hotbar only, and `all` drops bag + hotbar + equipped items. The debug switch remains player-only and defaults to off.
+
+`InitialInventoryEntry` chance handling happens at spawn/initialization time when entries are built and added to the unit inventory. Death-time logic does not reroll `spawn_chance`; it simply drops whatever inventory entries remain. This means `initial_inventory_tables.tsv` already covers the only currently authored source of enemy/NPC carried items.
 
 Adding drop tables now would create two competing data sources: items granted to the unit at spawn, and separate items generated only on death. Keep `drop_tables.tsv` deferred until there is a concrete need for drop-only rewards such as boss loot, non-carried monster drops, or shared drop pools that should not appear in the unit's inventory while alive.
 

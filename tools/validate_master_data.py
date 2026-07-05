@@ -1089,6 +1089,69 @@ def check_deprecated_initial_inventory_items(table: Table, id_column: str) -> No
         reporter.ok(f"{table.filename}.{column} is empty (deprecated legacy fallback only)")
 
 
+def check_death_drop_settings(table: Table, id_column: str) -> None:
+    bool_columns = (
+        "drop_inventory_on_death",
+        "drop_equipped_items_on_death",
+    )
+    radius_column = "death_inventory_drop_radius"
+    issue_count = 0
+    checked_bool_values = 0
+    checked_radius_values = 0
+
+    for column in bool_columns:
+        if not require_column(table, column):
+            issue_count += 1
+
+    if not require_column(table, radius_column):
+        issue_count += 1
+
+    if issue_count > 0:
+        return
+
+    for row, line_number in zip(table.rows, table.line_numbers):
+        unit_id = row.get(id_column, "").strip()
+        id_text = f" {id_column}='{unit_id}'" if unit_id != "" else ""
+
+        for column in bool_columns:
+            value = normalize_lower(row.get(column, ""))
+            if value == "":
+                continue
+
+            checked_bool_values += 1
+            if value != "true" and value != "false":
+                issue_count += 1
+                reporter.error(
+                    f"{table.filename}:{line_number}{id_text} {column} '{row.get(column, '').strip()}' is not true/false"
+                )
+
+        radius_value = row.get(radius_column, "").strip()
+        if radius_value == "":
+            continue
+
+        checked_radius_values += 1
+        try:
+            radius = int(radius_value)
+        except ValueError:
+            issue_count += 1
+            reporter.error(
+                f"{table.filename}:{line_number}{id_text} {radius_column} '{radius_value}' is not an integer"
+            )
+            continue
+
+        if radius < 0:
+            issue_count += 1
+            reporter.error(
+                f"{table.filename}:{line_number}{id_text} {radius_column} must be >= 0"
+            )
+
+    if issue_count == 0:
+        reporter.ok(
+            f"{table.filename} death drop settings are valid "
+            f"(bool_values={checked_bool_values}, radius_values={checked_radius_values}, blank defaults allowed)"
+        )
+
+
 def check_item_spawn_rule_category_multipliers(table: Table) -> None:
     require_column(table, "multiplier")
 
@@ -1315,6 +1378,8 @@ def main() -> int:
         )
     check_deprecated_initial_inventory_items(tables["enemies"], "enemy_type_id")
     check_deprecated_initial_inventory_items(tables["npcs"], "npc_type_id")
+    check_death_drop_settings(tables["enemies"], "enemy_type_id")
+    check_death_drop_settings(tables["npcs"], "npc_type_id")
     check_composite_duplicates(tables["faction_relations"], ["from_faction", "to_faction"])
     check_reference(
         tables["faction_relations"],
