@@ -475,6 +475,9 @@ func spawn_enemy_random(
 		enemy.map_id = map_id
 		enemy.enemy_data_to_apply = enemy_data
 
+		# New random enemies should not inherit inventory/HP from an older unit with the same generated id.
+		clear_runtime_state_for_new_random_unit(unique_unit_id)
+
 		print("SPAWN RANDOM ENEMY ASSIGNED unit_id=", enemy.unit_id, " map_id=", enemy.map_id, " enemy_type=", enemy_data.enemy_type_id)
 
 		ensure_inventory_node(enemy)

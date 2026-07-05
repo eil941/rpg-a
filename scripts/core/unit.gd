@@ -1292,6 +1292,24 @@ func apply_initial_inventory_from_data(initial_inventory_items: Array) -> void:
 			_add_initial_inventory_entry(entry)
 
 
+func _has_saved_inventory_state() -> bool:
+	if unit_id == "":
+		return false
+
+	if WorldState == null:
+		return false
+
+	if not WorldState.unit_states.has(unit_id):
+		return false
+
+	var saved_state_value: Variant = WorldState.unit_states[unit_id]
+	if typeof(saved_state_value) != TYPE_DICTIONARY:
+		return false
+
+	var saved_state: Dictionary = saved_state_value
+	return saved_state.has("inventory")
+
+
 func _add_initial_inventory_entry(entry: Dictionary) -> void:
 	var normalized_entry: Dictionary = _normalize_initial_inventory_entry(entry)
 	if _is_inventory_drop_entry_empty(normalized_entry):
@@ -1307,6 +1325,8 @@ func _roll_initial_inventory_entry(entry: Dictionary) -> bool:
 
 	if entry.has("chance"):
 		chance = float(entry.get("chance", 1.0))
+	elif entry.has("spawn_chance"):
+		chance = float(entry.get("spawn_chance", 1.0))
 	elif entry.has("drop_chance"):
 		chance = float(entry.get("drop_chance", 1.0))
 
@@ -2762,7 +2782,8 @@ func apply_enemy_data(enemy_data: EnemyData) -> void:
 	death_inventory_drop_radius = enemy_data.death_inventory_drop_radius
 	attacked_by_player_behavior = enemy_data.attacked_by_player_behavior
 
-	apply_initial_inventory_from_data(enemy_data.initial_inventory_items)
+	if not _has_saved_inventory_state():
+		apply_initial_inventory_from_data(enemy_data.initial_inventory_items)
 
 	apply_shop_inventory_from_data(
 		enemy_data.can_generate_shop_inventory,
@@ -3113,7 +3134,8 @@ func apply_npc_data(npc_data: NpcData) -> void:
 	death_inventory_drop_radius = npc_data.death_inventory_drop_radius
 	attacked_by_player_behavior = npc_data.attacked_by_player_behavior
 
-	apply_initial_inventory_from_data(npc_data.initial_inventory_items)
+	if not _has_saved_inventory_state():
+		apply_initial_inventory_from_data(npc_data.initial_inventory_items)
 
 	apply_shop_inventory_from_data(
 		npc_data.can_generate_shop_inventory,

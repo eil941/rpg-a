@@ -21,7 +21,7 @@ var debug_dynamic_skill_apply: bool = false
 var debug_skill_exp: bool = false
 var debug_action_skill_growth: bool = false
 var debug_equipment_effects: bool = false
-var debug_equipment_attack_effects: bool = true
+var debug_equipment_attack_effects: bool = false
 var debug_player_move_skill_exp: bool = false
 var debug_player_move_skill_id: String = "test_foraging"
 var debug_player_move_skill_exp_amount: int = 1
@@ -57,7 +57,6 @@ var debug_player_start_items: Array[Dictionary] = [
 	#{"item_id": "knife", "amount": 1},
 	{"item_id": "bow", "amount": 1},
 	#{"item_id": "cloth_armor", "amount": 1},
-	{"item_id": "power_ring", "amount": 1},
 	#{"item_id": "potion", "amount": 90},
 	{"item_id": "healing_potion","amount":10 },
 	{"item_id": "mushroom_bad","amount":10 },
@@ -96,13 +95,6 @@ var debug_player_start_items: Array[Dictionary] = [
 	{"item_id":"travel_ration","amount":10},
 	{"item_id":"test_iron_ore","amount":5},
 	{"item_id":"test_small_heal_herb","amount":10},
-	{"item_id":"sample_copper_guard_ring","amount":1},
-	{"item_id":"sample_flame_knife","amount":1},
-	{"item_id":"sample_poison_knife","amount":1},
-	{"item_id":"sample_drain_knife","amount":1},
-	{"item_id":"sample_dud_flame_knife","amount":1},
-	{"item_id":"sample_unstable_flame_knife","amount":1},
-	{"item_id":"sample_combo_knife","amount":1},
 
 ]
 

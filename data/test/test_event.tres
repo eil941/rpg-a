@@ -1,9 +1,9 @@
 [gd_resource type="TileSet" format=3 uid="uid://cpndipp741lyo"]
 
-[ext_resource type="Texture2D" uid="uid://c2m7luwc4wy8b" path="res://assets/wall.png" id="1_bxwsb"]
+[ext_resource type="Texture2D" uid="uid://dytol7qu0sprj" path="res://assets/gray_overlay_40percent_32x32.png" id="1_jf7gv"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fs0b5"]
-texture = ExtResource("1_bxwsb")
+texture = ExtResource("1_jf7gv")
 texture_region_size = Vector2i(32, 32)
 0:0/0 = 0
 0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)

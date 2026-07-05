@@ -2757,6 +2757,8 @@ func _get_initial_inventory_entries_for_loaded_unit(
 
 		push_warning("initial_inventory_table_id (" + context + "): " + normalized_id + " has no entries -> fallback columns")
 
+	# initial_inventory_items is a deprecated legacy fallback.
+	# New data should use initial_inventory_table_id with initial_inventory_entries.tsv.
 	return _split_initial_inventory_entries(fallback_items)
 
 
@@ -3210,7 +3212,8 @@ func _load_initial_inventory_entries() -> void:
 
 		var min_amount: int = max(_to_int(_get_string(row, "min_amount"), 1), 1)
 		var max_amount: int = max(_to_int(_get_string(row, "max_amount"), min_amount), min_amount)
-		var drop_chance: float = clamp(_to_float(_get_string(row, "drop_chance"), 1.0), 0.0, 1.0)
+		var spawn_chance_text := _get_string(row, "spawn_chance", _get_string(row, "drop_chance", "1.0"))
+		var spawn_chance: float = clamp(_to_float(spawn_chance_text, 1.0), 0.0, 1.0)
 		var guaranteed := _to_bool(_get_string(row, "guaranteed", "false"))
 		var roll_equipment_enchantments := _to_bool(_get_string(row, "roll_equipment_enchantments", "true"))
 
@@ -3218,7 +3221,7 @@ func _load_initial_inventory_entries() -> void:
 		entry.item_id = item_id
 		entry.amount_min = min_amount
 		entry.amount_max = max_amount
-		entry.chance = 1.0 if guaranteed else drop_chance
+		entry.chance = 1.0 if guaranteed else spawn_chance
 		entry.roll_equipment_enchantments = roll_equipment_enchantments
 
 		_register_initial_inventory_entry(inventory_table_id, entry)

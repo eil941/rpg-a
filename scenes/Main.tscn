@@ -3,7 +3,6 @@
 [ext_resource type="Script" uid="uid://ca4ywj6xcxnbk" path="res://scripts/map/map_scene_scripts/main.gd" id="1_rarhs"]
 [ext_resource type="PackedScene" uid="uid://c0jrt3uvmhd2g" path="res://scenes/npc1.tscn" id="2_ft6cd"]
 [ext_resource type="PackedScene" uid="uid://cmvysxaa458bi" path="res://scenes/Enemyunit_1.tscn" id="2_mwfav"]
-[ext_resource type="Script" uid="uid://bgt8humnn3jqj" path="res://scripts/data/npc_data.gd" id="4_cvmbd"]
 [ext_resource type="PackedScene" uid="uid://cjntf4kbtxh73" path="res://scenes/unit.tscn" id="11_bjd11"]
 [ext_resource type="Resource" uid="uid://c7vsilb4e64qq" path="res://scripts/map/tres/main_default.tres" id="12_mwfav"]
 [ext_resource type="TileSet" uid="uid://cg36ceoxkfmsq" path="res://data/nekura.tres" id="12_qmy6f"]
@@ -20,7 +19,6 @@
 script = ExtResource("1_rarhs")
 enemy_unit_scene = ExtResource("2_mwfav")
 npc_unit_scene = ExtResource("2_ft6cd")
-npc_data_list = Array[ExtResource("4_cvmbd")]([])
 npc_type_id_list = Array[String](["npc_1", "no_id"])
 item_pickup_scene = ExtResource("15_ft6cd")
 chest_scene = ExtResource("16_nfivy")

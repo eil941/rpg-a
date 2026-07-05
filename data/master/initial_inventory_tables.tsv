@@ -1,3 +1,10 @@
 inventory_table_id	display_name	description
 bat_1_initial_inventory	Bat 1 initial inventory	Initial inventory converted from enemies.tsv bat_1
 bat_2_initial_inventory	Bat 2 initial inventory	Initial inventory converted from enemies.tsv bat_2
+test_random_inventory	訓練用スライム所持品	訓練用・確認用スライムが持つ軽い食料と素材の確認用テーブル。
+weak_enemy_basic_inventory	Weak enemy basic inventory	Small common item rolls for low-tier normal enemies.
+beast_basic_inventory	Beast basic inventory	Food item rolls for beast or wildlife enemies.
+humanoid_basic_inventory	Humanoid basic inventory	Small gold and consumable rolls for humanoid enemies.
+plant_basic_inventory	Plant basic inventory	Low chance material and food rolls for plant-type normal enemies.
+undead_basic_inventory	Undead basic inventory	Low chance gold and eerie consumable rolls for undead normal enemies.
+construct_basic_inventory	Construct basic inventory	Low chance small item rolls for block or construct-like normal enemies.

@@ -33,9 +33,7 @@ meat_skewer_restore_hunger	restore_resource	flat	hunger	22	30	0.0	neutral	physic
 travel_ration_restore_hunger	restore_resource	flat	hunger	35	45	0.0	neutral	physical	direct	1.0	0.0	0.0	0.0	0.0		0			0	0.0	none	0.0	random	0	999			1	0			false
 test_small_heal_herb_restore_hp	restore_resource	flat	hp	10	10	0.0	neutral	physical	direct	1.0	0.0	0.0	0.0	0.0	390	0	390	390	0	0.0	none	0.0	random	0	999	390	390	1	0	390	390	false	390	390	390	390
 sample_copper_guard_ring_defense_bonus	apply_modifier	flat		0	0	0	neutral	physical	direct	1	0	0	0	0		0	buff	defense	1	0	none	0	random	0	999			1	0			false
-sample_flame_knife_fire_damage	deal_damage	flat		1	1	0	fire	physical	direct	1	0	0	0	0		0			0	0	none	0	random	0	999			1	0			false
 sample_poison_knife_poison	apply_status	flat		0	0	0	neutral	physical	direct	1	0	0	0	0	poison	1			0	0	time	3	random	0	999			1	0			false
-sample_drain_knife_restore_hp	restore_resource	flat	hp	1	1	0	neutral	physical	direct	1	0	0	0	0		0			0	0	none	0	random	0	999			1	0			false
 sample_dud_flame_knife_fire_damage	deal_damage	flat		1	1	0	fire	physical	direct	1	0	0	0	0		0			0	0	none	0	random	0	999			1	0			false					0
 sample_unstable_flame_knife_fire_damage	deal_damage	flat		1	1	0	fire	physical	direct	1	0	0	0	0		0			0	0	none	0	random	0	999			1	0			false					0.5
 power_ring_attack_bonus	apply_modifier	flat		0	0	0	neutral	physical	direct	1	0	0	0	0		0	buff	attack	1	0	none	0	random	0	999			1	0			false

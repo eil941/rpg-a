@@ -1006,11 +1006,13 @@ def check_initial_inventory_entries(
         "item_id",
         "min_amount",
         "max_amount",
-        "drop_chance",
         "guaranteed",
         "roll_equipment_enchantments",
     ):
         require_column(table, column)
+    chance_column = "spawn_chance" if "spawn_chance" in table.header else "drop_chance"
+    if not require_column(table, chance_column):
+        return
 
     issue_count = 0
     checked_tables = 0
@@ -1042,7 +1044,7 @@ def check_initial_inventory_entries(
 
         min_amount = parse_int_cell(table, row, line_number, "min_amount")
         max_amount = parse_int_cell(table, row, line_number, "max_amount")
-        drop_chance = parse_float_cell(table, row, line_number, "drop_chance")
+        spawn_chance = parse_float_cell(table, row, line_number, chance_column)
         parse_bool_cell(table, row, line_number, "guaranteed")
         parse_bool_cell(table, row, line_number, "roll_equipment_enchantments")
 
@@ -1054,14 +1056,37 @@ def check_initial_inventory_entries(
             issue_count += 1
             reporter.error(f"{table.filename}:{line_number} min_amount must be <= max_amount")
 
-        if drop_chance is not None and not 0.0 <= drop_chance <= 1.0:
+        if spawn_chance is not None and not 0.0 <= spawn_chance <= 1.0:
             issue_count += 1
-            reporter.error(f"{table.filename}:{line_number} drop_chance must be between 0.0 and 1.0")
+            reporter.error(f"{table.filename}:{line_number} {chance_column} must be between 0.0 and 1.0")
 
     if issue_count == 0:
         reporter.ok(
             f"{table.filename} rows are valid (tables={checked_tables}, item_ids={checked_items})"
         )
+
+
+def check_deprecated_initial_inventory_items(table: Table, id_column: str) -> None:
+    column = "initial_inventory_items"
+    if column not in table.header:
+        reporter.ok(f"{table.filename}.{column} column is absent (legacy fallback only)")
+        return
+
+    issue_count = 0
+    for row, line_number in zip(table.rows, table.line_numbers):
+        value = row.get(column, "").strip()
+        if value == "":
+            continue
+
+        issue_count += 1
+        unit_id = row.get(id_column, "").strip()
+        id_text = f" {id_column}='{unit_id}'" if unit_id != "" else ""
+        reporter.warn(
+            f"{table.filename}:{line_number}{id_text} uses deprecated {column}; use initial_inventory_table_id instead"
+        )
+
+    if issue_count == 0:
+        reporter.ok(f"{table.filename}.{column} is empty (deprecated legacy fallback only)")
 
 
 def check_item_spawn_rule_category_multipliers(table: Table) -> None:
@@ -1288,6 +1313,8 @@ def main() -> int:
             "initial_inventory_tables.inventory_table_id",
             allow_empty=True,
         )
+    check_deprecated_initial_inventory_items(tables["enemies"], "enemy_type_id")
+    check_deprecated_initial_inventory_items(tables["npcs"], "npc_type_id")
     check_composite_duplicates(tables["faction_relations"], ["from_faction", "to_faction"])
     check_reference(
         tables["faction_relations"],
