@@ -90,15 +90,15 @@ Step 11-A 時点のプロジェクト全体地図です。新機能追加や調�
 
 | Doc | 役割 |
 | --- | --- |
-| `docs/death_drop_spec.md` | 死亡時ドロップの正式仕様。 |
-| `docs/tsv_migration_audit.md` | TSV化状況、未移行・保留方針。 |
-| `docs/tsv_migration_completion.md` | TSV移行の完了判断と過去Stepの記録。 |
-| `docs/damage_system_notes.md` | ダメージシステムと effect の補足。 |
-| `docs/project_structure_overview.md` | このファイル。全体構成地図。 |
-| `docs/script_responsibility_map.md` | 主要スクリプトの責務表。 |
-| `docs/runtime_flow_overview.md` | 実行時の主要処理フロー。 |
-| `docs/feature_addition_guide.md` | 新機能追加時の入口。 |
-| `docs/codex_project_context.md` | Codex依頼時の前提資料。 |
+| [../systems/death_drop_spec.md](../systems/death_drop_spec.md) | 死亡時ドロップの正式仕様。 |
+| [../migration/tsv_migration_audit.md](../migration/tsv_migration_audit.md) | TSV化状況、未移行・保留方針。 |
+| [../migration/tsv_migration_completion.md](../migration/tsv_migration_completion.md) | TSV移行の完了判断と過去Stepの記録。 |
+| [../systems/damage_system_notes.md](../systems/damage_system_notes.md) | ダメージシステムと effect の補足。 |
+| [project_structure_overview.md](project_structure_overview.md) | このファイル。全体構成地図。 |
+| [script_responsibility_map.md](script_responsibility_map.md) | 主要スクリプトの責務表。 |
+| [runtime_flow_overview.md](runtime_flow_overview.md) | 実行時の主要処理フロー。 |
+| [../guides/feature_addition_guide.md](../guides/feature_addition_guide.md) | 新機能追加時の入口。 |
+| [../guides/codex_project_context.md](../guides/codex_project_context.md) | Codex依頼時の前提資料。 |
 
 ## 変更リスクの目安
 

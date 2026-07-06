@@ -61,7 +61,7 @@ git diff --check
 | Combat | `scripts/combat/combat_manager.gd`, `damage_calculator.gd`, `scripts/core/stats.gd` |
 | Unit挙動 | `scripts/core/unit.gd`, 関連controller |
 | Spawn | `scripts/managers/unit_spawn_manager.gd`, map scene script, `enemies.tsv` / `npcs.tsv` |
-| Death drop | `docs/death_drop_spec.md`, `Unit.drop_inventory_items_on_death_if_needed()`, `ItemDropHelper` |
+| Death drop | [../systems/death_drop_spec.md](../systems/death_drop_spec.md), `Unit.drop_inventory_items_on_death_if_needed()`, `ItemDropHelper` |
 | Save/load | `scripts/save_manager.gd`, `PlayerData`, `WorldState`, `Unit.get_stats_data()` |
 | Dialogue/quest | `DialogueManager`, `QuestManager`, `quest_board_ui.gd`, quest系TSV |
 
@@ -134,7 +134,7 @@ git diff --check
 
 ### Death Drop を変える
 
-1. `docs/death_drop_spec.md` を読みます。
+1. [../systems/death_drop_spec.md](../systems/death_drop_spec.md) を読みます。
 2. `drop_inventory_on_death` と `drop_equipped_items_on_death` の組み合わせを確認します。
 3. drop対象は実際に持っているentryであることを守ります。
 4. source slot clearはdrop成功後に行います。
@@ -142,9 +142,9 @@ git diff --check
 
 ## 今後まず参照するdocs
 
-- `docs/project_structure_overview.md`: 全体構成。
-- `docs/script_responsibility_map.md`: scriptごとの責務。
-- `docs/runtime_flow_overview.md`: 主要処理フロー。
-- `docs/feature_addition_guide.md`: 新機能追加時の入口。
-- `docs/death_drop_spec.md`: 死亡時ドロップ仕様。
-- `docs/tsv_migration_audit.md`: TSV化状況と保留テーブル。
+- [../architecture/project_structure_overview.md](../architecture/project_structure_overview.md): 全体構成。
+- [../architecture/script_responsibility_map.md](../architecture/script_responsibility_map.md): scriptごとの責務。
+- [../architecture/runtime_flow_overview.md](../architecture/runtime_flow_overview.md): 主要処理フロー。
+- [feature_addition_guide.md](feature_addition_guide.md): 新機能追加時の入口。
+- [../systems/death_drop_spec.md](../systems/death_drop_spec.md): 死亡時ドロップ仕様。
+- [../migration/tsv_migration_audit.md](../migration/tsv_migration_audit.md): TSV化状況と保留テーブル。

@@ -94,7 +94,7 @@ Step 5-D added `initial_inventory_tables.tsv` and `initial_inventory_entries.tsv
 
 Step 5-E investigated authored `drop_tables.tsv` / `drop_table_entries.tsv` and deferred them. Current death drops are not a separate authored loot table. `Unit.handle_death()` calls `drop_inventory_items_on_death_if_needed()`, which collects the unit's current bag, hotbar, and optionally equipped items, then drops those entries near the unit.
 
-Step 10-B formalized the runtime death drop rule in `docs/death_drop_spec.md`. `drop_inventory_on_death` is the parent switch for all death drops. When it is false, bag, hotbar, and equipped items are all retained. When it is true, bag and hotbar entries are dropped, and equipped entries are also dropped only if `drop_equipped_items_on_death` is true.
+Step 10-B formalized the runtime death drop rule in [../systems/death_drop_spec.md](../systems/death_drop_spec.md). `drop_inventory_on_death` is the parent switch for all death drops. When it is false, bag, hotbar, and equipped items are all retained. When it is true, bag and hotbar entries are dropped, and equipped entries are also dropped only if `drop_equipped_items_on_death` is true.
 
 Step 10-D confirmed the TSV control defaults for death drop settings. Blank `drop_inventory_on_death` values are treated as `true`, blank `drop_equipped_items_on_death` values are treated as `true`, and blank `death_inventory_drop_radius` values are treated as `5`. This keeps empty TSV cells in `enemies.tsv` / `npcs.tsv` aligned with the full-drop default instead of accidentally disabling drops.
 
@@ -142,7 +142,7 @@ Step 5-J classified the remaining post-migration legacy data:
 
 ## Completion decision
 
-Step 5-K records the TSV migration completion decision in `docs/tsv_migration_completion.md`.
+Step 5-K records the TSV migration completion decision in [tsv_migration_completion.md](tsv_migration_completion.md).
 
 The current master-data TSV scope is complete enough to treat TSV/Excel as the authoritative source. Remaining Resources are intentional: visuals/UI, optional behavior profiles, runtime compatibility containers, and fallback data that should be kept until Godot playtesting confirms TSV coverage.
 
