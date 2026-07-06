@@ -196,6 +196,147 @@ func _ready() -> void:
 	set_process(true)
 
 
+func _exit_tree() -> void:
+	if not held_entry.is_empty():
+		persist_held_state_to_player_data()
+	current_inventory = null
+	current_unit = null
+	trade_inventory = null
+	trade_unit = null
+
+
+func persist_held_state_to_player_data() -> void:
+	if PlayerData == null:
+		return
+
+	if held_entry.is_empty():
+		PlayerData.clear_held_inventory_state()
+		return
+
+	PlayerData.set_held_inventory_state(
+		held_entry,
+		held_from_area,
+		held_from_index,
+		held_from_slot_name,
+		get_ui_mode_name(ui_mode)
+	)
+
+
+func restore_held_state_from_player_data(force_normal_for_special_mode: bool = false) -> void:
+	if PlayerData == null:
+		return
+
+	var restored_entry: Dictionary = PlayerData.held_inventory_entry
+	if restored_entry.is_empty():
+		return
+
+	if force_normal_for_special_mode:
+		var previous_ui_mode: String = String(PlayerData.held_inventory_previous_ui_mode)
+		if previous_ui_mode != "" and previous_ui_mode != "normal":
+			normalize_to_normal_inventory_mode()
+
+	held_entry = restored_entry.duplicate(true)
+	held_from_area = String(PlayerData.held_inventory_source_area)
+	held_from_index = int(PlayerData.held_inventory_source_index)
+	held_from_slot_name = String(PlayerData.held_inventory_source_slot_name)
+	update_held_item_preview()
+
+
+func get_ui_mode_name(mode: int) -> String:
+	match mode:
+		UIMode.TRADE:
+			return "trade"
+		UIMode.CHEST:
+			return "chest"
+		_:
+			return "normal"
+
+
+func normalize_to_normal_inventory_mode() -> void:
+	trade_inventory = null
+	trade_unit = null
+	ui_mode = UIMode.NORMAL
+	end_trade_session()
+	title_label.text = "Inventory"
+	trade_title_label.text = "Trade"
+	if focus_area == "trade" or focus_area == "trade_back":
+		focus_area = "inventory"
+	update_trade_panel_visibility()
+
+
+func sanitize_runtime_references() -> void:
+	if current_inventory != null and not is_instance_valid(current_inventory):
+		current_inventory = null
+	if current_unit != null and not is_instance_valid(current_unit):
+		current_unit = null
+	if trade_inventory != null and not is_instance_valid(trade_inventory):
+		trade_inventory = null
+	if trade_unit != null and not is_instance_valid(trade_unit):
+		trade_unit = null
+
+
+func try_rebind_player_inventory_from_tree() -> bool:
+	sanitize_runtime_references()
+	if current_inventory != null:
+		return true
+
+	var player_unit: Node = find_player_unit_in_tree()
+	if player_unit == null:
+		return false
+
+	var inventory_node: Node = player_unit.get_node_or_null("Inventory")
+	if inventory_node == null:
+		return false
+
+	current_unit = player_unit
+	current_inventory = inventory_node
+	if current_unit.has_method("get_equipment_slot_order"):
+		equipment_slot_order = current_unit.get_equipment_slot_order()
+
+	return true
+
+
+func find_player_unit_in_tree() -> Node:
+	var tree: SceneTree = get_tree()
+	if tree == null:
+		return null
+
+	for unit in tree.get_nodes_in_group("units"):
+		if unit == null or not is_instance_valid(unit):
+			continue
+		if "is_player_unit" in unit and bool(unit.is_player_unit):
+			return unit
+
+	return null
+
+
+func ensure_current_inventory_for_action() -> bool:
+	sanitize_runtime_references()
+	if current_inventory != null:
+		return true
+
+	return try_rebind_player_inventory_from_tree()
+
+
+func is_detached_special_source_area(source_area: String) -> bool:
+	if source_area != "trade":
+		return false
+
+	if ui_mode == UIMode.TRADE or ui_mode == UIMode.CHEST:
+		return trade_inventory == null
+
+	return true
+
+
+func reject_detached_special_source_if_needed(source_area: String) -> bool:
+	if not is_detached_special_source_area(source_area):
+		return false
+
+	notify_message("Cannot place item from closed trade/chest.")
+	persist_held_state_to_player_data()
+	return true
+
+
 func is_failed_quest_dialog_locked() -> bool:
 	if DialogueManager == null:
 		return false
@@ -629,6 +770,7 @@ func get_chest_ui_data() -> ChestData:
 
 
 func apply_side_panel_visuals_for_mode() -> void:
+	sanitize_runtime_references()
 	sync_slot_grid_columns_from_inventories()
 
 	if ui_mode == UIMode.CHEST:
@@ -869,6 +1011,9 @@ func try_drop_partial_held_entry_to_world(drop_amount: int) -> bool:
 	if not allow_world_drop_from_inventory_ui:
 		return false
 
+	if reject_detached_special_source_if_needed(held_from_area):
+		return true
+
 	# ショップの相手側アイテムは、支払い前に外へ捨てられると破綻するので禁止。
 	# チェストモードの trade 側は「箱の中身」なので許可する。
 	if ui_mode == UIMode.TRADE and held_from_area == "trade" and not allow_world_drop_from_shop_trade_items:
@@ -915,6 +1060,9 @@ func try_drop_held_entry_to_world() -> bool:
 
 	if not allow_world_drop_from_inventory_ui:
 		return false
+
+	if reject_detached_special_source_if_needed(held_from_area):
+		return true
 
 	# ショップの相手側アイテムは、支払い前に外へ捨てられると破綻するので禁止。
 	# チェストモードの trade 側は「箱の中身」なので許可する。
@@ -1039,6 +1187,7 @@ func open_with_inventory(inventory) -> void:
 	await rebuild_inventory_slots_if_needed()
 	await rebuild_trade_slots_if_needed()
 	build_equipment_slots()
+	restore_held_state_from_player_data(true)
 
 	focus_area = "inventory"
 	selected_index = clamp(selected_index, 0, max(get_inventory_slot_count() - 1, 0))
@@ -1070,6 +1219,7 @@ func open_trade_mode(player_inventory, player_unit, merchant_inventory, merchant
 	await rebuild_inventory_slots_if_needed()
 	await rebuild_trade_slots_if_needed()
 	build_equipment_slots()
+	restore_held_state_from_player_data()
 
 	begin_trade_session()
 
@@ -1107,6 +1257,7 @@ func open_chest_mode(player_inventory, player_unit, chest_inventory, chest_owner
 	await rebuild_inventory_slots_if_needed()
 	await rebuild_trade_slots_if_needed()
 	build_equipment_slots()
+	restore_held_state_from_player_data()
 
 	end_trade_session()
 
@@ -1120,6 +1271,14 @@ func open_chest_mode(player_inventory, player_unit, chest_inventory, chest_owner
 
 func is_trade_mode_open() -> bool:
 	return visible and ui_mode == UIMode.TRADE
+
+
+func is_chest_mode_open() -> bool:
+	return visible and ui_mode == UIMode.CHEST
+
+
+func is_special_inventory_mode_open() -> bool:
+	return visible and is_side_mode()
 
 
 func close_inventory() -> void:
@@ -1171,6 +1330,7 @@ func toggle_with_inventory(inventory) -> void:
 
 
 func get_inventory_slot_columns() -> int:
+	ensure_current_inventory_for_action()
 	if current_inventory != null:
 		if current_inventory.has_method("get_slot_columns"):
 			return max(1, int(current_inventory.get_slot_columns()))
@@ -1187,6 +1347,7 @@ func get_inventory_slot_columns() -> int:
 
 
 func get_inventory_slot_rows() -> int:
+	ensure_current_inventory_for_action()
 	if current_inventory != null:
 		if current_inventory.has_method("get_slot_rows"):
 			return max(1, int(current_inventory.get_slot_rows()))
@@ -1199,6 +1360,7 @@ func get_inventory_slot_rows() -> int:
 
 
 func get_trade_slot_columns() -> int:
+	sanitize_runtime_references()
 	if trade_inventory != null:
 		if trade_inventory.has_method("get_slot_columns"):
 			return max(1, int(trade_inventory.get_slot_columns()))
@@ -1220,6 +1382,7 @@ func get_trade_slot_columns() -> int:
 
 
 func get_trade_slot_rows() -> int:
+	sanitize_runtime_references()
 	if trade_inventory != null:
 		if trade_inventory.has_method("get_slot_rows"):
 			return max(1, int(trade_inventory.get_slot_rows()))
@@ -1243,7 +1406,7 @@ func sync_slot_grid_columns_from_inventories() -> void:
 
 
 func get_inventory_slot_count() -> int:
-	if current_inventory == null:
+	if not ensure_current_inventory_for_action():
 		return 0
 
 	if current_inventory.has_method("get_slot_count"):
@@ -1256,6 +1419,7 @@ func get_inventory_slot_count() -> int:
 
 
 func get_trade_slot_count() -> int:
+	sanitize_runtime_references()
 	if trade_inventory == null:
 		return 0
 
@@ -1273,7 +1437,7 @@ func get_equipment_slot_count() -> int:
 
 
 func get_hotbar_slot_count() -> int:
-	if current_inventory == null:
+	if not ensure_current_inventory_for_action():
 		return 0
 
 	if current_inventory.has_method("get_hotbar_slot_count"):
@@ -1485,7 +1649,7 @@ func try_mouse_use_selected_item() -> void:
 func rebuild_hotbar_slots_if_needed() -> void:
 	ensure_hotbar_ui_nodes()
 
-	if current_inventory == null:
+	if not ensure_current_inventory_for_action():
 		return
 
 	if hotbar_slot_grid == null:
@@ -1533,7 +1697,7 @@ func rebuild_hotbar_slots_if_needed() -> void:
 
 
 func rebuild_inventory_slots_if_needed() -> void:
-	if current_inventory == null:
+	if not ensure_current_inventory_for_action():
 		return
 
 	sync_slot_grid_columns_from_inventories()
@@ -1578,6 +1742,7 @@ func rebuild_inventory_slots_if_needed() -> void:
 
 
 func rebuild_trade_slots_if_needed() -> void:
+	sanitize_runtime_references()
 	if trade_inventory == null:
 		for child in trade_slot_grid.get_children():
 			child.queue_free()
@@ -1999,6 +2164,7 @@ func refresh() -> void:
 
 
 func refresh_trade_slots() -> void:
+	sanitize_runtime_references()
 	if trade_inventory == null:
 		return
 
@@ -2028,7 +2194,7 @@ func refresh_trade_slots() -> void:
 
 
 func refresh_hotbar_slots() -> void:
-	if current_inventory == null:
+	if not ensure_current_inventory_for_action():
 		return
 
 	if hotbar_slot_grid == null:
@@ -2069,7 +2235,7 @@ func refresh_hotbar_slots() -> void:
 
 
 func refresh_inventory_slots() -> void:
-	if current_inventory == null:
+	if not ensure_current_inventory_for_action():
 		return
 
 	var items = current_inventory.get_all_items()
@@ -2665,10 +2831,11 @@ func set_held_origin(area: String, index: int = -1, slot_name: String = "") -> v
 	held_from_area = area
 	held_from_index = index
 	held_from_slot_name = slot_name
+	persist_held_state_to_player_data()
 
 
 func get_player_gold_amount() -> int:
-	if current_inventory == null:
+	if not ensure_current_inventory_for_action():
 		return 0
 
 	if not current_inventory.has_method("get_total_amount"):
@@ -2681,7 +2848,7 @@ func try_spend_player_gold(amount: int) -> bool:
 	if amount <= 0:
 		return true
 
-	if current_inventory == null:
+	if not ensure_current_inventory_for_action():
 		return false
 
 	if not current_inventory.has_method("consume_item_amount"):
@@ -2694,7 +2861,7 @@ func give_player_gold(amount: int) -> bool:
 	if amount <= 0:
 		return true
 
-	if current_inventory == null:
+	if not ensure_current_inventory_for_action():
 		return false
 
 	if current_inventory.has_method("force_add_item_amount"):
@@ -2748,6 +2915,9 @@ func apply_trade_price_to_entry(target_entry: Dictionary, source_entry: Dictiona
 
 
 func drop_held_entry_one_to_inventory(target_index: int) -> void:
+	if not ensure_current_inventory_for_action():
+		return
+
 	var target_entry: Dictionary = current_inventory.get_item_data_at(target_index)
 
 	if is_empty_entry(held_entry):
@@ -2765,6 +2935,9 @@ func drop_held_entry_one_to_inventory(target_index: int) -> void:
 
 
 func drop_held_entry_to_inventory(target_index: int) -> void:
+	if not ensure_current_inventory_for_action():
+		return
+
 	var target_entry: Dictionary = current_inventory.get_item_data_at(target_index)
 	var source_area_before_swap: String = held_from_area
 	var moved_entry: Dictionary = held_entry.duplicate(true)
@@ -2804,6 +2977,9 @@ func drop_held_entry_to_inventory(target_index: int) -> void:
 
 
 func drop_held_entry_one_to_hotbar(target_index: int) -> void:
+	if not ensure_current_inventory_for_action():
+		return
+
 	var target_entry: Dictionary = current_inventory.get_hotbar_item_data_at(target_index)
 
 	if is_empty_entry(held_entry):
@@ -2821,6 +2997,9 @@ func drop_held_entry_one_to_hotbar(target_index: int) -> void:
 
 
 func drop_held_entry_to_hotbar(target_index: int) -> void:
+	if not ensure_current_inventory_for_action():
+		return
+
 	var target_entry: Dictionary = current_inventory.get_hotbar_item_data_at(target_index)
 	var source_area_before_swap: String = held_from_area
 	var moved_entry: Dictionary = held_entry.duplicate(true)
@@ -2860,7 +3039,7 @@ func drop_held_entry_to_hotbar(target_index: int) -> void:
 
 
 func drop_partial_held_entry_to_hotbar(target_index: int, move_amount: int) -> void:
-	if current_inventory == null:
+	if not ensure_current_inventory_for_action():
 		return
 
 	var moved_entry: Dictionary = create_partial_held_entry(move_amount)
@@ -2890,6 +3069,10 @@ func drop_partial_held_entry_to_hotbar(target_index: int, move_amount: int) -> v
 
 
 func drop_held_entry_one_to_trade(target_index: int) -> void:
+	sanitize_runtime_references()
+	if trade_inventory == null:
+		return
+
 	var target_entry: Dictionary = trade_inventory.get_item_data_at(target_index)
 
 	if is_empty_entry(held_entry):
@@ -2907,6 +3090,10 @@ func drop_held_entry_one_to_trade(target_index: int) -> void:
 
 
 func drop_held_entry_to_trade(target_index: int) -> void:
+	sanitize_runtime_references()
+	if trade_inventory == null:
+		return
+
 	var target_entry: Dictionary = trade_inventory.get_item_data_at(target_index)
 	var source_area_before_swap: String = held_from_area
 	var moved_entry: Dictionary = held_entry.duplicate(true)
@@ -2990,7 +3177,7 @@ func drop_held_entry_to_equipment(slot_name: String) -> void:
 
 
 func drop_partial_held_entry_to_inventory(target_index: int, move_amount: int) -> void:
-	if current_inventory == null:
+	if not ensure_current_inventory_for_action():
 		return
 
 	var moved_entry: Dictionary = create_partial_held_entry(move_amount)
@@ -3020,6 +3207,7 @@ func drop_partial_held_entry_to_inventory(target_index: int, move_amount: int) -
 
 
 func drop_partial_held_entry_to_trade(target_index: int, move_amount: int) -> void:
+	sanitize_runtime_references()
 	if trade_inventory == null:
 		return
 
@@ -3091,6 +3279,9 @@ func notify_trade_transfer_if_needed(target_area: String, moved_entry: Dictionar
 	var actual_source_area: String = source_area
 	if actual_source_area == "":
 		actual_source_area = held_from_area
+
+	if reject_detached_special_source_if_needed(actual_source_area):
+		return false
 
 	if ui_mode == UIMode.CHEST:
 		if trade_unit != null:
@@ -3176,7 +3367,7 @@ func handle_external_hotbar_slot_pressed(hotbar_index: int) -> bool:
 	if not visible:
 		return false
 
-	if current_inventory == null:
+	if not ensure_current_inventory_for_action():
 		return false
 
 	if not current_inventory.has_method("get_hotbar_slot_count"):
@@ -3208,7 +3399,7 @@ func handle_external_hotbar_slot_secondary_pressed(hotbar_index: int) -> bool:
 	if not visible:
 		return false
 
-	if current_inventory == null:
+	if not ensure_current_inventory_for_action():
 		return false
 
 	if not current_inventory.has_method("get_hotbar_slot_count"):
@@ -3236,6 +3427,10 @@ func handle_external_hotbar_slot_secondary_pressed(hotbar_index: int) -> bool:
 func restore_held_entry_on_close() -> bool:
 	if held_entry.is_empty():
 		return true
+
+	if not ensure_current_inventory_for_action():
+		persist_held_state_to_player_data()
+		return false
 
 	if held_from_area == "hotbar":
 		if current_inventory.has_method("is_hotbar_slot_empty") and current_inventory.is_hotbar_slot_empty(held_from_index):
@@ -3275,6 +3470,11 @@ func restore_held_entry_on_close() -> bool:
 		return false
 
 	if held_from_area == "trade":
+		if trade_inventory == null:
+			notify_message("Cannot return item to closed trade/chest.")
+			persist_held_state_to_player_data()
+			return false
+
 		if trade_inventory != null and trade_inventory.is_slot_empty(held_from_index):
 			trade_inventory.set_item_data_at(held_from_index, held_entry)
 			clear_held_state()
@@ -3309,7 +3509,13 @@ func restore_held_entry_on_close() -> bool:
 		notify_message("空きスロットがないため閉じられない")
 		return false
 
-	return true
+	var fallback_inventory_index: int = current_inventory.find_first_empty_slot()
+	if fallback_inventory_index >= 0:
+		current_inventory.set_item_data_at(fallback_inventory_index, held_entry)
+		clear_held_state()
+		return true
+
+	return false
 
 
 func clear_held_state() -> void:
@@ -3317,6 +3523,7 @@ func clear_held_state() -> void:
 	held_from_area = ""
 	held_from_index = -1
 	held_from_slot_name = ""
+	persist_held_state_to_player_data()
 
 
 func can_merge_entries(source_entry: Dictionary, target_entry: Dictionary) -> bool:
@@ -3358,6 +3565,7 @@ func merge_entries(source_entry: Dictionary, target_entry: Dictionary) -> int:
 
 
 func can_place_entry_in_equipment_slot(entry: Dictionary, slot_name: String) -> bool:
+	ensure_current_inventory_for_action()
 	var item_id: String = String(entry.get("item_id", ""))
 	var amount: int = int(entry.get("amount", 0))
 
@@ -3385,13 +3593,20 @@ func can_place_entry_in_equipment_slot(entry: Dictionary, slot_name: String) -> 
 
 
 func get_selected_entry() -> Dictionary:
+	sanitize_runtime_references()
 	if focus_area == "inventory":
+		if not ensure_current_inventory_for_action():
+			return {}
 		return current_inventory.get_item_data_at(selected_index)
 
 	if focus_area == "hotbar":
+		if not ensure_current_inventory_for_action():
+			return {}
 		return current_inventory.get_hotbar_item_data_at(selected_index)
 
 	if focus_area == "trade":
+		if trade_inventory == null:
+			return {}
 		return trade_inventory.get_item_data_at(selected_index)
 
 	var slot_name: String = String(equipment_slot_order[selected_index])
@@ -3399,6 +3614,7 @@ func get_selected_entry() -> Dictionary:
 
 
 func get_equipment_entry(slot_name: String) -> Dictionary:
+	ensure_current_inventory_for_action()
 	if current_unit == null:
 		return {}
 
@@ -3409,6 +3625,7 @@ func get_equipment_entry(slot_name: String) -> Dictionary:
 
 
 func set_equipment_entry(slot_name: String, entry: Dictionary) -> bool:
+	ensure_current_inventory_for_action()
 	if current_unit == null:
 		return false
 
@@ -3434,6 +3651,7 @@ func set_equipment_entry(slot_name: String, entry: Dictionary) -> bool:
 
 
 func clear_equipment_entry(slot_name: String) -> void:
+	ensure_current_inventory_for_action()
 	if current_unit != null and current_unit.has_method("clear_equipment_slot"):
 		current_unit.clear_equipment_slot(slot_name)
 
@@ -3451,7 +3669,7 @@ func use_selected_item() -> void:
 	if focus_area != "inventory" and focus_area != "hotbar":
 		return
 
-	if current_inventory == null:
+	if not ensure_current_inventory_for_action():
 		return
 
 	if not held_entry.is_empty():
@@ -3854,6 +4072,8 @@ func _get_or_create_held_enchant_overlay() -> ColorRect:
 func update_held_item_preview() -> void:
 	if held_item_preview == null:
 		return
+
+	persist_held_state_to_player_data()
 
 	var enchant_overlay: ColorRect = _get_or_create_held_enchant_overlay()
 	ensure_mouse_passthrough_for_float_panels()

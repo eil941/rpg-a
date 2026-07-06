@@ -271,7 +271,7 @@ func is_ui_locked() -> bool:
 	if is_dialog_open():
 		return true
 
-	if is_trade_ui_open():
+	if is_special_inventory_ui_open():
 		return true
 
 	if is_status_open():
@@ -3254,6 +3254,20 @@ func is_trade_ui_open() -> bool:
 	while node != null:
 		if node.has_method("is_trade_ui_open"):
 			return node.is_trade_ui_open()
+
+		node = node.get_parent()
+
+	return false
+
+
+func is_special_inventory_ui_open() -> bool:
+	var node: Node = unit
+
+	while node != null:
+		if node.has_method("is_special_inventory_ui_open"):
+			return bool(node.is_special_inventory_ui_open())
+		if node.has_method("is_trade_ui_open"):
+			return bool(node.is_trade_ui_open())
 
 		node = node.get_parent()
 

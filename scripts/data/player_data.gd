@@ -42,6 +42,11 @@ var effect_runtimes_data: Array = []
 var last_effect_update_time: float = 0.0
 
 var debug_start_items_applied: bool = false
+var held_inventory_entry: Dictionary = {}
+var held_inventory_source_area: String = ""
+var held_inventory_source_index: int = -1
+var held_inventory_source_slot_name: String = ""
+var held_inventory_previous_ui_mode: String = ""
 
 func reset_for_new_game() -> void:
 	max_hp = 2000
@@ -79,3 +84,20 @@ func reset_for_new_game() -> void:
 	effect_runtimes_data.clear()
 	last_effect_update_time = 0.0
 	debug_start_items_applied = false
+	clear_held_inventory_state()
+
+
+func set_held_inventory_state(entry: Dictionary, source_area: String, source_index: int, source_slot_name: String, previous_ui_mode: String = "") -> void:
+	held_inventory_entry = entry.duplicate(true)
+	held_inventory_source_area = source_area
+	held_inventory_source_index = source_index
+	held_inventory_source_slot_name = source_slot_name
+	held_inventory_previous_ui_mode = previous_ui_mode
+
+
+func clear_held_inventory_state() -> void:
+	held_inventory_entry = {}
+	held_inventory_source_area = ""
+	held_inventory_source_index = -1
+	held_inventory_source_slot_name = ""
+	held_inventory_previous_ui_mode = ""

@@ -1794,6 +1794,26 @@ func is_trade_ui_open() -> bool:
 	return false
 
 
+func is_chest_ui_open() -> bool:
+	if inventory_ui == null:
+		return false
+
+	if inventory_ui.has_method("is_chest_mode_open"):
+		return bool(inventory_ui.is_chest_mode_open())
+
+	return false
+
+
+func is_special_inventory_ui_open() -> bool:
+	if inventory_ui == null:
+		return false
+
+	if inventory_ui.has_method("is_special_inventory_mode_open"):
+		return bool(inventory_ui.is_special_inventory_mode_open())
+
+	return is_trade_ui_open() or is_chest_ui_open()
+
+
 func on_trade_ui_closed() -> void:
 	if DialogueManager == null:
 		return
