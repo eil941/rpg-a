@@ -1,6 +1,6 @@
 # Feature Addition Guide
 
-新機能追加時に「まずどこを見るか」をまとめた入口表です。実装前には [../architecture/script_responsibility_map.md](../architecture/script_responsibility_map.md) と [../architecture/runtime_flow_overview.md](../architecture/runtime_flow_overview.md) も合わせて確認すると迷いにくくなります。
+新機能追加時に「まずどこを見るか」をまとめた入口表です。実装前には [../architecture/script_responsibility_map.md](../architecture/script_responsibility_map.md) と [../architecture/runtime_flow_overview.md](../architecture/runtime_flow_overview.md) も合わせて確認すると迷いにくくなります。TSV列やloaderを触る時は [../systems/game_data_registry_loader_map.md](../systems/game_data_registry_loader_map.md) も先に確認します。
 
 ## 入口表
 
@@ -28,9 +28,10 @@
 2. `master_data.xlsx` を編集します。
 3. `tools/export_master_tsv.py` を実行します。
 4. `tools/validate_master_data.py` を実行します。
-5. `git diff --check` を実行します。
-6. TSVの件数、参照ID、空欄default、既存行への影響を確認します。
-7. 可能ならGodotで起動エラーと Variant warning-as-error がないことを確認します。
+5. [../systems/game_data_registry_loader_map.md](../systems/game_data_registry_loader_map.md) でloader、data class、lookup、validatorの対応を確認します。
+6. `git diff --check` を実行します。
+7. TSVの件数、参照ID、空欄default、既存行への影響を確認します。
+8. 可能ならGodotで起動エラーと Variant warning-as-error がないことを確認します。
 
 ## Runtime Feature Checklist
 

@@ -2,6 +2,14 @@
 
 Data、Spawn、Save は「いつデータを作るか」と「いつ保存済み状態を優先するか」が重要です。特に initial inventory と shop inventory、WorldState と PlayerData の境界を整理します。
 
+Unit側でdata適用、initial inventory、save/loadがどこに入るかは [unit_lifecycle_deep_dive.md](unit_lifecycle_deep_dive.md) も参照してください。
+
+SaveManager / PlayerData / WorldState の保存対象、復元対象、reset対象は [save_worldstate_playerdata_map.md](save_worldstate_playerdata_map.md) を参照してください。
+
+TSVカテゴリごとのloader、data class、lookup、validator対応は [game_data_registry_loader_map.md](game_data_registry_loader_map.md) を参照してください。
+
+Map scene scriptsごとのspawn/save/resetの違いは [map_spawn_persistence_deep_dive.md](map_spawn_persistence_deep_dive.md) を参照してください。
+
 ## master_data.xlsx -> TSV -> GameDataRegistry
 
 1. `master_data.xlsx` がマスターデータの正本です。
@@ -110,6 +118,7 @@ Data、Spawn、Save は「いつデータを作るか」と「いつ保存済み
 - 生成したenemy/npc/pickup/chestは `WorldState` に保存され、再訪時に復元されます。
 - mapを離れる前に `save_all_units()` や `ItemWorldManager.save_current_state()` が呼ばれる設計です。
 - scene node自体はfreeされるため、永続させたい状態はWorldStateへ書きます。
+- field/detail/dungeon/simple biomeで保存対象とreset条件が違います。詳細は [map_spawn_persistence_deep_dive.md](map_spawn_persistence_deep_dive.md) を入口にしてください。
 
 ## Data / Spawn / Save変更時の確認項目
 

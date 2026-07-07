@@ -4,6 +4,8 @@
 
 `InventoryUI` は通常inventory、trade、chest、equipment、hotbar、held item、scene跨ぎ復元を扱うため状態が複雑です。今後変更するときは、「UIがどのmodeか」と「持ち上げ中itemがどこ由来か」を分けて考えます。
 
+Godot上でheld itemやtrade/chest中移動不可を確認する時は [../checklists/save_load_regression_matrix.md](../checklists/save_load_regression_matrix.md) の SL-020〜SL-023 を使います。
+
 ## UIMode一覧
 
 | UIMode | 意味 | side panel | 移動可否 | scene跨ぎ時の扱い |
@@ -25,6 +27,8 @@
 | `PlayerData.held_inventory_source_index` | `PlayerData` | scene跨ぎ用source index | する | 元参照がfree済みなら戻せない。 |
 | `PlayerData.held_inventory_source_slot_name` | `PlayerData` | scene跨ぎ用equipment slot名 | する | equipment復元時に使う。 |
 | `PlayerData.held_inventory_previous_ui_mode` | `PlayerData` | scene遷移前のUI mode名 | する | 前回が特殊modeでも新sceneではnormalへ戻す判断材料。 |
+
+held itemはscene跨ぎruntime一時状態として `PlayerData` に保持しますが、SaveManagerのsave file snapshot対象ではありません。保存対象全体の整理は [save_worldstate_playerdata_map.md](save_worldstate_playerdata_map.md) を参照してください。
 
 ## area/source一覧
 
