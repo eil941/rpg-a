@@ -323,3 +323,17 @@ scene node参照は基本的に持ち越しません。必要な状態だけ `Pl
 - `SaveManager.PLAYER_DATA_PROPS` には `PlayerData.held_inventory_*` が含まれていません。これはscene跨ぎruntime一時状態としては自然ですが、「held item中に手動saveしたい」仕様を将来入れる場合は、保存するか、saveを拒否するかを別途決める必要があります。
 - `SaveManager.debug_print_non_player_units_on_save` は現状trueです。調査には便利ですが、ログ整理をする場合は挙動変更と混ぜず別Stepが安全です。
 - `Unit.get_stats_data()` はstats以外も多く含むため、新しい保存項目を足す時に見落としやすい名前です。将来、docs上の呼称かhelper名の整理候補になります。
+
+## Quest / Generated Quest保存メモ
+
+Quest lifecycleの詳細は [quest_generated_lifecycle_deep_dive.md](quest_generated_lifecycle_deep_dive.md) を参照します。
+
+| WorldState field | SaveManager保存対象 | 役割 |
+| --- | --- | --- |
+| `quest_active_data` | yes | 受注中quest。NPC会話、掲示板、StatusUIが読む。 |
+| `quest_completed_data` | yes | 完了済みquest履歴。 |
+| `quest_failed_data` | yes | 失敗/破棄quest履歴。generated questの再生成ブロック判定にも関係。 |
+| `unit_generated_quests` | yes | Unitごとのgenerated quest cache。 |
+| `npc_quest_generation_blocked_until_reset` | no | 失敗/破棄後、NPC resetまでgenerated quest再生成を止めるruntime reset state。 |
+
+Quest関連の保存仕様を変える場合は、受注中generated questがsave/load後も同じgiverに報告できるかを必ず確認します。

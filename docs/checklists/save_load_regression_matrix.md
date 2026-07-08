@@ -10,7 +10,7 @@
 
 - `py tools/validate_master_data.py` が成功していること。
 - `git diff --check` が成功していること。
-- DebugSettings の一時確認flagが通常状態に戻っていること。
+- DebugSettings の一時確認flagが通常状態に戻っていること。現在値や戻す対象は [../systems/debug_settings_deep_dive.md](../systems/debug_settings_deep_dive.md) を参照します。
 - docsだけの変更ならGodot実行は必須ではありません。
 - Save/Load、WorldState、PlayerData、map scene、Unit保存処理を変更した場合はGodot実行確認を必須にしてください。
 - 実機確認結果は、必要に応じてこのdocsの「実機確認ログ」へ追記します。
@@ -88,6 +88,7 @@
 | Dungeon | `docs/systems/map_spawn_persistence_deep_dive.md` | `scripts/dungeon/dungeon_main.gd`, `scripts/dungeon/GlobalDungeon.gd` |
 | Quest | `docs/systems/save_worldstate_playerdata_map.md` | `scripts/managers/quest_manager.gd`, `scripts/world/world_state.gd` |
 | Reset | `docs/systems/save_worldstate_playerdata_map.md`, `docs/systems/map_spawn_persistence_deep_dive.md` | `scripts/world/world_state.gd`, `scripts/save_manager.gd`, `scripts/map/map_scene_scripts/FiledMap.gd` |
+| DebugSettings | `docs/systems/debug_settings_deep_dive.md` | `scripts/debug/DebugSettings.gd`, `scripts/core/unit.gd`, `scripts/data/player_data.gd` |
 
 ## 失敗時の切り分けガイド
 
@@ -124,6 +125,29 @@ Save/LoadやWorldStateを触った場合、最低限以下を確認します。
 | Pickup/Chest | SL-050〜SL-055 | world pickup/chestの再抽選・巻き戻り防止 |
 
 変更範囲がInventoryUIやtrade/chestに近い場合は SL-020〜SL-023、dungeonに近い場合は SL-060〜SL-065、quest/resetに近い場合は SL-070〜SL-084 も追加します。
+
+## DebugSettings変更時の追加確認
+
+DebugSettingsやdebug start itemを触ったStepでは、通常のSave/Load確認に加えて以下を見ます。詳細は [../systems/debug_settings_deep_dive.md](../systems/debug_settings_deep_dive.md) を参照します。
+
+| ID | 確認内容 | 観点 |
+| --- | --- | --- |
+| SL-D-001 | 確認用flagの戻し | `debug_equipment_attack_effects`, `debug_equipment_effects`, death drop scope, skill移動確認flagなどがStep後の期待値に戻っている。 |
+| SL-D-002 | debug start item再配布 | `PlayerData.debug_start_items_applied` がsave/loadで維持され、loadのたびに増殖しない。new gameでは再配布される。 |
+| SL-D-003 | DebugSettings外debug出力 | SaveManager local debugやGameDataRegistry debug dumpなど、DebugSettingsで制御されないログを混同していない。 |
+
+## Quest / Generated Quest追加確認
+
+Quest lifecycleの詳細は [../systems/quest_generated_lifecycle_deep_dive.md](../systems/quest_generated_lifecycle_deep_dive.md) を参照します。
+
+| ID | 確認内容 | 観点 |
+| --- | --- | --- |
+| SL-Q-001 | NPCからgenerated questを受注してsave/load | `quest_active_data` と `unit_generated_quests` が戻る。 |
+| SL-Q-002 | Quest boardから同じactive questを確認 | Board独自状態ではなくWorldStateから再表示される。 |
+| SL-Q-003 | 納品アイテムを所持してquest完了 | Inventory消費、reward追加、completed移動を確認。 |
+| SL-Q-004 | Active generated quest中にmap reset相当の再訪問 | giver NPCが消えず、報告できる。 |
+| SL-Q-005 | Questを破棄/失敗してNPC reset前に再会 | generated questがすぐ再生成されない。 |
+| SL-Q-006 | NPC reset後に再会 | blocked状態が解除され、必要なら新しいgenerated quest候補が出る。 |
 
 ## 今回は直さないが気になる点
 

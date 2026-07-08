@@ -210,3 +210,18 @@ Map spawn/persistenceを触ったら、最低限以下を確認します。
 - `FiledMap.gd` はファイル名がtypoに見えます。renameするならscene参照、docs、autoload連携をまとめて確認する専用Stepが必要です。
 - simple biome scripts (`grass_map.gd` など) は `main.gd` より古い/簡易のspawn構造です。将来統一するなら、item/chest永続化やspawn rule対応の有無を先に棚卸ししてください。
 - `dungeon_spawn_rules.tsv` はcode pathがある一方、データが少ない/空でもfallbackが動く設計です。rule追加時はfloor data repairと既存saveの互換性を確認してください。
+
+## Quest NPC保護メモ
+
+Quest lifecycleの詳細は [quest_generated_lifecycle_deep_dive.md](quest_generated_lifecycle_deep_dive.md) を参照します。
+
+Regenerable mapやNPC resetを触る時は、active quest NPCを消さないことを優先します。
+
+| 処理 | Questとの関係 |
+| --- | --- |
+| `WorldState.clear_regenerable_map_data()` | `WorldState.quest_active_data` からactive quest Unit IDを集め、該当NPC spawn/detail configを残す。 |
+| `WorldState._clear_unit_states_for_map()` | protected active quest Unit IDはunit state削除対象から外す。 |
+| `WorldState.reset_generated_npc_quest_state()` | `reset_active_generated_quests_on_world_reset=false` の場合、active quest NPCのgenerated cacheを残す。 |
+| `UnitSpawnManager.clear_runtime_state_for_new_random_unit()` | 新規random Unit生成時に古いgenerated quest cacheを引き継がない。 |
+
+Map spawn/persistenceを変更したStepでは、active generated questを受けたNPCがmap reset後も報告先として残るかを確認してください。

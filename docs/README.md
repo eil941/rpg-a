@@ -25,6 +25,7 @@
 | 機能単位の関係を知りたい | [architecture/subsystem_interaction_map.md](architecture/subsystem_interaction_map.md) |
 | 新機能を追加したい | [guides/feature_addition_guide.md](guides/feature_addition_guide.md) |
 | Save/Load回帰確認をしたい | [checklists/save_load_regression_matrix.md](checklists/save_load_regression_matrix.md) |
+| DebugSettings / debug flag / debug start item を確認したい | [systems/debug_settings_deep_dive.md](systems/debug_settings_deep_dive.md) |
 | Codexに作業依頼したい | [guides/codex_project_context.md](guides/codex_project_context.md) |
 
 ## Inventory系を触る時
@@ -33,6 +34,7 @@
 | --- | --- |
 | Inventory / Trade / Chest 全体を理解する | [systems/inventory_trade_chest_system_deep_dive.md](systems/inventory_trade_chest_system_deep_dive.md) |
 | `InventoryUI` の mode / held item 状態遷移を確認する | [systems/inventory_ui_state_transition.md](systems/inventory_ui_state_transition.md) |
+| Trade / Chest / held item の所有権境界を見る | [systems/trade_chest_ownership_deep_dive.md](systems/trade_chest_ownership_deep_dive.md) |
 | UI lock やscene遷移との関係を見る | [systems/ui_input_scene_transition_deep_dive.md](systems/ui_input_scene_transition_deep_dive.md) |
 
 ## 戦闘・死亡を触る時
@@ -41,6 +43,7 @@
 | --- | --- |
 | `Unit.gd` のライフサイクル別入口を知る | [systems/unit_lifecycle_deep_dive.md](systems/unit_lifecycle_deep_dive.md) |
 | Unit / Combat / Death の流れを知る | [systems/unit_combat_death_system_deep_dive.md](systems/unit_combat_death_system_deep_dive.md) |
+| 消耗品効果・装備パッシブ・装備攻撃効果の実行経路を知る | [systems/equipment_item_effect_execution_path.md](systems/equipment_item_effect_execution_path.md) |
 | 死亡時ドロップ仕様を確認する | [systems/death_drop_spec.md](systems/death_drop_spec.md) |
 | ダメージeffectの補足を見る | [systems/damage_system_notes.md](systems/damage_system_notes.md) |
 
@@ -53,9 +56,27 @@
 | Map scene / spawn / persistence の流れを見る | [systems/map_spawn_persistence_deep_dive.md](systems/map_spawn_persistence_deep_dive.md) |
 | Save/Load実機確認チェック表を見る | [checklists/save_load_regression_matrix.md](checklists/save_load_regression_matrix.md) |
 | GameDataRegistryのTSV loader / lookup対応を見る | [systems/game_data_registry_loader_map.md](systems/game_data_registry_loader_map.md) |
+| item_effects / item_effect_links の実行入口を見る | [systems/equipment_item_effect_execution_path.md](systems/equipment_item_effect_execution_path.md) |
 | TSV移行状況を見る | [migration/tsv_migration_audit.md](migration/tsv_migration_audit.md) |
 | TSV移行完了方針を見る | [migration/tsv_migration_completion.md](migration/tsv_migration_completion.md) |
 | 新機能追加時のデータ手順を見る | [guides/feature_addition_guide.md](guides/feature_addition_guide.md) |
+
+## Quest / Generated Quest を触る時
+
+| 目的 | 読むdocs |
+| --- | --- |
+| Quest / generated quest / NPC quest lifecycle の全体像を見る | [systems/quest_generated_lifecycle_deep_dive.md](systems/quest_generated_lifecycle_deep_dive.md) |
+| Save / WorldState 側の保存対象を見る | [systems/save_worldstate_playerdata_map.md](systems/save_worldstate_playerdata_map.md) |
+| map reset / spawn persistence と active quest NPC 保護を見る | [systems/map_spawn_persistence_deep_dive.md](systems/map_spawn_persistence_deep_dive.md) |
+| Questを含むSave/Load確認項目を見る | [checklists/save_load_regression_matrix.md](checklists/save_load_regression_matrix.md) |
+
+## DebugSettings / 確認用設定を触る時
+
+| 目的 | 読むdocs |
+| --- | --- |
+| DebugSettingsのflagと開始アイテムの現状を見る | [systems/debug_settings_deep_dive.md](systems/debug_settings_deep_dive.md) |
+| Save/Load確認時にDebugSettings由来の影響を見る | [checklists/save_load_regression_matrix.md](checklists/save_load_regression_matrix.md) |
+| DebugSettings変更時に触るscript責務を見る | [architecture/script_responsibility_map.md](architecture/script_responsibility_map.md) |
 
 ## Codexに依頼する時
 

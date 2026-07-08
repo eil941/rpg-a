@@ -130,3 +130,17 @@ Map scene scriptsごとのspawn/save/resetの違いは [map_spawn_persistence_de
 - `WorldState.unit_states` と spawn list のキーが一致しているか
 - new game/resetで新しい状態が残らないか
 - save/load後に player inventory/equipment/effects が戻るか
+
+## Quest / Generated Questとの接続
+
+Quest系の詳細は [quest_generated_lifecycle_deep_dive.md](quest_generated_lifecycle_deep_dive.md) を参照します。
+
+| 接続点 | データ | 保存先 | 注意 |
+| --- | --- | --- | --- |
+| Quest template | `quests.tsv` -> `QuestData` | `GameData.quests` | 進行状態ではなくtemplate。 |
+| NPC quest候補 | `npc_quest_links.tsv` | `GameData.npc_quest_links_by_npc` | linkがあるNPCはlink候補がrole filterより優先される。 |
+| Generated quest cache | runtime生成済みquest | `WorldState.unit_generated_quests` | UIを開くたびにrerollしないためのcache。SaveManager保存対象。 |
+| Active quest | 受注済みquest data | `WorldState.quest_active_data` | map reset時にgiver Unitを保護する判断材料。 |
+| Quest complete/fail | 完了/失敗履歴 | `WorldState.quest_completed_data`, `WorldState.quest_failed_data` | generated quest resetで履歴整理される箇所がある。 |
+
+Data / Spawn / Saveを触る時は、active quest NPCがいるmapでNPC spawnやunit stateを消さないことを確認してください。
