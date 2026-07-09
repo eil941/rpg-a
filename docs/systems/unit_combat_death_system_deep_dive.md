@@ -4,6 +4,8 @@ Unit、Stats、Combat、ItemEffect、Death Drop は密につながっていま�
 
 `Unit.gd` 全体を lifecycle別に読む入口は [unit_lifecycle_deep_dive.md](unit_lifecycle_deep_dive.md) を参照してください。
 
+HP0へ到達する各入口、`handle_death()`、death drop、WorldState更新だけを追う場合は [death_path_diagram.md](death_path_diagram.md) を参照してください。
+
 ## 関連スクリプトと役割
 
 | Script | 役割 |

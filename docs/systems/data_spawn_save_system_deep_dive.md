@@ -73,6 +73,7 @@ Map scene scriptsごとのspawn/save/resetの違いは [map_spawn_persistence_de
 - `guaranteed=true` は必ず生成、falseなら `spawn_chance` を使います。
 - `min_amount`〜`max_amount` の範囲でamountを決めます。
 - 生成されたitemは通常の本体inventoryに入るため、死亡時には通常のcarried entryとして扱われます。
+- initial inventoryとdeath dropの接続、死亡Unitとpickupの保存経路は [death_path_diagram.md](death_path_diagram.md) を参照してください。
 
 ## saved Unitでは再抽選しない
 
@@ -87,7 +88,7 @@ Map scene scriptsごとのspawn/save/resetの違いは [map_spawn_persistence_de
 | 本体inventory | Unitが実際に持っているitem | `initial_inventory_*`、pickup、UI操作 | 対象 | death dropはこれを見る。 |
 | hotbar | Unitが実際に持っているquick slot | Inventory save data | 対象 | inventory扱い。 |
 | equipment | Unitが装備中のitem | enemy/npc data、UI操作 | flag次第 | `drop_equipped_items_on_death` を見る。 |
-| shop inventory | 商人の売り物 | shop table / fallback columns | 原則混ぜない | trade用在庫。本体dropとは別。 |
+| shop inventory | 商人の売り物 | shop table / fallback columns | Unit.inventory内にあるため候補になり得る | trade用という用途と、現コード上の保存containerを分けて読む。 |
 
 ## 状態の保存先
 

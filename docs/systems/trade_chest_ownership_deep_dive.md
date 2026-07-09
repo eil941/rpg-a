@@ -41,7 +41,7 @@
 - `PlayerController.is_ui_locked()` は `is_special_inventory_ui_open()` を見るため、trade/chest中の移動は止まります。
 - `GameAndHud.is_special_inventory_ui_open()` は `InventoryUI.is_special_inventory_mode_open()` を優先し、trade/chestをまとめて特殊modeとして扱います。
 
-UI lock matrixの詳細は [ui_input_scene_transition_deep_dive.md](ui_input_scene_transition_deep_dive.md) と [inventory_ui_state_transition.md](inventory_ui_state_transition.md) を参照してください。このdocsでは、所有権と参照寿命を中心に扱います。
+UI lock matrixの詳細は [ui_lock_matrix.md](ui_lock_matrix.md)、scene遷移との関係は [ui_input_scene_transition_deep_dive.md](ui_input_scene_transition_deep_dive.md)、modeとheld stateは [inventory_ui_state_transition.md](inventory_ui_state_transition.md) を参照してください。このdocsでは、所有権と参照寿命を中心に扱います。
 
 ## Held item の所有権
 
@@ -111,7 +111,7 @@ buy / sell の現状:
 
 trade中にsceneが切り替わる場合、trade modeは維持しません。held itemはPlayerDataへ退避されますが、`trade_inventory` / `trade_unit` はnull化されます。新しいsceneでは通常inventoryとして開かれます。
 
-merchant/shop inventoryをUnit本体inventoryやdeath drop対象と混同しないでください。shop inventoryは売り物用であり、death dropはUnitが実際に持っているinventory / hotbar / equipmentを対象にします。
+merchant/shop inventoryは用途上は売り物です。ただし現コードでは `merchant_unit.inventory` がtrade sideへ渡され、shop生成処理も同じUnit.inventoryへentryを入れます。death collectorは由来を見ずUnit.inventoryを対象にするため、merchant死亡時にshop stockだけを自動除外する専用判定は確認できません。Chest.inventoryやInventoryUIの一時side参照とは区別します。
 
 ## Chest mode の所有権
 
@@ -190,13 +190,13 @@ held itemは例外的に `PlayerData.held_inventory_*` へ一時保持されま�
 
 chest inventoryは `WorldState.map_chests` に含まれ、`SaveManager.WORLD_STATE_PROPS` 経由でsave対象です。
 
-merchant/shop inventoryについては、Unit本体inventoryとして保存される場合と、shop生成処理由来の一時/再生成状態が混ざりやすい領域です。このdocsでは再設計や仕様判断は行わず、少なくとも「merchant/shop inventoryをdeath drop対象と混同しない」ことだけを現状理解の境界として扱います。
+merchant/shop inventoryについては、用途は売り物ですが、現コード上は `merchant_unit.inventory` に置かれます。shop生成処理由来のentryもUnit runtime保存に含まれ得るため、このdocsでは用途と物理的なcontainerを分けて記録します。由来別のdeath drop除外は確認できません。
 
 ## Death drop / initial inventory / shop inventory との境界
 
 - `initial_inventory_*` はspawn時にUnit本体inventoryへ入る初期所持品です。死亡時drop tableではありません。
 - 死亡時dropは、Unitが実際に持っている inventory / hotbar / equipment を落とします。
-- shop inventoryはmerchantの売り物用です。Unit本体inventoryと混ぜると、死亡時dropや保存復元の理解を誤ります。
+- shop inventoryはmerchantの売り物用ですが、現コード上の物理的な保存先は `merchant_unit.inventory` です。用途の違いと実際のcontainerを分けて理解します。
 - chest inventoryはchest storageです。Unit death dropとは別です。
 - world pickupはmap上の落ちているitemであり、chest storageともUnit inventoryとも別です。
 
@@ -209,7 +209,7 @@ merchant/shop inventoryについては、Unit本体inventoryとして保存さ�
 - held item entryは `instance_data` を壊さないように扱う。
 - trade/chest modeはscene跨ぎでnormalへ正規化する。
 - 通常inventory中は移動可、trade/chest中は移動不可。
-- merchant/shop inventoryとUnit本体inventoryを混同しない。
+- merchant/shop inventoryの用途と、現コード上の保存先がUnit.inventoryであることを混同しない。
 - chest inventoryとworld pickup/death drop/initial inventoryを混同しない。
 - 今回は現状理解docsであり、所有権モデルの改善やリファクタ判断はStep 12以降で扱う。
 

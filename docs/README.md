@@ -19,6 +19,7 @@
 
 | 目的 | 読むdocs |
 | --- | --- |
+| 何から読むか、領域別にどの順番で読むか知りたい | [guides/current_system_reading_order.md](guides/current_system_reading_order.md) |
 | 全体構成を知りたい | [architecture/project_structure_overview.md](architecture/project_structure_overview.md) |
 | 主要スクリプトの責務を知りたい | [architecture/script_responsibility_map.md](architecture/script_responsibility_map.md) |
 | 処理フローを追いたい | [architecture/runtime_flow_overview.md](architecture/runtime_flow_overview.md) |
@@ -35,6 +36,7 @@
 | Inventory / Trade / Chest 全体を理解する | [systems/inventory_trade_chest_system_deep_dive.md](systems/inventory_trade_chest_system_deep_dive.md) |
 | `InventoryUI` の mode / held item 状態遷移を確認する | [systems/inventory_ui_state_transition.md](systems/inventory_ui_state_transition.md) |
 | Trade / Chest / held item の所有権境界を見る | [systems/trade_chest_ownership_deep_dive.md](systems/trade_chest_ownership_deep_dive.md) |
+| UI状態ごとの移動・行動・入力lockを見る | [systems/ui_lock_matrix.md](systems/ui_lock_matrix.md) |
 | UI lock やscene遷移との関係を見る | [systems/ui_input_scene_transition_deep_dive.md](systems/ui_input_scene_transition_deep_dive.md) |
 
 ## 戦闘・死亡を触る時
@@ -45,6 +47,7 @@
 | Unit / Combat / Death の流れを知る | [systems/unit_combat_death_system_deep_dive.md](systems/unit_combat_death_system_deep_dive.md) |
 | 消耗品効果・装備パッシブ・装備攻撃効果の実行経路を知る | [systems/equipment_item_effect_execution_path.md](systems/equipment_item_effect_execution_path.md) |
 | 死亡時ドロップ仕様を確認する | [systems/death_drop_spec.md](systems/death_drop_spec.md) |
+| HP0から死亡処理・drop・WorldState保存までを追う | [systems/death_path_diagram.md](systems/death_path_diagram.md) |
 | ダメージeffectの補足を見る | [systems/damage_system_notes.md](systems/damage_system_notes.md) |
 
 ## データ・TSVを触る時
@@ -80,7 +83,7 @@
 
 ## Codexに依頼する時
 
-まず [guides/codex_project_context.md](guides/codex_project_context.md) を前提として使います。
+まず [guides/current_system_reading_order.md](guides/current_system_reading_order.md) で対象領域のdocsを絞り、[guides/codex_project_context.md](guides/codex_project_context.md) を依頼の前提として使います。
 
 依頼文には、できれば以下を書きます。
 

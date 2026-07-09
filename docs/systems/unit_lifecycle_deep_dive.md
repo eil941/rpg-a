@@ -8,6 +8,8 @@ Unit生成がmap scene scripts、`UnitSpawnManager`、WorldState保存とどう�
 
 Godot上でUnit save/load、enemy死亡、initial inventory再抽選防止を確認する時は [../checklists/save_load_regression_matrix.md](../checklists/save_load_regression_matrix.md) を使います。
 
+死亡入口、二重death guard、drop配置、WorldState更新をまとめて追う場合は [death_path_diagram.md](death_path_diagram.md) を参照してください。
+
 ## Unitの領域別責務
 
 | 領域 | Unitが担当すること | 主に関係するファイル | 変更時の注意 |
@@ -115,7 +117,7 @@ Unitの本体所持品は `Unit.inventory` です。これは `Inventory` child 
 | bag | Unit本体 | initial inventory、pickup、UI操作 | 対象 | 実際にUnitが持っているitem。 |
 | hotbar | Unit本体 | inventory save data、UI操作 | 対象 | death dropではinventory扱い。 |
 | equipment | Unit本体 | enemy/npc equipment、UI操作 | flag次第 | `drop_equipped_items_on_death` を見る。 |
-| shop inventory | merchant/trade用在庫 | shop table / shop loot / fallback columns | 対象外 | 本体inventoryやdeath dropと混ぜない。 |
+| shop inventory | merchant/trade用在庫 | shop table / shop loot / fallback columns | Unit.inventory内にあるため候補になり得る | 用途は売り物だが、現collectorに由来別除外はない。Chest inventoryとは別。 |
 
 詳しくは [inventory_trade_chest_system_deep_dive.md](inventory_trade_chest_system_deep_dive.md)、[data_spawn_save_system_deep_dive.md](data_spawn_save_system_deep_dive.md)、[unit_combat_death_system_deep_dive.md](unit_combat_death_system_deep_dive.md) も参照してください。
 

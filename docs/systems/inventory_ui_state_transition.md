@@ -6,6 +6,8 @@
 
 Godot上でheld itemやtrade/chest中移動不可を確認する時は [../checklists/save_load_regression_matrix.md](../checklists/save_load_regression_matrix.md) の SL-020〜SL-023 を使います。
 
+normal inventory / trade / chestを含むUI状態別の移動・行動・入力判定は [ui_lock_matrix.md](ui_lock_matrix.md) を参照してください。
+
 ## UIMode一覧
 
 | UIMode | 意味 | side panel | 移動可否 | scene跨ぎ時の扱い |

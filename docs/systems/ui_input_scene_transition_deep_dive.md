@@ -4,6 +4,8 @@ UI、入力、シーン遷移は「どの状態なら移動できるか」と「
 
 InventoryUIのmodeとheld item復元に絞って確認したい場合は、[inventory_ui_state_transition.md](inventory_ui_state_transition.md) も参照してください。
 
+UI状態ごとの移動・行動・入力可否と、判定関数の意味の違いは [ui_lock_matrix.md](ui_lock_matrix.md) に整理しています。
+
 ## 関連スクリプト
 
 | Script | 役割 |

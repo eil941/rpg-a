@@ -2,6 +2,8 @@
 
 Step 10-B confirms the current death drop behavior as the formal runtime rule.
 
+HP0から `Unit.handle_death()`、ItemDropHelper、WorldState保存までの実装経路は [death_path_diagram.md](death_path_diagram.md) を参照してください。
+
 ## Death trigger
 
 A unit is considered dead when its HP reaches 0 or less. Any gameplay path that reduces HP to 0 must reach the common unit death path exactly once.

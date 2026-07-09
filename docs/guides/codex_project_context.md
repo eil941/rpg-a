@@ -2,6 +2,8 @@
 
 今後Codexに `rpg-a` の作業を依頼する時の前提資料です。依頼文に全てを書く代わりに、このdocsを参照できるようにするためのまとめです。
 
+作業前に [current_system_reading_order.md](current_system_reading_order.md) から対象領域のsystem docsを選び、現行仕様と危険な境界を確認してください。
+
 ## プロジェクト概要
 
 `rpg-a` は Godot 4.6.1 の2D RPGプロトタイプです。主な要素は以下です。
@@ -142,6 +144,7 @@ git diff --check
 
 ## 今後まず参照するdocs
 
+- [current_system_reading_order.md](current_system_reading_order.md): 全体から対象領域へ進む読む順番。
 - [../architecture/project_structure_overview.md](../architecture/project_structure_overview.md): 全体構成。
 - [../architecture/script_responsibility_map.md](../architecture/script_responsibility_map.md): scriptごとの責務。
 - [../architecture/runtime_flow_overview.md](../architecture/runtime_flow_overview.md): 主要処理フロー。

@@ -1,6 +1,6 @@
 # Cognitive Debt Backlog
 
-Step 11-L 時点で見えている認知的負債の整理候補です。これは修正指示ではなく、「将来どこを深掘り・整理すると楽になるか」のメモです。
+Step 11-O 時点で見えている認知的負債の整理候補です。これは修正指示ではなく、「将来どこを深掘り・整理すると楽になるか」のメモです。
 
 ## 整理候補一覧
 
@@ -15,10 +15,10 @@ Step 11-L 時点で見えている認知的負債の整理候補です。これ�
 | Save/Load実機確認 | 手順が長い | PlayerData、WorldState、map遷移、enemy/NPC、pickup/chest、dungeon、questを横断する | いいえ | [../checklists/save_load_regression_matrix.md](../checklists/save_load_regression_matrix.md) を使い、確認ログを継続的に追記 | 確認漏れ、回帰の見落とし |
 | DebugSettings | 確認機能が増えている | Stepごとのdebug flag/start item/scope設定が蓄積 | 急ぎではない | [../systems/debug_settings_deep_dive.md](../systems/debug_settings_deep_dive.md) を入口に、default ON/OFFやDebugSettings外debug出力を確認 | debug defaultを誤ると通常プレイに影響 |
 | Equipment effect | 仕様は安定したが入口が複数 | passiveはUnit、attackはCombatManager、dataはitem_effect_links | いいえ | [../systems/equipment_item_effect_execution_path.md](../systems/equipment_item_effect_execution_path.md) を入口に、将来共通化や分割調査はStep 12以降で扱う | consumable effectと混同しやすい |
-| Death drop | docsはあるが実装入口がUnitに埋まる | `Unit.handle_death()` と `drop_inventory_items_on_death_if_needed()` が大きい | いいえ | death path diagramを追加 | 二重drop、装備drop漏れ |
+| Death drop | 実装入口がUnitに埋まる | `Unit.handle_death()` と `drop_inventory_items_on_death_if_needed()` が大きい | いいえ | [../systems/death_path_diagram.md](../systems/death_path_diagram.md) を現状経路の入口にし、将来の分割調査はStep 12以降で扱う | 二重drop、装備drop漏れ |
 | Initial inventory | death dropと名前が混同されやすい | spawn時所持品でありdeath時lootではない | いいえ | Data docsに「spawn-time carried inventory」と繰り返し明記 | drop tableを早く作りすぎる |
 | Trade / Chest ownership | 不正取得リスクが見えづらい | held item sourceがscene跨ぎで無効になることがある | いいえ | [../systems/trade_chest_ownership_deep_dive.md](../systems/trade_chest_ownership_deep_dive.md) を入口に、将来の所有権整理・分割調査はStep 12以降で扱う | item消失、不正取得、free済み参照 |
-| UI lock | 通常inventoryだけ移動可という例外がある | `is_ui_locked()` と `is_inventory_open()` の意味が違う | 中 | UI lock matrixを維持する | 通常inventory中移動を誤って止める |
+| UI lock | 通常inventoryだけ移動可という例外がある | `is_ui_locked()`、`is_inventory_open()`、Unit側quest board lockの意味が違う | 中 | [../systems/ui_lock_matrix.md](../systems/ui_lock_matrix.md) を現状仕様の入口にし、将来の整理調査はStep 12以降で扱う | 通常inventory中移動を誤って止める |
 
 ## 今すぐ直さない理由
 
@@ -39,6 +39,9 @@ Step 11-L 時点で見えている認知的負債の整理候補です。これ�
 | Step 11-J | DebugSettings / debug flag / debug start item docsを作成 | DebugSettingsの現在値、参照先、debug start item、通常状態へ戻す対象を確認しやすくした |
 | Step 11-K | Equipment effect / ItemEffect execution path docsを作成 | 消耗品効果、装備パッシブ、装備攻撃効果の入口とTSV共有関係を確認しやすくした |
 | Step 11-L | Trade / Chest ownership docsを作成 | trade/chest/held item/side inventoryの所有権境界、scene跨ぎ参照寿命、save/death dropとの境界を確認しやすくした |
+| Step 11-M | UI lock matrix docsを作成 | normal inventory、special inventory、dialogue、quest board、status、target mode、pause/deathの入力可否と判定入口を確認しやすくした |
+| Step 11-N | Death path diagram docsを作成 | damage入口、二重death guard、bag/hotbar/equipment drop、pickup配置、WorldState保存を追いやすくした |
+| Step 11-O | Step 11 docsの総点検と読む順番guideを作成 | 全体入口、領域別の読む順番、危険境界、Step 12以降へ送る整理候補を一か所から辿れるようにした |
 
 ## 近い将来の深掘り候補
 
@@ -50,6 +53,8 @@ Step 11-L 時点で見えている認知的負債の整理候補です。これ�
 | Quest残課題監査 | repeatable quest、generation block保存、quest active dataのResource参照を個別に確認する | Quest docsで見えた未整理点を小さく検証できる |
 | Effect実行経路の将来調査 | consumable、equipment passive、equipment attackの共通化可否をStep 12以降で調査する | 現状仕様docsを足場に、実装変更なしで分割候補を評価できる |
 | Trade / Chest ownership整理調査 | side inventory helper、ownership model、UI lock matrixの整理可否をStep 12以降で調査する | 現状仕様docsを足場に、item消失や不正取得を避けながら整理候補を評価できる |
+| UI lock / 入力制御整理調査 | [../systems/ui_lock_matrix.md](../systems/ui_lock_matrix.md) を足場に、複数のlock入口を整理できるかStep 12以降で調査する | normal inventory中移動可など現行例外を保ったまま評価できる |
+| Death / Drop整理調査 | [../systems/death_path_diagram.md](../systems/death_path_diagram.md) を足場に、death処理分割やdrop-only tableの必要性をStep 12以降で調査する | 二重death guardと実所持品dropを維持して評価できる |
 
 ## Step 11-Dで見えた追加注意
 
@@ -114,6 +119,24 @@ Step 11-L 時点で見えている認知的負債の整理候補です。これ�
 - sceneを跨いで持ち越すのはheld item entry/source情報であり、trade/chestのnode参照やside inventory参照は持ち越しません。
 - chest inventoryは `WorldState.map_chests` 経由で保存対象ですが、merchant/shop inventoryとUnit本体inventoryは混同しないようにします。
 - 所有権モデルの再設計、side inventory helper、UI lock matrixの整理はStep 12以降の別フェーズで扱います。
+
+## Step 11-Mで見えたUI lock系の追加注意
+
+- UI lockの現状仕様は [../systems/ui_lock_matrix.md](../systems/ui_lock_matrix.md) を入口にします。
+- `PlayerController.is_ui_locked()` はdialogue、special inventory、statusを見ますが、normal inventoryは含めません。
+- quest boardの移動lockは `Unit.is_any_ui_locked()` / `Unit.try_move()` 側にもあります。PlayerControllerだけを見て全UI lockを判断しません。
+- InventoryUI open中は移動可否とは別に、PlayerControllerのHUD hotbar選択・使用を止め、InventoryUI側の操作へ渡します。
+- keyboard target modeはCanvas UIではなくController内modeで、移動と共存します。
+- UI lockの共通化、policy化、Controller分割はこのStepでは判断せず、Step 12以降の別フェーズで扱います。
+
+## Step 11-Nで見えたDeath / Drop系の追加注意
+
+- 死亡経路の現状仕様は [../systems/death_path_diagram.md](../systems/death_path_diagram.md) を入口にします。
+- `Stats.take_damage()` から既に `handle_death()` へ到達した後、呼び出し側が `check_death()` を重ねる経路があります。`death_handled` がdropを初回だけにします。
+- death dropはpickup配置成功後にsource slotをclearし、ItemDropHelperが `WorldState.map_item_pickups` を更新します。
+- initial inventoryはspawn時所持品であり、death時には再抽選しません。
+- merchant shop stockは用途上は売り物ですが、現コードではmerchant Unit.inventoryに入ります。death collectorに由来別除外はないため、概念上の境界と物理的な保存先を分けて読みます。
+- death処理分割、drop table導入、merchant inventory所有権整理はこのStepでは判断せず、Step 12以降の別フェーズで扱います。
 
 ## Codex依頼時に指定するとよいこと
 
