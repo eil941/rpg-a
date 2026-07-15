@@ -8,6 +8,8 @@
 
 DebugSettingsは `project.godot` の Autoload として登録されており、多くのscriptから `DebugSettings.xxx` として直接参照されます。そのため、1つのflag変更が通常プレイ、ログ量、開始所持品、検証挙動へ影響することがあります。
 
+通常プレイ中に出るdebug出力を棚卸ししたい場合は、[debug_output_normalization_audit.md](../backlog/debug_output_normalization_audit.md) も参照してください。そこでは、DebugSettings管理の出力と、`SaveManager` / `UnitSpawnManager` などDebugSettings外の出力を分けて整理しています。`GameDataRegistry` の起動時debug dumpに絞る場合は、[gamedata_registry_debug_dump_audit.md](../backlog/gamedata_registry_debug_dump_audit.md) を参照してください。
+
 ## 全体像
 
 | 分類 | 設定 | 現在値 | 主な用途 | 主な参照先 | 通常状態の注意 |
@@ -40,6 +42,8 @@ DebugSettingsは `project.godot` の Autoload として登録されており、�
 | 移動skill確認 | `debug_player_move_legacy_gathering_verbose` | `false` | `[MoveLegacySkillGrowth]` 詳細ログ | `unit.gd` | 通常プレイではOFF |
 | player死亡drop scope確認 | `debug_player_death_drop_scope_test_enabled` | `false` | player死亡時drop対象scopeの上書き | `unit.gd` | 必ずdefault OFF |
 | player死亡drop scope確認 | `debug_player_death_drop_scope_mode` | `"all"` | `none` / `inventory_only` / `all` | `unit.gd` | enabled OFF時は使われない |
+| GameData load確認 | `debug_game_data_load_summary` | `true` | `GameDataRegistry` の件数summary出力 | `game_data_registry.gd` | 軽量summaryとして通常ON |
+| GameData load確認 | `debug_game_data_load_details` | `false` | `GameDataRegistry` の詳細dump出力 | `game_data_registry.gd` | 通常OFF。data audit時だけON |
 | flee AI確認 | `debug_flee_ai` | `false` | 逃走AI確認用に見えるflag | 現状 `rg` では参照なし | 削除せず未使用候補として扱う |
 | AI filter | `debug_ai_unit_name_filter` | `""` | AIログfilter用に見える設定 | 現状 `rg` では参照なし | 削除せず未使用候補として扱う |
 | AI filter | `debug_ai_unit_id_filter` | `""` | AIログfilter用に見える設定 | 現状 `rg` では参照なし | 削除せず未使用候補として扱う |
@@ -54,7 +58,7 @@ DebugSettingsではなく、個別script内にdebug設定やdebug dumpがある�
 | 場所 | 設定・関数 | 現在の扱い | 注意 |
 | --- | --- | --- | --- |
 | `scripts/save_manager.gd` | `debug_print_non_player_units_on_save`, `debug_print_non_player_units_limit` | SaveManager内のlocal debug設定 | DebugSettingsではないため、一括OFF対象と混同しない |
-| `scripts/data/game_data_registry.gd` | `debug_print_loaded_data()` | `load_all()` 後に呼ばれるdebug dump | DebugSettings flagでは制御されていない |
+| `scripts/data/game_data_registry.gd` | `debug_print_loaded_data()` | `load_all()` 後に呼ばれるdebug dump | Step 12-C以降、summary/detailsはDebugSettings flagで制御される |
 | `scripts/managers/unit_spawn_manager.gd` | `debug_unit_structure()`, `debug_unit_identity()` | spawn時debug helper | DebugSettings flagでは制御されていない |
 | `scripts/item/inventory_ui.gd` | `debug_` を含む関数名はあるが、DebugSettings参照はなし | held item / quest dialog lock等の通常ロジック名 | DebugSettingsのflagとは別物 |
 
@@ -119,6 +123,7 @@ DebugSettingsではなく、個別script内にdebug設定やdebug dumpがある�
 | Inventory / held item | なし | held item scene跨ぎはPlayerDataで管理 | InventoryUIはDebugSettingsを直接参照しない |
 | Item spawn | `debug_item_spawn` | item spawn ruleの期待/実績ログ | 現状true |
 | Enchant | `debug_enchant` | random equipment enchant、chest/equipment spawn | 現状true |
+| GameData load | `debug_game_data_load_summary`, `debug_game_data_load_details` | TSV読込後の件数summaryと詳細dump | summaryは通常ON、detailsは通常OFF |
 | Skill | `debug_dynamic_skill_apply`, `debug_skill_exp`, `debug_action_skill_growth`, move skill flags | dynamic skill適用、growth、移動確認 | Step 7系の確認用 |
 | AI | `debug_ai_turn`, `debug_ai_target`, `debug_ai_candidates` | AIターン・候補・target | ほかAI flagは現状参照なし候補 |
 | Quest / Dialogue | なし | Quest docs/checklistで確認 | DebugSettings flagは現状なし |
@@ -143,7 +148,7 @@ DebugSettingsではなく、個別script内にdebug設定やdebug dumpがある�
 | `scripts/managers/unit_spawn_manager.gd` | DebugSettings参照なし | spawn debug helperあり | DebugSettings flagでは制御されていない |
 | `scripts/hud/game_and_hud.gd` | DebugSettings参照なし | map/UI親 | DebugSettingsによる直接制御なし |
 | `scripts/world/world_state.gd` | DebugSettings参照なし | world persistence/reset | DebugSettingsによる直接制御なし |
-| `scripts/data/game_data_registry.gd` | DebugSettings参照なし | load後debug dump | DebugSettings flagでは制御されていない |
+| `scripts/data/game_data_registry.gd` | `debug_game_data_load_summary`, `debug_game_data_load_details` | load後debug dump | warning/errorやruntime validateはこのflagでは止めない |
 
 ## 確認後に通常状態へ戻すもの
 
@@ -226,6 +231,6 @@ DebugSettingsを変更するStepでは、最低限以下を確認します。
 ## 気になる点・今後の候補
 
 - `debug_enchant`, `debug_item_spawn`, `debug_give_player_start_items` は現状trueです。通常運用としてこのままでよいかは、別Stepで確認してもよいです。
-- SaveManager、GameDataRegistry、UnitSpawnManagerにはDebugSettings外のdebug出力があります。ログ整理をするなら、DebugSettingsへの集約ではなく「どれを残すか」を先に決めます。
+- SaveManager、UnitSpawnManagerにはDebugSettings外のdebug出力があります。GameDataRegistryのload後debug dumpはStep 12-Cでsummary/detailsのみDebugSettings配下へ移りました。warning/errorは対象外です。
 - DebugSettings内の日本語コメントは、一部環境で文字化けして見えます。コメント整理は値変更と混ぜず、別Stepで扱うのが安全です。
 - AI系flagには現状参照が見つからないものがあります。削除する場合は、今後のAI実装予定と合わせて確認します。

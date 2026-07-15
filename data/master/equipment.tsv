@@ -8,3 +8,5 @@ sample_poison_knife	HAND	0	3	0	0	melee	neutral	physical	1	1	MELEE	APPROACH
 sample_dud_flame_knife	HAND	0	3	0	0	melee	neutral	physical	1	1	MELEE	APPROACH
 sample_unstable_flame_knife	HAND	0	3	0	0	melee	neutral	physical	1	1	MELEE	APPROACH
 sample_combo_knife	HAND	0	3	0	0	melee	neutral	physical	1	1	MELEE	APPROACH
+rusty_sword	HAND	0	8	0	0	melee	neutral	physical	1	1	MELEE	APPROACH
+leather_armor	BODY	0	0	8	0	melee	neutral	physical	1	1	AUTO	AUTO

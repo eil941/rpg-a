@@ -44,3 +44,13 @@ sample_poison_knife	毒牙のナイフ	攻撃命中時に poison を付与する
 sample_dud_flame_knife	不発の火花ナイフ	trigger_chance=0.0 で常に proc_failed になるサンプルナイフ。	equipment	res://assets/items/knife.png	1	false	50	true	1	0	0	0
 sample_unstable_flame_knife	揺らめき火のナイフ	trigger_chance=0.5 で攻撃時効果が半分程度発動するサンプルナイフ。	equipment	res://assets/items/knife.png	1	false	50	true	1	0	0	0
 sample_combo_knife	複合効果のナイフ	攻撃命中時に追加ダメージとHP回復を同時に確認するサンプルナイフ。	equipment	res://assets/items/knife.png	1	false	60	true	1	0	0	0
+medicinal_herb	薬草	HPを少量回復する一般的な薬草。自分で使うことも、対象へ投げて使うこともできる。	consumable	res://assets/Tentative_Assets/item.png	99	true	20	true	1	140	5	15
+high_healing_potion	上級回復ポーション	HPを大きく回復する高品質なポーション。自分で飲むことも、対象へ投げて使うこともできる。	consumable	res://assets/Tentative_Assets/item.png	20	true	300	true	4	35	5	15
+wakeup_potion	目覚まし薬	睡眠状態を解除する刺激の強い薬。	consumable	res://assets/Tentative_Assets/item.png	20	true	130	true	3	70	1	1
+clarity_potion	正気の薬	混乱状態を解除し、意識をはっきりさせる薬。	consumable	res://assets/Tentative_Assets/item.png	20	true	140	true	3	65	1	1
+burn_salve	火傷軟膏	炎上状態を解除する冷却効果のある軟膏。	consumable	res://assets/Tentative_Assets/item.png	20	true	130	true	3	65	1	1
+frost_remedy	凍傷治療薬	凍傷状態を解除し、冷えた身体を温める薬。	consumable	res://assets/Tentative_Assets/item.png	20	true	130	true	3	65	1	1
+iron_ore	鉄鉱石	武器や防具の材料として利用できそうな鉱石。	material	res://assets/Tentative_Assets/item.png	99	false	30	true	1	90	0	0
+monster_fang	魔物の牙	魔物から採れる鋭い牙。素材として売却できる。	material	res://assets/Tentative_Assets/item.png	99	false	25	true	1	90	0	0
+rusty_sword	錆びた剣	全体に錆が浮いている古い剣。切れ味はあまり良くない。	equipment	res://assets/Tentative_Assets/hand.png	1	false	20	true	1	80	0	0
+leather_armor	革の鎧	なめした革で作られた軽くて扱いやすい鎧。	equipment	res://assets/Tentative_Assets/body.png	1	false	65	true	1	80	0	0

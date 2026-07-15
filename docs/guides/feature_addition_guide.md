@@ -2,12 +2,14 @@
 
 新機能追加時に「まずどこを見るか」をまとめた入口表です。実装前には [../architecture/script_responsibility_map.md](../architecture/script_responsibility_map.md) と [../architecture/runtime_flow_overview.md](../architecture/runtime_flow_overview.md) も合わせて確認すると迷いにくくなります。TSV列やloaderを触る時は [../systems/game_data_registry_loader_map.md](../systems/game_data_registry_loader_map.md) も先に確認します。
 
+新しいアイテムを手作業で追加する場合は、まず [item_addition_guide.md](item_addition_guide.md) を読みます。`items` / `equipment` / `item_effects` / `item_effect_links` の使い分け、category追加、出現・入手経路、export / validate、既存効果で足りるかruntime実装が必要かの判断までをアイテム追加に絞って整理しています。
+
 ## 入口表
 
 | やりたいこと | まず見るファイル | 変更候補 | 触らない方がいい場所 | 確認方法 |
 | --- | --- | --- | --- | --- |
-| 新アイテムを追加したい | `master_data.xlsx`, `data/master/items.tsv`, `scripts/data/item_data.gd`, `scripts/item/item_database.gd` | Excel `items` sheet、icon/resource path、category | 挙動追加が不要ならruntime script | export、validate、inventory表示、`ItemDatabase` lookup。 |
-| 新しいアイテム効果を追加したい | `data/master/item_effects.tsv`, `scripts/data/item_effect_data.gd`, `scripts/item/item_effect_manager.gd` | Excel `item_effects`, `item_effect_links`, 新effect typeなら実行handler | 装備攻撃効果でなければ `CombatManager` | item使用、effect発動、save/load必要性確認。 |
+| 新アイテムを追加したい | [item_addition_guide.md](item_addition_guide.md), `master_data.xlsx`, `data/master/items.tsv`, `scripts/data/item_data.gd`, `scripts/item/item_database.gd` | Excel `items` sheet、icon/resource path、category | 挙動追加が不要ならruntime script | export、validate、inventory表示、`ItemDatabase` lookup。 |
+| 新しいアイテム効果を追加したい | [item_addition_guide.md](item_addition_guide.md), `data/master/item_effects.tsv`, `scripts/data/item_effect_data.gd`, `scripts/item/item_effect_manager.gd` | Excel `item_effects`, `item_effect_links`, 新effect typeなら実行handler | 装備攻撃効果でなければ `CombatManager` | item使用、effect発動、save/load必要性確認。 |
 | 新しい装備を追加したい | `data/master/items.tsv`, `data/master/equipment.tsv`, `scripts/data/equipment_data.gd` | Excel `items` + `equipment` sheets | slot UI変更がなければ `InventoryUI` | debug start itemやchestで入手、装備/解除確認。 |
 | 装備中パッシブ効果を追加したい | `item_effects.tsv`, `item_effect_links.tsv`, `Unit.get_equipped_item_effects()` | `apply_modifier` effect と link | `equipment_effect_links.tsv` は作らない | 装備中だけstatが上がり、外すと戻る。 |
 | 装備攻撃効果を追加したい | `item_effects.tsv`, `item_effect_links.tsv`, `CombatManager._apply_equipment_attack_effects()` | 既存effect typeならlinkだけ。新typeならdispatcher/helper追加 | 消耗品effect経路を大きく変えない | 攻撃命中時、`trigger_chance`、死亡済みtarget挙動を確認。 |

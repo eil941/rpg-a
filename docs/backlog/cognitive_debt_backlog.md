@@ -1,6 +1,6 @@
 # Cognitive Debt Backlog
 
-Step 11-O 時点で見えている認知的負債の整理候補です。これは修正指示ではなく、「将来どこを深掘り・整理すると楽になるか」のメモです。
+Step 12-C 時点で見えている認知的負債の整理候補です。これは修正指示ではなく、「将来どこを深掘り・整理すると楽になるか」のメモです。
 
 ## 整理候補一覧
 
@@ -13,7 +13,7 @@ Step 11-O 時点で見えている認知的負債の整理候補です。これ�
 | `QuestManager` | 広い | template/generated quest、受注、完了、報酬、WorldState連携がある | いいえ | [../systems/quest_generated_lifecycle_deep_dive.md](../systems/quest_generated_lifecycle_deep_dive.md) を入口に、repeatableやgeneration block保存仕様を小さく確認 | quest resetやsave互換性の破損 |
 | Save / WorldState 境界 | 分かりづらい | PlayerData、WorldState、GlobalDungeon、GlobalDetailMap、map scene saveが絡む | いいえ | [../systems/save_worldstate_playerdata_map.md](../systems/save_worldstate_playerdata_map.md) を入口にし、将来ownerごとのhelper整理を検討 | 状態消失、二重復元、new game reset漏れ |
 | Save/Load実機確認 | 手順が長い | PlayerData、WorldState、map遷移、enemy/NPC、pickup/chest、dungeon、questを横断する | いいえ | [../checklists/save_load_regression_matrix.md](../checklists/save_load_regression_matrix.md) を使い、確認ログを継続的に追記 | 確認漏れ、回帰の見落とし |
-| DebugSettings | 確認機能が増えている | Stepごとのdebug flag/start item/scope設定が蓄積 | 急ぎではない | [../systems/debug_settings_deep_dive.md](../systems/debug_settings_deep_dive.md) を入口に、default ON/OFFやDebugSettings外debug出力を確認 | debug defaultを誤ると通常プレイに影響 |
+| DebugSettings | 確認機能とdebug出力が増えている | Stepごとのdebug flag/start item/scope設定、DebugSettings外のprint/debug dumpが蓄積 | 急ぎではない | [../systems/debug_settings_deep_dive.md](../systems/debug_settings_deep_dive.md) と [debug_output_normalization_audit.md](debug_output_normalization_audit.md) を入口に、default ON/OFFやDebugSettings外debug出力を確認 | debug defaultや無条件printを誤ると通常プレイに影響 |
 | Equipment effect | 仕様は安定したが入口が複数 | passiveはUnit、attackはCombatManager、dataはitem_effect_links | いいえ | [../systems/equipment_item_effect_execution_path.md](../systems/equipment_item_effect_execution_path.md) を入口に、将来共通化や分割調査はStep 12以降で扱う | consumable effectと混同しやすい |
 | Death drop | 実装入口がUnitに埋まる | `Unit.handle_death()` と `drop_inventory_items_on_death_if_needed()` が大きい | いいえ | [../systems/death_path_diagram.md](../systems/death_path_diagram.md) を現状経路の入口にし、将来の分割調査はStep 12以降で扱う | 二重drop、装備drop漏れ |
 | Initial inventory | death dropと名前が混同されやすい | spawn時所持品でありdeath時lootではない | いいえ | Data docsに「spawn-time carried inventory」と繰り返し明記 | drop tableを早く作りすぎる |
@@ -42,14 +42,18 @@ Step 11-O 時点で見えている認知的負債の整理候補です。これ�
 | Step 11-M | UI lock matrix docsを作成 | normal inventory、special inventory、dialogue、quest board、status、target mode、pause/deathの入力可否と判定入口を確認しやすくした |
 | Step 11-N | Death path diagram docsを作成 | damage入口、二重death guard、bag/hotbar/equipment drop、pickup配置、WorldState保存を追いやすくした |
 | Step 11-O | Step 11 docsの総点検と読む順番guideを作成 | 全体入口、領域別の読む順番、危険境界、Step 12以降へ送る整理候補を一か所から辿れるようにした |
+| Step 12-A | Debug出力通常化の調査-only docsを作成 | `print()` / `push_warning()` / `push_error()` / `DebugSettings` / DebugSettings外debug dumpを棚卸しし、将来の小分け整理候補を作った |
+| Step 12-B | GameDataRegistry起動時debug dump通常化の調査-only docsを作成 | `debug_print_loaded_data()` のsummary/details/warning/errorを分け、後続実装候補を整理した |
+| Step 12-C | GameDataRegistry detailed dumpをDebugSettings配下へ移動 | `debug_game_data_load_summary=true` / `debug_game_data_load_details=false` を追加し、起動時の詳細dumpを通常OFFにした |
 
 ## 近い将来の深掘り候補
 
 | 候補 | 内容 | 期待効果 |
 | --- | --- | --- |
 | GameDataRegistry分割調査 | `GameDataRegistry` のsub-loader化可否を調査する | 将来の分割候補を、読み込み順とfallback互換性を壊さず評価できる |
+| GameDataRegistry summary運用確認 | [gamedata_registry_debug_dump_audit.md](gamedata_registry_debug_dump_audit.md) を足場に、summaryを通常ONのまま残すか将来OFFへ寄せるか確認する | detailsは通常OFF済み。残る起動summaryの扱いだけ小さく判断できる |
 | map scene共通化調査 | map scene scriptsの共通化可否だけ調査する | `save_map_tiles()` / `save_all_units()` / saved-random優先処理を、仕様差を潰さず棚卸しできる |
-| Debug出力通常化 | `debug_enchant`, `debug_item_spawn`, SaveManager local debugなど現状true/無条件のログを通常化できるか調査する | 通常プレイログ量を整理しつつ、必要な確認入口を残せる |
+| Debug出力通常化 | [debug_output_normalization_audit.md](debug_output_normalization_audit.md) を足場に、`debug_enchant`, `debug_item_spawn`, SaveManager local debug, GameDataRegistry dump, UnitSpawnManager logsなどを小分けに通常化する | 通常プレイログ量を整理しつつ、必要な確認入口を残せる |
 | Quest残課題監査 | repeatable quest、generation block保存、quest active dataのResource参照を個別に確認する | Quest docsで見えた未整理点を小さく検証できる |
 | Effect実行経路の将来調査 | consumable、equipment passive、equipment attackの共通化可否をStep 12以降で調査する | 現状仕様docsを足場に、実装変更なしで分割候補を評価できる |
 | Trade / Chest ownership整理調査 | side inventory helper、ownership model、UI lock matrixの整理可否をStep 12以降で調査する | 現状仕様docsを足場に、item消失や不正取得を避けながら整理候補を評価できる |
@@ -100,7 +104,7 @@ Step 11-O 時点で見えている認知的負債の整理候補です。これ�
 
 - DebugSettings docsは [../systems/debug_settings_deep_dive.md](../systems/debug_settings_deep_dive.md) を入口にします。
 - `debug_enchant`, `debug_item_spawn`, `debug_give_player_start_items` は現状trueです。通常運用でこのままにするか、確認Step後にOFFへ寄せるかは別Stepで判断します。
-- `SaveManager.debug_print_non_player_units_on_save`、`GameDataRegistry.debug_print_loaded_data()`、`UnitSpawnManager.debug_unit_structure()` はDebugSettings外のdebug出力です。ログ整理時にDebugSettings管理と混同しないようにします。
+- `GameDataRegistry.debug_print_loaded_data()` のsummary/detailsはStep 12-CでDebugSettings配下へ移りました。`SaveManager.debug_print_non_player_units_on_save` と `UnitSpawnManager.debug_unit_structure()` は引き続きDebugSettings外のdebug出力として扱います。
 - `debug_player_start_items` は `PlayerData.debug_start_items_applied` によりsave/load後に再配布されません。開始所持品を変えた時はnew game/reset条件も確認します。
 - AI系flagには現状参照が見つからないものがあります。削除や統合は、AI実装方針確認と合わせて別Stepで扱います。
 

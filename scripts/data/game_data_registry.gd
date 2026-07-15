@@ -4809,43 +4809,73 @@ func _count_item_spawn_rule_item_override_entries() -> int:
 	return count
 
 
+func _is_game_data_load_summary_enabled() -> bool:
+	var debug_settings := get_node_or_null("/root/DebugSettings")
+	if debug_settings == null:
+		return true
+	var value = debug_settings.get("debug_game_data_load_summary")
+	if value == null:
+		return true
+	return bool(value)
+
+
+func _is_game_data_load_details_enabled() -> bool:
+	var debug_settings := get_node_or_null("/root/DebugSettings")
+	if debug_settings == null:
+		return false
+	var value = debug_settings.get("debug_game_data_load_details")
+	if value == null:
+		return false
+	return bool(value)
+
+
 func debug_print_loaded_data() -> void:
+	var should_print_summary := _is_game_data_load_summary_enabled()
+	var should_print_details := _is_game_data_load_details_enabled()
+	if not should_print_summary and not should_print_details:
+		return
+
 	print("========== GameData Loaded ==========")
-	print("[GameData] items: ", items.size())
-	print("[GameData] effects: ", effects.size())
-	print("[GameData] item_effect_links: ", item_effect_links.size())
-	print("[GameData] quests: ", quests.size())
-	print("[GameData] npc_quest_links: ", npc_quest_links.size())
-	print("[GameData] enemies: ", enemies.size())
-	print("[GameData] npcs: ", npcs.size())
-	print("[GameData] enchantments: ", enchantments.size())
-	print("[GameData] item_spawn_rules: ", item_spawn_rules.size())
-	print("[GameData] item_spawn_rule_category_multipliers: ", _count_item_spawn_rule_category_multiplier_entries())
-	print("[GameData] item_spawn_rule_item_overrides: ", _count_item_spawn_rule_item_override_entries())
-	print("[GameData] dungeon_spawn_rules: ", dungeon_spawn_rules.size())
-	print("[GameData] unit_spawn_rules: ", unit_spawn_rules.size())
-	print("[GameData] chest_tables: ", chest_tables.size())
-	print("[GameData] chest_loot_entries: ", _count_chest_loot_entries())
-	print("[GameData] shop_tables: ", shop_tables.size())
-	print("[GameData] shop_loot_entries: ", _count_shop_loot_entries())
-	print("[GameData] initial_inventory_tables: ", initial_inventory_tables.size())
-	print("[GameData] initial_inventory_entries: ", _count_initial_inventory_entries())
-	print("[GameData] item_categories: ", item_categories.size())
-	print("[GameData] unit_races: ", unit_races.size())
-	print("[GameData] unit_factions: ", unit_factions.size())
-	print("[GameData] faction_relations: ", faction_relations.size())
-	print("[GameData] element_types: ", element_types.size())
-	print("[GameData] damage_types: ", damage_types.size())
-	print("[GameData] status_effect_types: ", status_effect_types.size())
-	print("[GameData] localization_texts: ", localization_texts.size())
-	print("[GameData] dialogue_sets: ", dialogue_sets.size())
-	print("[GameData] dialogue_lines: ", _count_dialogue_lines())
-	print("[GameData] skills: ", skills.size())
-	print("[GameData] skill_levels: ", _count_skill_levels())
-	print("[GameData] skill_effect_links: ", _count_skill_effect_links())
-	print("[GameData] skill_requirements: ", _count_skill_requirements())
-	print("[GameData] unit_skill_tables: ", unit_skill_tables.size())
-	print("[GameData] unit_skill_entries: ", _count_unit_skill_entries())
+	if should_print_summary:
+		print("[GameData] items: ", items.size())
+		print("[GameData] effects: ", effects.size())
+		print("[GameData] item_effect_links: ", item_effect_links.size())
+		print("[GameData] quests: ", quests.size())
+		print("[GameData] npc_quest_links: ", npc_quest_links.size())
+		print("[GameData] enemies: ", enemies.size())
+		print("[GameData] npcs: ", npcs.size())
+		print("[GameData] enchantments: ", enchantments.size())
+		print("[GameData] item_spawn_rules: ", item_spawn_rules.size())
+		print("[GameData] item_spawn_rule_category_multipliers: ", _count_item_spawn_rule_category_multiplier_entries())
+		print("[GameData] item_spawn_rule_item_overrides: ", _count_item_spawn_rule_item_override_entries())
+		print("[GameData] dungeon_spawn_rules: ", dungeon_spawn_rules.size())
+		print("[GameData] unit_spawn_rules: ", unit_spawn_rules.size())
+		print("[GameData] chest_tables: ", chest_tables.size())
+		print("[GameData] chest_loot_entries: ", _count_chest_loot_entries())
+		print("[GameData] shop_tables: ", shop_tables.size())
+		print("[GameData] shop_loot_entries: ", _count_shop_loot_entries())
+		print("[GameData] initial_inventory_tables: ", initial_inventory_tables.size())
+		print("[GameData] initial_inventory_entries: ", _count_initial_inventory_entries())
+		print("[GameData] item_categories: ", item_categories.size())
+		print("[GameData] unit_races: ", unit_races.size())
+		print("[GameData] unit_factions: ", unit_factions.size())
+		print("[GameData] faction_relations: ", faction_relations.size())
+		print("[GameData] element_types: ", element_types.size())
+		print("[GameData] damage_types: ", damage_types.size())
+		print("[GameData] status_effect_types: ", status_effect_types.size())
+		print("[GameData] localization_texts: ", localization_texts.size())
+		print("[GameData] dialogue_sets: ", dialogue_sets.size())
+		print("[GameData] dialogue_lines: ", _count_dialogue_lines())
+		print("[GameData] skills: ", skills.size())
+		print("[GameData] skill_levels: ", _count_skill_levels())
+		print("[GameData] skill_effect_links: ", _count_skill_effect_links())
+		print("[GameData] skill_requirements: ", _count_skill_requirements())
+		print("[GameData] unit_skill_tables: ", unit_skill_tables.size())
+		print("[GameData] unit_skill_entries: ", _count_unit_skill_entries())
+
+	if not should_print_details:
+		print("=======================================")
+		return
 
 	print("---------- Items ----------")
 	for item_id in items.keys():

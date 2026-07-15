@@ -25,8 +25,10 @@
 | 処理フローを追いたい | [architecture/runtime_flow_overview.md](architecture/runtime_flow_overview.md) |
 | 機能単位の関係を知りたい | [architecture/subsystem_interaction_map.md](architecture/subsystem_interaction_map.md) |
 | 新機能を追加したい | [guides/feature_addition_guide.md](guides/feature_addition_guide.md) |
+| 新しいアイテムを手作業で追加し、効果実装が必要か判断したい | [guides/item_addition_guide.md](guides/item_addition_guide.md) |
 | Save/Load回帰確認をしたい | [checklists/save_load_regression_matrix.md](checklists/save_load_regression_matrix.md) |
 | DebugSettings / debug flag / debug start item を確認したい | [systems/debug_settings_deep_dive.md](systems/debug_settings_deep_dive.md) |
+| 通常プレイ中に出るdebug出力の棚卸しを見たい | [backlog/debug_output_normalization_audit.md](backlog/debug_output_normalization_audit.md) |
 | Codexに作業依頼したい | [guides/codex_project_context.md](guides/codex_project_context.md) |
 
 ## Inventory系を触る時
@@ -58,7 +60,9 @@
 | Save / WorldState / PlayerData の保存対象を見る | [systems/save_worldstate_playerdata_map.md](systems/save_worldstate_playerdata_map.md) |
 | Map scene / spawn / persistence の流れを見る | [systems/map_spawn_persistence_deep_dive.md](systems/map_spawn_persistence_deep_dive.md) |
 | Save/Load実機確認チェック表を見る | [checklists/save_load_regression_matrix.md](checklists/save_load_regression_matrix.md) |
+| 新しいitem追加、category追加、effect実装判断の具体手順を見る | [guides/item_addition_guide.md](guides/item_addition_guide.md) |
 | GameDataRegistryのTSV loader / lookup対応を見る | [systems/game_data_registry_loader_map.md](systems/game_data_registry_loader_map.md) |
+| GameDataRegistry起動時debug dumpの棚卸しとsummary/details flagを見る | [backlog/gamedata_registry_debug_dump_audit.md](backlog/gamedata_registry_debug_dump_audit.md) |
 | item_effects / item_effect_links の実行入口を見る | [systems/equipment_item_effect_execution_path.md](systems/equipment_item_effect_execution_path.md) |
 | TSV移行状況を見る | [migration/tsv_migration_audit.md](migration/tsv_migration_audit.md) |
 | TSV移行完了方針を見る | [migration/tsv_migration_completion.md](migration/tsv_migration_completion.md) |
@@ -78,6 +82,7 @@
 | 目的 | 読むdocs |
 | --- | --- |
 | DebugSettingsのflagと開始アイテムの現状を見る | [systems/debug_settings_deep_dive.md](systems/debug_settings_deep_dive.md) |
+| DebugSettings管理内外のログ通常化候補を見る | [backlog/debug_output_normalization_audit.md](backlog/debug_output_normalization_audit.md) |
 | Save/Load確認時にDebugSettings由来の影響を見る | [checklists/save_load_regression_matrix.md](checklists/save_load_regression_matrix.md) |
 | DebugSettings変更時に触るscript責務を見る | [architecture/script_responsibility_map.md](architecture/script_responsibility_map.md) |
 

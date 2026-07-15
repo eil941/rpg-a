@@ -29,10 +29,11 @@ Codexへ依頼する場合は、上記に加えて [codex_project_context.md](co
 
 ### Item / consumable / equipment effect
 
-1. [equipment_item_effect_execution_path.md](../systems/equipment_item_effect_execution_path.md)
-2. [game_data_registry_loader_map.md](../systems/game_data_registry_loader_map.md)
-3. [unit_combat_death_system_deep_dive.md](../systems/unit_combat_death_system_deep_dive.md)
-4. [feature_addition_guide.md](feature_addition_guide.md)
+1. [item_addition_guide.md](item_addition_guide.md)
+2. [equipment_item_effect_execution_path.md](../systems/equipment_item_effect_execution_path.md)
+3. [game_data_registry_loader_map.md](../systems/game_data_registry_loader_map.md)
+4. [unit_combat_death_system_deep_dive.md](../systems/unit_combat_death_system_deep_dive.md)
+5. [feature_addition_guide.md](feature_addition_guide.md)
 
 特に、消耗品、装備パッシブ、装備攻撃効果は同じ `item_effects.tsv` / `item_effect_links.tsv` を使っていても実行入口が異なります。装備用に `equipment_effect_links.tsv` を追加する前提では読まないでください。
 
@@ -102,7 +103,8 @@ PlayerData、WorldState、map scene側保存、GlobalDungeon / GlobalDetailMap�
 2. [data_spawn_save_system_deep_dive.md](../systems/data_spawn_save_system_deep_dive.md)
 3. [unit_lifecycle_deep_dive.md](../systems/unit_lifecycle_deep_dive.md)
 4. [game_data_registry_loader_map.md](../systems/game_data_registry_loader_map.md)
-5. [save_load_regression_matrix.md](../checklists/save_load_regression_matrix.md)
+5. [gamedata_registry_debug_dump_audit.md](../backlog/gamedata_registry_debug_dump_audit.md)
+6. [save_load_regression_matrix.md](../checklists/save_load_regression_matrix.md)
 
 `initial_inventory_*` はUnit生成時の所持品抽選です。保存済みUnitの復元時には再抽選せず、死亡時drop tableとして扱いません。
 
@@ -119,11 +121,13 @@ template quest、generated quest、NPC link、QuestManager、WorldState、map re
 ### DebugSettings / logs / start items
 
 1. [debug_settings_deep_dive.md](../systems/debug_settings_deep_dive.md)
-2. [script_responsibility_map.md](../architecture/script_responsibility_map.md)
-3. [save_load_regression_matrix.md](../checklists/save_load_regression_matrix.md)
-4. [cognitive_debt_backlog.md](../backlog/cognitive_debt_backlog.md)
+2. [debug_output_normalization_audit.md](../backlog/debug_output_normalization_audit.md)
+3. [script_responsibility_map.md](../architecture/script_responsibility_map.md)
+4. [save_load_regression_matrix.md](../checklists/save_load_regression_matrix.md)
+5. [cognitive_debt_backlog.md](../backlog/cognitive_debt_backlog.md)
 
-flagのdefault値、参照先、start itemの再配布guard、DebugSettings外のdebug出力を分けて確認します。確認Stepで一時的にONにした値を通常状態へ戻す条件も依頼文に明記します。
+flagのdefault値、参照先、start itemの再配布guard、DebugSettings外のdebug出力を分けて確認します。通常プレイ中のログ量を整理したい場合は、まずdebug output auditで「どれがDebugSettings管理か」「どれが無条件出力か」を見ます。確認Stepで一時的にONにした値を通常状態へ戻す条件も依頼文に明記します。
+GameDataRegistryの起動時dumpだけを見る場合は、[gamedata_registry_debug_dump_audit.md](../backlog/gamedata_registry_debug_dump_audit.md) を入口にします。Step 12-C以降、件数summaryは `debug_game_data_load_summary`、詳細dumpは `debug_game_data_load_details` で制御されます。
 
 ### Codexへ依頼する前
 
@@ -149,7 +153,7 @@ flagのdefault値、参照先、start itemの再配布guard、DebugSettings外�
 | Save ownership / reset | 状態消失、二重復元、new game reset漏れ | [save_worldstate_playerdata_map.md](../systems/save_worldstate_playerdata_map.md), [save_load_regression_matrix.md](../checklists/save_load_regression_matrix.md) |
 | Map scene / random spawn / saved Unit | 保存済み個体の再抽選、map固有例外の破損 | [map_spawn_persistence_deep_dive.md](../systems/map_spawn_persistence_deep_dive.md) |
 | Quest / WorldState / NPC lifecycle | completed/active状態、generated NPC保護、reset差 | [quest_generated_lifecycle_deep_dive.md](../systems/quest_generated_lifecycle_deep_dive.md) |
-| DebugSettings / runtime logs | 通常プレイへのdebug配布・ログ流入 | [debug_settings_deep_dive.md](../systems/debug_settings_deep_dive.md) |
+| DebugSettings / runtime logs | 通常プレイへのdebug配布・ログ流入 | [debug_settings_deep_dive.md](../systems/debug_settings_deep_dive.md), [debug_output_normalization_audit.md](../backlog/debug_output_normalization_audit.md) |
 
 ## Step 11-A〜Nで整備したもの
 

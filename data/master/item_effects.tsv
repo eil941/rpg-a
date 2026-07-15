@@ -39,3 +39,9 @@ sample_unstable_flame_knife_fire_damage	deal_damage	flat		1	1	0	fire	physical	di
 power_ring_attack_bonus	apply_modifier	flat		0	0	0	neutral	physical	direct	1	0	0	0	0		0	buff	attack	1	0	none	0	random	0	999			1	0			false
 sample_combo_knife_fire_damage	deal_damage	flat		1	1	0	fire	physical	direct	1	0	0	0	0		0			0	0	none	0	random	0	999			1	0			false
 sample_combo_knife_restore_hp	restore_resource	flat	hp	1	1	0	neutral	physical	direct	1	0	0	0	0		0			0	0	none	0	random	0	999			1	0			false
+medicinal_herb_restore_hp	restore_resource	flat	hp	12	18	0	neutral	physical	direct	1	0	0	0	0		0			0	0	none	0	random	0	999			1	0			false
+high_healing_potion_restore_hp	restore_resource	flat	hp	60	80	0	neutral	physical	direct	1	0	0	0	0		0			0	0	none	0	random	0	999			1	0			false
+wakeup_potion_cure_sleep	cure_status	flat		0	0	0	neutral	physical	direct	1	0	0	0	0	sleep	0			0	0	none	0	random	0	999			1	0			false
+clarity_potion_cure_confusion	cure_status	flat		0	0	0	neutral	physical	direct	1	0	0	0	0	confusion	0			0	0	none	0	random	0	999			1	0			false
+burn_salve_cure_burning	cure_status	flat		0	0	0	neutral	physical	direct	1	0	0	0	0	burning	0			0	0	none	0	random	0	999			1	0			false
+frost_remedy_cure_frostbite	cure_status	flat		0	0	0	neutral	physical	direct	1	0	0	0	0	frostbite	0			0	0	none	0	random	0	999			1	0			false

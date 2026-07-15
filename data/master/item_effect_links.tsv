@@ -39,3 +39,9 @@ sample_unstable_flame_knife	sample_unstable_flame_knife_fire_damage	1
 power_ring	power_ring_attack_bonus	1
 sample_combo_knife	sample_combo_knife_fire_damage	1
 sample_combo_knife	sample_combo_knife_restore_hp	2
+medicinal_herb	medicinal_herb_restore_hp	1
+high_healing_potion	high_healing_potion_restore_hp	1
+wakeup_potion	wakeup_potion_cure_sleep	1
+clarity_potion	clarity_potion_cure_confusion	1
+burn_salve	burn_salve_cure_burning	1
+frost_remedy	frost_remedy_cure_frostbite	1

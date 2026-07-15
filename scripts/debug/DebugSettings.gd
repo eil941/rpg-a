@@ -32,6 +32,8 @@ var debug_player_move_legacy_gathering_growth_amount: int = 1
 var debug_player_move_legacy_gathering_verbose: bool = false
 var debug_player_death_drop_scope_test_enabled: bool = false
 var debug_player_death_drop_scope_mode: String = "all"
+var debug_game_data_load_summary: bool = true
+var debug_game_data_load_details: bool = false
 
 # 逃走AI確認
 var debug_flee_ai: bool = false
