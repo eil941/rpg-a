@@ -4,10 +4,57 @@
 
 コードやTSVを触る前に、該当するdocsを先に読むと「どこを触るべきか」「触ると危ない境界はどこか」を判断しやすくなります。
 
+## 初めて読む場合
+
+プロジェクト所有者が内部実装の理解を深める場合は、まず `learning/` から読みます。
+
+`learning/` は、既存の詳細docsを置き換えるものではありません。最初に全体像をつかみ、必要になった時だけ `architecture/`、`systems/`、`guides/`、`checklists/` へ進むための入口です。
+
+### 推奨学習順
+
+| 順番 | docs | 目的 |
+| --- | --- | --- |
+| 1 | [learning/start_here.md](learning/start_here.md) | 主要スクリプトの役割と、次に読むdocsを選ぶ |
+| 2 | [learning/database_and_manager_roles.md](learning/database_and_manager_roles.md) | DatabaseとManagerの違いを理解する |
+| 3 | [learning/excel_to_game_flow.md](learning/excel_to_game_flow.md) | Excelからゲーム実行時データまでの流れを理解する |
+| 4 | [learning/item_use_flow.md](learning/item_use_flow.md) | 通常アイテム使用と回復処理を追う |
+| 5 | [learning/target_item_use_flow.md](learning/target_item_use_flow.md) | 対象指定アイテムの処理を追う |
+| 6 | [learning/equipment_passive_flow.md](learning/equipment_passive_flow.md) | 装備パッシブとstat合成を追う |
+| 7 | [learning/equipment_attack_effect_flow.md](learning/equipment_attack_effect_flow.md) | 装備攻撃効果とtrigger_chanceを追う |
+| 8 | [learning/combat_damage_death_flow.md](learning/combat_damage_death_flow.md) | 攻撃、ダメージ、死亡処理を追う |
+| 9 | [learning/death_drop_flow.md](learning/death_drop_flow.md) | 死亡時ドロップとWorldState保存を追う |
+| 10 | [learning/debug_first_steps.md](learning/debug_first_steps.md) | 不具合時に最初に見る場所を選ぶ |
+| 11 | [learning/adding_new_data_or_effect_type.md](learning/adding_new_data_or_effect_type.md) | データ追加だけで済むか、新実装が必要か判断する |
+
+### 目的別入口
+
+| 目的 | まず読むdocs |
+| --- | --- |
+| 全体像を知りたい | [learning/start_here.md](learning/start_here.md) |
+| Excelの内容がゲームへ入る流れを知りたい | [learning/excel_to_game_flow.md](learning/excel_to_game_flow.md) |
+| DatabaseとManagerの違いを知りたい | [learning/database_and_manager_roles.md](learning/database_and_manager_roles.md) |
+| ポーションなど通常アイテム使用を追いたい | [learning/item_use_flow.md](learning/item_use_flow.md) |
+| 対象指定アイテムを追いたい | [learning/target_item_use_flow.md](learning/target_item_use_flow.md) |
+| 装備パッシブを追いたい | [learning/equipment_passive_flow.md](learning/equipment_passive_flow.md) |
+| 装備攻撃効果を追いたい | [learning/equipment_attack_effect_flow.md](learning/equipment_attack_effect_flow.md) |
+| 攻撃、ダメージ、死亡を追いたい | [learning/combat_damage_death_flow.md](learning/combat_damage_death_flow.md) |
+| 死亡時ドロップを追いたい | [learning/death_drop_flow.md](learning/death_drop_flow.md) |
+| 不具合時の最初の確認先を知りたい | [learning/debug_first_steps.md](learning/debug_first_steps.md) |
+| 新しいデータやeffect typeを追加したい | [learning/adding_new_data_or_effect_type.md](learning/adding_new_data_or_effect_type.md) |
+
+### 既存docsとの関係
+
+`learning/` は学習用の入口です。
+
+`architecture/` は全体構造の詳細地図、`systems/` は現行仕様と実装経路の詳細、`guides/` は実際の作業手順、`checklists/` は動作確認、`backlog/` は将来の整理候補です。
+
+[guides/current_system_reading_order.md](guides/current_system_reading_order.md) は、実装調査や作業対象が決まっている時の詳細docs読書順として残します。まず理解を作る時は `learning/`、作業対象を深掘りする時は `current_system_reading_order` を使います。
+
 ## フォルダ構成
 
 | フォルダ | 内容 | 主な用途 |
 | --- | --- | --- |
+| `learning/` | 所有者向けの学習用ドキュメント | 基礎から処理経路と責務を理解する |
 | `architecture/` | 全体構成、主要スクリプト責務、runtime flow、サブシステム相互作用 | プロジェクト全体の地図を掴む |
 | `systems/` | Inventory、Combat、Data/Spawn/Save、UI/Input、Death Drop、Damageなど個別システムの深掘り | 特定機能を変更する前の調査 |
 | `guides/` | 新機能追加ガイド、Codex依頼時の前提資料 | 作業依頼や実装Stepの入口 |
