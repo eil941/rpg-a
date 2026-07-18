@@ -364,7 +364,7 @@ sceneを跨いで保持しないもの:
 
 新しいInventoryUIで通常inventoryを開く時、前回がtrade / chestならmodeをnormalへ正規化し、held itemだけを復元します。held sourceが無効なtrade/chest由来なら、不正配置せずheld stateを保持します。
 
-所有権と参照寿命の詳細は [trade_chest_ownership_deep_dive.md](trade_chest_ownership_deep_dive.md) を参照してください。
+所有権と参照寿命の詳細は [inventory/trade_chest_ownership_deep_dive.md](inventory/trade_chest_ownership_deep_dive.md) を参照してください。
 
 ## Scene transitionとの関係
 
@@ -515,11 +515,11 @@ DebugSettings / 確認ログ:
 
 ## 関連docs
 
-- [inventory_ui_state_transition.md](inventory_ui_state_transition.md)
-- [trade_chest_ownership_deep_dive.md](trade_chest_ownership_deep_dive.md)
+- [inventory/inventory_ui_state_transition.md](inventory/inventory_ui_state_transition.md)
+- [inventory/trade_chest_ownership_deep_dive.md](inventory/trade_chest_ownership_deep_dive.md)
 - [ui_input_scene_transition_deep_dive.md](ui_input_scene_transition_deep_dive.md)
-- [inventory_trade_chest_system_deep_dive.md](inventory_trade_chest_system_deep_dive.md)
-- [save_worldstate_playerdata_map.md](save_worldstate_playerdata_map.md)
+- [inventory/inventory_trade_chest_system_deep_dive.md](inventory/inventory_trade_chest_system_deep_dive.md)
+- [data/save_worldstate_playerdata_map.md](data/save_worldstate_playerdata_map.md)
 
 ## このdocsで分かること / 分からないこと
 

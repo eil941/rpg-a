@@ -2,7 +2,7 @@
 
 `scripts/data/game_data_registry.gd` は、`data/master/*.tsv` をruntime用の辞書やResourceへ変換する中心です。このdocsは、TSVを追加・変更する時に「どのloader、data class、lookup、validatorを確認するか」を迷わないための地図です。
 
-起動時に出る `debug_print_loaded_data()` / `[GameData]` 系debug dumpの棚卸しとStep 12-Cの通常化結果は、[gamedata_registry_debug_dump_audit.md](../backlog/gamedata_registry_debug_dump_audit.md) を参照してください。このloader mapでは読み込み順と責務を扱い、debug dumpのsummary/details flagは読み込み順やruntime validateとは別の出力制御として扱います。
+起動時に出る `debug_print_loaded_data()` / `[GameData]` 系debug dumpの棚卸しとStep 12-Cの通常化結果は、[gamedata_registry_debug_dump_audit.md](../../backlog/gamedata_registry_debug_dump_audit.md) を参照してください。このloader mapでは読み込み順と責務を扱い、debug dumpのsummary/details flagは読み込み順やruntime validateとは別の出力制御として扱います。
 
 ## 全体像
 
@@ -251,4 +251,4 @@
 
 - `GameDataRegistry` はカテゴリが多いため、将来的には item/effect/spawn/quest などのsub-loaderへ分ける候補があります。ただし、現時点では読み込み順とfallback互換性を壊すリスクが高いため、docsを足場に小さい変更を続ける方針が安全です。
 - runtimeの `validate_all()` は限定的で、主な検証は `tools/validate_master_data.py` に寄っています。新列追加時に「runtimeで警告するか、validatorだけで止めるか」を毎回明確にすると安全です。
-- `debug_print_loaded_data()` は読み込み確認に便利ですが、Step 12-C以降は件数summaryと詳細dumpを `DebugSettings` で分けて制御します。詳細な棚卸しと運用方針は [gamedata_registry_debug_dump_audit.md](../backlog/gamedata_registry_debug_dump_audit.md) にあります。
+- `debug_print_loaded_data()` は読み込み確認に便利ですが、Step 12-C以降は件数summaryと詳細dumpを `DebugSettings` で分けて制御します。詳細な棚卸しと運用方針は [gamedata_registry_debug_dump_audit.md](../../backlog/gamedata_registry_debug_dump_audit.md) にあります。

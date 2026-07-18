@@ -289,7 +289,7 @@ perform_attack(attacker, target)
 さらに詳しく確認する場合は、次を見ます。
 - [equipment_item_effect_execution_path](../systems/equipment_item_effect_execution_path.md)
 - [script_responsibility_map](../architecture/script_responsibility_map.md)
-- [unit_combat_death_system_deep_dive](../systems/unit_combat_death_system_deep_dive.md)
+- [unit_combat_death_system_deep_dive](../systems/combat/unit_combat_death_system_deep_dive.md)
 このページは詳細 docs を置き換えるものではありません。
 まず流れをつかみ、必要になったら詳細 docs に進みます。
 

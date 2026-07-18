@@ -179,8 +179,8 @@ Step確認で一時的に変更されやすいもの:
 | Step 7 Skill | 移動skill growth、`gain_action_skill_growth()` の確認flagが追加された | [unit_lifecycle_deep_dive.md](unit_lifecycle_deep_dive.md) |
 | Step 8 Equipment effect | `debug_equipment_effects`, `debug_equipment_attack_effects` でpassive/attack effectを確認した | [script_responsibility_map.md](../architecture/script_responsibility_map.md) |
 | Step 9 Initial inventory | debug start itemと `debug_start_items_applied` の再配布抑止がSave/Load確認対象になった | [map_spawn_persistence_deep_dive.md](map_spawn_persistence_deep_dive.md) |
-| Step 10 Death drop | `debug_player_death_drop_scope_test_enabled` とmodeでplayer死亡drop scopeを確認した | [death_drop_spec.md](death_drop_spec.md), [death_path_diagram.md](death_path_diagram.md) |
-| Scene transition / held item | DebugSettingsではなく、PlayerData held stateでscene跨ぎを管理する | [inventory_ui_state_transition.md](inventory_ui_state_transition.md) |
+| Step 10 Death drop | `debug_player_death_drop_scope_test_enabled` とmodeでplayer死亡drop scopeを確認した | [combat/death_drop_spec.md](combat/death_drop_spec.md), [combat/death_path_diagram.md](combat/death_path_diagram.md) |
+| Scene transition / held item | DebugSettingsではなく、PlayerData held stateでscene跨ぎを管理する | [inventory/inventory_ui_state_transition.md](inventory/inventory_ui_state_transition.md) |
 | Save/Load matrix | DebugSettings一時flagが通常状態か、debug start item再配布が自然かを確認する | [../checklists/save_load_regression_matrix.md](../checklists/save_load_regression_matrix.md) |
 | Quest / generated quest | 現状Quest用DebugSettings flagはない | [quest_generated_lifecycle_deep_dive.md](quest_generated_lifecycle_deep_dive.md) |
 

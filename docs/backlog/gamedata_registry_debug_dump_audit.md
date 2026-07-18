@@ -26,8 +26,8 @@ Step 12-C後の通常状態:
 
 - [Debug Output Normalization Audit](debug_output_normalization_audit.md)
 - [DebugSettings Deep Dive](../systems/debug_settings_deep_dive.md)
-- [GameDataRegistry Loader Map](../systems/game_data_registry_loader_map.md)
-- [Data / Spawn / Save System Deep Dive](../systems/data_spawn_save_system_deep_dive.md)
+- [GameDataRegistry Loader Map](../systems/data/game_data_registry_loader_map.md)
+- [Data / Spawn / Save System Deep Dive](../systems/data/data_spawn_save_system_deep_dive.md)
 - [TSV Migration Audit](../migration/tsv_migration_audit.md)
 - [TSV Migration Completion](../migration/tsv_migration_completion.md)
 
@@ -55,7 +55,7 @@ Step 12-C後の通常状態:
 rg -n "debug_print_loaded_data|\[GameData\]|print\(|push_warning|push_error|validate_all|load_all" scripts/data/game_data_registry.gd
 rg -n "debug_print_loaded_data|\[GameData\]" scripts docs
 rg -n "GameDataRegistry" docs scripts
-rg -n "GameDataRegistry|debug_print_loaded_data|\[GameData\]" docs/backlog/debug_output_normalization_audit.md docs/systems/debug_settings_deep_dive.md docs/systems/game_data_registry_loader_map.md
+rg -n "GameDataRegistry|debug_print_loaded_data|\[GameData\]" docs/backlog/debug_output_normalization_audit.md docs/systems/debug_settings_deep_dive.md docs/systems/data/game_data_registry_loader_map.md
 ```
 
 補助的に、`load_all()`、`validate_all()`、`debug_print_loaded_data()`、`_load_tsv()`、`_load_resource_or_null()` 周辺を行番号付きで確認しました。

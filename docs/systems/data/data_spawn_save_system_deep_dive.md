@@ -2,13 +2,13 @@
 
 Data、Spawn、Save は「いつデータを作るか」と「いつ保存済み状態を優先するか」が重要です。特に initial inventory と shop inventory、WorldState と PlayerData の境界を整理します。
 
-Unit側でdata適用、initial inventory、save/loadがどこに入るかは [unit_lifecycle_deep_dive.md](unit_lifecycle_deep_dive.md) も参照してください。
+Unit側でdata適用、initial inventory、save/loadがどこに入るかは [unit_lifecycle_deep_dive.md](../unit_lifecycle_deep_dive.md) も参照してください。
 
 SaveManager / PlayerData / WorldState の保存対象、復元対象、reset対象は [save_worldstate_playerdata_map.md](save_worldstate_playerdata_map.md) を参照してください。
 
 TSVカテゴリごとのloader、data class、lookup、validator対応は [game_data_registry_loader_map.md](game_data_registry_loader_map.md) を参照してください。
 
-Map scene scriptsごとのspawn/save/resetの違いは [map_spawn_persistence_deep_dive.md](map_spawn_persistence_deep_dive.md) を参照してください。
+Map scene scriptsごとのspawn/save/resetの違いは [map_spawn_persistence_deep_dive.md](../map_spawn_persistence_deep_dive.md) を参照してください。
 
 ## master_data.xlsx -> TSV -> GameDataRegistry
 
@@ -73,7 +73,7 @@ Map scene scriptsごとのspawn/save/resetの違いは [map_spawn_persistence_de
 - `guaranteed=true` は必ず生成、falseなら `spawn_chance` を使います。
 - `min_amount`〜`max_amount` の範囲でamountを決めます。
 - 生成されたitemは通常の本体inventoryに入るため、死亡時には通常のcarried entryとして扱われます。
-- initial inventoryとdeath dropの接続、死亡Unitとpickupの保存経路は [death_path_diagram.md](death_path_diagram.md) を参照してください。
+- initial inventoryとdeath dropの接続、死亡Unitとpickupの保存経路は [../combat/death_path_diagram.md](../combat/../combat/death_path_diagram.md) を参照してください。
 
 ## saved Unitでは再抽選しない
 
@@ -119,7 +119,7 @@ Map scene scriptsごとのspawn/save/resetの違いは [map_spawn_persistence_de
 - 生成したenemy/npc/pickup/chestは `WorldState` に保存され、再訪時に復元されます。
 - mapを離れる前に `save_all_units()` や `ItemWorldManager.save_current_state()` が呼ばれる設計です。
 - scene node自体はfreeされるため、永続させたい状態はWorldStateへ書きます。
-- field/detail/dungeon/simple biomeで保存対象とreset条件が違います。詳細は [map_spawn_persistence_deep_dive.md](map_spawn_persistence_deep_dive.md) を入口にしてください。
+- field/detail/dungeon/simple biomeで保存対象とreset条件が違います。詳細は [map_spawn_persistence_deep_dive.md](../map_spawn_persistence_deep_dive.md) を入口にしてください。
 
 ## Data / Spawn / Save変更時の確認項目
 
@@ -134,7 +134,7 @@ Map scene scriptsごとのspawn/save/resetの違いは [map_spawn_persistence_de
 
 ## Quest / Generated Questとの接続
 
-Quest系の詳細は [quest_generated_lifecycle_deep_dive.md](quest_generated_lifecycle_deep_dive.md) を参照します。
+Quest系の詳細は [quest_generated_lifecycle_deep_dive.md](../quest_generated_lifecycle_deep_dive.md) を参照します。
 
 | 接続点 | データ | 保存先 | 注意 |
 | --- | --- | --- | --- |

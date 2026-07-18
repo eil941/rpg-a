@@ -1,153 +1,161 @@
 # rpg-a Docs
 
-`rpg-a` の設計メモ、理解用地図、仕様メモ、移行メモを用途別に整理した入口です。
+`rpg-a` の docs 全体の入口です。
+コードやデータを触る前に、このページで「どこから読むか」を決めます。
 
-コードやTSVを触る前に、該当するdocsを先に読むと「どこを触るべきか」「触ると危ない境界はどこか」を判断しやすくなります。
+この README は詳細説明ではなく、学習・調査・作業・確認へ進むための分岐点です。
 
-## 初めて読む場合
+## 最初に読む
 
-プロジェクト所有者が内部実装の理解を深める場合は、まず `learning/` から読みます。
-
-`learning/` は、既存の詳細docsを置き換えるものではありません。最初に全体像をつかみ、必要になった時だけ `architecture/`、`systems/`、`guides/`、`checklists/` へ進むための入口です。
-
-### 推奨学習順
-
-| 順番 | docs | 目的 |
-| --- | --- | --- |
-| 1 | [learning/start_here.md](learning/start_here.md) | 主要スクリプトの役割と、次に読むdocsを選ぶ |
-| 2 | [learning/database_and_manager_roles.md](learning/database_and_manager_roles.md) | DatabaseとManagerの違いを理解する |
-| 3 | [learning/excel_to_game_flow.md](learning/excel_to_game_flow.md) | Excelからゲーム実行時データまでの流れを理解する |
-| 4 | [learning/item_use_flow.md](learning/item_use_flow.md) | 通常アイテム使用と回復処理を追う |
-| 5 | [learning/target_item_use_flow.md](learning/target_item_use_flow.md) | 対象指定アイテムの処理を追う |
-| 6 | [learning/equipment_passive_flow.md](learning/equipment_passive_flow.md) | 装備パッシブとstat合成を追う |
-| 7 | [learning/equipment_attack_effect_flow.md](learning/equipment_attack_effect_flow.md) | 装備攻撃効果とtrigger_chanceを追う |
-| 8 | [learning/combat_damage_death_flow.md](learning/combat_damage_death_flow.md) | 攻撃、ダメージ、死亡処理を追う |
-| 9 | [learning/death_drop_flow.md](learning/death_drop_flow.md) | 死亡時ドロップとWorldState保存を追う |
-| 10 | [learning/debug_first_steps.md](learning/debug_first_steps.md) | 不具合時に最初に見る場所を選ぶ |
-| 11 | [learning/adding_new_data_or_effect_type.md](learning/adding_new_data_or_effect_type.md) | データ追加だけで済むか、新実装が必要か判断する |
-
-### 目的別入口
-
-| 目的 | まず読むdocs |
+| 目的 | 入口 |
 | --- | --- |
-| 全体像を知りたい | [learning/start_here.md](learning/start_here.md) |
-| Excelの内容がゲームへ入る流れを知りたい | [learning/excel_to_game_flow.md](learning/excel_to_game_flow.md) |
-| DatabaseとManagerの違いを知りたい | [learning/database_and_manager_roles.md](learning/database_and_manager_roles.md) |
-| ポーションなど通常アイテム使用を追いたい | [learning/item_use_flow.md](learning/item_use_flow.md) |
-| 対象指定アイテムを追いたい | [learning/target_item_use_flow.md](learning/target_item_use_flow.md) |
-| 装備パッシブを追いたい | [learning/equipment_passive_flow.md](learning/equipment_passive_flow.md) |
-| 装備攻撃効果を追いたい | [learning/equipment_attack_effect_flow.md](learning/equipment_attack_effect_flow.md) |
-| 攻撃、ダメージ、死亡を追いたい | [learning/combat_damage_death_flow.md](learning/combat_damage_death_flow.md) |
-| 死亡時ドロップを追いたい | [learning/death_drop_flow.md](learning/death_drop_flow.md) |
-| 不具合時の最初の確認先を知りたい | [learning/debug_first_steps.md](learning/debug_first_steps.md) |
-| 新しいデータやeffect typeを追加したい | [learning/adding_new_data_or_effect_type.md](learning/adding_new_data_or_effect_type.md) |
+| 学習開始 | [docs/learning/start_here.md](learning/start_here.md) |
+| scriptから探す | [docs/reference/script_quick_reference.md](reference/script_quick_reference.md) |
+| 現在のシステムを詳しく読む | [docs/guides/current_system_reading_order.md](guides/current_system_reading_order.md) |
+| アイテム追加 | [docs/guides/item_addition_guide.md](guides/item_addition_guide.md) |
+| 新機能追加 | [docs/guides/feature_addition_guide.md](guides/feature_addition_guide.md) |
+| 不具合調査 | [docs/learning/debug_first_steps.md](learning/debug_first_steps.md) |
+| Codex依頼 | [docs/guides/codex_project_context.md](guides/codex_project_context.md) |
 
-### 既存docsとの関係
+## 目的別に探す
 
-`learning/` は学習用の入口です。
-
-`architecture/` は全体構造の詳細地図、`systems/` は現行仕様と実装経路の詳細、`guides/` は実際の作業手順、`checklists/` は動作確認、`backlog/` は将来の整理候補です。
-
-[guides/current_system_reading_order.md](guides/current_system_reading_order.md) は、実装調査や作業対象が決まっている時の詳細docs読書順として残します。まず理解を作る時は `learning/`、作業対象を深掘りする時は `current_system_reading_order` を使います。
+| 知りたいこと・作業 | まず読むdocs |
+| --- | --- |
+| プロジェクト内のデータと処理の大まかな関係 | [learning/start_here.md](learning/start_here.md) |
+| Excelの内容がゲームへ入る流れ | [learning/excel_to_game_flow.md](learning/excel_to_game_flow.md) |
+| DatabaseとManagerの違い | [learning/database_and_manager_roles.md](learning/database_and_manager_roles.md) |
+| 通常アイテム使用 | [learning/item_use_flow.md](learning/item_use_flow.md) |
+| 対象指定アイテム使用 | [learning/target_item_use_flow.md](learning/target_item_use_flow.md) |
+| 装備パッシブ | [learning/equipment_passive_flow.md](learning/equipment_passive_flow.md) |
+| 装備攻撃効果 | [learning/equipment_attack_effect_flow.md](learning/equipment_attack_effect_flow.md) |
+| 攻撃・ダメージ・死亡 | [learning/combat_damage_death_flow.md](learning/combat_damage_death_flow.md) |
+| 死亡時ドロップ | [learning/death_drop_flow.md](learning/death_drop_flow.md) |
+| 新しいデータやeffect typeを追加する判断 | [learning/adding_new_data_or_effect_type.md](learning/adding_new_data_or_effect_type.md) |
+| 症状から最初に見るscriptを選ぶ | [reference/script_quick_reference.md](reference/script_quick_reference.md) |
+| Save/Loadの手動確認 | [checklists/save_load_regression_matrix.md](checklists/save_load_regression_matrix.md) |
 
 ## フォルダ構成
 
-| フォルダ | 内容 | 主な用途 |
+| フォルダ | 目的 | 使う場面 |
 | --- | --- | --- |
-| `learning/` | 所有者向けの学習用ドキュメント | 基礎から処理経路と責務を理解する |
-| `architecture/` | 全体構成、主要スクリプト責務、runtime flow、サブシステム相互作用 | プロジェクト全体の地図を掴む |
-| `systems/` | Inventory、Combat、Data/Spawn/Save、UI/Input、Death Drop、Damageなど個別システムの深掘り | 特定機能を変更する前の調査 |
-| `guides/` | 新機能追加ガイド、Codex依頼時の前提資料 | 作業依頼や実装Stepの入口 |
-| `checklists/` | 実機確認マトリクス、回帰確認手順 | Godot上で確認する項目を揃える |
-| `migration/` | TSV移行状況、移行完了メモ | データ移行方針や保留テーブルの確認 |
-| `backlog/` | 認知的負債・整理候補 | 今後の整理Step候補 |
+| `learning/` | 基礎や処理の流れを学ぶ | 初めて理解する時、忘れた内容を学び直す時 |
+| `reference/` | 早見表・逆引き | 開発中に短時間で確認する時 |
+| `guides/` | 作業手順 | アイテム追加、新機能追加、Codex依頼時 |
+| `systems/` | 現行実装の詳細仕様 | 特定機能を詳しく調査する時 |
+| `architecture/` | 全体構造と責務 | subsystemやscript関係を確認する時 |
+| `checklists/` | 確認項目 | Godot実行確認や回帰確認時 |
+| `migration/` | 移行履歴 | 過去方式と変更経緯を確認する時 |
+| `backlog/` | 将来候補 | 未対応項目や認知的負債を確認する時 |
 
-## まず読むもの
+`systems/` のうち、件数が多い領域だけ `combat/`、`inventory/`、`data/` に分けています。
+1から2件の領域は、不要に深くしないため `systems/` 直下に残しています。
 
-| 目的 | 読むdocs |
+## 学習する
+
+まず [learning/start_here.md](learning/start_here.md) で全体像をつかみます。
+その後は、目的に近い learning docs だけを読みます。
+
+推奨順は次の通りです。
+
+1. [learning/start_here.md](learning/start_here.md)
+2. [learning/database_and_manager_roles.md](learning/database_and_manager_roles.md)
+3. [learning/excel_to_game_flow.md](learning/excel_to_game_flow.md)
+4. [learning/item_use_flow.md](learning/item_use_flow.md)
+5. [learning/target_item_use_flow.md](learning/target_item_use_flow.md)
+6. [learning/equipment_passive_flow.md](learning/equipment_passive_flow.md)
+7. [learning/equipment_attack_effect_flow.md](learning/equipment_attack_effect_flow.md)
+8. [learning/combat_damage_death_flow.md](learning/combat_damage_death_flow.md)
+9. [learning/death_drop_flow.md](learning/death_drop_flow.md)
+10. [learning/debug_first_steps.md](learning/debug_first_steps.md)
+11. [learning/adding_new_data_or_effect_type.md](learning/adding_new_data_or_effect_type.md)
+
+`learning/` は詳細docsを置き換えるものではありません。
+最初に全体像をつかみ、必要になった時だけ `architecture/`、`systems/`、`guides/`、`checklists/` へ進みます。
+
+## 実装を調査する
+
+| 調査したいこと | 入口 |
 | --- | --- |
-| 何から読むか、領域別にどの順番で読むか知りたい | [guides/current_system_reading_order.md](guides/current_system_reading_order.md) |
-| 全体構成を知りたい | [architecture/project_structure_overview.md](architecture/project_structure_overview.md) |
-| 主要スクリプトの責務を知りたい | [architecture/script_responsibility_map.md](architecture/script_responsibility_map.md) |
-| 処理フローを追いたい | [architecture/runtime_flow_overview.md](architecture/runtime_flow_overview.md) |
-| 機能単位の関係を知りたい | [architecture/subsystem_interaction_map.md](architecture/subsystem_interaction_map.md) |
-| 新機能を追加したい | [guides/feature_addition_guide.md](guides/feature_addition_guide.md) |
-| 新しいアイテムを手作業で追加し、効果実装が必要か判断したい | [guides/item_addition_guide.md](guides/item_addition_guide.md) |
-| Save/Load回帰確認をしたい | [checklists/save_load_regression_matrix.md](checklists/save_load_regression_matrix.md) |
-| DebugSettings / debug flag / debug start item を確認したい | [systems/debug_settings_deep_dive.md](systems/debug_settings_deep_dive.md) |
-| 通常プレイ中に出るdebug出力の棚卸しを見たい | [backlog/debug_output_normalization_audit.md](backlog/debug_output_normalization_audit.md) |
-| Codexに作業依頼したい | [guides/codex_project_context.md](guides/codex_project_context.md) |
+| 領域別にどのdocsから読むか | [guides/current_system_reading_order.md](guides/current_system_reading_order.md) |
+| scriptを開いて最初に見る関数 | [reference/script_quick_reference.md](reference/script_quick_reference.md) |
+| scriptごとの責務 | [architecture/script_responsibility_map.md](architecture/script_responsibility_map.md) |
+| 全体構造 | [architecture/project_structure_overview.md](architecture/project_structure_overview.md) |
+| runtime flow | [architecture/runtime_flow_overview.md](architecture/runtime_flow_overview.md) |
+| サブシステム間の関係 | [architecture/subsystem_interaction_map.md](architecture/subsystem_interaction_map.md) |
 
-## Inventory系を触る時
+## データやアイテムを追加する
 
-| 目的 | 読むdocs |
+| 作業 | 入口 |
 | --- | --- |
-| Inventory / Trade / Chest 全体を理解する | [systems/inventory_trade_chest_system_deep_dive.md](systems/inventory_trade_chest_system_deep_dive.md) |
-| `InventoryUI` の mode / held item 状態遷移を確認する | [systems/inventory_ui_state_transition.md](systems/inventory_ui_state_transition.md) |
-| Trade / Chest / held item の所有権境界を見る | [systems/trade_chest_ownership_deep_dive.md](systems/trade_chest_ownership_deep_dive.md) |
-| UI状態ごとの移動・行動・入力lockを見る | [systems/ui_lock_matrix.md](systems/ui_lock_matrix.md) |
-| UI lock やscene遷移との関係を見る | [systems/ui_input_scene_transition_deep_dive.md](systems/ui_input_scene_transition_deep_dive.md) |
+| アイテムを追加する | [guides/item_addition_guide.md](guides/item_addition_guide.md) |
+| 新機能追加の影響範囲を確認する | [guides/feature_addition_guide.md](guides/feature_addition_guide.md) |
+| ExcelからTSV、ゲーム内データまでの流れを確認する | [learning/excel_to_game_flow.md](learning/excel_to_game_flow.md) |
+| 新しいeffect typeが必要か判断する | [learning/adding_new_data_or_effect_type.md](learning/adding_new_data_or_effect_type.md) |
+| GameDataRegistryの読み込みを確認する | [systems/data/game_data_registry_loader_map.md](systems/data/game_data_registry_loader_map.md) |
+| item effectの実行経路を確認する | [systems/equipment_item_effect_execution_path.md](systems/equipment_item_effect_execution_path.md) |
 
-## 戦闘・死亡を触る時
+## 不具合を調査する
 
-| 目的 | 読むdocs |
+| 状況 | 入口 |
 | --- | --- |
-| `Unit.gd` のライフサイクル別入口を知る | [systems/unit_lifecycle_deep_dive.md](systems/unit_lifecycle_deep_dive.md) |
-| Unit / Combat / Death の流れを知る | [systems/unit_combat_death_system_deep_dive.md](systems/unit_combat_death_system_deep_dive.md) |
-| 消耗品効果・装備パッシブ・装備攻撃効果の実行経路を知る | [systems/equipment_item_effect_execution_path.md](systems/equipment_item_effect_execution_path.md) |
-| 死亡時ドロップ仕様を確認する | [systems/death_drop_spec.md](systems/death_drop_spec.md) |
-| HP0から死亡処理・drop・WorldState保存までを追う | [systems/death_path_diagram.md](systems/death_path_diagram.md) |
-| ダメージeffectの補足を見る | [systems/damage_system_notes.md](systems/damage_system_notes.md) |
+| 症状から最初の確認先を選ぶ | [learning/debug_first_steps.md](learning/debug_first_steps.md) |
+| script名から確認関数を選ぶ | [reference/script_quick_reference.md](reference/script_quick_reference.md) |
+| DebugSettingsやdebug start itemを確認する | [systems/debug_settings_deep_dive.md](systems/debug_settings_deep_dive.md) |
+| Save/Loadの回帰確認をする | [checklists/save_load_regression_matrix.md](checklists/save_load_regression_matrix.md) |
+| Debug出力の整理候補を見る | [backlog/debug_output_normalization_audit.md](backlog/debug_output_normalization_audit.md) |
 
-## データ・TSVを触る時
+## Codexへ依頼する
 
-| 目的 | 読むdocs |
-| --- | --- |
-| Data / Spawn / Save の関係を見る | [systems/data_spawn_save_system_deep_dive.md](systems/data_spawn_save_system_deep_dive.md) |
-| Save / WorldState / PlayerData の保存対象を見る | [systems/save_worldstate_playerdata_map.md](systems/save_worldstate_playerdata_map.md) |
-| Map scene / spawn / persistence の流れを見る | [systems/map_spawn_persistence_deep_dive.md](systems/map_spawn_persistence_deep_dive.md) |
-| Save/Load実機確認チェック表を見る | [checklists/save_load_regression_matrix.md](checklists/save_load_regression_matrix.md) |
-| 新しいitem追加、category追加、effect実装判断の具体手順を見る | [guides/item_addition_guide.md](guides/item_addition_guide.md) |
-| GameDataRegistryのTSV loader / lookup対応を見る | [systems/game_data_registry_loader_map.md](systems/game_data_registry_loader_map.md) |
-| GameDataRegistry起動時debug dumpの棚卸しとsummary/details flagを見る | [backlog/gamedata_registry_debug_dump_audit.md](backlog/gamedata_registry_debug_dump_audit.md) |
-| item_effects / item_effect_links の実行入口を見る | [systems/equipment_item_effect_execution_path.md](systems/equipment_item_effect_execution_path.md) |
-| TSV移行状況を見る | [migration/tsv_migration_audit.md](migration/tsv_migration_audit.md) |
-| TSV移行完了方針を見る | [migration/tsv_migration_completion.md](migration/tsv_migration_completion.md) |
-| 新機能追加時のデータ手順を見る | [guides/feature_addition_guide.md](guides/feature_addition_guide.md) |
+Codexへ作業を依頼する前に、まず [guides/current_system_reading_order.md](guides/current_system_reading_order.md) で対象領域のdocsを選びます。
+依頼文の前提として渡す情報は [guides/codex_project_context.md](guides/codex_project_context.md) にまとめています。
 
-## Quest / Generated Quest を触る時
-
-| 目的 | 読むdocs |
-| --- | --- |
-| Quest / generated quest / NPC quest lifecycle の全体像を見る | [systems/quest_generated_lifecycle_deep_dive.md](systems/quest_generated_lifecycle_deep_dive.md) |
-| Save / WorldState 側の保存対象を見る | [systems/save_worldstate_playerdata_map.md](systems/save_worldstate_playerdata_map.md) |
-| map reset / spawn persistence と active quest NPC 保護を見る | [systems/map_spawn_persistence_deep_dive.md](systems/map_spawn_persistence_deep_dive.md) |
-| Questを含むSave/Load確認項目を見る | [checklists/save_load_regression_matrix.md](checklists/save_load_regression_matrix.md) |
-
-## DebugSettings / 確認用設定を触る時
-
-| 目的 | 読むdocs |
-| --- | --- |
-| DebugSettingsのflagと開始アイテムの現状を見る | [systems/debug_settings_deep_dive.md](systems/debug_settings_deep_dive.md) |
-| DebugSettings管理内外のログ通常化候補を見る | [backlog/debug_output_normalization_audit.md](backlog/debug_output_normalization_audit.md) |
-| Save/Load確認時にDebugSettings由来の影響を見る | [checklists/save_load_regression_matrix.md](checklists/save_load_regression_matrix.md) |
-| DebugSettings変更時に触るscript責務を見る | [architecture/script_responsibility_map.md](architecture/script_responsibility_map.md) |
-
-## Codexに依頼する時
-
-まず [guides/current_system_reading_order.md](guides/current_system_reading_order.md) で対象領域のdocsを絞り、[guides/codex_project_context.md](guides/codex_project_context.md) を依頼の前提として使います。
-
-依頼文には、できれば以下を書きます。
+依頼文には、できれば次を含めます。
 
 - 対象サブシステム
 - 触ってよいファイル
 - 触らないファイル
-- データ変更あり/なし
-- Godot確認したい項目
+- データ変更の有無
+- Godot確認の要否
 - 最終報告でほしい項目
 
-## 認知的負債
+## 詳細なシステム仕様
 
-今後の整理候補は [backlog/cognitive_debt_backlog.md](backlog/cognitive_debt_backlog.md) にまとめています。
+| 領域 | 詳細docs |
+| --- | --- |
+| Data / Spawn / Save | [systems/data/data_spawn_save_system_deep_dive.md](systems/data/data_spawn_save_system_deep_dive.md) |
+| Save / WorldState / PlayerData | [systems/data/save_worldstate_playerdata_map.md](systems/data/save_worldstate_playerdata_map.md) |
+| Map spawn / persistence | [systems/map_spawn_persistence_deep_dive.md](systems/map_spawn_persistence_deep_dive.md) |
+| Inventory / Trade / Chest | [systems/inventory/inventory_trade_chest_system_deep_dive.md](systems/inventory/inventory_trade_chest_system_deep_dive.md) |
+| Inventory UI state | [systems/inventory/inventory_ui_state_transition.md](systems/inventory/inventory_ui_state_transition.md) |
+| UI lock / scene transition | [systems/ui_lock_matrix.md](systems/ui_lock_matrix.md), [systems/ui_input_scene_transition_deep_dive.md](systems/ui_input_scene_transition_deep_dive.md) |
+| Equipment / item effects | [systems/equipment_item_effect_execution_path.md](systems/equipment_item_effect_execution_path.md) |
+| Combat / death | [systems/combat/unit_combat_death_system_deep_dive.md](systems/combat/unit_combat_death_system_deep_dive.md), [systems/combat/death_path_diagram.md](systems/combat/death_path_diagram.md) |
+| Death drop | [systems/combat/death_drop_spec.md](systems/combat/death_drop_spec.md) |
+| Damage notes | [systems/combat/damage_system_notes.md](systems/combat/damage_system_notes.md) |
+| Unit lifecycle | [systems/unit_lifecycle_deep_dive.md](systems/unit_lifecycle_deep_dive.md) |
+| Quest lifecycle | [systems/quest_generated_lifecycle_deep_dive.md](systems/quest_generated_lifecycle_deep_dive.md) |
 
-現時点では、`inventory_ui.gd`、`game_data_registry.gd`、Save/WorldState境界が特に深掘り候補です。`unit.gd` については [systems/unit_lifecycle_deep_dive.md](systems/unit_lifecycle_deep_dive.md)、map scene scriptsについては [systems/map_spawn_persistence_deep_dive.md](systems/map_spawn_persistence_deep_dive.md) を入口にします。
+## チェックリスト
+
+| 用途 | docs |
+| --- | --- |
+| Save/Load回帰確認 | [checklists/save_load_regression_matrix.md](checklists/save_load_regression_matrix.md) |
+
+## 移行の履歴
+
+| 用途 | docs |
+| --- | --- |
+| TSV移行の調査記録 | [migration/tsv_migration_audit.md](migration/tsv_migration_audit.md) |
+| TSV移行の完了メモ | [migration/tsv_migration_completion.md](migration/tsv_migration_completion.md) |
+
+## backlog・将来候補
+
+`backlog/` は現行仕様ではなく、将来の整理候補や調査計画です。
+実装判断の正本として使う前に、必ず `learning/`、`systems/`、`architecture/`、`guides/` の現行docsを確認します。
+
+| 用途 | docs |
+| --- | --- |
+| learning docs再設計計画 | [backlog/docs_learning_redesign_plan.md](backlog/docs_learning_redesign_plan.md) |
+| 認知的負債の整理候補 | [backlog/cognitive_debt_backlog.md](backlog/cognitive_debt_backlog.md) |
+| debug出力整理候補 | [backlog/debug_output_normalization_audit.md](backlog/debug_output_normalization_audit.md) |
+| GameDataRegistry debug dump整理候補 | [backlog/gamedata_registry_debug_dump_audit.md](backlog/gamedata_registry_debug_dump_audit.md) |

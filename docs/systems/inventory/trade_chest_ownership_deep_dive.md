@@ -41,7 +41,7 @@
 - `PlayerController.is_ui_locked()` は `is_special_inventory_ui_open()` を見るため、trade/chest中の移動は止まります。
 - `GameAndHud.is_special_inventory_ui_open()` は `InventoryUI.is_special_inventory_mode_open()` を優先し、trade/chestをまとめて特殊modeとして扱います。
 
-UI lock matrixの詳細は [ui_lock_matrix.md](ui_lock_matrix.md)、scene遷移との関係は [ui_input_scene_transition_deep_dive.md](ui_input_scene_transition_deep_dive.md)、modeとheld stateは [inventory_ui_state_transition.md](inventory_ui_state_transition.md) を参照してください。このdocsでは、所有権と参照寿命を中心に扱います。
+UI lock matrixの詳細は [ui_lock_matrix.md](../ui_lock_matrix.md)、scene遷移との関係は [ui_input_scene_transition_deep_dive.md](../ui_input_scene_transition_deep_dive.md)、modeとheld stateは [inventory_ui_state_transition.md](inventory_ui_state_transition.md) を参照してください。このdocsでは、所有権と参照寿命を中心に扱います。
 
 ## Held item の所有権
 
@@ -246,19 +246,19 @@ scene遷移時のheld item保持を確認する時:
 - `scripts/data/player_data.gd`
 - `scripts/hud/game_and_hud.gd`
 - [inventory_ui_state_transition.md](inventory_ui_state_transition.md)
-- [ui_input_scene_transition_deep_dive.md](ui_input_scene_transition_deep_dive.md)
+- [ui_input_scene_transition_deep_dive.md](../ui_input_scene_transition_deep_dive.md)
 
 保存対象を見る時:
 
 - `scripts/save_manager.gd`
 - `scripts/data/player_data.gd`
 - `scripts/world/world_state.gd`
-- [save_worldstate_playerdata_map.md](save_worldstate_playerdata_map.md)
+- [../data/save_worldstate_playerdata_map.md](../data/../data/save_worldstate_playerdata_map.md)
 
 DebugSettingsや確認ログを見る時:
 
 - `scripts/debug/DebugSettings.gd`
-- [debug_settings_deep_dive.md](debug_settings_deep_dive.md)
+- [debug_settings_deep_dive.md](../debug_settings_deep_dive.md)
 
 ## このdocsで分かること / 分からないこと
 

@@ -57,13 +57,13 @@ git diff --check
 | 作業領域 | まず見るもの |
 | --- | --- |
 | Master data | `master_data.xlsx`, 関連 `data/master/*.tsv`, `tools/export_master_tsv.py`, `tools/validate_master_data.py` |
-| TSV読み込み | [../systems/game_data_registry_loader_map.md](../systems/game_data_registry_loader_map.md), `scripts/data/game_data_registry.gd`, 対応する data Resource class |
+| TSV読み込み | [../systems/data/game_data_registry_loader_map.md](../systems/data/game_data_registry_loader_map.md), `scripts/data/game_data_registry.gd`, 対応する data Resource class |
 | Item/equipment | `scripts/data/item_data.gd`, `equipment_data.gd`, `item_effect_data.gd`, `scripts/item/item_database.gd` |
 | Inventory UI | `scripts/item/inventory_ui.gd`, `scripts/item/inventory.gd`, `scripts/hud/game_and_hud.gd` |
 | Combat | `scripts/combat/combat_manager.gd`, `damage_calculator.gd`, `scripts/core/stats.gd` |
 | Unit挙動 | `scripts/core/unit.gd`, 関連controller |
 | Spawn | `scripts/managers/unit_spawn_manager.gd`, map scene script, `enemies.tsv` / `npcs.tsv` |
-| Death drop | [../systems/death_drop_spec.md](../systems/death_drop_spec.md), `Unit.drop_inventory_items_on_death_if_needed()`, `ItemDropHelper` |
+| Death drop | [../systems/combat/death_drop_spec.md](../systems/combat/death_drop_spec.md), `Unit.drop_inventory_items_on_death_if_needed()`, `ItemDropHelper` |
 | Save/load | `scripts/save_manager.gd`, `PlayerData`, `WorldState`, `Unit.get_stats_data()` |
 | Dialogue/quest | `DialogueManager`, `QuestManager`, `quest_board_ui.gd`, quest系TSV |
 
@@ -136,7 +136,7 @@ git diff --check
 
 ### Death Drop を変える
 
-1. [../systems/death_drop_spec.md](../systems/death_drop_spec.md) を読みます。
+1. [../systems/combat/death_drop_spec.md](../systems/combat/death_drop_spec.md) を読みます。
 2. `drop_inventory_on_death` と `drop_equipped_items_on_death` の組み合わせを確認します。
 3. drop対象は実際に持っているentryであることを守ります。
 4. source slot clearはdrop成功後に行います。
@@ -148,7 +148,7 @@ git diff --check
 - [../architecture/project_structure_overview.md](../architecture/project_structure_overview.md): 全体構成。
 - [../architecture/script_responsibility_map.md](../architecture/script_responsibility_map.md): scriptごとの責務。
 - [../architecture/runtime_flow_overview.md](../architecture/runtime_flow_overview.md): 主要処理フロー。
-- [../systems/game_data_registry_loader_map.md](../systems/game_data_registry_loader_map.md): TSV loader、data class、lookup、validator対応。
+- [../systems/data/game_data_registry_loader_map.md](../systems/data/game_data_registry_loader_map.md): TSV loader、data class、lookup、validator対応。
 - [feature_addition_guide.md](feature_addition_guide.md): 新機能追加時の入口。
-- [../systems/death_drop_spec.md](../systems/death_drop_spec.md): 死亡時ドロップ仕様。
+- [../systems/combat/death_drop_spec.md](../systems/combat/death_drop_spec.md): 死亡時ドロップ仕様。
 - [../migration/tsv_migration_audit.md](../migration/tsv_migration_audit.md): TSV化状況と保留テーブル。

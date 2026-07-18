@@ -38,9 +38,9 @@ CombatManager.perform_attack()
 - `scripts/item/item_effect_manager.gd`
 - `scripts/item/unit_effect_runtime.gd`
 詳細docs:
-- [unit_combat_death_system_deep_dive](../systems/unit_combat_death_system_deep_dive.md)
-- [death_path_diagram](../systems/death_path_diagram.md)
-- [damage_system_notes](../systems/damage_system_notes.md)
+- [unit_combat_death_system_deep_dive](../systems/combat/unit_combat_death_system_deep_dive.md)
+- [death_path_diagram](../systems/combat/death_path_diagram.md)
+- [damage_system_notes](../systems/combat/damage_system_notes.md)
 - [script_responsibility_map](../architecture/script_responsibility_map.md)
 - [Equipment Attack Effect Flow](equipment_attack_effect_flow.md)
 - [Database And Manager Roles](database_and_manager_roles.md)

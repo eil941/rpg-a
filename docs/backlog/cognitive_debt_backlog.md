@@ -7,17 +7,17 @@ Step 12-C 時点で見えている認知的負債の整理候補です。これ�
 | 領域 | 現状のしんどさ | 理由 | 今すぐ直すべきか | 将来の整理案 | リスク |
 | --- | --- | --- | --- | --- | --- |
 | `scripts/core/unit.gd` | 非常に大きい | 移動、interaction、装備、initial inventory、effects、death drop、save/loadが同居 | いいえ | [../systems/unit_lifecycle_deep_dive.md](../systems/unit_lifecycle_deep_dive.md) を入口に、将来helper分割候補を小さく検討 | 無理に分けるとsave/loadや死亡処理を壊しやすい |
-| `scripts/item/inventory_ui.gd` | 高密度 | normal/trade/chest/held item/keyboard/tooltipが同居 | いいえ | [../systems/inventory_ui_state_transition.md](../systems/inventory_ui_state_transition.md) を足場に、将来 side panel / held item helper 分離を検討 | UI操作の退行、item消失、free済み参照 |
-| `scripts/data/game_data_registry.gd` | loaderが多い | 全TSVのload/build/validate/debug dumpが集中 | いいえ | [../systems/game_data_registry_loader_map.md](../systems/game_data_registry_loader_map.md) を入口にし、将来 registry sub-loader 化を検討 | 読み込み順・fallback互換性を壊す |
+| `scripts/item/inventory_ui.gd` | 高密度 | normal/trade/chest/held item/keyboard/tooltipが同居 | いいえ | [../systems/inventory/inventory_ui_state_transition.md](../systems/inventory/inventory_ui_state_transition.md) を足場に、将来 side panel / held item helper 分離を検討 | UI操作の退行、item消失、free済み参照 |
+| `scripts/data/game_data_registry.gd` | loaderが多い | 全TSVのload/build/validate/debug dumpが集中 | いいえ | [../systems/data/game_data_registry_loader_map.md](../systems/data/game_data_registry_loader_map.md) を入口にし、将来 registry sub-loader 化を検討 | 読み込み順・fallback互換性を壊す |
 | map scene scripts | 似たspawn/save処理が複数 | `main.gd`, `FiledMap.gd`, `dungeon_main.gd` に似た責務がある | いいえ | [../systems/map_spawn_persistence_deep_dive.md](../systems/map_spawn_persistence_deep_dive.md) を入口に、共通化候補だけ棚卸し | mapごとの例外を消してしまう |
 | `QuestManager` | 広い | template/generated quest、受注、完了、報酬、WorldState連携がある | いいえ | [../systems/quest_generated_lifecycle_deep_dive.md](../systems/quest_generated_lifecycle_deep_dive.md) を入口に、repeatableやgeneration block保存仕様を小さく確認 | quest resetやsave互換性の破損 |
-| Save / WorldState 境界 | 分かりづらい | PlayerData、WorldState、GlobalDungeon、GlobalDetailMap、map scene saveが絡む | いいえ | [../systems/save_worldstate_playerdata_map.md](../systems/save_worldstate_playerdata_map.md) を入口にし、将来ownerごとのhelper整理を検討 | 状態消失、二重復元、new game reset漏れ |
+| Save / WorldState 境界 | 分かりづらい | PlayerData、WorldState、GlobalDungeon、GlobalDetailMap、map scene saveが絡む | いいえ | [../systems/data/save_worldstate_playerdata_map.md](../systems/data/save_worldstate_playerdata_map.md) を入口にし、将来ownerごとのhelper整理を検討 | 状態消失、二重復元、new game reset漏れ |
 | Save/Load実機確認 | 手順が長い | PlayerData、WorldState、map遷移、enemy/NPC、pickup/chest、dungeon、questを横断する | いいえ | [../checklists/save_load_regression_matrix.md](../checklists/save_load_regression_matrix.md) を使い、確認ログを継続的に追記 | 確認漏れ、回帰の見落とし |
 | DebugSettings | 確認機能とdebug出力が増えている | Stepごとのdebug flag/start item/scope設定、DebugSettings外のprint/debug dumpが蓄積 | 急ぎではない | [../systems/debug_settings_deep_dive.md](../systems/debug_settings_deep_dive.md) と [debug_output_normalization_audit.md](debug_output_normalization_audit.md) を入口に、default ON/OFFやDebugSettings外debug出力を確認 | debug defaultや無条件printを誤ると通常プレイに影響 |
 | Equipment effect | 仕様は安定したが入口が複数 | passiveはUnit、attackはCombatManager、dataはitem_effect_links | いいえ | [../systems/equipment_item_effect_execution_path.md](../systems/equipment_item_effect_execution_path.md) を入口に、将来共通化や分割調査はStep 12以降で扱う | consumable effectと混同しやすい |
-| Death drop | 実装入口がUnitに埋まる | `Unit.handle_death()` と `drop_inventory_items_on_death_if_needed()` が大きい | いいえ | [../systems/death_path_diagram.md](../systems/death_path_diagram.md) を現状経路の入口にし、将来の分割調査はStep 12以降で扱う | 二重drop、装備drop漏れ |
+| Death drop | 実装入口がUnitに埋まる | `Unit.handle_death()` と `drop_inventory_items_on_death_if_needed()` が大きい | いいえ | [../systems/combat/death_path_diagram.md](../systems/combat/death_path_diagram.md) を現状経路の入口にし、将来の分割調査はStep 12以降で扱う | 二重drop、装備drop漏れ |
 | Initial inventory | death dropと名前が混同されやすい | spawn時所持品でありdeath時lootではない | いいえ | Data docsに「spawn-time carried inventory」と繰り返し明記 | drop tableを早く作りすぎる |
-| Trade / Chest ownership | 不正取得リスクが見えづらい | held item sourceがscene跨ぎで無効になることがある | いいえ | [../systems/trade_chest_ownership_deep_dive.md](../systems/trade_chest_ownership_deep_dive.md) を入口に、将来の所有権整理・分割調査はStep 12以降で扱う | item消失、不正取得、free済み参照 |
+| Trade / Chest ownership | 不正取得リスクが見えづらい | held item sourceがscene跨ぎで無効になることがある | いいえ | [../systems/inventory/trade_chest_ownership_deep_dive.md](../systems/inventory/trade_chest_ownership_deep_dive.md) を入口に、将来の所有権整理・分割調査はStep 12以降で扱う | item消失、不正取得、free済み参照 |
 | UI lock | 通常inventoryだけ移動可という例外がある | `is_ui_locked()`、`is_inventory_open()`、Unit側quest board lockの意味が違う | 中 | [../systems/ui_lock_matrix.md](../systems/ui_lock_matrix.md) を現状仕様の入口にし、将来の整理調査はStep 12以降で扱う | 通常inventory中移動を誤って止める |
 
 ## 今すぐ直さない理由
@@ -58,7 +58,7 @@ Step 12-C 時点で見えている認知的負債の整理候補です。これ�
 | Effect実行経路の将来調査 | consumable、equipment passive、equipment attackの共通化可否をStep 12以降で調査する | 現状仕様docsを足場に、実装変更なしで分割候補を評価できる |
 | Trade / Chest ownership整理調査 | side inventory helper、ownership model、UI lock matrixの整理可否をStep 12以降で調査する | 現状仕様docsを足場に、item消失や不正取得を避けながら整理候補を評価できる |
 | UI lock / 入力制御整理調査 | [../systems/ui_lock_matrix.md](../systems/ui_lock_matrix.md) を足場に、複数のlock入口を整理できるかStep 12以降で調査する | normal inventory中移動可など現行例外を保ったまま評価できる |
-| Death / Drop整理調査 | [../systems/death_path_diagram.md](../systems/death_path_diagram.md) を足場に、death処理分割やdrop-only tableの必要性をStep 12以降で調査する | 二重death guardと実所持品dropを維持して評価できる |
+| Death / Drop整理調査 | [../systems/combat/death_path_diagram.md](../systems/combat/death_path_diagram.md) を足場に、death処理分割やdrop-only tableの必要性をStep 12以降で調査する | 二重death guardと実所持品dropを維持して評価できる |
 
 ## Step 11-Dで見えた追加注意
 
@@ -118,7 +118,7 @@ Step 12-C 時点で見えている認知的負債の整理候補です。これ�
 
 ## Step 11-Lで見えたTrade / Chest ownership系の追加注意
 
-- Trade / Chest ownership docsは [../systems/trade_chest_ownership_deep_dive.md](../systems/trade_chest_ownership_deep_dive.md) を入口にします。
+- Trade / Chest ownership docsは [../systems/inventory/trade_chest_ownership_deep_dive.md](../systems/inventory/trade_chest_ownership_deep_dive.md) を入口にします。
 - `InventoryUI` では `UIMode.CHEST` のside inventoryも `trade_inventory` 変数を使います。modeとsource areaを混同しないようにします。
 - sceneを跨いで持ち越すのはheld item entry/source情報であり、trade/chestのnode参照やside inventory参照は持ち越しません。
 - chest inventoryは `WorldState.map_chests` 経由で保存対象ですが、merchant/shop inventoryとUnit本体inventoryは混同しないようにします。
@@ -135,7 +135,7 @@ Step 12-C 時点で見えている認知的負債の整理候補です。これ�
 
 ## Step 11-Nで見えたDeath / Drop系の追加注意
 
-- 死亡経路の現状仕様は [../systems/death_path_diagram.md](../systems/death_path_diagram.md) を入口にします。
+- 死亡経路の現状仕様は [../systems/combat/death_path_diagram.md](../systems/combat/death_path_diagram.md) を入口にします。
 - `Stats.take_damage()` から既に `handle_death()` へ到達した後、呼び出し側が `check_death()` を重ねる経路があります。`death_handled` がdropを初回だけにします。
 - death dropはpickup配置成功後にsource slotをclearし、ItemDropHelperが `WorldState.map_item_pickups` を更新します。
 - initial inventoryはspawn時所持品であり、death時には再抽選しません。

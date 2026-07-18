@@ -255,7 +255,7 @@ static func get_item_data(item_id: String):
 - 新しい TSV 追加の完全手順
 - 新しい effect_type の完全実装手順
 ## 詳細を確認する既存 docs
-- [../systems/game_data_registry_loader_map.md](../systems/game_data_registry_loader_map.md)
+- [../systems/data/game_data_registry_loader_map.md](../systems/data/game_data_registry_loader_map.md)
 - [../guides/item_addition_guide.md](../guides/item_addition_guide.md)
 - [../architecture/script_responsibility_map.md](../architecture/script_responsibility_map.md)
 - [../systems/equipment_item_effect_execution_path.md](../systems/equipment_item_effect_execution_path.md)

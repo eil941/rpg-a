@@ -310,11 +310,11 @@ bag slot clear
 攻撃命中、ダメージ計算、通常アイテム使用、装備効果、loot table設計、save/load全体仕様は詳細docsへ進みます。
 ## 19. 詳細docs
 - [combat_damage_death_flow](combat_damage_death_flow.md)
-- [death_drop_spec](../systems/death_drop_spec.md)
-- [death_path_diagram](../systems/death_path_diagram.md)
+- [death_drop_spec](../systems/combat/death_drop_spec.md)
+- [death_path_diagram](../systems/combat/death_path_diagram.md)
 - [unit_lifecycle_deep_dive](../systems/unit_lifecycle_deep_dive.md)
 - [map_spawn_persistence_deep_dive](../systems/map_spawn_persistence_deep_dive.md)
-- [save_worldstate_playerdata_map](../systems/save_worldstate_playerdata_map.md)
+- [save_worldstate_playerdata_map](../systems/data/save_worldstate_playerdata_map.md)
 - [script_responsibility_map](../architecture/script_responsibility_map.md)
 ## 20. 理解度チェック
 1. 死亡時ドロップは、最初にどの関数から呼ばれますか。

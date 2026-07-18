@@ -319,7 +319,7 @@ Excelの画面操作、effect handler全文実装、Godot editor操作、save/lo
 - [debug_first_steps](debug_first_steps.md)
 - [item_addition_guide](../guides/item_addition_guide.md)
 - [feature_addition_guide](../guides/feature_addition_guide.md)
-- [game_data_registry_loader_map](../systems/game_data_registry_loader_map.md)
+- [game_data_registry_loader_map](../systems/data/game_data_registry_loader_map.md)
 - [equipment_item_effect_execution_path](../systems/equipment_item_effect_execution_path.md)
 - [script_responsibility_map](../architecture/script_responsibility_map.md)
 ## 23. 理解度チェック

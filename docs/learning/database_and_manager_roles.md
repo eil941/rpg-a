@@ -202,11 +202,11 @@ CombatManager / Unit / Stats
 
 ## 詳細を確認する既存 docs
 - [../architecture/script_responsibility_map.md](../architecture/script_responsibility_map.md)
-- [../systems/game_data_registry_loader_map.md](../systems/game_data_registry_loader_map.md)
+- [../systems/data/game_data_registry_loader_map.md](../systems/data/game_data_registry_loader_map.md)
 - [../systems/equipment_item_effect_execution_path.md](../systems/equipment_item_effect_execution_path.md)
 - [../systems/unit_lifecycle_deep_dive.md](../systems/unit_lifecycle_deep_dive.md)
-- [../systems/unit_combat_death_system_deep_dive.md](../systems/unit_combat_death_system_deep_dive.md)
-- [../systems/death_path_diagram.md](../systems/death_path_diagram.md)
+- [../systems/combat/unit_combat_death_system_deep_dive.md](../systems/combat/unit_combat_death_system_deep_dive.md)
+- [../systems/combat/death_path_diagram.md](../systems/combat/death_path_diagram.md)
 
 ## 理解度チェック
 1. `GameDataRegistry` と `ItemDatabase` の違いは何ですか。

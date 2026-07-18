@@ -31,29 +31,29 @@ Codexへ依頼する場合は、上記に加えて [codex_project_context.md](co
 
 1. [item_addition_guide.md](item_addition_guide.md)
 2. [equipment_item_effect_execution_path.md](../systems/equipment_item_effect_execution_path.md)
-3. [game_data_registry_loader_map.md](../systems/game_data_registry_loader_map.md)
-4. [unit_combat_death_system_deep_dive.md](../systems/unit_combat_death_system_deep_dive.md)
+3. [game_data_registry_loader_map.md](../systems/data/game_data_registry_loader_map.md)
+4. [unit_combat_death_system_deep_dive.md](../systems/combat/unit_combat_death_system_deep_dive.md)
 5. [feature_addition_guide.md](feature_addition_guide.md)
 
 特に、消耗品、装備パッシブ、装備攻撃効果は同じ `item_effects.tsv` / `item_effect_links.tsv` を使っていても実行入口が異なります。装備用に `equipment_effect_links.tsv` を追加する前提では読まないでください。
 
 ### Inventory / Hotbar / Equipment / held item
 
-1. [inventory_trade_chest_system_deep_dive.md](../systems/inventory_trade_chest_system_deep_dive.md)
-2. [inventory_ui_state_transition.md](../systems/inventory_ui_state_transition.md)
-3. [trade_chest_ownership_deep_dive.md](../systems/trade_chest_ownership_deep_dive.md)
+1. [inventory_trade_chest_system_deep_dive.md](../systems/inventory/inventory_trade_chest_system_deep_dive.md)
+2. [inventory_ui_state_transition.md](../systems/inventory/inventory_ui_state_transition.md)
+3. [trade_chest_ownership_deep_dive.md](../systems/inventory/trade_chest_ownership_deep_dive.md)
 4. [ui_lock_matrix.md](../systems/ui_lock_matrix.md)
-5. [save_worldstate_playerdata_map.md](../systems/save_worldstate_playerdata_map.md)
+5. [save_worldstate_playerdata_map.md](../systems/data/save_worldstate_playerdata_map.md)
 
 `UIMode`、held itemのsource、実際の所有者、sceneを跨ぐ一時状態を分けて読みます。通常inventory中は移動可能であり、trade/chest中の移動lockとは別仕様です。
 
 ### Trade / Chest
 
-1. [trade_chest_ownership_deep_dive.md](../systems/trade_chest_ownership_deep_dive.md)
-2. [inventory_ui_state_transition.md](../systems/inventory_ui_state_transition.md)
-3. [inventory_trade_chest_system_deep_dive.md](../systems/inventory_trade_chest_system_deep_dive.md)
+1. [trade_chest_ownership_deep_dive.md](../systems/inventory/trade_chest_ownership_deep_dive.md)
+2. [inventory_ui_state_transition.md](../systems/inventory/inventory_ui_state_transition.md)
+3. [inventory_trade_chest_system_deep_dive.md](../systems/inventory/inventory_trade_chest_system_deep_dive.md)
 4. [ui_lock_matrix.md](../systems/ui_lock_matrix.md)
-5. [save_worldstate_playerdata_map.md](../systems/save_worldstate_playerdata_map.md)
+5. [save_worldstate_playerdata_map.md](../systems/data/save_worldstate_playerdata_map.md)
 
 trade/chestのnode参照やside inventory参照はsceneを跨いで保持しません。held item entry/source情報だけを一時保持し、新しいsceneではnormal inventoryへ正規化する境界を先に確認します。
 
@@ -61,7 +61,7 @@ trade/chestのnode参照やside inventory参照はsceneを跨いで保持しま�
 
 1. [ui_lock_matrix.md](../systems/ui_lock_matrix.md)
 2. [ui_input_scene_transition_deep_dive.md](../systems/ui_input_scene_transition_deep_dive.md)
-3. [inventory_ui_state_transition.md](../systems/inventory_ui_state_transition.md)
+3. [inventory_ui_state_transition.md](../systems/inventory/inventory_ui_state_transition.md)
 4. [runtime_flow_overview.md](../architecture/runtime_flow_overview.md)
 5. [script_responsibility_map.md](../architecture/script_responsibility_map.md)
 
@@ -70,27 +70,27 @@ trade/chestのnode参照やside inventory参照はsceneを跨いで保持しま�
 ### Unit / Stats / Combat / Death
 
 1. [unit_lifecycle_deep_dive.md](../systems/unit_lifecycle_deep_dive.md)
-2. [unit_combat_death_system_deep_dive.md](../systems/unit_combat_death_system_deep_dive.md)
-3. [death_path_diagram.md](../systems/death_path_diagram.md)
-4. [damage_system_notes.md](../systems/damage_system_notes.md)
+2. [unit_combat_death_system_deep_dive.md](../systems/combat/unit_combat_death_system_deep_dive.md)
+3. [death_path_diagram.md](../systems/combat/death_path_diagram.md)
+4. [damage_system_notes.md](../systems/combat/damage_system_notes.md)
 5. [equipment_item_effect_execution_path.md](../systems/equipment_item_effect_execution_path.md)
 
 `Stats.take_damage()`、各damage入口、`Unit.handle_death()`、`death_handled` guardを一続きで読みます。呼び出し側に重複した死亡確認があっても、dropを初回だけにするguardを壊さないことが重要です。
 
 ### Death drop / item drop / pickup save
 
-1. [death_drop_spec.md](../systems/death_drop_spec.md)
-2. [death_path_diagram.md](../systems/death_path_diagram.md)
-3. [unit_combat_death_system_deep_dive.md](../systems/unit_combat_death_system_deep_dive.md)
-4. [save_worldstate_playerdata_map.md](../systems/save_worldstate_playerdata_map.md)
+1. [death_drop_spec.md](../systems/combat/death_drop_spec.md)
+2. [death_path_diagram.md](../systems/combat/death_path_diagram.md)
+3. [unit_combat_death_system_deep_dive.md](../systems/combat/unit_combat_death_system_deep_dive.md)
+4. [save_worldstate_playerdata_map.md](../systems/data/save_worldstate_playerdata_map.md)
 5. [map_spawn_persistence_deep_dive.md](../systems/map_spawn_persistence_deep_dive.md)
 
 死亡時に落とすのはUnitが実際に持つbag / hotbar / equipmentです。`initial_inventory_entries` を死亡時に再抽選せず、pickup配置成功後にsourceをclearし、生成pickupをWorldStateへ保存する順番を確認します。
 
 ### Save / Load / WorldState / PlayerData
 
-1. [save_worldstate_playerdata_map.md](../systems/save_worldstate_playerdata_map.md)
-2. [data_spawn_save_system_deep_dive.md](../systems/data_spawn_save_system_deep_dive.md)
+1. [save_worldstate_playerdata_map.md](../systems/data/save_worldstate_playerdata_map.md)
+2. [data_spawn_save_system_deep_dive.md](../systems/data/data_spawn_save_system_deep_dive.md)
 3. [map_spawn_persistence_deep_dive.md](../systems/map_spawn_persistence_deep_dive.md)
 4. [save_load_regression_matrix.md](../checklists/save_load_regression_matrix.md)
 5. [runtime_flow_overview.md](../architecture/runtime_flow_overview.md)
@@ -100,9 +100,9 @@ PlayerData、WorldState、map scene側保存、GlobalDungeon / GlobalDetailMap�
 ### Map spawn / Enemy / NPC / initial inventory
 
 1. [map_spawn_persistence_deep_dive.md](../systems/map_spawn_persistence_deep_dive.md)
-2. [data_spawn_save_system_deep_dive.md](../systems/data_spawn_save_system_deep_dive.md)
+2. [data_spawn_save_system_deep_dive.md](../systems/data/data_spawn_save_system_deep_dive.md)
 3. [unit_lifecycle_deep_dive.md](../systems/unit_lifecycle_deep_dive.md)
-4. [game_data_registry_loader_map.md](../systems/game_data_registry_loader_map.md)
+4. [game_data_registry_loader_map.md](../systems/data/game_data_registry_loader_map.md)
 5. [gamedata_registry_debug_dump_audit.md](../backlog/gamedata_registry_debug_dump_audit.md)
 6. [save_load_regression_matrix.md](../checklists/save_load_regression_matrix.md)
 
@@ -111,7 +111,7 @@ PlayerData、WorldState、map scene側保存、GlobalDungeon / GlobalDetailMap�
 ### Quest / generated quest / NPC quest
 
 1. [quest_generated_lifecycle_deep_dive.md](../systems/quest_generated_lifecycle_deep_dive.md)
-2. [save_worldstate_playerdata_map.md](../systems/save_worldstate_playerdata_map.md)
+2. [save_worldstate_playerdata_map.md](../systems/data/save_worldstate_playerdata_map.md)
 3. [map_spawn_persistence_deep_dive.md](../systems/map_spawn_persistence_deep_dive.md)
 4. [save_load_regression_matrix.md](../checklists/save_load_regression_matrix.md)
 5. [subsystem_interaction_map.md](../architecture/subsystem_interaction_map.md)
@@ -143,14 +143,14 @@ GameDataRegistryの起動時dumpだけを見る場合は、[gamedata_registry_de
 
 | 境界 | 壊れやすい点 | 先に読むdocs |
 | --- | --- | --- |
-| Excel / TSV / loader / validator | 正本との乖離、列default、参照欠け、読み込み順 | [game_data_registry_loader_map.md](../systems/game_data_registry_loader_map.md), [data_spawn_save_system_deep_dive.md](../systems/data_spawn_save_system_deep_dive.md) |
+| Excel / TSV / loader / validator | 正本との乖離、列default、参照欠け、読み込み順 | [game_data_registry_loader_map.md](../systems/data/game_data_registry_loader_map.md), [data_spawn_save_system_deep_dive.md](../systems/data/data_spawn_save_system_deep_dive.md) |
 | Consumable / equipment effect | 同じeffect dataでも実行入口と意味が違う | [equipment_item_effect_execution_path.md](../systems/equipment_item_effect_execution_path.md) |
-| Inventory entry / ownership / held state | item消失、不正取得、`instance_data`消失、free済み参照 | [inventory_ui_state_transition.md](../systems/inventory_ui_state_transition.md), [trade_chest_ownership_deep_dive.md](../systems/trade_chest_ownership_deep_dive.md) |
+| Inventory entry / ownership / held state | item消失、不正取得、`instance_data`消失、free済み参照 | [inventory_ui_state_transition.md](../systems/inventory/inventory_ui_state_transition.md), [trade_chest_ownership_deep_dive.md](../systems/inventory/trade_chest_ownership_deep_dive.md) |
 | UI mode / input lock | normal inventory中の移動を誤って止める | [ui_lock_matrix.md](../systems/ui_lock_matrix.md), [ui_input_scene_transition_deep_dive.md](../systems/ui_input_scene_transition_deep_dive.md) |
-| Unit / Stats / death | 二重death、二重drop、死亡入口の取りこぼし | [death_path_diagram.md](../systems/death_path_diagram.md), [unit_combat_death_system_deep_dive.md](../systems/unit_combat_death_system_deep_dive.md) |
-| Initial inventory / death drop | spawn時抽選とdeath時dropの混同 | [unit_lifecycle_deep_dive.md](../systems/unit_lifecycle_deep_dive.md), [death_drop_spec.md](../systems/death_drop_spec.md) |
-| Drop / pickup / WorldState | drop成功前clear、再訪問時の再生成、保存漏れ | [death_path_diagram.md](../systems/death_path_diagram.md), [map_spawn_persistence_deep_dive.md](../systems/map_spawn_persistence_deep_dive.md) |
-| Save ownership / reset | 状態消失、二重復元、new game reset漏れ | [save_worldstate_playerdata_map.md](../systems/save_worldstate_playerdata_map.md), [save_load_regression_matrix.md](../checklists/save_load_regression_matrix.md) |
+| Unit / Stats / death | 二重death、二重drop、死亡入口の取りこぼし | [death_path_diagram.md](../systems/combat/death_path_diagram.md), [unit_combat_death_system_deep_dive.md](../systems/combat/unit_combat_death_system_deep_dive.md) |
+| Initial inventory / death drop | spawn時抽選とdeath時dropの混同 | [unit_lifecycle_deep_dive.md](../systems/unit_lifecycle_deep_dive.md), [death_drop_spec.md](../systems/combat/death_drop_spec.md) |
+| Drop / pickup / WorldState | drop成功前clear、再訪問時の再生成、保存漏れ | [death_path_diagram.md](../systems/combat/death_path_diagram.md), [map_spawn_persistence_deep_dive.md](../systems/map_spawn_persistence_deep_dive.md) |
+| Save ownership / reset | 状態消失、二重復元、new game reset漏れ | [save_worldstate_playerdata_map.md](../systems/data/save_worldstate_playerdata_map.md), [save_load_regression_matrix.md](../checklists/save_load_regression_matrix.md) |
 | Map scene / random spawn / saved Unit | 保存済み個体の再抽選、map固有例外の破損 | [map_spawn_persistence_deep_dive.md](../systems/map_spawn_persistence_deep_dive.md) |
 | Quest / WorldState / NPC lifecycle | completed/active状態、generated NPC保護、reset差 | [quest_generated_lifecycle_deep_dive.md](../systems/quest_generated_lifecycle_deep_dive.md) |
 | DebugSettings / runtime logs | 通常プレイへのdebug配布・ログ流入 | [debug_settings_deep_dive.md](../systems/debug_settings_deep_dive.md), [debug_output_normalization_audit.md](../backlog/debug_output_normalization_audit.md) |

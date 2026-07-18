@@ -18,12 +18,12 @@
 - [../architecture/script_responsibility_map.md](../architecture/script_responsibility_map.md)
 - [../architecture/runtime_flow_overview.md](../architecture/runtime_flow_overview.md)
 - [../architecture/subsystem_interaction_map.md](../architecture/subsystem_interaction_map.md)
-- [../systems/game_data_registry_loader_map.md](../systems/game_data_registry_loader_map.md)
+- [../systems/data/game_data_registry_loader_map.md](../systems/data/game_data_registry_loader_map.md)
 - [../systems/equipment_item_effect_execution_path.md](../systems/equipment_item_effect_execution_path.md)
 - [../systems/unit_lifecycle_deep_dive.md](../systems/unit_lifecycle_deep_dive.md)
-- [../systems/unit_combat_death_system_deep_dive.md](../systems/unit_combat_death_system_deep_dive.md)
-- [../systems/death_path_diagram.md](../systems/death_path_diagram.md)
-- [../systems/death_drop_spec.md](../systems/death_drop_spec.md)
+- [../systems/combat/unit_combat_death_system_deep_dive.md](../systems/combat/unit_combat_death_system_deep_dive.md)
+- [../systems/combat/death_path_diagram.md](../systems/combat/death_path_diagram.md)
+- [../systems/combat/death_drop_spec.md](../systems/combat/death_drop_spec.md)
 - [../guides/feature_addition_guide.md](../guides/feature_addition_guide.md)
 - [../guides/item_addition_guide.md](../guides/item_addition_guide.md)
 - その他、`docs/systems/`、`docs/guides/`、`docs/backlog/`、`docs/migration/`、`docs/checklists/` 配下の関連 docs
@@ -85,10 +85,10 @@ docs/
 - [../architecture/script_responsibility_map.md](../architecture/script_responsibility_map.md)
 - [../architecture/runtime_flow_overview.md](../architecture/runtime_flow_overview.md)
 - [../architecture/subsystem_interaction_map.md](../architecture/subsystem_interaction_map.md)
-- [../systems/game_data_registry_loader_map.md](../systems/game_data_registry_loader_map.md)
+- [../systems/data/game_data_registry_loader_map.md](../systems/data/game_data_registry_loader_map.md)
 - [../systems/equipment_item_effect_execution_path.md](../systems/equipment_item_effect_execution_path.md)
 - [../systems/unit_lifecycle_deep_dive.md](../systems/unit_lifecycle_deep_dive.md)
-- [../systems/death_path_diagram.md](../systems/death_path_diagram.md)
+- [../systems/combat/death_path_diagram.md](../systems/combat/death_path_diagram.md)
 
 これらは正確性と情報量が高く、実装前の調査資料として価値があります。一方で、最初に読む教材としては専門用語、関数名、境界条件が多く、認知負荷が高いです。
 
@@ -102,8 +102,8 @@ docs/
 
 #### 仕様・参照資料
 
-- [../systems/death_drop_spec.md](../systems/death_drop_spec.md)
-- [../systems/damage_system_notes.md](../systems/damage_system_notes.md)
+- [../systems/combat/death_drop_spec.md](../systems/combat/death_drop_spec.md)
+- [../systems/combat/damage_system_notes.md](../systems/combat/damage_system_notes.md)
 - [../systems/debug_settings_deep_dive.md](../systems/debug_settings_deep_dive.md)
 - [../migration/tsv_migration_audit.md](../migration/tsv_migration_audit.md)
 - [../migration/tsv_migration_completion.md](../migration/tsv_migration_completion.md)
@@ -292,7 +292,7 @@ docs/
 - 対象関数: `load_all()`、`_load_items()`、`_load_equipment()`、`_load_item_effects()`、`_apply_item_effect_links()`
 - 関連 TSV: `data/master/items.tsv`、`data/master/equipment.tsv`、`data/master/item_effects.tsv`、`data/master/item_effect_links.tsv`
 - 関連 Excel シート: `items`、`equipment`、`item_effects`、`item_effect_links`
-- 元にする既存 docs: [../systems/game_data_registry_loader_map.md](../systems/game_data_registry_loader_map.md)、[../guides/item_addition_guide.md](../guides/item_addition_guide.md)
+- 元にする既存 docs: [../systems/data/game_data_registry_loader_map.md](../systems/data/game_data_registry_loader_map.md)、[../guides/item_addition_guide.md](../guides/item_addition_guide.md)
 
 ### P0: `learning/database_and_manager_roles.md`
 
@@ -303,7 +303,7 @@ docs/
 - 対象関数: `GameDataRegistry.load_all()`、`ItemDatabase.get_item_data()`、`ItemDatabase.is_usable()`、`Inventory.use_item_at()`、`ItemEffectManager.apply_item_effect()`
 - 関連 TSV: `items.tsv`、`item_effects.tsv`、`item_effect_links.tsv`
 - 関連 Excel シート: `items`、`item_effects`、`item_effect_links`
-- 元にする既存 docs: [../architecture/script_responsibility_map.md](../architecture/script_responsibility_map.md)、[../systems/game_data_registry_loader_map.md](../systems/game_data_registry_loader_map.md)
+- 元にする既存 docs: [../architecture/script_responsibility_map.md](../architecture/script_responsibility_map.md)、[../systems/data/game_data_registry_loader_map.md](../systems/data/game_data_registry_loader_map.md)
 
 ### P0: `learning/item_use_flow.md`
 
@@ -325,7 +325,7 @@ docs/
 - 対象関数: `can_use_selected_target_item()`、`perform_selected_target_item_use()`、`_roll_target_item_hit()`、`Inventory.consume_selected_hotbar_item_for_target_action()`、`ItemEffectManager.apply_item_effect()`
 - 関連 TSV: `items.tsv`、`item_effects.tsv`、`item_effect_links.tsv`
 - 関連 Excel シート: `items`、`item_effects`、`item_effect_links`
-- 元にする既存 docs: [../systems/equipment_item_effect_execution_path.md](../systems/equipment_item_effect_execution_path.md)、[../systems/unit_combat_death_system_deep_dive.md](../systems/unit_combat_death_system_deep_dive.md)
+- 元にする既存 docs: [../systems/equipment_item_effect_execution_path.md](../systems/equipment_item_effect_execution_path.md)、[../systems/combat/unit_combat_death_system_deep_dive.md](../systems/combat/unit_combat_death_system_deep_dive.md)
 
 ### P1: `learning/equipment_passive_flow.md`
 
@@ -347,7 +347,7 @@ docs/
 - 対象関数: `perform_attack()`、`_apply_equipment_attack_effects()`、`_should_apply_equipment_attack_effect()`、`Unit.get_equipped_attack_effects()`、`Unit._is_attack_equipment_effect_candidate()`、`_apply_equipment_attack_deal_damage()`、`_apply_equipment_attack_apply_status()`、`_apply_equipment_attack_restore_resource()`
 - 関連 TSV: `equipment.tsv`、`item_effects.tsv`、`item_effect_links.tsv`
 - 関連 Excel シート: `equipment`、`item_effects`、`item_effect_links`
-- 元にする既存 docs: [../systems/equipment_item_effect_execution_path.md](../systems/equipment_item_effect_execution_path.md)、[../systems/unit_combat_death_system_deep_dive.md](../systems/unit_combat_death_system_deep_dive.md)
+- 元にする既存 docs: [../systems/equipment_item_effect_execution_path.md](../systems/equipment_item_effect_execution_path.md)、[../systems/combat/unit_combat_death_system_deep_dive.md](../systems/combat/unit_combat_death_system_deep_dive.md)
 
 ### P1: `learning/combat_damage_death_flow.md`
 
@@ -358,7 +358,7 @@ docs/
 - 対象関数: `CombatManager.perform_attack()`、`DamageCalculator.calculate_damage()`、`Stats.take_damage()`、`Stats.die()`、`Unit.check_death()`、`Unit.handle_death()`
 - 関連 TSV: `equipment.tsv`、`element_types.tsv`、`damage_types.tsv`
 - 関連 Excel シート: `equipment`、`element_types`、`damage_types`
-- 元にする既存 docs: [../systems/unit_combat_death_system_deep_dive.md](../systems/unit_combat_death_system_deep_dive.md)、[../systems/death_path_diagram.md](../systems/death_path_diagram.md)、[../systems/damage_system_notes.md](../systems/damage_system_notes.md)
+- 元にする既存 docs: [../systems/combat/unit_combat_death_system_deep_dive.md](../systems/combat/unit_combat_death_system_deep_dive.md)、[../systems/combat/death_path_diagram.md](../systems/combat/death_path_diagram.md)、[../systems/combat/damage_system_notes.md](../systems/combat/damage_system_notes.md)
 
 ### P2: `learning/death_drop_flow.md`
 
@@ -369,7 +369,7 @@ docs/
 - 対象関数: `apply_initial_inventory_from_data()`、`_has_saved_inventory_state()`、`handle_death()`、`drop_inventory_items_on_death_if_needed()`、`_collect_inventory_drop_targets()`
 - 関連 TSV: `initial_inventory_tables.tsv`、`initial_inventory_entries.tsv`、`items.tsv`、`equipment.tsv`
 - 関連 Excel シート: `initial_inventory_tables`、`initial_inventory_entries`、`items`、`equipment`
-- 元にする既存 docs: [../systems/death_drop_spec.md](../systems/death_drop_spec.md)、[../systems/death_path_diagram.md](../systems/death_path_diagram.md)、[../systems/unit_lifecycle_deep_dive.md](../systems/unit_lifecycle_deep_dive.md)
+- 元にする既存 docs: [../systems/combat/death_drop_spec.md](../systems/combat/death_drop_spec.md)、[../systems/combat/death_path_diagram.md](../systems/combat/death_path_diagram.md)、[../systems/unit_lifecycle_deep_dive.md](../systems/unit_lifecycle_deep_dive.md)
 
 ### P2: `learning/debug_first_steps.md`
 
@@ -391,7 +391,7 @@ docs/
 - 対象関数: `ItemEffectData.EffectType`、`GameDataRegistry._build_item_effect()`、`GameDataRegistry._normalize_trigger_chance()`、`ItemEffectManager.apply_single_effect()`、`CombatManager._apply_equipment_attack_effects()`
 - 関連 TSV: `item_effects.tsv`、`item_effect_links.tsv`
 - 関連 Excel シート: `item_effects`、`item_effect_links`
-- 元にする既存 docs: [../guides/item_addition_guide.md](../guides/item_addition_guide.md)、[../systems/game_data_registry_loader_map.md](../systems/game_data_registry_loader_map.md)、[../systems/equipment_item_effect_execution_path.md](../systems/equipment_item_effect_execution_path.md)
+- 元にする既存 docs: [../guides/item_addition_guide.md](../guides/item_addition_guide.md)、[../systems/data/game_data_registry_loader_map.md](../systems/data/game_data_registry_loader_map.md)、[../systems/equipment_item_effect_execution_path.md](../systems/equipment_item_effect_execution_path.md)
 
 ## 7. 推奨テンプレート
 
@@ -462,7 +462,7 @@ docs/
 - 方針: 作業ガイドとして残します。先頭に短い「まず `learning/excel_to_game_flow.md` と `learning/item_use_flow.md` を読むと理解しやすい」という導線を追加する候補です。
 - 理由: 情報量が多く、実務には強いですが、学習の第 1 歩としては長いです。
 
-### `docs/systems/game_data_registry_loader_map.md`
+### `docs/systems/data/game_data_registry_loader_map.md`
 
 - 方針: 詳細参照資料として残します。
 - 学習用 docs では `load_all()`、`_load_items()`、`_load_equipment()`、`_load_item_effects()`、`_apply_item_effect_links()` だけに絞って入口を作ります。
@@ -478,7 +478,7 @@ docs/
 - 方針: 詳細参照資料として残します。
 - 学習用 docs では、`Unit` の全体ではなく `Stats`、装備 stat、initial inventory、death drop の必要箇所だけへリンクします。
 
-### `docs/systems/unit_combat_death_system_deep_dive.md` と `docs/systems/death_path_diagram.md`
+### `docs/systems/combat/unit_combat_death_system_deep_dive.md` と `docs/systems/combat/death_path_diagram.md`
 
 - 方針: 詳細参照資料として残します。
 - 学習用 docs では、`CombatManager.perform_attack()`、`DamageCalculator.calculate_damage()`、`Stats.take_damage()`、`Unit.handle_death()` の最小経路を先に示します。

@@ -90,10 +90,10 @@ Step 11-A 時点のプロジェクト全体地図です。新機能追加や調�
 
 | Doc | 役割 |
 | --- | --- |
-| [../systems/death_drop_spec.md](../systems/death_drop_spec.md) | 死亡時ドロップの正式仕様。 |
+| [../systems/combat/death_drop_spec.md](../systems/combat/death_drop_spec.md) | 死亡時ドロップの正式仕様。 |
 | [../migration/tsv_migration_audit.md](../migration/tsv_migration_audit.md) | TSV化状況、未移行・保留方針。 |
 | [../migration/tsv_migration_completion.md](../migration/tsv_migration_completion.md) | TSV移行の完了判断と過去Stepの記録。 |
-| [../systems/damage_system_notes.md](../systems/damage_system_notes.md) | ダメージシステムと effect の補足。 |
+| [../systems/combat/damage_system_notes.md](../systems/combat/damage_system_notes.md) | ダメージシステムと effect の補足。 |
 | [project_structure_overview.md](project_structure_overview.md) | このファイル。全体構成地図。 |
 | [script_responsibility_map.md](script_responsibility_map.md) | 主要スクリプトの責務表。 |
 | [runtime_flow_overview.md](runtime_flow_overview.md) | 実行時の主要処理フロー。 |

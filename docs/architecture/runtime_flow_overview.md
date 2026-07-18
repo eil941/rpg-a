@@ -123,7 +123,7 @@ Step 11-A 時点の主要処理フローです。細部を完全に追うより�
 
 ## 9. 死亡時ドロップ
 
-正式仕様は [../systems/death_drop_spec.md](../systems/death_drop_spec.md) を参照します。
+正式仕様は [../systems/combat/death_drop_spec.md](../systems/combat/death_drop_spec.md) を参照します。
 
 1. `Unit.handle_death()` が `drop_inventory_items_on_death_if_needed()` を呼びます。
 2. `drop_inventory_on_death=false` なら何も落としません。

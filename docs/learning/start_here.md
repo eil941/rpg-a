@@ -146,7 +146,7 @@ DatabaseとManagerの違い
 - `checklists/`: 動作確認。
 - `backlog/`: 将来の整理候補。
 
-詳細が必要になったら、[../architecture/project_structure_overview.md](../architecture/project_structure_overview.md)、[../architecture/script_responsibility_map.md](../architecture/script_responsibility_map.md)、[../systems/game_data_registry_loader_map.md](../systems/game_data_registry_loader_map.md)、[../systems/equipment_item_effect_execution_path.md](../systems/equipment_item_effect_execution_path.md) などへ進みます。
+詳細が必要になったら、[../architecture/project_structure_overview.md](../architecture/project_structure_overview.md)、[../architecture/script_responsibility_map.md](../architecture/script_responsibility_map.md)、[../systems/data/game_data_registry_loader_map.md](../systems/data/game_data_registry_loader_map.md)、[../systems/equipment_item_effect_execution_path.md](../systems/equipment_item_effect_execution_path.md) などへ進みます。
 
 最初から詳細 docs を全部読む必要はありません。まず learning docs で「どの役割がどこにあるか」をつかんでから、必要な詳細だけを見に行く方が楽です。
 

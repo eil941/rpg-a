@@ -43,7 +43,7 @@ hotbarで対象指定itemを選択
 - `scripts/core/unit.gd`
 詳細docs:
 - [equipment_item_effect_execution_path](../systems/equipment_item_effect_execution_path.md)
-- [unit_combat_death_system_deep_dive](../systems/unit_combat_death_system_deep_dive.md)
+- [unit_combat_death_system_deep_dive](../systems/combat/unit_combat_death_system_deep_dive.md)
 - [script_responsibility_map](../architecture/script_responsibility_map.md)
 - [Item Use Flow](item_use_flow.md)
 - [Database And Manager Roles](database_and_manager_roles.md)

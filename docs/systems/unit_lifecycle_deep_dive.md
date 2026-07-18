@@ -8,7 +8,7 @@ Unit生成がmap scene scripts、`UnitSpawnManager`、WorldState保存とどう�
 
 Godot上でUnit save/load、enemy死亡、initial inventory再抽選防止を確認する時は [../checklists/save_load_regression_matrix.md](../checklists/save_load_regression_matrix.md) を使います。
 
-死亡入口、二重death guard、drop配置、WorldState更新をまとめて追う場合は [death_path_diagram.md](death_path_diagram.md) を参照してください。
+死亡入口、二重death guard、drop配置、WorldState更新をまとめて追う場合は [combat/death_path_diagram.md](combat/death_path_diagram.md) を参照してください。
 
 ## Unitの領域別責務
 
@@ -25,7 +25,7 @@ Godot上でUnit save/load、enemy死亡、initial inventory再抽選防止を確
 | ItemEffect connection | runtime status/modifierをUnit上に保持し、tickやoffscreen elapsedを処理する | `scripts/core/unit.gd`, `scripts/item/item_effect_manager.gd`, `scripts/item/unit_effect_runtime.gd` | tick damageも死亡処理へ到達する必要がある。runtime modifierはstat getterに影響する。 |
 | Initial inventory | Enemy/NPC生成時、保存済みinventoryがない場合だけspawn-time所持品を追加する | `scripts/core/unit.gd`, `scripts/data/initial_inventory_entry.gd`, `scripts/data/game_data_registry.gd`, `scripts/managers/unit_spawn_manager.gd` | death時のloot再抽選ではない。saved Unitでは再抽選しない。 |
 | Death handling | HP0以下を検出し、`death_handled` で二重処理を防ぐ | `scripts/core/unit.gd`, `scripts/core/stats.gd`, `scripts/combat/combat_manager.gd` | HP0への全経路が `handle_death()` に到達するか確認する。 |
-| Death drop | 実際に持っているbag / hotbar / equipmentを設定に応じて地面へ落とす | `scripts/core/unit.gd`, `scripts/item/item_drop_helper.gd`, `docs/systems/death_drop_spec.md` | `initial_inventory_entries.tsv` は死亡時に読み直さない。drop-only tableはまだ作らない。 |
+| Death drop | 実際に持っているbag / hotbar / equipmentを設定に応じて地面へ落とす | `scripts/core/unit.gd`, `scripts/item/item_drop_helper.gd`, `docs/systems/combat/death_drop_spec.md` | `initial_inventory_entries.tsv` は死亡時に読み直さない。drop-only tableはまだ作らない。 |
 | Save / Load | PlayerData / WorldStateへstats、position、inventory、equipment、effects、skillsを保存復元する | `scripts/core/unit.gd`, `scripts/data/player_data.gd`, `scripts/world/world_state.gd`, `scripts/save_manager.gd` | PlayerとEnemy/NPCで保存先が違う。scene node参照は保存しない。 |
 
 ## Unit Lifecycle Overview
@@ -119,7 +119,7 @@ Unitの本体所持品は `Unit.inventory` です。これは `Inventory` child 
 | equipment | Unit本体 | enemy/npc equipment、UI操作 | flag次第 | `drop_equipped_items_on_death` を見る。 |
 | shop inventory | merchant/trade用在庫 | shop table / shop loot / fallback columns | Unit.inventory内にあるため候補になり得る | 用途は売り物だが、現collectorに由来別除外はない。Chest inventoryとは別。 |
 
-詳しくは [inventory_trade_chest_system_deep_dive.md](inventory_trade_chest_system_deep_dive.md)、[data_spawn_save_system_deep_dive.md](data_spawn_save_system_deep_dive.md)、[unit_combat_death_system_deep_dive.md](unit_combat_death_system_deep_dive.md) も参照してください。
+詳しくは [inventory/inventory_trade_chest_system_deep_dive.md](inventory/inventory_trade_chest_system_deep_dive.md)、[data/data_spawn_save_system_deep_dive.md](data/data_spawn_save_system_deep_dive.md)、[combat/unit_combat_death_system_deep_dive.md](combat/unit_combat_death_system_deep_dive.md) も参照してください。
 
 ## Stats / Equipment Stat / Effect Runtime
 
@@ -230,7 +230,7 @@ death drop の主な流れ:
 - 落ちるのは、Unitがその時点で実際に持っているbag / hotbar / equipment entryだけです。
 - `drop_tables.tsv` / `drop_table_entries.tsv` は、drop-only reward が必要になるまで追加しない方針です。
 
-詳しい正式仕様は [death_drop_spec.md](death_drop_spec.md) を参照してください。
+詳しい正式仕様は [combat/death_drop_spec.md](combat/death_drop_spec.md) を参照してください。
 
 ## Save / Load
 
@@ -251,7 +251,7 @@ Unit保存はPlayerとEnemy/NPCで保存先が違います。
 
 `get_stats_data()` はstatsだけでなく、tile、inventory、equipment、faction、AI style、effect runtimes、skillsも含めます。名前に反して「Unit runtime save data」に近い入口です。
 
-保存先ごとの役割分担、Save/Load/New game resetの全体像は [save_worldstate_playerdata_map.md](save_worldstate_playerdata_map.md) を参照してください。
+保存先ごとの役割分担、Save/Load/New game resetの全体像は [data/save_worldstate_playerdata_map.md](data/save_worldstate_playerdata_map.md) を参照してください。
 
 ## Unit変更時チェックリスト
 
@@ -275,15 +275,15 @@ Unit関連の変更では、最低限以下を確認します。
 
 | やりたいこと | Unit.gdでまず探す関数/領域 | あわせて読むdocs/ファイル | 注意 |
 | --- | --- | --- | --- |
-| enemy initial inventoryを変更したい | `apply_enemy_data()`, `apply_initial_inventory_from_data()`, `_has_saved_inventory_state()` | [data_spawn_save_system_deep_dive.md](data_spawn_save_system_deep_dive.md), `scripts/data/initial_inventory_entry.gd` | saved Unitでは再抽選しない。death dropとは別。 |
-| NPC initial inventoryを変更したい | `apply_npc_data()`, `apply_initial_inventory_from_data()` | [data_spawn_save_system_deep_dive.md](data_spawn_save_system_deep_dive.md), `scripts/managers/unit_spawn_manager.gd` | NPCはdata適用タイミングの経路差に注意。 |
-| 装備中パッシブ効果を追加したい | `get_equipped_item_effects()`, stat getter, equipment modifier集計 | [inventory_trade_chest_system_deep_dive.md](inventory_trade_chest_system_deep_dive.md), `scripts/data/item_effect_data.gd` | `item_effect_links.tsv` を使う。装備中だけ有効。 |
-| 装備攻撃効果を追加したい | `get_equipped_attack_effects()` | [unit_combat_death_system_deep_dive.md](unit_combat_death_system_deep_dive.md), `scripts/combat/combat_manager.gd` | 実行はCombatManager側。`apply_modifier` は攻撃候補から除外。 |
-| 死亡時ドロップを変更したい | `handle_death()`, `drop_inventory_items_on_death_if_needed()`, `_collect_inventory_drop_targets()` | [death_drop_spec.md](death_drop_spec.md), `scripts/item/item_drop_helper.gd` | death dropは実所持品ベース。drop tableを先に作らない。 |
-| HP/死亡経路を追加したい | `check_death()`, `handle_death()`, effect tick処理 | [unit_combat_death_system_deep_dive.md](unit_combat_death_system_deep_dive.md), `scripts/core/stats.gd` | HP直接変更だけで終わらせない。 |
-| save/load項目を追加したい | `get_stats_data()`, `apply_stats_data()`, `save_persistent_stats()`, `load_persistent_stats()` | [data_spawn_save_system_deep_dive.md](data_spawn_save_system_deep_dive.md), `scripts/data/player_data.gd`, `scripts/world/world_state.gd` | PlayerDataとWorldStateの両方を見る。 |
+| enemy initial inventoryを変更したい | `apply_enemy_data()`, `apply_initial_inventory_from_data()`, `_has_saved_inventory_state()` | [data/data_spawn_save_system_deep_dive.md](data/data_spawn_save_system_deep_dive.md), `scripts/data/initial_inventory_entry.gd` | saved Unitでは再抽選しない。death dropとは別。 |
+| NPC initial inventoryを変更したい | `apply_npc_data()`, `apply_initial_inventory_from_data()` | [data/data_spawn_save_system_deep_dive.md](data/data_spawn_save_system_deep_dive.md), `scripts/managers/unit_spawn_manager.gd` | NPCはdata適用タイミングの経路差に注意。 |
+| 装備中パッシブ効果を追加したい | `get_equipped_item_effects()`, stat getter, equipment modifier集計 | [inventory/inventory_trade_chest_system_deep_dive.md](inventory/inventory_trade_chest_system_deep_dive.md), `scripts/data/item_effect_data.gd` | `item_effect_links.tsv` を使う。装備中だけ有効。 |
+| 装備攻撃効果を追加したい | `get_equipped_attack_effects()` | [combat/unit_combat_death_system_deep_dive.md](combat/unit_combat_death_system_deep_dive.md), `scripts/combat/combat_manager.gd` | 実行はCombatManager側。`apply_modifier` は攻撃候補から除外。 |
+| 死亡時ドロップを変更したい | `handle_death()`, `drop_inventory_items_on_death_if_needed()`, `_collect_inventory_drop_targets()` | [combat/death_drop_spec.md](combat/death_drop_spec.md), `scripts/item/item_drop_helper.gd` | death dropは実所持品ベース。drop tableを先に作らない。 |
+| HP/死亡経路を追加したい | `check_death()`, `handle_death()`, effect tick処理 | [combat/unit_combat_death_system_deep_dive.md](combat/unit_combat_death_system_deep_dive.md), `scripts/core/stats.gd` | HP直接変更だけで終わらせない。 |
+| save/load項目を追加したい | `get_stats_data()`, `apply_stats_data()`, `save_persistent_stats()`, `load_persistent_stats()` | [data/data_spawn_save_system_deep_dive.md](data/data_spawn_save_system_deep_dive.md), `scripts/data/player_data.gd`, `scripts/world/world_state.gd` | PlayerDataとWorldStateの両方を見る。 |
 | map transition周りを触りたい | `try_move()`, `try_interact_transition()`, `request_map_change()` | [ui_input_scene_transition_deep_dive.md](ui_input_scene_transition_deep_dive.md), `scripts/hud/game_and_hud.gd` | 遷移前保存、GlobalPlayerSpawn、古いnode参照に注意。 |
-| chest / talk / pickup interactionを触りたい | `try_interact_action()`, `try_open_chest_on_current_tile()`, `try_talk_to_front_unit()`, `try_pickup_items_on_current_tile()` | [inventory_trade_chest_system_deep_dive.md](inventory_trade_chest_system_deep_dive.md), `scripts/managers/dialogue_manager.gd` | UI lockと特殊Inventory modeに注意。 |
+| chest / talk / pickup interactionを触りたい | `try_interact_action()`, `try_open_chest_on_current_tile()`, `try_talk_to_front_unit()`, `try_pickup_items_on_current_tile()` | [inventory/inventory_trade_chest_system_deep_dive.md](inventory/inventory_trade_chest_system_deep_dive.md), `scripts/managers/dialogue_manager.gd` | UI lockと特殊Inventory modeに注意。 |
 | Enemy/NPC data applyを触りたい | `apply_enemy_data()`, `apply_npc_data()` | `scripts/data/enemy_data.gd`, `scripts/data/npc_data.gd`, `scripts/data/game_data_registry.gd` | TSV列追加ならdata classとvalidatorも見る。 |
 
 ## 気になる点 / 未整理ポイント

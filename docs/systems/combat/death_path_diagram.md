@@ -438,7 +438,7 @@ Unit data適用時、`_has_saved_inventory_state()` が `WorldState.unit_states[
 
 WorldStateのregenerable map resetは、対象mapのenemy spawn、pickup、chest、Unit state等を消す場合があります。active quest NPCについては一部state / NPC spawnを保護します。
 
-このdocsはreset後に同種Unitを再生成する仕様や期間バランスまでは扱いません。詳しくは [map_spawn_persistence_deep_dive.md](map_spawn_persistence_deep_dive.md) を参照してください。
+このdocsはreset後に同種Unitを再生成する仕様や期間バランスまでは扱いません。詳しくは [map_spawn_persistence_deep_dive.md](../map_spawn_persistence_deep_dive.md) を参照してください。
 
 ## Initial inventory / Death drop / Drop tableの違い
 
@@ -705,18 +705,18 @@ DebugSettings / logs:
   - `apply_debug_player_death_drop_scope_if_needed()`
   - `_debug_log_death_drop_scope_targets()`
   - `_debug_log_death_drop_scope_result()`
-- [debug_settings_deep_dive.md](debug_settings_deep_dive.md)
+- [debug_settings_deep_dive.md](../debug_settings_deep_dive.md)
 
 ## 関連docs
 
 - [death_drop_spec.md](death_drop_spec.md)
 - [unit_combat_death_system_deep_dive.md](unit_combat_death_system_deep_dive.md)
-- [unit_lifecycle_deep_dive.md](unit_lifecycle_deep_dive.md)
-- [data_spawn_save_system_deep_dive.md](data_spawn_save_system_deep_dive.md)
-- [save_worldstate_playerdata_map.md](save_worldstate_playerdata_map.md)
-- [map_spawn_persistence_deep_dive.md](map_spawn_persistence_deep_dive.md)
-- [trade_chest_ownership_deep_dive.md](trade_chest_ownership_deep_dive.md)
-- [debug_settings_deep_dive.md](debug_settings_deep_dive.md)
+- [unit_lifecycle_deep_dive.md](../unit_lifecycle_deep_dive.md)
+- [../data/data_spawn_save_system_deep_dive.md](../data/../data/data_spawn_save_system_deep_dive.md)
+- [../data/save_worldstate_playerdata_map.md](../data/../data/save_worldstate_playerdata_map.md)
+- [map_spawn_persistence_deep_dive.md](../map_spawn_persistence_deep_dive.md)
+- [../inventory/trade_chest_ownership_deep_dive.md](../inventory/../inventory/trade_chest_ownership_deep_dive.md)
+- [debug_settings_deep_dive.md](../debug_settings_deep_dive.md)
 
 ## このdocsで分かること / 分からないこと
 

@@ -295,7 +295,7 @@ use_item_at()
 さらに詳しく確認する場合は、次を見ます。
 - [equipment_item_effect_execution_path](../systems/equipment_item_effect_execution_path.md)
 - [script_responsibility_map](../architecture/script_responsibility_map.md)
-- [game_data_registry_loader_map](../systems/game_data_registry_loader_map.md)
+- [game_data_registry_loader_map](../systems/data/game_data_registry_loader_map.md)
 このページは詳細 docs を置き換えるものではありません。
 まず流れをつかみ、必要になったら詳細 docs に進みます。
 ## 16. 理解度チェック

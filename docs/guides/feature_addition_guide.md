@@ -1,6 +1,6 @@
 # Feature Addition Guide
 
-新機能追加時に「まずどこを見るか」をまとめた入口表です。実装前には [../architecture/script_responsibility_map.md](../architecture/script_responsibility_map.md) と [../architecture/runtime_flow_overview.md](../architecture/runtime_flow_overview.md) も合わせて確認すると迷いにくくなります。TSV列やloaderを触る時は [../systems/game_data_registry_loader_map.md](../systems/game_data_registry_loader_map.md) も先に確認します。
+新機能追加時に「まずどこを見るか」をまとめた入口表です。実装前には [../architecture/script_responsibility_map.md](../architecture/script_responsibility_map.md) と [../architecture/runtime_flow_overview.md](../architecture/runtime_flow_overview.md) も合わせて確認すると迷いにくくなります。TSV列やloaderを触る時は [../systems/data/game_data_registry_loader_map.md](../systems/data/game_data_registry_loader_map.md) も先に確認します。
 
 新しいアイテムを手作業で追加する場合は、まず [item_addition_guide.md](item_addition_guide.md) を読みます。`items` / `equipment` / `item_effects` / `item_effect_links` の使い分け、category追加、出現・入手経路、export / validate、既存効果で足りるかruntime実装が必要かの判断までをアイテム追加に絞って整理しています。
 
@@ -15,7 +15,7 @@
 | 装備攻撃効果を追加したい | `item_effects.tsv`, `item_effect_links.tsv`, `CombatManager._apply_equipment_attack_effects()` | 既存effect typeならlinkだけ。新typeならdispatcher/helper追加 | 消耗品effect経路を大きく変えない | 攻撃命中時、`trigger_chance`、死亡済みtarget挙動を確認。 |
 | 新しい敵を追加したい | `data/master/enemies.tsv`, `scripts/data/enemy_data.gd`, map spawn scripts | Excel `enemies`、spawn tags、equipment、initial inventory | spawn logic変更はタグ/ルールで表現できない時だけ | export、validate、対象mapでspawn確認。 |
 | 敵の初期所持品を追加したい | `initial_inventory_tables.tsv`, `initial_inventory_entries.tsv`, `enemies.tsv`, `InitialInventoryEntry` | inventory table追加/再利用、`initial_inventory_table_id`設定 | death drop logic、旧 `initial_inventory_items` | enemy生成時に所持品を持ち、死亡時に持っていた物だけ落ちる。 |
-| 死亡時ドロップ仕様を変更したい | [../systems/death_drop_spec.md](../systems/death_drop_spec.md), `Unit.drop_inventory_items_on_death_if_needed()`, `ItemDropHelper` | 仕様docs更新後、flagやdrop helperを小さく変更 | `initial_inventory_*`、drop table追加 | 3 flag mode、bag/hotbar/equipment、stack、装備instanceを確認。 |
+| 死亡時ドロップ仕様を変更したい | [../systems/combat/death_drop_spec.md](../systems/combat/death_drop_spec.md), `Unit.drop_inventory_items_on_death_if_needed()`, `ItemDropHelper` | 仕様docs更新後、flagやdrop helperを小さく変更 | `initial_inventory_*`、drop table追加 | 3 flag mode、bag/hotbar/equipment、stack、装備instanceを確認。 |
 | インベントリUIを変更したい | `InventoryUI.tscn`, `scripts/item/inventory_ui.gd`, `scripts/item/inventory.gd` | UI layout、mode別処理、held item処理 | PlayerData変更はscene跨ぎstateが必要な時だけ | bag/hotbar/equipment/trade/chest、held item scene transition。 |
 | hotbarを変更したい | `scripts/item/inventory.gd`, `scripts/item/inventory_ui.gd`, `scripts/controllers/player_controller.gd`, `scripts/hud/game_hud.gd` | slot数、選択、使用、表示 | death dropはhotbar drop semantics変更時だけ | hotbar選択/使用、save/load、death drop。 |
 | trade/chestを変更したい | `InventoryUI.gd`, `chest.gd`, `DialogueManager`, `GameAndHud.open_trade_ui()`, `TradePriceCalculator` | transfer rule、価格、chest権限 | 通常inventory移動やdeath drop | trade売買、chest出し入れ、特殊mode中移動不可。 |
@@ -30,7 +30,7 @@
 2. `master_data.xlsx` を編集します。
 3. `tools/export_master_tsv.py` を実行します。
 4. `tools/validate_master_data.py` を実行します。
-5. [../systems/game_data_registry_loader_map.md](../systems/game_data_registry_loader_map.md) でloader、data class、lookup、validatorの対応を確認します。
+5. [../systems/data/game_data_registry_loader_map.md](../systems/data/game_data_registry_loader_map.md) でloader、data class、lookup、validatorの対応を確認します。
 6. `git diff --check` を実行します。
 7. TSVの件数、参照ID、空欄default、既存行への影響を確認します。
 8. 可能ならGodotで起動エラーと Variant warning-as-error がないことを確認します。

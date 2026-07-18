@@ -245,7 +245,7 @@ func apply_debug_start_items_if_needed() -> void:
 - [death_drop_flow](death_drop_flow.md)
 - [debug_settings_deep_dive](../systems/debug_settings_deep_dive.md)
 - [debug_output_normalization_audit](../backlog/debug_output_normalization_audit.md)
-- [game_data_registry_loader_map](../systems/game_data_registry_loader_map.md)
+- [game_data_registry_loader_map](../systems/data/game_data_registry_loader_map.md)
 ## 16. 理解度チェック
 1. 不具合調査で最初にやることは、全コードを読むことですか。
 2. Excelに書いたitemがゲームに出ない時、最初に確認する生成物は何ですか。

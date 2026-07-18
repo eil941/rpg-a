@@ -959,10 +959,10 @@ duration_type: none
 
 ## 関連docs
 
-- [GameDataRegistry Loader Map](../systems/game_data_registry_loader_map.md)
+- [GameDataRegistry Loader Map](../systems/data/game_data_registry_loader_map.md)
 - [Equipment / ItemEffect Execution Path](../systems/equipment_item_effect_execution_path.md)
 - [DebugSettings Deep Dive](../systems/debug_settings_deep_dive.md)
-- [Data / Spawn / Save System Deep Dive](../systems/data_spawn_save_system_deep_dive.md)
+- [Data / Spawn / Save System Deep Dive](../systems/data/data_spawn_save_system_deep_dive.md)
 - [Current System Reading Order](current_system_reading_order.md)
 - [Feature Addition Guide](feature_addition_guide.md)
 - [Codex Project Context](codex_project_context.md)

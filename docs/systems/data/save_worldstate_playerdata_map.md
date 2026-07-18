@@ -8,9 +8,9 @@ Save / Load / WorldState / PlayerData は、scene跨ぎ、map復元、new game r
 
 今回のdocsは理解用であり、コード変更を前提にしません。実装を触る時は、このdocsで保存先を決めたうえで、保存、復元、reset、Godot確認をセットで見ます。
 
-Map scene scriptsがどのWorldState keyを作成・復元・resetするかは [map_spawn_persistence_deep_dive.md](map_spawn_persistence_deep_dive.md) も参照してください。
+Map scene scriptsがどのWorldState keyを作成・復元・resetするかは [map_spawn_persistence_deep_dive.md](../map_spawn_persistence_deep_dive.md) も参照してください。
 
-Godot上でSave/Loadを確認する時は [../checklists/save_load_regression_matrix.md](../checklists/save_load_regression_matrix.md) を使います。
+Godot上でSave/Loadを確認する時は [../checklists/save_load_regression_matrix.md](../../checklists/save_load_regression_matrix.md) を使います。
 
 ## 全体像
 
@@ -326,7 +326,7 @@ scene node参照は基本的に持ち越しません。必要な状態だけ `Pl
 
 ## Quest / Generated Quest保存メモ
 
-Quest lifecycleの詳細は [quest_generated_lifecycle_deep_dive.md](quest_generated_lifecycle_deep_dive.md) を参照します。
+Quest lifecycleの詳細は [quest_generated_lifecycle_deep_dive.md](../quest_generated_lifecycle_deep_dive.md) を参照します。
 
 | WorldState field | SaveManager保存対象 | 役割 |
 | --- | --- | --- |
