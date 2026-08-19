@@ -60,6 +60,29 @@ static func can_trade_with_player(unit) -> bool:
 	return false
 
 
+static func can_show_bounty_board(unit) -> bool:
+	var player_unit = _get_current_player_unit()
+	if unit == null or player_unit == null:
+		return false
+
+	if FactionManager.are_units_hostile(unit, player_unit):
+		return false
+
+	if has_role(unit, unit.UnitRole.GUARD):
+		return true
+
+	if has_role(unit, unit.UnitRole.QUEST_GIVER):
+		return true
+
+	if "extra_interact_actions" in unit:
+		for raw_action in unit.extra_interact_actions:
+			var action_id: String = String(raw_action).strip_edges()
+			if action_id == "bounty_board" or action_id == "bounty_info":
+				return true
+
+	return false
+
+
 static func build_header_text(unit) -> String:
 	var relation: String = get_relation_to_player(unit)
 	var friendly: int = int(unit.friendliness)
@@ -108,6 +131,9 @@ static func build_actions(unit) -> Array:
 	if can_offer_request_to_player(unit):
 		_append_unique_action(actions, "request", "依頼について")
 
+	if can_show_bounty_board(unit):
+		_append_unique_action(actions, "bounty_board", "賞金首情報")
+
 	_append_unique_action(actions, "bye", "さようなら")
 	return actions
 
@@ -130,6 +156,15 @@ static func handle_action(unit, action_id: String) -> Dictionary:
 
 	if action_id == "request_back_to_root":
 		return _build_root_dialog(unit)
+
+	if action_id == "bounty_board":
+		return {
+			"type": "update_dialog",
+			"text": BountyManager.build_bounty_board_text(),
+			"actions": [
+				{"id": "request_back_to_root", "label": "戻る"}
+			]
+		}
 
 	if action_id == "bye":
 		return {

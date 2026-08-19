@@ -17,6 +17,7 @@ const WORLD_STATE_PROPS: Array[String] = [
 	"unique_map_instances",
 	"map_item_pickups",
 	"map_chests",
+	"bounty_data",
 	"quest_active_data",
 	"quest_completed_data",
 	"quest_failed_data",

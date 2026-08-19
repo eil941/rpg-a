@@ -1,4 +1,4 @@
-# Feature Addition Guide
+# 新機能追加ガイド
 
 新機能追加時に「まずどこを見るか」をまとめた入口表です。実装前には [../architecture/script_responsibility_map.md](../architecture/script_responsibility_map.md) と [../architecture/runtime_flow_overview.md](../architecture/runtime_flow_overview.md) も合わせて確認すると迷いにくくなります。TSV列やloaderを触る時は [../systems/data/game_data_registry_loader_map.md](../systems/data/game_data_registry_loader_map.md) も先に確認します。
 
@@ -14,6 +14,7 @@
 | 装備中パッシブ効果を追加したい | `item_effects.tsv`, `item_effect_links.tsv`, `Unit.get_equipped_item_effects()` | `apply_modifier` effect と link | `equipment_effect_links.tsv` は作らない | 装備中だけstatが上がり、外すと戻る。 |
 | 装備攻撃効果を追加したい | `item_effects.tsv`, `item_effect_links.tsv`, `CombatManager._apply_equipment_attack_effects()` | 既存effect typeならlinkだけ。新typeならdispatcher/helper追加 | 消耗品effect経路を大きく変えない | 攻撃命中時、`trigger_chance`、死亡済みtarget挙動を確認。 |
 | 新しい敵を追加したい | `data/master/enemies.tsv`, `scripts/data/enemy_data.gd`, map spawn scripts | Excel `enemies`、spawn tags、equipment、initial inventory | spawn logic変更はタグ/ルールで表現できない時だけ | export、validate、対象mapでspawn確認。 |
+| 賞金首システムを調整したい | [../systems/bounty_system_deep_dive.md](../systems/bounty_system_deep_dive.md), `scripts/managers/bounty_manager.gd`, `scripts/managers/unit_spawn_manager.gd`, `scripts/core/unit.gd`, `scripts/unit_interaction_logic.gd` | 発生期間、報酬、能力値倍率、NPC表示入口。候補を増やす場合は通常 enemy / spawn pool 側 | 賞金首個体用のExcel sheetや専用TSV、通常enemyの `map_enemy_spawns`、セーブ形式の大変更 | 期間中の再スポーン、討伐済み維持、期限切れ、追加 `gold`、会話表示、save/loadをセットで確認。 |
 | 敵の初期所持品を追加したい | `initial_inventory_tables.tsv`, `initial_inventory_entries.tsv`, `enemies.tsv`, `InitialInventoryEntry` | inventory table追加/再利用、`initial_inventory_table_id`設定 | death drop logic、旧 `initial_inventory_items` | enemy生成時に所持品を持ち、死亡時に持っていた物だけ落ちる。 |
 | 死亡時ドロップ仕様を変更したい | [../systems/combat/death_drop_spec.md](../systems/combat/death_drop_spec.md), `Unit.drop_inventory_items_on_death_if_needed()`, `ItemDropHelper` | 仕様docs更新後、flagやdrop helperを小さく変更 | `initial_inventory_*`、drop table追加 | 3 flag mode、bag/hotbar/equipment、stack、装備instanceを確認。 |
 | インベントリUIを変更したい | `InventoryUI.tscn`, `scripts/item/inventory_ui.gd`, `scripts/item/inventory.gd` | UI layout、mode別処理、held item処理 | PlayerData変更はscene跨ぎstateが必要な時だけ | bag/hotbar/equipment/trade/chest、held item scene transition。 |
@@ -24,7 +25,7 @@
 | 新しいマップ/シーン遷移を追加したい | map scene script、`GameAndHud.load_map_by_path()`, `GlobalPlayerSpawn`, `WorldState` | event tile、request map change、spawn tile context | SaveManagerは永続load仕様を変える時だけ | 遷移、戻り位置、save/load。 |
 | Debug用確認機能を追加したい | `DebugSettings.gd`, 対象feature script | default-off flag、scoped log/action | master dataは必要な時だけ | default off確認、ON時のみログ/挙動確認。 |
 
-## Data Feature Checklist
+## データ機能チェックリスト
 
 1. 既存TSVと既存行を確認します。
 2. `master_data.xlsx` を編集します。
@@ -35,7 +36,7 @@
 7. TSVの件数、参照ID、空欄default、既存行への影響を確認します。
 8. 可能ならGodotで起動エラーと Variant warning-as-error がないことを確認します。
 
-## Runtime Feature Checklist
+## 実行時機能チェックリスト
 
 1. [../architecture/runtime_flow_overview.md](../architecture/runtime_flow_overview.md) で処理フローを探します。
 2. [../architecture/script_responsibility_map.md](../architecture/script_responsibility_map.md) でowner scriptを探します。
@@ -57,16 +58,17 @@
 | InventoryUI | held item state と source ownership を守る。free済み参照に注意。 |
 | sample/test content | 通常ランダム生成に混ざらないよう、tagや `spawn_weight <= 0` で隔離。 |
 
-## System別の入口
+## システム別の入口
 
-| System | Start here | Notes |
+| システム | 最初に見る場所 | 補足 |
 | --- | --- | --- |
-| Items | `ItemDatabase`, `GameDataRegistry`, `ItemData` | runtime lookupはGameData経由。 |
-| Effects | `ItemEffectData`, `ItemEffectManager`, `CombatManager` | 消耗品と装備攻撃は同じデータを使うが実行経路が違う。 |
-| Equipment | `Unit` equipment getters, `InventoryUI`, `EquipmentData` | total statは装備、enchant、passive effect、runtime modifierを含む。 |
-| Combat | `CombatManager`, `DamageCalculator`, `Stats` | 死亡処理の共通経路を壊さない。 |
-| Spawn | `UnitSpawnManager`, map scene scripts, `EnemyData`/`NpcData` | 保存済みUnitではinitial inventoryを再抽選しない。 |
-| World persistence | `WorldState`, `SaveManager`, map `save_all_units()` | runtime辞書がmap復元の元。 |
+| アイテム | `ItemDatabase`, `GameDataRegistry`, `ItemData` | runtime lookupはGameData経由。 |
+| 効果 | `ItemEffectData`, `ItemEffectManager`, `CombatManager` | 消耗品と装備攻撃は同じデータを使うが実行経路が違う。 |
+| 装備 | `Unit` equipment getters, `InventoryUI`, `EquipmentData` | total statは装備、enchant、passive effect、runtime modifierを含む。 |
+| 戦闘 | `CombatManager`, `DamageCalculator`, `Stats` | 死亡処理の共通経路を壊さない。 |
+| 生成 | `UnitSpawnManager`, map scene scripts, `EnemyData`/`NpcData` | 保存済みUnitではinitial inventoryを再抽選しない。 |
+| 賞金首 | `BountyManager`, `WorldState.bounty_data`, `UnitSpawnManager`, `Unit.handle_death()`, `UnitInteractionLogic` | 通常enemy spawnと別台帳にし、期間、討伐、期限切れ、save/load、NPC表示をセットで見る。賞金首個体は `master_data.xlsx` では作らず、既存enemy候補からゲーム内でランダム選出する。詳細は [../systems/bounty_system_deep_dive.md](../systems/bounty_system_deep_dive.md)。 |
+| ワールド永続化 | `WorldState`, `SaveManager`, map `save_all_units()` | runtime辞書がmap復元の元。 |
 | UI | `GameAndHud`, 各UI script | rootが開閉を持ち、各UI scriptが画面内挙動を持つ。 |
 
 ## 確認コマンド

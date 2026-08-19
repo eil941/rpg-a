@@ -14,6 +14,8 @@ const NPC_DAYS_PER_RESET: int = 1
 
 var world_time_seconds: float = 0.0
 var is_resolving_turn: bool = false
+var last_reset_debug_month_index: int = -1
+var last_reset_debug_npc_index: int = -1
 
 
 func advance_time(units_node: Node, player_speed: float) -> void:
@@ -25,6 +27,7 @@ func advance_time(units_node: Node, player_speed: float) -> void:
 
 	var elapsed_seconds: float = SECONDS_PER_DAY / player_speed
 	world_time_seconds += elapsed_seconds
+	print_reset_debug_if_index_changed()
 
 	if WorldState != null:
 		if WorldState.has_method("update_monthly_reset_pending"):
@@ -38,6 +41,9 @@ func advance_time(units_node: Node, player_speed: float) -> void:
 		# クエストリセットだけは表示・受注状態に直結するので、時間が進んだ瞬間に適用する。
 		if WorldState.has_method("run_npc_reset_if_needed"):
 			WorldState.run_npc_reset_if_needed(get_npc_reset_index())
+
+	if BountyManager != null:
+		BountyManager.expire_bounties_and_remove_runtime(get_tree())
 
 	#print_current_time()
 
@@ -199,6 +205,27 @@ func get_npc_reset_index() -> int:
 	return int((get_day() - 1) / NPC_DAYS_PER_RESET)
 
 
+func print_reset_debug_if_index_changed() -> void:
+	var current_month_index: int = get_month_index()
+	var current_npc_index: int = get_npc_reset_index()
+
+	if current_month_index == last_reset_debug_month_index and current_npc_index == last_reset_debug_npc_index:
+		return
+
+	last_reset_debug_month_index = current_month_index
+	last_reset_debug_npc_index = current_npc_index
+
+	print(
+		"[RESET DEBUG] Day=", get_day(),
+		" 通常リセット間隔=", DAYS_PER_RESET,
+		"日 index=", current_month_index,
+		" NPCリセット間隔=", NPC_DAYS_PER_RESET,
+		"日 npc_index=", current_npc_index
+	)
+
+
 func reset_time() -> void:
 	world_time_seconds = 0.0
 	is_resolving_turn = false
+	last_reset_debug_month_index = -1
+	last_reset_debug_npc_index = -1

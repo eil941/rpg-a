@@ -1,4 +1,4 @@
-# rpg-a Docs
+# rpg-a ドキュメント
 
 `rpg-a` の docs 全体の入口です。
 コードやデータを触る前に、このページで「どこから読むか」を決めます。
@@ -10,7 +10,7 @@
 | 目的 | 入口 |
 | --- | --- |
 | 学習開始 | [docs/learning/start_here.md](learning/start_here.md) |
-| scriptから探す | [docs/reference/script_quick_reference.md](reference/script_quick_reference.md) |
+| スクリプト名から探す | [docs/reference/script_quick_reference.md](reference/script_quick_reference.md) |
 | 現在のシステムを詳しく読む | [docs/guides/current_system_reading_order.md](guides/current_system_reading_order.md) |
 | アイテム追加 | [docs/guides/item_addition_guide.md](guides/item_addition_guide.md) |
 | 新機能追加 | [docs/guides/feature_addition_guide.md](guides/feature_addition_guide.md) |
@@ -80,7 +80,7 @@
 | scriptを開いて最初に見る関数 | [reference/script_quick_reference.md](reference/script_quick_reference.md) |
 | scriptごとの責務 | [architecture/script_responsibility_map.md](architecture/script_responsibility_map.md) |
 | 全体構造 | [architecture/project_structure_overview.md](architecture/project_structure_overview.md) |
-| runtime flow | [architecture/runtime_flow_overview.md](architecture/runtime_flow_overview.md) |
+| 実行時の流れ | [architecture/runtime_flow_overview.md](architecture/runtime_flow_overview.md) |
 | サブシステム間の関係 | [architecture/subsystem_interaction_map.md](architecture/subsystem_interaction_map.md) |
 
 ## データやアイテムを追加する
@@ -93,6 +93,7 @@
 | 新しいeffect typeが必要か判断する | [learning/adding_new_data_or_effect_type.md](learning/adding_new_data_or_effect_type.md) |
 | GameDataRegistryの読み込みを確認する | [systems/data/game_data_registry_loader_map.md](systems/data/game_data_registry_loader_map.md) |
 | item effectの実行経路を確認する | [systems/equipment_item_effect_execution_path.md](systems/equipment_item_effect_execution_path.md) |
+| 賞金首が敵・マップ・セーブ・会話へどう接続されるか確認する | [systems/bounty_system_deep_dive.md](systems/bounty_system_deep_dive.md) |
 
 ## 不具合を調査する
 
@@ -122,18 +123,19 @@ Codexへ作業を依頼する前に、まず [guides/current_system_reading_orde
 
 | 領域 | 詳細docs |
 | --- | --- |
-| Data / Spawn / Save | [systems/data/data_spawn_save_system_deep_dive.md](systems/data/data_spawn_save_system_deep_dive.md) |
-| Save / WorldState / PlayerData | [systems/data/save_worldstate_playerdata_map.md](systems/data/save_worldstate_playerdata_map.md) |
-| Map spawn / persistence | [systems/map_spawn_persistence_deep_dive.md](systems/map_spawn_persistence_deep_dive.md) |
-| Inventory / Trade / Chest | [systems/inventory/inventory_trade_chest_system_deep_dive.md](systems/inventory/inventory_trade_chest_system_deep_dive.md) |
-| Inventory UI state | [systems/inventory/inventory_ui_state_transition.md](systems/inventory/inventory_ui_state_transition.md) |
-| UI lock / scene transition | [systems/ui_lock_matrix.md](systems/ui_lock_matrix.md), [systems/ui_input_scene_transition_deep_dive.md](systems/ui_input_scene_transition_deep_dive.md) |
-| Equipment / item effects | [systems/equipment_item_effect_execution_path.md](systems/equipment_item_effect_execution_path.md) |
-| Combat / death | [systems/combat/unit_combat_death_system_deep_dive.md](systems/combat/unit_combat_death_system_deep_dive.md), [systems/combat/death_path_diagram.md](systems/combat/death_path_diagram.md) |
-| Death drop | [systems/combat/death_drop_spec.md](systems/combat/death_drop_spec.md) |
-| Damage notes | [systems/combat/damage_system_notes.md](systems/combat/damage_system_notes.md) |
-| Unit lifecycle | [systems/unit_lifecycle_deep_dive.md](systems/unit_lifecycle_deep_dive.md) |
-| Quest lifecycle | [systems/quest_generated_lifecycle_deep_dive.md](systems/quest_generated_lifecycle_deep_dive.md) |
+| データ・生成・保存 | [systems/data/data_spawn_save_system_deep_dive.md](systems/data/data_spawn_save_system_deep_dive.md) |
+| セーブ・WorldState・PlayerData | [systems/data/save_worldstate_playerdata_map.md](systems/data/save_worldstate_playerdata_map.md) |
+| マップ生成・永続化 | [systems/map_spawn_persistence_deep_dive.md](systems/map_spawn_persistence_deep_dive.md) |
+| インベントリ・取引・チェスト | [systems/inventory/inventory_trade_chest_system_deep_dive.md](systems/inventory/inventory_trade_chest_system_deep_dive.md) |
+| インベントリUI状態 | [systems/inventory/inventory_ui_state_transition.md](systems/inventory/inventory_ui_state_transition.md) |
+| UIロック・シーン遷移 | [systems/ui_lock_matrix.md](systems/ui_lock_matrix.md), [systems/ui_input_scene_transition_deep_dive.md](systems/ui_input_scene_transition_deep_dive.md) |
+| 装備・item effect | [systems/equipment_item_effect_execution_path.md](systems/equipment_item_effect_execution_path.md) |
+| 戦闘・死亡 | [systems/combat/unit_combat_death_system_deep_dive.md](systems/combat/unit_combat_death_system_deep_dive.md), [systems/combat/death_path_diagram.md](systems/combat/death_path_diagram.md) |
+| 死亡時ドロップ | [systems/combat/death_drop_spec.md](systems/combat/death_drop_spec.md) |
+| ダメージ補足 | [systems/combat/damage_system_notes.md](systems/combat/damage_system_notes.md) |
+| Unitライフサイクル | [systems/unit_lifecycle_deep_dive.md](systems/unit_lifecycle_deep_dive.md) |
+| Questライフサイクル | [systems/quest_generated_lifecycle_deep_dive.md](systems/quest_generated_lifecycle_deep_dive.md) |
+| 賞金首システム | [systems/bounty_system_deep_dive.md](systems/bounty_system_deep_dive.md) |
 
 ## チェックリスト
 
@@ -148,7 +150,7 @@ Codexへ作業を依頼する前に、まず [guides/current_system_reading_orde
 | TSV移行の調査記録 | [migration/tsv_migration_audit.md](migration/tsv_migration_audit.md) |
 | TSV移行の完了メモ | [migration/tsv_migration_completion.md](migration/tsv_migration_completion.md) |
 
-## backlog・将来候補
+## バックログ・将来候補
 
 `backlog/` は現行仕様ではなく、将来の整理候補や調査計画です。
 実装判断の正本として使う前に、必ず `learning/`、`systems/`、`architecture/`、`guides/` の現行docsを確認します。

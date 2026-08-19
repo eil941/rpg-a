@@ -1,28 +1,29 @@
-# Script Responsibility Map
+# スクリプト責務マップ
 
 Step 11-A 時点の主要スクリプト責務表です。全ファイルを完全網羅するものではなく、今後の開発で迷いやすい入口を優先しています。
 
-## Core / Data / Save
+## 中核・データ・セーブ
 
-| Script | 主な責務 | 主な呼び出し元 | 主な呼び出し先 | 変更すると影響する機能 | 新機能追加時の注意 |
+| スクリプト | 主な責務 | 主な呼び出し元 | 主な呼び出し先 | 変更すると影響する機能 | 新機能追加時の注意 |
 | --- | --- | --- | --- | --- | --- |
 | `scripts/data/game_data_registry.gd` | TSVを読み込み、Item/Enemy/NPC/Quest/Effect/Spawn等を辞書やResourceとして提供 | Autoload `_ready()`、ItemDatabase、manager、map scripts | 各 `scripts/data/*_data.gd`、TSV parser | 全TSV-backed機能 | 列追加時は data class と validator も確認。[../systems/data/game_data_registry_loader_map.md](../systems/data/game_data_registry_loader_map.md) で読み込み順とfallbackを確認する。item effect linkの反映経路は [../systems/equipment_item_effect_execution_path.md](../systems/equipment_item_effect_execution_path.md) も見る。 |
 | `scripts/data/player_data.gd` | プレイヤーの永続状態、map位置、inventory/equipment/effects、held item一時状態 | Unit、SaveManager、InventoryUI | 主に状態保持 | Player save/load、scene跨ぎ、held item | World/NPC/Chest状態を入れすぎない。[../systems/data/save_worldstate_playerdata_map.md](../systems/data/save_worldstate_playerdata_map.md) でreset対象も確認。held itemとtrade/chest所有権境界は [../systems/inventory/trade_chest_ownership_deep_dive.md](../systems/inventory/trade_chest_ownership_deep_dive.md) も見る。 |
 | `scripts/world/world_state.gd` | Unit状態、map tile、chest、pickup、quest、死亡状態などワールド永続状態 | Map scripts、SaveManager、Unit、ItemWorldManager | 内部helper | map復元、敵死亡、pickup/chest永続化 | 広い辞書を雑にclearしない。[../systems/data/save_worldstate_playerdata_map.md](../systems/data/save_worldstate_playerdata_map.md) でmap_id/unit_id単位の保存先を確認。死亡Unitとpickup保存経路は [../systems/combat/death_path_diagram.md](../systems/combat/death_path_diagram.md)、chest inventory保存境界は [../systems/inventory/trade_chest_ownership_deep_dive.md](../systems/inventory/trade_chest_ownership_deep_dive.md) も参照。 |
 | `scripts/save_manager.gd` | save/load/new game の統括、Autoload snapshot | title/menu/HUD | PlayerData、WorldState、TimeManager、map `save_all_units()` | save/load、new game、map復元 | 新しい永続フィールド追加時は [../systems/data/save_worldstate_playerdata_map.md](../systems/data/save_worldstate_playerdata_map.md) で snapshot、restore、reset の3点を見る。 |
+| `scripts/managers/bounty_manager.gd` | 賞金首の生成、期間判定、討伐済み・期限切れ状態、NPC一覧文 | UnitSpawnManager、TimeManager、UnitInteractionLogic、Unit死亡処理 | WorldState、EnemyDatabase、TimeManager | 期間限定enemyイベント、追加 `gold` 報酬、情報表示 | 正本は `WorldState.bounty_data`。通常enemyの `map_enemy_spawns` とは別台帳にし、詳細は [../systems/bounty_system_deep_dive.md](../systems/bounty_system_deep_dive.md) を見る。 |
 | `scripts/debug/DebugSettings.gd` | デバッグフラグ、開始アイテム、検証用設定 | 多数のscript | なし | デバッグログ、開始所持品、検証挙動 | 変更前に [../systems/debug_settings_deep_dive.md](../systems/debug_settings_deep_dive.md) で現在値、参照先、debug start itemの再配布条件を確認する。確認StepでONにしたものは戻す。 |
 
-## Unit / Stats / Skills
+## Unit・能力値・スキル
 
-| Script | 主な責務 | 主な呼び出し元 | 主な呼び出し先 | 変更すると影響する機能 | 新機能追加時の注意 |
+| スクリプト | 主な責務 | 主な呼び出し元 | 主な呼び出し先 | 変更すると影響する機能 | 新機能追加時の注意 |
 | --- | --- | --- | --- | --- | --- |
-| `scripts/core/unit.gd` | Unit共通本体。移動、data適用、inventory、equipment、stat合計、initial inventory、死亡時drop、save data | Controller、CombatManager、UnitSpawnManager、ItemEffectManager | Stats、Skills、Inventory、ItemDropHelper、ItemDatabase、WorldState | 移動、戦闘、装備、死亡、保存、AI、会話 | 最重要・高密度。[../systems/unit_lifecycle_deep_dive.md](../systems/unit_lifecycle_deep_dive.md) を入口にし、死亡経路は [../systems/combat/death_path_diagram.md](../systems/combat/death_path_diagram.md) で絞る。装備パッシブ効果は [../systems/equipment_item_effect_execution_path.md](../systems/equipment_item_effect_execution_path.md) を見る。 |
+| `scripts/core/unit.gd` | Unit共通本体。移動、data適用、inventory、equipment、能力値合計、initial inventory、死亡時drop、save data、賞金首実行時情報 | Controller、CombatManager、UnitSpawnManager、ItemEffectManager | Stats、Skills、Inventory、ItemDropHelper、ItemDatabase、WorldState、BountyManager | 移動、戦闘、装備、死亡、保存、AI、会話、賞金首討伐報酬 | 最重要・高密度。[../systems/unit_lifecycle_deep_dive.md](../systems/unit_lifecycle_deep_dive.md) を入口にし、死亡経路は [../systems/combat/death_path_diagram.md](../systems/combat/death_path_diagram.md) で絞る。賞金首は [../systems/bounty_system_deep_dive.md](../systems/bounty_system_deep_dive.md) を見る。 |
 | `scripts/core/stats.gd` | HP/MP等の基礎値、ダメージ、回復、死亡トリガ | Unit、CombatManager、ItemEffectManager | 親Unitの `handle_death()` | HP、死亡、回復、status表示 | HPを直接変更する時は死亡判定経路に注意。[../systems/combat/death_path_diagram.md](../systems/combat/death_path_diagram.md) で `take_damage()` と `check_death()` の重複入口を確認する。 |
 | `scripts/core/skills.gd` | 旧固定スキルとTSV由来dynamic skills、成長、save data | Unit、status_ui、GameDataRegistry | GameData | スキル表示、成長、保存 | active API は `Skills`。`skill_state` や `Unit.add_skill_exp()` を復活させない。 |
 
-## Input / HUD / UI
+## 入力・HUD・UI
 
-| Script | 主な責務 | 主な呼び出し元 | 主な呼び出し先 | 変更すると影響する機能 | 新機能追加時の注意 |
+| スクリプト | 主な責務 | 主な呼び出し元 | 主な呼び出し先 | 変更すると影響する機能 | 新機能追加時の注意 |
 | --- | --- | --- | --- | --- | --- |
 | `scripts/controllers/player_controller.gd` | プレイヤー入力、移動、hotbar使用、mouse action、keyboard target mode、UI lock | Player Unit | Unit、CombatManager、GameAndHud | 移動、入力、ターン進行、UI中移動制御 | 通常inventory中は移動可、trade/chest等特殊UIは移動不可の境界に注意。状態別判定は [../systems/ui_lock_matrix.md](../systems/ui_lock_matrix.md) を見る。 |
 | `scripts/hud/game_and_hud.gd` | Game root。map container、HUD、UI開閉、map load、player検索、死亡メニュー | Main scene、controller、manager | InventoryUI、StatusUI、SaveManager、map scene | map遷移、UI表示、HUD更新 | map切替で古いscene nodeはfreeされる。跨ぐ状態は Autoload へ。map遷移とspawn保存の流れは [../systems/map_spawn_persistence_deep_dive.md](../systems/map_spawn_persistence_deep_dive.md) を参照。trade/chest UI入口は [../systems/inventory/trade_chest_ownership_deep_dive.md](../systems/inventory/trade_chest_ownership_deep_dive.md)、open判定差は [../systems/ui_lock_matrix.md](../systems/ui_lock_matrix.md) も見る。 |
@@ -30,9 +31,9 @@ Step 11-A 時点の主要スクリプト責務表です。全ファイルを完�
 | `scripts/item/inventory_ui.gd` | inventory UI state machine。bag/hotbar/equipment/trade/chest/held item/tooltip/world drop | GameAndHud、Chest、DialogueManager、ユーザー入力 | Inventory、ItemDatabase、TradePriceCalculator、PlayerData | inventory UI、装備、trade/chest、held item跨ぎ | held item state と UI mode を分ける。free済み trade/chest 参照に触らない。所有権境界は [../systems/inventory/trade_chest_ownership_deep_dive.md](../systems/inventory/trade_chest_ownership_deep_dive.md)、normal/specialのlock差は [../systems/ui_lock_matrix.md](../systems/ui_lock_matrix.md) を見る。 |
 | `scripts/hud/status_ui.gd` | status/equipment/skills/quest表示 | GameAndHud | Unit、Skills、QuestManager、ItemDatabase | ステータス、スキル、クエスト表示 | スキル表示は統一済み。`[TSV Skill State]` を復活させない。入力lockとの関係は [../systems/ui_lock_matrix.md](../systems/ui_lock_matrix.md) を見る。 |
 
-## Item / Inventory / Effect
+## アイテム・インベントリ・効果
 
-| Script | 主な責務 | 主な呼び出し元 | 主な呼び出し先 | 変更すると影響する機能 | 新機能追加時の注意 |
+| スクリプト | 主な責務 | 主な呼び出し元 | 主な呼び出し先 | 変更すると影響する機能 | 新機能追加時の注意 |
 | --- | --- | --- | --- | --- | --- |
 | `scripts/item/inventory.gd` | bag/hotbar entry管理、stack、instance_data、add/remove/save/load/use | Unit、InventoryUI、quest/trade | ItemDatabase、ItemEffectManager | inventory、hotbar、save/load、死亡drop元 | 装備やenchant付きentryは `instance_data` を深く保持する。 |
 | `scripts/item/item_database.gd` | GameDataへのitem/equipment/effect lookup wrapper、random item helper | Inventory/UI/world manager | GameData | item表示、random spawn、equipment entry生成 | random候補は `spawn_weight <= 0` を除外する方針。sample品を混ぜない。 |
@@ -43,9 +44,9 @@ Step 11-A 時点の主要スクリプト責務表です。全ファイルを完�
 | `scripts/item/item_pickup.gd` | world上のpickup node、entry保存、見た目 | ItemWorldManager、ItemDropHelper | ItemDatabase | pickup表示、取得、保存 | `setup_with_entry()` は装備instance情報を保持できる。 |
 | `scripts/item/chest/chest.gd` | chest inventory、権限、save/load、chest UI起動 | Player interaction | InventoryUI.open_chest_mode() | chest storage、loot UI | `UIMode.CHEST` は特殊Inventory画面。chest storageとUnit inventoryの境界は [../systems/inventory/trade_chest_ownership_deep_dive.md](../systems/inventory/trade_chest_ownership_deep_dive.md) を見る。 |
 
-## Combat / AI
+## 戦闘・AI
 
-| Script | 主な責務 | 主な呼び出し元 | 主な呼び出し先 | 変更すると影響する機能 | 新機能追加時の注意 |
+| スクリプト | 主な責務 | 主な呼び出し元 | 主な呼び出し先 | 変更すると影響する機能 | 新機能追加時の注意 |
 | --- | --- | --- | --- | --- | --- |
 | `scripts/combat/combat_manager.gd` | 攻撃可否、通常攻撃実行、target item use、装備攻撃効果 | Player/AI controller | DamageCalculator、ItemEffectManager、Unit、Stats | 攻撃、死亡、装備攻撃効果 | `deal_damage`、`apply_status`、`restore_resource` の死亡時挙動差を維持。装備攻撃効果は [../systems/equipment_item_effect_execution_path.md](../systems/equipment_item_effect_execution_path.md)、共通death pathは [../systems/combat/death_path_diagram.md](../systems/combat/death_path_diagram.md) を見る。 |
 | `scripts/combat/damage_calculator.gd` | 命中、crit、防御、属性/タイプ補正 | CombatManager、item effect | Unit stat getter | ダメージバランス | 新フィールドは `ItemEffectData` と validator まで見る。 |
@@ -54,21 +55,22 @@ Step 11-A 時点の主要スクリプト責務表です。全ファイルを完�
 | `scripts/controllers/enemy_controller.gd` | simple enemy movement fallback | Unit setup | Unit.try_move() | enemy移動 | 古い/単純経路の可能性あり。 |
 | `scripts/controllers/npc_controller.gd` | NPC movement fallback | Unit setup | Unit.try_move() | NPC移動 | merchant/shop在庫はここではない。 |
 
-## Spawn / Map / Persistence
+## 生成・マップ・永続化
 
-| Script | 主な責務 | 主な呼び出し元 | 主な呼び出し先 | 変更すると影響する機能 | 新機能追加時の注意 |
+| スクリプト | 主な責務 | 主な呼び出し元 | 主な呼び出し先 | 変更すると影響する機能 | 新機能追加時の注意 |
 | --- | --- | --- | --- | --- | --- |
-| `scripts/managers/unit_spawn_manager.gd` | saved/random enemy/npc生成、data適用、initial inventory、shop inventory | map scene scripts | Unit、GameData、WorldState、ItemDatabase | enemy/npc spawn、初期所持品、merchant stock | 保存済みUnitではinitial inventoryを再抽選しない。shop inventoryは用途上区別するが、現コードではUnit.inventoryへ生成する。map別の入口は [../systems/map_spawn_persistence_deep_dive.md](../systems/map_spawn_persistence_deep_dive.md) へ。 |
+| `scripts/managers/unit_spawn_manager.gd` | 保存済み/ランダムenemy・npc生成、data適用、initial inventory、shop inventory、発生中の賞金首追加スポーン | map scene scripts | Unit、GameData、WorldState、ItemDatabase、BountyManager | enemy/npc spawn、初期所持品、merchant stock、賞金首spawn | 保存済みUnitではinitial inventoryを再抽選しない。賞金首は通常enemy台帳ではなく `WorldState.bounty_data` から追加する。map別の入口は [../systems/map_spawn_persistence_deep_dive.md](../systems/map_spawn_persistence_deep_dive.md)、賞金首詳細は [../systems/bounty_system_deep_dive.md](../systems/bounty_system_deep_dive.md) へ。 |
 | `scripts/map/map_scene_scripts/main.gd` | 詳細マップ。tile生成、spawn pool、item/chest manager | GameAndHud.load_map() | UnitSpawnManager、ItemWorldManager、WorldState | 詳細マップ、random enemies/items/chests | `spawn_generator_tags` と spawn rules を使う。field/detail/dungeon差分は [../systems/map_spawn_persistence_deep_dive.md](../systems/map_spawn_persistence_deep_dive.md) へ。 |
 | `scripts/map/map_scene_scripts/FiledMap.gd` | field map、field dungeon/special place生成 | GameAndHud.load_map() | WorldState、map generators | フィールド、入口、reset flow | repo上のファイル名は `FiledMap.gd`。reset/regenerationの詳細は [../systems/map_spawn_persistence_deep_dive.md](../systems/map_spawn_persistence_deep_dive.md) へ。 |
 | `scripts/dungeon/dungeon_main.gd` | dungeon floor生成、enemy pool、stairs、item/chest manager | GameAndHud.load_map() | GlobalDungeon、UnitSpawnManager、ItemWorldManager | dungeon探索 | floor state は `WorldState.dungeon_*` に保存。floor生成/保存の詳細は [../systems/map_spawn_persistence_deep_dive.md](../systems/map_spawn_persistence_deep_dive.md) へ。 |
 | `scripts/world/GlobalPlayerSpawn.gd` | 遷移先player tileの一時保持 | map scenes、stairs | なし | map transition位置 | one-shot stateのclear/consumeに注意。 |
 
-## Dialogue / Quest / Trade
+## 会話・Quest・取引
 
-| Script | 主な責務 | 主な呼び出し元 | 主な呼び出し先 | 変更すると影響する機能 | 新機能追加時の注意 |
+| スクリプト | 主な責務 | 主な呼び出し元 | 主な呼び出し先 | 変更すると影響する機能 | 新機能追加時の注意 |
 | --- | --- | --- | --- | --- | --- |
 | `scripts/managers/dialogue_manager.gd` | Unit会話開始、会話アクション処理、trade UI起動 | Unit.try_talk_to_front_unit()、DialogueUI | GameAndHud.open_trade_ui()、QuestManager | NPC会話、trade入口 | action は文字列駆動。trade ownershipの流れは [../systems/inventory/trade_chest_ownership_deep_dive.md](../systems/inventory/trade_chest_ownership_deep_dive.md)、会話中入力lockは [../systems/ui_lock_matrix.md](../systems/ui_lock_matrix.md) を見る。 |
+| `scripts/unit_interaction_logic.gd` | NPC会話内のaction構築。talk/trade/request/賞金首情報 | DialogueManager、Unit | QuestManager、BountyManager、FactionManager | NPC会話アクション、賞金首一覧表示 | GUARD / QUEST_GIVER / `extra_interact_actions=bounty_board` で賞金首一覧を出す。 |
 | `scripts/dialogue_ui.gd` | 会話表示、選択肢、action選択 | DialogueManager | DialogueManager.on_action_selected() | dialogue UI | state owner は manager 側に寄せる。 |
 | `scripts/managers/quest_manager.gd` | quest template、生成quest、受注/完了/失敗、報酬 | dialogue、quest board、status UI | GameData、Inventory、WorldState | quest system | generated quest stateのreset条件に注意。 |
 | `scripts/managers/quest_board_manager.gd` | quest board UI状態 | quest board object | QuestBoardUI | quest board interaction | UI lock pathでも参照される。PlayerControllerではなくUnit側も含む現状経路は [../systems/ui_lock_matrix.md](../systems/ui_lock_matrix.md) を見る。 |
@@ -76,9 +78,9 @@ Step 11-A 時点の主要スクリプト責務表です。全ファイルを完�
 | `scripts/object/questboard/quest_board_ui.gd` | board上のquest表示、accept/complete | QuestBoardManager | QuestManager | board UI | status UIのquest pageとは別。 |
 | `scripts/trade_price_calculator.gd` | 売買価格計算、友好度/スキル/enchant補正 | InventoryUI | ItemDatabase、Skills | trade価格 | inventory移動はInventoryUI側。 |
 
-## Data Resource Scripts
+## データResourceスクリプト
 
-| Script | 主な責務 | 補足 |
+| スクリプト | 主な責務 | 補足 |
 | --- | --- | --- |
 | `scripts/data/item_data.gd` | item基本データ。category、stack、use/target flags、linked effects | 消耗品と装備の共通土台。 |
 | `scripts/data/equipment_data.gd` | equipment item。slot、stat bonus、attack element/type/range/style | `ItemData` を継承/拡張。 |
@@ -90,11 +92,11 @@ Step 11-A 時点の主要スクリプト責務表です。全ファイルを完�
 | `scripts/data/spawnrule_data.gd` | field/detail map spawn rule | map scene scriptsで使用。 |
 | `scripts/data/dungeon_spawn_rule_data.gd` | dungeon spawn rule | dungeon floor生成で使用。 |
 
-## Quest / Generated Quest 補足
+## Quest・生成Quest補足
 
 Quest周りを触る時は、まず [../systems/quest_generated_lifecycle_deep_dive.md](../systems/quest_generated_lifecycle_deep_dive.md) を入口にします。
 
-| Script | Quest周りの責務 | 注意 |
+| スクリプト | Quest周りの責務 | 注意 |
 | --- | --- | --- |
 | `scripts/managers/quest_manager.gd` | offer取得、generated quest生成、受注、完了、失敗、掲示板entry生成 | 永続状態は `WorldState.quest_*` と `WorldState.unit_generated_quests`。 |
 | `scripts/unit_interaction_logic.gd` | NPC会話内の「依頼」action、受注/完了dialog構築 | `DialogueManager` ではなくここがQuest会話actionの実処理入口。 |
@@ -105,7 +107,7 @@ Quest周りを触る時は、まず [../systems/quest_generated_lifecycle_deep_d
 
 ## 高密度ファイル
 
-| File | 高密度な理由 | 実務上の読み方 |
+| ファイル | 高密度な理由 | 実務上の読み方 |
 | --- | --- | --- |
 | `scripts/core/unit.gd` | Unit identity、移動、stats、equipment、effects、save、death、interactionが集約 | [../systems/unit_lifecycle_deep_dive.md](../systems/unit_lifecycle_deep_dive.md) で領域を絞ってから、関連関数を `rg` で特定し、小さく読む。無関係な整理を混ぜない。 |
 | `scripts/item/inventory_ui.gd` | normal/trade/chest/held item/tooltip/keyboard操作が同居 | `ui_mode` と `held_from_area` を軸に読む。 |

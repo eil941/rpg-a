@@ -1,4 +1,4 @@
-# Current System Reading Order
+# 現行システムの読み順
 
 ## 目的
 
@@ -27,7 +27,7 @@ Codexへ依頼する場合は、上記に加えて [codex_project_context.md](co
 
 ## 領域別の読む順番
 
-### Item / consumable / equipment effect
+### アイテム・消耗品・装備効果
 
 1. [item_addition_guide.md](item_addition_guide.md)
 2. [equipment_item_effect_execution_path.md](../systems/equipment_item_effect_execution_path.md)
@@ -37,7 +37,7 @@ Codexへ依頼する場合は、上記に加えて [codex_project_context.md](co
 
 特に、消耗品、装備パッシブ、装備攻撃効果は同じ `item_effects.tsv` / `item_effect_links.tsv` を使っていても実行入口が異なります。装備用に `equipment_effect_links.tsv` を追加する前提では読まないでください。
 
-### Inventory / Hotbar / Equipment / held item
+### インベントリ・Hotbar・装備・held item
 
 1. [inventory_trade_chest_system_deep_dive.md](../systems/inventory/inventory_trade_chest_system_deep_dive.md)
 2. [inventory_ui_state_transition.md](../systems/inventory/inventory_ui_state_transition.md)
@@ -47,7 +47,7 @@ Codexへ依頼する場合は、上記に加えて [codex_project_context.md](co
 
 `UIMode`、held itemのsource、実際の所有者、sceneを跨ぐ一時状態を分けて読みます。通常inventory中は移動可能であり、trade/chest中の移動lockとは別仕様です。
 
-### Trade / Chest
+### 取引・チェスト
 
 1. [trade_chest_ownership_deep_dive.md](../systems/inventory/trade_chest_ownership_deep_dive.md)
 2. [inventory_ui_state_transition.md](../systems/inventory/inventory_ui_state_transition.md)
@@ -57,7 +57,7 @@ Codexへ依頼する場合は、上記に加えて [codex_project_context.md](co
 
 trade/chestのnode参照やside inventory参照はsceneを跨いで保持しません。held item entry/source情報だけを一時保持し、新しいsceneではnormal inventoryへ正規化する境界を先に確認します。
 
-### UI lock / input / scene transition
+### UIロック・入力・シーン遷移
 
 1. [ui_lock_matrix.md](../systems/ui_lock_matrix.md)
 2. [ui_input_scene_transition_deep_dive.md](../systems/ui_input_scene_transition_deep_dive.md)
@@ -67,7 +67,7 @@ trade/chestのnode参照やside inventory参照はsceneを跨いで保持しま�
 
 `PlayerController.is_ui_locked()` だけで全UI状態を判断しないでください。quest boardなどはUnit側にもlock入口があり、normal inventoryは移動を止めない例外です。
 
-### Unit / Stats / Combat / Death
+### Unit・能力値・戦闘・死亡
 
 1. [unit_lifecycle_deep_dive.md](../systems/unit_lifecycle_deep_dive.md)
 2. [unit_combat_death_system_deep_dive.md](../systems/combat/unit_combat_death_system_deep_dive.md)
@@ -77,7 +77,7 @@ trade/chestのnode参照やside inventory参照はsceneを跨いで保持しま�
 
 `Stats.take_damage()`、各damage入口、`Unit.handle_death()`、`death_handled` guardを一続きで読みます。呼び出し側に重複した死亡確認があっても、dropを初回だけにするguardを壊さないことが重要です。
 
-### Death drop / item drop / pickup save
+### 死亡時ドロップ・item drop・pickup保存
 
 1. [death_drop_spec.md](../systems/combat/death_drop_spec.md)
 2. [death_path_diagram.md](../systems/combat/death_path_diagram.md)
@@ -87,7 +87,7 @@ trade/chestのnode参照やside inventory参照はsceneを跨いで保持しま�
 
 死亡時に落とすのはUnitが実際に持つbag / hotbar / equipmentです。`initial_inventory_entries` を死亡時に再抽選せず、pickup配置成功後にsourceをclearし、生成pickupをWorldStateへ保存する順番を確認します。
 
-### Save / Load / WorldState / PlayerData
+### セーブ・ロード・WorldState・PlayerData
 
 1. [save_worldstate_playerdata_map.md](../systems/data/save_worldstate_playerdata_map.md)
 2. [data_spawn_save_system_deep_dive.md](../systems/data/data_spawn_save_system_deep_dive.md)
@@ -97,18 +97,21 @@ trade/chestのnode参照やside inventory参照はsceneを跨いで保持しま�
 
 PlayerData、WorldState、map scene側保存、GlobalDungeon / GlobalDetailMapの所有範囲とreset条件を分けて読みます。変更後は対象に応じてregression matrixのSmoke / Core / Extendedを選びます。
 
-### Map spawn / Enemy / NPC / initial inventory
+### マップ生成・Enemy・NPC・initial inventory
 
 1. [map_spawn_persistence_deep_dive.md](../systems/map_spawn_persistence_deep_dive.md)
 2. [data_spawn_save_system_deep_dive.md](../systems/data/data_spawn_save_system_deep_dive.md)
 3. [unit_lifecycle_deep_dive.md](../systems/unit_lifecycle_deep_dive.md)
 4. [game_data_registry_loader_map.md](../systems/data/game_data_registry_loader_map.md)
-5. [gamedata_registry_debug_dump_audit.md](../backlog/gamedata_registry_debug_dump_audit.md)
-6. [save_load_regression_matrix.md](../checklists/save_load_regression_matrix.md)
+5. [bounty_system_deep_dive.md](../systems/bounty_system_deep_dive.md)
+6. [gamedata_registry_debug_dump_audit.md](../backlog/gamedata_registry_debug_dump_audit.md)
+7. [save_load_regression_matrix.md](../checklists/save_load_regression_matrix.md)
 
 `initial_inventory_*` はUnit生成時の所持品抽選です。保存済みUnitの復元時には再抽選せず、死亡時drop tableとして扱いません。
 
-### Quest / generated quest / NPC quest
+賞金首を調べる場合も、まず通常 enemy の生成・保存・リセットをここで確認してから [bounty_system_deep_dive.md](../systems/bounty_system_deep_dive.md) へ進みます。賞金首は見た目と戦闘では enemy Unit を使いますが、発生状態は `WorldState.bounty_data` に分けて保存されます。
+
+### Quest・生成Quest・NPC quest
 
 1. [quest_generated_lifecycle_deep_dive.md](../systems/quest_generated_lifecycle_deep_dive.md)
 2. [save_worldstate_playerdata_map.md](../systems/data/save_worldstate_playerdata_map.md)
@@ -118,7 +121,7 @@ PlayerData、WorldState、map scene側保存、GlobalDungeon / GlobalDetailMap�
 
 template quest、generated quest、NPC link、QuestManager、WorldState、map resetを同時に確認します。repeatableやgeneration block保存の残課題は、現行仕様と混ぜずbacklogとして扱います。
 
-### DebugSettings / logs / start items
+### DebugSettings・ログ・開始アイテム
 
 1. [debug_settings_deep_dive.md](../systems/debug_settings_deep_dive.md)
 2. [debug_output_normalization_audit.md](../backlog/debug_output_normalization_audit.md)

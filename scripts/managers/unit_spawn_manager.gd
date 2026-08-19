@@ -518,6 +518,8 @@ func spawn_random_enemies(
 	for i in range(enemy_spawn_count):
 		spawn_enemy_random(enemy_unit_scene, enemy_data_list, used_tiles, i)
 
+	spawn_active_bounty_for_current_map(enemy_unit_scene, enemy_data_list)
+
 
 func spawn_saved_enemies(enemy_unit_scene: PackedScene, enemy_data_list: Array[EnemyData]) -> void:
 	var saved_list = WorldState.map_enemy_spawns.get(map_id, [])
@@ -557,6 +559,87 @@ func spawn_saved_enemies(enemy_unit_scene: PackedScene, enemy_data_list: Array[E
 
 		units_node.add_child(enemy)
 		apply_generated_shop_inventory_if_needed(enemy, enemy_data)
+
+	spawn_active_bounty_for_current_map(enemy_unit_scene, enemy_data_list)
+
+
+func spawn_active_bounty_for_current_map(enemy_unit_scene: PackedScene, enemy_data_list: Array[EnemyData]) -> void:
+	if enemy_unit_scene == null:
+		return
+	if BountyManager == null:
+		return
+
+	var used_tiles: Array[Vector2i] = collect_used_tiles_from_units()
+	var bounty: Dictionary = BountyManager.ensure_active_bounty_for_map(
+		map_id,
+		enemy_data_list,
+		walkable_tiles,
+		used_tiles
+	)
+
+	if bounty.is_empty():
+		return
+
+	var bounty_id: String = String(bounty.get("bounty_id", ""))
+	var unit_id: String = String(bounty.get("unit_id", ""))
+	if bounty_id == "":
+		return
+	if unit_id == "":
+		unit_id = BountyManager.make_bounty_unit_id(bounty_id)
+
+	if _has_unit_with_id(unit_id):
+		return
+
+	var enemy_type_id: String = String(bounty.get("enemy_type_id", ""))
+	var enemy_data: EnemyData = find_enemy_data_by_id(enemy_data_list, enemy_type_id)
+	if enemy_data == null:
+		enemy_data = EnemyDatabase.get_enemy(enemy_type_id)
+	if enemy_data == null:
+		return
+
+	var spawn_tile: Vector2i = WorldState.value_to_vector2i(
+		bounty.get("spawn_position", {}),
+		Vector2i.ZERO
+	)
+
+	var enemy = enemy_unit_scene.instantiate()
+	enemy.start_tile = spawn_tile
+	enemy.unit_id = unit_id
+	enemy.map_id = map_id
+	enemy.enemy_data_to_apply = enemy_data
+	enemy.is_bounty = true
+	enemy.bounty_id = bounty_id
+	enemy.bounty_reward_gold = int(bounty.get("reward_gold", 0))
+	enemy.bounty_stat_multiplier = float(bounty.get("stat_multiplier", 1.0))
+
+	ensure_inventory_node(enemy)
+	units_node.add_child(enemy)
+	apply_generated_shop_inventory_if_needed(enemy, enemy_data)
+
+	var bounty_display_name: String = enemy_type_id
+	if enemy != null and enemy.has_method("get_talk_name"):
+		bounty_display_name = String(enemy.get_talk_name())
+
+	var discovery_log: String = "賞金首を発見: %s" % bounty_display_name
+	if enemy != null and enemy.has_method("notify_hud_log"):
+		enemy.notify_hud_log(discovery_log)
+
+	print(discovery_log, " unit_id=", unit_id, " bounty_id=", bounty_id, " tile=", spawn_tile)
+
+
+func _has_unit_with_id(target_unit_id: String) -> bool:
+	if target_unit_id == "":
+		return false
+
+	for unit in units_node.get_children():
+		if unit == null:
+			continue
+		if not ("unit_id" in unit):
+			continue
+		if String(unit.unit_id) == target_unit_id:
+			return true
+
+	return false
 
 
 func spawn_npc_random(

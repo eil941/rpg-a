@@ -101,6 +101,13 @@ var unit_roles: int = 0
 
 @export var death_inventory_drop_radius: int = 5
 
+var is_bounty: bool = false
+var bounty_id: String = ""
+var bounty_reward_gold: int = 0
+var bounty_stat_multiplier: float = 1.0
+const BOUNTY_DISPLAY_PREFIX: String = "賞金首: "
+const BOUNTY_MARKER_NODE_NAME: String = "BountyMarkerLabel"
+
 # プレイヤーから右クリック攻撃などで明示的に攻撃された後の設定。
 # EnemyData / NpcData から受け取る。未設定なら従来通り「敵対化 + 逃げる」。
 @export var attacked_by_player_behavior: AttackedBehaviorData
@@ -220,6 +227,9 @@ func _ready() -> void:
 
 	if enemy_data_to_apply != null:
 		apply_enemy_data(enemy_data_to_apply)
+
+	if is_bounty:
+		apply_bounty_stat_multiplier()
 
 	if npc_data_to_apply != null:
 		apply_npc_data(npc_data_to_apply)
@@ -2550,6 +2560,10 @@ func get_stats_data() -> Dictionary:
 	data["override_move_style"] = override_move_style
 	data["move_style"] = move_style
 	data["effect_runtimes"] = get_effect_runtimes_save_data()
+	data["is_bounty"] = is_bounty
+	data["bounty_id"] = bounty_id
+	data["bounty_reward_gold"] = bounty_reward_gold
+	data["bounty_stat_multiplier"] = bounty_stat_multiplier
 
 	if TimeManager != null:
 		data["last_effect_update_time"] = float(TimeManager.world_time_seconds)
@@ -2587,6 +2601,15 @@ func apply_stats_data(data: Dictionary) -> void:
 		override_move_style = bool(data["override_move_style"])
 	if data.has("move_style"):
 		move_style = int(data["move_style"])
+
+	if data.has("is_bounty"):
+		is_bounty = bool(data["is_bounty"])
+	if data.has("bounty_id"):
+		bounty_id = String(data["bounty_id"])
+	if data.has("bounty_reward_gold"):
+		bounty_reward_gold = int(data["bounty_reward_gold"])
+	if data.has("bounty_stat_multiplier"):
+		bounty_stat_multiplier = float(data["bounty_stat_multiplier"])
 
 	if data.has("skills") and skills != null:
 		skills.apply_skills_data(data["skills"])
@@ -2862,6 +2885,7 @@ func handle_death(cause: String = "") -> void:
 		stats.hp = min(int(stats.hp), 0)
 
 	drop_inventory_items_on_death_if_needed()
+	handle_bounty_death_reward_if_needed()
 
 	if is_player_unit:
 		print("プレイヤー死亡 cause=", cause)
@@ -2880,6 +2904,95 @@ func handle_death(cause: String = "") -> void:
 	print("[DEATH] unit=", name, " unit_id=", unit_id, " map_id=", map_id, " cause=", cause)
 
 	queue_free()
+
+
+func apply_bounty_stat_multiplier() -> void:
+	if stats == null:
+		return
+
+	apply_bounty_display()
+
+	var multiplier: float = max(1.0, bounty_stat_multiplier)
+	if multiplier <= 1.0:
+		return
+
+	stats.attack = max(1, int(round(float(stats.attack) * multiplier)))
+	stats.defense = max(0, int(round(float(stats.defense) * multiplier)))
+	stats.speed = max(1.0, float(stats.speed) * (1.0 + (multiplier - 1.0) * 0.5))
+	stats.strength = max(1, int(round(float(stats.strength) * multiplier)))
+	stats.vitality = max(1, int(round(float(stats.vitality) * multiplier)))
+	stats.agility = max(1, int(round(float(stats.agility) * multiplier)))
+	stats.dexterity = max(1, int(round(float(stats.dexterity) * multiplier)))
+	stats.spirit = max(1, int(round(float(stats.spirit) * multiplier)))
+	stats.sense = max(1, int(round(float(stats.sense) * multiplier)))
+	stats.luck = max(0, int(round(float(stats.luck) * multiplier)))
+
+	if stats.has_method("refresh_derived_max_hp"):
+		stats.refresh_derived_max_hp(false)
+		stats.hp = stats.max_hp
+
+
+func apply_bounty_display() -> void:
+	name = format_bounty_display_name(name)
+	if talk_display_name != "":
+		talk_display_name = format_bounty_display_name(talk_display_name)
+
+	ensure_bounty_marker()
+
+
+func format_bounty_display_name(base_name: String) -> String:
+	var display_name: String = base_name.strip_edges()
+	if display_name.begins_with(BOUNTY_DISPLAY_PREFIX):
+		return display_name
+	if display_name == "":
+		display_name = "不明な敵"
+
+	return BOUNTY_DISPLAY_PREFIX + display_name
+
+
+func ensure_bounty_marker() -> void:
+	if get_node_or_null(BOUNTY_MARKER_NODE_NAME) != null:
+		return
+
+	var marker := Label.new()
+	marker.name = BOUNTY_MARKER_NODE_NAME
+	marker.text = "!"
+	marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	marker.position = Vector2(-5, -42)
+	marker.z_index = UNIT_RENDER_Z_INDEX + 3
+	marker.add_theme_font_size_override("font_size", 18)
+	marker.add_theme_color_override("font_color", Color(1.0, 0.86, 0.15))
+	marker.add_theme_color_override("font_outline_color", Color(0.18, 0.08, 0.0))
+	marker.add_theme_constant_override("outline_size", 3)
+	add_child(marker)
+
+
+func handle_bounty_death_reward_if_needed() -> void:
+	if not is_bounty:
+		return
+	if bounty_id == "":
+		return
+
+	var bounty: Dictionary = BountyManager.mark_bounty_defeated(bounty_id)
+	var reward_gold: int = bounty_reward_gold
+	if reward_gold <= 0 and not bounty.is_empty():
+		reward_gold = int(bounty.get("reward_gold", 0))
+	if reward_gold <= 0:
+		return
+
+	var dropped: bool = ItemDropHelper.drop_entry_near_unit(
+		{
+			"item_id": "gold",
+			"amount": reward_gold
+		},
+		self,
+		max(1, death_inventory_drop_radius)
+	)
+
+	if dropped:
+		print("[BOUNTY] reward dropped bounty_id=", bounty_id, " gold=", reward_gold)
+	else:
+		print("[BOUNTY] reward drop failed bounty_id=", bounty_id, " gold=", reward_gold)
 
 
 func _notify_player_death(cause: String = "") -> void:

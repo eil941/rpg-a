@@ -24,6 +24,12 @@ var map_item_pickups: Dictionary = {}
 var map_chests: Dictionary = {}
 
 # =========================
+# Bounty
+# =========================
+# bounty_id -> Dictionary
+var bounty_data: Dictionary = {}
+
+# =========================
 # Quest
 # =========================
 var quest_active_data: Dictionary = {}
@@ -220,6 +226,7 @@ func reset_for_new_game() -> void:
 	unique_map_instances.clear()
 	map_item_pickups.clear()
 	map_chests.clear()
+	bounty_data.clear()
 
 	quest_active_data.clear()
 	quest_completed_data.clear()
@@ -271,6 +278,8 @@ func run_npc_reset_if_needed(current_npc_reset_index: int) -> void:
 	if not should_run_npc_reset(current_npc_reset_index):
 		return
 
+	print("[RESET DEBUG] NPCリセット実行: index=", current_npc_reset_index)
+
 	# 先に完了インデックスを更新してからリセット処理を走らせる。
 	# clear_npc_quest_generation_blocks() が「このリセットで解除してよいブロック」を
 	# 正しく判定できるようにするため。
@@ -286,7 +295,9 @@ func update_monthly_reset_pending(current_month_index: int) -> void:
 		return
 
 	if current_month_index > last_monthly_reset_month_index:
-		monthly_reset_pending = true
+		if not monthly_reset_pending:
+			print("[RESET DEBUG] 通常リセット予約: index=", current_month_index)
+			monthly_reset_pending = true
 
 
 func should_run_monthly_reset(current_month_index: int) -> bool:
@@ -369,9 +380,10 @@ func run_monthly_world_reset(active_map_id: String, current_month_index: int) ->
 	# 実リセットは FieldMap に戻った後だけ行う。
 	if not is_field_map_id(active_map_id):
 		monthly_reset_pending = true
-		print("[WorldState] monthly reset pending until FieldMap. active_map_id=", active_map_id, " month=", current_month_index)
+		print("[RESET DEBUG] 通常リセット予約継続: index=", current_month_index, " active_map=", active_map_id)
 		return
 
+	print("[RESET DEBUG] 通常リセット実行: index=", current_month_index, " active_map=", active_map_id)
 	print("[WorldState] monthly reset start on FieldMap month=", current_month_index)
 
 	var reset_map_ids: Array[String] = _collect_regenerable_map_ids()
